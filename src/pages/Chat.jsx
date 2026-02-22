@@ -189,9 +189,10 @@ export default function Chat() {
             if (activeCharacter) {
                 if (levelId === 'zero' || levelId === 'basic') {
                     // For beginners, ask AI to generate a level-aware greeting in character
+                    const scriptNote = `CRITICAL LANGUAGE RULE: The user's native language is ${nativeLangName}. You MUST write your entire response in ${nativeLangName} using its NATIVE SCRIPT (e.g. Devanagari for Hindi, Bengali script for Bengali, Tamil script for Tamil). Do NOT use Roman/Latin transliteration and do NOT use the character's own regional language — for example, even if the character is from Kolkata, do NOT use Bengali if the user's language is Hindi. The character's regional personality and warmth should show only through tone and the one English phrase.`;
                     const levelNote = levelId === 'zero'
-                        ? `The user knows NO English at all. Greet them MOSTLY in ${nativeLangName} (their native language), staying completely in character as ${activeCharacter.name}. End with just ONE simple English word or phrase like "Hello!" or "Say: Hello!". Keep it warm and brief — 2 sentences max.`
-                        : `The user has very basic English. Greet them with a MIX of simple English and ${nativeLangName}, staying in character as ${activeCharacter.name}. Keep it encouraging and brief — 2 sentences max.`;
+                        ? `${scriptNote} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter.name}. End with just ONE simple English word or phrase like "Say: Hello!".`
+                        : `${scriptNote} Greet the user with a mix of ${nativeLangName} and simple English (2 sentences max), introducing yourself as ${activeCharacter.name}. Keep it warm and encouraging.`;
                     const aiGreeting = await aiService.getResponse(
                         `[GREETING ONLY — do not start a conversation, just greet the user. ${levelNote}]`,
                         topicName, activeCharacter, nativeLang, false, levelId
