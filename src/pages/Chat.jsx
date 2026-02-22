@@ -183,13 +183,28 @@ export default function Chat() {
 
             setIsLoading(true);
             let greeting = "";
+            const levelId = userLevel || 'conversational';
+            const nativeLangName = nativeLang?.name || 'Hindi';
+
             if (activeCharacter) {
-                // Character-specific greetings stay as-is (persona-defined)
-                const greetings = activeCharacter.greetings || ["Hello! How are you today?"];
-                greeting = greetings[Math.floor(Math.random() * greetings.length)];
+                if (levelId === 'zero' || levelId === 'basic') {
+                    // For beginners, ask AI to generate a level-aware greeting in character
+                    const levelNote = levelId === 'zero'
+                        ? `The user knows NO English at all. Greet them MOSTLY in ${nativeLangName} (their native language), staying completely in character as ${activeCharacter.name}. End with just ONE simple English word or phrase like "Hello!" or "Say: Hello!". Keep it warm and brief — 2 sentences max.`
+                        : `The user has very basic English. Greet them with a MIX of simple English and ${nativeLangName}, staying in character as ${activeCharacter.name}. Keep it encouraging and brief — 2 sentences max.`;
+                    const aiGreeting = await aiService.getResponse(
+                        `[GREETING ONLY — do not start a conversation, just greet the user. ${levelNote}]`,
+                        topicName, activeCharacter, nativeLang, false, levelId
+                    );
+                    // Strip any accidental tags
+                    greeting = aiGreeting.replace(/<[^>]+>/g, '').trim();
+                } else {
+                    // Conversational / Fluent — use fast hardcoded character greeting
+                    const greetings = activeCharacter.greetings || ["Hello! How are you today?"];
+                    greeting = greetings[Math.floor(Math.random() * greetings.length)];
+                }
             } else {
-                const nativeLangName = nativeLang?.name || 'Hindi';
-                const levelId = userLevel || 'conversational';
+
 
                 if (levelId === 'zero') {
                     // Mostly native language — one simple English phrase at the end
