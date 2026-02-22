@@ -13,7 +13,7 @@ const headers = (extra = {}) => ({
     ...extra,
 });
 
-const fetchWithTimeout = (url, options = {}, ms = 30000) => {
+const fetchWithTimeout = (url, options = {}, ms = 60000) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), ms);
     return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));

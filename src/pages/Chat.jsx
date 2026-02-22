@@ -174,6 +174,10 @@ export default function Chat() {
         const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
         aiService.init(apiKey);
 
+        // Warm up the backend on mount so Render free-tier cold starts happen
+        // before the user sends their first message, not during it.
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/health`).catch(() => { });
+
         // Reset mounted state — fixes React Strict Mode double-invocation bug
         isMounted.current = true;
 
@@ -376,8 +380,9 @@ export default function Chat() {
         const speechText = cleanResponse.replace(/<shadow>(.*?)<\/shadow>/gs, '$1');
 
         setMessages(prev => [...prev, { role: 'assistant', content: cleanResponse }]);
+        setIsLoading(false); // unblock UI before TTS — audio loading must not block chat
 
-        // Play voice
+        // Play voice (non-blocking — after UI is already updated)
         if (!isMuted && isMounted.current) {
             const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy');
             if (audioUrl && isMounted.current) {
@@ -385,8 +390,6 @@ export default function Chat() {
                 audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
             }
         }
-
-        setIsLoading(false);
     };
 
     const toggleRecording = async () => {
