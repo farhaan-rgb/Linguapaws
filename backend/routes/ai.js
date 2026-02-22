@@ -1,0 +1,108 @@
+const express = require('express');
+const OpenAI = require('openai');
+const requireAuth = require('../middleware/auth');
+
+const router = express.Router();
+router.use(requireAuth);
+
+let openai;
+const getClient = () => {
+    if (!openai) openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    return openai;
+};
+
+// POST /api/ai/chat
+router.post('/chat', async (req, res) => {
+    const { messages, options = {} } = req.body;
+    if (!messages?.length) return res.status(400).json({ error: 'messages are required' });
+
+    const response = await getClient().chat.completions.create({
+        model: options.model || 'gpt-4o-mini',
+        messages,
+        temperature: options.temperature ?? 0.8,
+        max_tokens: options.max_tokens ?? 500,
+        response_format: options.response_format || undefined,
+    });
+    res.json({ content: response.choices[0].message.content });
+});
+
+// POST /api/ai/speech
+router.post('/speech', async (req, res) => {
+    const { text, voice = 'alloy' } = req.body;
+    if (!text) return res.status(400).json({ error: 'text is required' });
+
+    const mp3 = await getClient().audio.speech.create({ model: 'tts-1', voice, input: text });
+    const buffer = Buffer.from(await mp3.arrayBuffer());
+    res.set('Content-Type', 'audio/mpeg');
+    res.send(buffer);
+});
+
+// POST /api/ai/transcribe
+router.post('/transcribe', async (req, res) => {
+    const { audioBase64, mimeType = 'audio/webm' } = req.body;
+    if (!audioBase64) return res.status(400).json({ error: 'audioBase64 is required' });
+
+    const buffer = Buffer.from(audioBase64, 'base64');
+    const file = await OpenAI.toFile(buffer, 'audio.webm', { type: mimeType });
+    const transcription = await getClient().audio.transcriptions.create({ file, model: 'whisper-1' });
+    res.json({ text: transcription.text });
+});
+
+// POST /api/ai/pronunciation
+// Body: { targetText, transcript }
+// Returns word-level comparison with tips tailored to Indian English
+router.post('/pronunciation', async (req, res) => {
+    const { targetText, transcript } = req.body;
+    if (!targetText || !transcript) {
+        return res.status(400).json({ error: 'targetText and transcript are required' });
+    }
+
+    const prompt = `You are an English pronunciation coach specializing in helping Indian English speakers.
+
+Target sentence (what the user was supposed to say):
+"${targetText}"
+
+What Whisper transcribed (what the user actually said):
+"${transcript}"
+
+Analyze word by word. For each word in the target:
+- Check if it was pronounced correctly (matched in transcript)
+- If incorrect, identify the specific error pattern common for Indian English speakers, such as:
+  * TH → T or D (three/tree, this/dis, the/de)
+  * W → V substitution (wine/vine, what/vat)
+  * V → W substitution (very/wery)
+  * Retroflex consonants
+  * Final consonant dropping
+  * Vowel elongation/shortening
+  * Word stress errors
+- Provide a concise, actionable tip (max 10 words)
+
+Also give:
+- An overall score out of 100
+- One short encouragement line (max 15 words, warm and motivating)
+
+Return ONLY valid JSON in this exact format:
+{
+  "score": 82,
+  "words": [
+    { "target": "The", "heard": "De", "correct": false, "tip": "TH: place tongue between teeth" },
+    { "target": "weather", "heard": "weather", "correct": true, "tip": null }
+  ],
+  "encouragement": "Great attempt! Your vowels are really clear."
+}`;
+
+    const response = await getClient().chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+            { role: 'system', content: 'You are a pronunciation analysis system. Return ONLY valid JSON.' },
+            { role: 'user', content: prompt },
+        ],
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
+    });
+
+    const result = JSON.parse(response.choices[0].message.content);
+    res.json(result);
+});
+
+module.exports = router;
