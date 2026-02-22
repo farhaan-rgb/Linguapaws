@@ -13,6 +13,12 @@ const headers = (extra = {}) => ({
     ...extra,
 });
 
+const fetchWithTimeout = (url, options = {}, ms = 30000) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+};
+
 async function handleResponse(res) {
     if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -23,12 +29,12 @@ async function handleResponse(res) {
 
 export const api = {
     async get(path) {
-        const res = await fetch(`${BASE_URL}${path}`, { headers: headers() });
+        const res = await fetchWithTimeout(`${BASE_URL}${path}`, { headers: headers() });
         return handleResponse(res).then(r => r.json());
     },
 
     async post(path, body) {
-        const res = await fetch(`${BASE_URL}${path}`, {
+        const res = await fetchWithTimeout(`${BASE_URL}${path}`, {
             method: 'POST',
             headers: headers(),
             body: JSON.stringify(body),
@@ -37,7 +43,7 @@ export const api = {
     },
 
     async put(path, body) {
-        const res = await fetch(`${BASE_URL}${path}`, {
+        const res = await fetchWithTimeout(`${BASE_URL}${path}`, {
             method: 'PUT',
             headers: headers(),
             body: JSON.stringify(body),
@@ -46,7 +52,7 @@ export const api = {
     },
 
     async delete(path) {
-        const res = await fetch(`${BASE_URL}${path}`, {
+        const res = await fetchWithTimeout(`${BASE_URL}${path}`, {
             method: 'DELETE',
             headers: headers(),
         });
@@ -55,7 +61,7 @@ export const api = {
 
     /** For endpoints that return raw binary (e.g. TTS audio). Returns a Blob URL. */
     async postAudio(path, body) {
-        const res = await fetch(`${BASE_URL}${path}`, {
+        const res = await fetchWithTimeout(`${BASE_URL}${path}`, {
             method: 'POST',
             headers: headers(),
             body: JSON.stringify(body),
