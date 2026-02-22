@@ -313,13 +313,50 @@ export default function Chat() {
 
         setIsLoading(true);
 
+        // ── CLIENT-SIDE RECALIBRATION (first message only) ────────────────────
+        // Deterministically detect obvious level mismatches before calling AI.
+        // React state updates are async so we track the effective level locally.
+        let effectiveLevel = userLevel;
+        const isFirstMessage = exchangeCount.current === 0;
+        if (isFirstMessage) {
+            const latinChars = (text.match(/[a-zA-Z]/g) || []).length;
+            const latinRatio = latinChars / Math.max(text.replace(/\s/g, '').length, 1);
+            const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
+            const charName = activeCharacter?.name || 'Miko';
+
+            const applyRecalibration = (newLevelId) => {
+                effectiveLevel = newLevelId;
+                setUserLevel(newLevelId);
+                const newLevel = { id: newLevelId, label: LEVEL_LABELS[newLevelId], appDetected: true };
+                localStorage.setItem('linguapaws_level', JSON.stringify(newLevel));
+                api.put('/api/settings', { englishLevel: newLevel }).catch(() => { });
+                setRecalibrationToast(`${charName} adjusted to your level: ${LEVEL_LABELS[newLevelId]} 🎯`);
+                setTimeout(() => setRecalibrationToast(null), 4000);
+            };
+
+            // Non-English message + high stated level → recalibrate down
+            if (latinRatio < 0.15 && (userLevel === 'fluent' || userLevel === 'conversational')) {
+                applyRecalibration('zero');
+            }
+            // Very basic English + high stated level → recalibrate to basic
+            else if (latinRatio > 0.5 && latinRatio < 0.85 && text.trim().split(/\s+/).length <= 4 && userLevel === 'fluent') {
+                applyRecalibration('basic');
+            }
+            // Fluent English paragraphs + stated zero → recalibrate up  
+            else if (latinRatio > 0.85 && text.trim().split(/\s+/).length > 6 && (userLevel === 'zero' || userLevel === 'basic')) {
+                applyRecalibration('fluent');
+            }
+        }
+        // ── END CLIENT-SIDE RECALIBRATION ─────────────────────────────────────
+
         // Increment exchange count and determine if this is a scheduled shadow round
         exchangeCount.current += 1;
         const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
 
-        const botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, triggerShadow, userLevel);
+        const botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, triggerShadow, effectiveLevel);
 
-        // Check for AI-triggered level recalibration
+        // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
+
         const recalibrateMatch = botResponse.match(/<recalibrate>(zero|basic|conversational|fluent)<\/recalibrate>/);
         let responseWithoutMeta = botResponse.replace(/<recalibrate>.*?<\/recalibrate>/g, '');
         if (recalibrateMatch) {
