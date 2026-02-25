@@ -470,7 +470,7 @@ export default function Chat() {
                         <h4 style={{ fontSize: '15px', fontWeight: '700' }}>{resolvedCharacter?.name || 'Miko'}</h4>
                         <span style={{ fontSize: '11px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <span style={{ width: '6px', height: '6px', background: '#10b981', borderRadius: '50%' }}></span>
-                            {resolvedCharacter?.trait || 'Coach'}
+                            {resolvedCharacter?.id ? (t[`${resolvedCharacter.id}_trait`] || resolvedCharacter.trait) : (t.coach_name || 'Coach')}
                         </span>
                     </div>
                 </div>
@@ -605,16 +605,17 @@ export default function Chat() {
                                         fontSize: '11px',
                                         fontWeight: '700',
                                         cursor: 'pointer',
-                                        padding: '6px 12px',
+                                        padding: '6px',
                                         borderRadius: '20px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '6px',
                                         boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                     }}
+                                    aria-label={translations[i] ? t.original : t.translate_to.replace('{n}', nativeLang.name || 'Lang')}
+                                    title={translations[i] ? t.original : t.translate_to.replace('{n}', nativeLang.name || 'Lang')}
                                 >
                                     <Globe size={12} />
-                                    {translations[i] ? t.original : t.translate_to.replace('{n}', nativeLang.name || 'Lang')}
                                 </motion.button>
 
                                 <motion.button
@@ -627,16 +628,17 @@ export default function Chat() {
                                         fontSize: '11px',
                                         fontWeight: '700',
                                         cursor: 'pointer',
-                                        padding: '6px 12px',
+                                        padding: '6px',
                                         borderRadius: '20px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '6px',
                                         boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                     }}
+                                    aria-label={t.dictionary}
+                                    title={t.dictionary}
                                 >
-                                    <BookOpen size={12} title="Explore words" />
-                                    {t.dictionary}
+                                    <BookOpen size={12} />
                                 </motion.button>
 
                                 <motion.button
@@ -649,16 +651,17 @@ export default function Chat() {
                                         fontSize: '11px',
                                         fontWeight: '700',
                                         cursor: 'pointer',
-                                        padding: '6px 12px',
+                                        padding: '6px',
                                         borderRadius: '20px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '6px',
                                         boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                     }}
+                                    aria-label={t.read_aloud}
+                                    title={t.read_aloud}
                                 >
                                     <Volume2 size={12} />
-                                    {t.read_aloud}
                                 </motion.button>
 
                                 <motion.button
@@ -671,16 +674,17 @@ export default function Chat() {
                                         fontSize: '11px',
                                         fontWeight: '700',
                                         cursor: 'pointer',
-                                        padding: '6px 12px',
+                                        padding: '6px',
                                         borderRadius: '20px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '6px',
                                         boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                     }}
+                                    aria-label={t.shadow}
+                                    title={t.shadow}
                                 >
                                     <Mic2 size={12} />
-                                    {t.shadow}
                                 </motion.button>
                             </div>
                         )}
@@ -821,7 +825,7 @@ export default function Chat() {
                                 }}
                             >
                                 <Keyboard size={16} />
-                                Switch to Typing
+                                {t.switch_to_typing}
                             </motion.button>
 
                             <motion.button
@@ -842,7 +846,7 @@ export default function Chat() {
                                 }}
                             >
                                 <Sparkles size={16} />
-                                Help me answer
+                                {t.help_me_answer}
                             </motion.button>
                         </div>
                     </div>
@@ -861,7 +865,7 @@ export default function Chat() {
                             <textarea
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
-                                placeholder="Type a message..."
+                                placeholder={t.type_message}
                                 style={{
                                     flex: 1,
                                     background: 'none',
@@ -913,13 +917,13 @@ export default function Chat() {
                                 onClick={toggleInputMode}
                                 style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '13px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                             >
-                                <Mic size={14} /> Back to Voice
+                                <Mic size={14} /> {t.back_to_voice}
                             </button>
                             <button
                                 onClick={fetchSuggestions}
                                 style={{ background: 'none', border: 'none', color: '#7c3aed', fontSize: '13px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                             >
-                                <Sparkles size={14} /> Help me answer
+                                <Sparkles size={14} /> {t.help_me_answer}
                             </button>
                         </div>
                     </div>

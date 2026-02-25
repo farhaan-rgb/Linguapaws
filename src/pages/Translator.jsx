@@ -202,6 +202,14 @@ export default function Translator() {
                                             placeholder={t.type_in_example
                                                 .replace('{n}', nativeLangName)
                                                 .replace('{ex}', exampleText)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    if (inputText.trim()) {
+                                                        handleTranslateAction(inputText);
+                                                    }
+                                                }
+                                            }}
                                             style={{
                                                 width: '100%',
                                                 padding: '20px',
