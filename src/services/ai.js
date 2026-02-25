@@ -159,14 +159,15 @@ SHADOW PRACTICE TAGS:
         }
     }
 
-    async translate(text, targetLang) {
+    async translate(text, targetLang, sourceLang = null) {
         const isToEnglish = targetLang?.toLowerCase() === 'english';
+        const sourceHint = sourceLang ? `The source language is ${sourceLang}. The input may be in Latin script (romanized ${sourceLang}).` : '';
         const messages = [
             {
                 role: 'system',
                 content: isToEnglish
-                    ? `You are an expert translator.Detect the language and translate into natural English.Return JSON: { "translation": "...", "detectedLanguage": "..." }.`
-                    : `You are a helpful translator.Translate the following English text into ${targetLang}. Only provide the translation, no extra text.`,
+                    ? `You are an expert translator. ${sourceHint} Translate into natural English. Preserve tense, person, and question/statement intent. Return JSON: { "translation": "...", "detectedLanguage": "..." }.`
+                    : `You are a helpful translator. Translate the following English text into ${targetLang}. Preserve meaning and tone. Only provide the translation, no extra text.`,
             },
             { role: 'user', content: text },
         ];

@@ -7,19 +7,6 @@ import { useTranslation } from '../hooks/useTranslation';
 export default function Stats() {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const getStoredJSON = (key) => {
-        try {
-            const item = localStorage.getItem(key);
-            return item ? JSON.parse(item) : null;
-        } catch {
-            return null;
-        }
-    };
-    const nativeLang = getStoredJSON('linguapaws_native_lang');
-    const level = getStoredJSON('linguapaws_level');
-    const isHindiBeginner =
-        nativeLang?.id === 'hi' &&
-        (level?.id === 'zero' || level?.id === 'basic');
     const wordCount = wordTracker.getTotalCount();
     const proficiency = wordTracker.getProficiency();
     const progress = wordTracker.getProgress();
@@ -90,7 +77,7 @@ export default function Stats() {
                 >
                     <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '4px' }}>{wordCount}</div>
                     <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)' }}>
-                        {isHindiBeginner ? (t.new_words || 'नए शब्द') : 'New Words'}
+                        {t.new_words}
                     </span>
                 </section>
             </div>

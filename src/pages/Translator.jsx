@@ -4,10 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Share2, Languages, ChevronLeft, Mic, Square, Keyboard, History } from 'lucide-react';
 import { aiService } from '../services/ai';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
+import { useTranslation } from '../hooks/useTranslation';
 
 export default function Translator() {
     const navigate = useNavigate();
     const { isRecording, startRecording, stopRecording } = useAudioRecorder();
+    const { t } = useTranslation();
     const [inputText, setInputText] = useState('');
     const [translation, setTranslation] = useState('');
     const [isTranslating, setIsTranslating] = useState(false);
@@ -17,6 +19,20 @@ export default function Translator() {
     const [detectedLang, setDetectedLang] = useState('');
 
     const nativeLang = JSON.parse(localStorage.getItem('linguapaws_native_lang') || '{"name": "any language", "code": "auto"}');
+    const nativeLangName = nativeLang?.name || 'any language';
+    const exampleMap = {
+        hi: 'Aaj din kya hai?',
+        te: 'Ninna nuvvu ekkadiki vellavu?',
+        mr: 'Aaj kay divas aahe?',
+        bn: 'Aj kon din?',
+        ta: 'Inru entha naal?',
+        kn: 'Ivattu yenu dina?',
+        gu: 'Aaje kyano divas che?',
+        ml: 'Innu ethra divasam?',
+        pa: 'Aj ki din hai?',
+        ur: 'Aaj ka din kya hai?',
+    };
+    const exampleText = exampleMap[nativeLang?.id] || 'Aaj kya din hai?';
 
     const handleTranslateAction = async (content) => {
         if (!content.trim()) return;
@@ -24,7 +40,7 @@ export default function Translator() {
         setIsTranslating(true);
         try {
             // Force "to English" mode for this page
-            const data = await aiService.translate(content, 'English');
+            const data = await aiService.translate(content, 'English', nativeLangName);
             if (data && typeof data === 'object') {
                 setTranslation(data.translation);
                 setDetectedLang(data.detectedLanguage);
@@ -81,7 +97,7 @@ export default function Translator() {
                 <button onClick={() => navigate('/')} style={{ background: 'white', border: '1px solid #e2e8f0', width: '40px', height: '40px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748b' }}>
                     <ChevronLeft size={24} />
                 </button>
-                <h1 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b' }}>Quick Translator</h1>
+                <h1 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b' }}>{t.translator_title}</h1>
             </header>
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -91,8 +107,8 @@ export default function Translator() {
                         <Languages size={20} />
                     </div>
                     <div>
-                        <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase' }}>Translating From</span>
-                        <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>{nativeLang.name} → English</h3>
+                        <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase' }}>{t.translating_from}</span>
+                        <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>{nativeLangName} → English</h3>
                     </div>
                 </div>
 
@@ -108,13 +124,13 @@ export default function Translator() {
                         >
                             <div style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
                                 <span style={{ fontSize: '11px', fontWeight: '700', opacity: 0.7, textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
-                                    Original ({detectedLang && detectedLang.toLowerCase() !== nativeLang.name.toLowerCase() && nativeLang.name !== 'any language' ? `Detected: ${detectedLang}` : nativeLang.name}):
+                                    {t.original_label} ({detectedLang && detectedLang.toLowerCase() !== nativeLangName.toLowerCase() && nativeLangName !== 'any language' ? `${t.detected_label}: ${detectedLang}` : nativeLangName}):
                                 </span>
                                 <p style={{ fontSize: '16px', fontWeight: '500', opacity: 0.9 }}>"{lastInput}"</p>
                             </div>
 
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '11px', fontWeight: '700', opacity: 0.8, textTransform: 'uppercase' }}>English Translation:</span>
+                                <span style={{ fontSize: '11px', fontWeight: '700', opacity: 0.8, textTransform: 'uppercase' }}>{t.english_translation_label}</span>
                             </div>
                             <p style={{ fontSize: '22px', fontWeight: '700', marginBottom: '24px', lineHeight: '1.4' }}>"{translation}"</p>
 
@@ -123,7 +139,7 @@ export default function Translator() {
                                     onClick={handleShare}
                                     style={{ flex: 1, background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)', padding: '12px', borderRadius: '16px', color: 'white', fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}
                                 >
-                                    <Share2 size={18} /> Share Translation
+                                    <Share2 size={18} /> {t.share_translation}
                                 </button>
                                 <button
                                     onClick={() => { setTranslation(''); setInputText(''); setMode('voice'); }}
@@ -144,9 +160,9 @@ export default function Translator() {
                                 <>
                                     <div style={{ textAlign: 'center' }}>
                                         <p style={{ color: '#64748b', fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>
-                                            {isRecording ? 'Listening...' : `Speak in ${nativeLang.name}`}
+                                            {isRecording ? t.listening : t.speak_in.replace('{n}', nativeLangName)}
                                         </p>
-                                        <p style={{ color: '#94a3b8', fontSize: '13px' }}>I'll convert it to English for you.</p>
+                                        <p style={{ color: '#94a3b8', fontSize: '13px' }}>{t.convert_to_english}</p>
                                     </div>
 
                                     <motion.button
@@ -174,7 +190,7 @@ export default function Translator() {
                                         onClick={() => setMode('text')}
                                         style={{ background: 'white', border: '1px solid #e2e8f0', padding: '12px 24px', borderRadius: '20px', color: '#64748b', fontSize: '14px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                                     >
-                                        <Keyboard size={18} /> Switch to Typing
+                                        <Keyboard size={18} /> {t.switch_to_typing}
                                     </button>
                                 </>
                             ) : (
@@ -183,7 +199,9 @@ export default function Translator() {
                                         <textarea
                                             value={inputText}
                                             onChange={(e) => setInputText(e.target.value)}
-                                            placeholder={`Type in ${nativeLang.name}... (e.g., "Aaj kya din hai")`}
+                                            placeholder={t.type_in_example
+                                                .replace('{n}', nativeLangName)
+                                                .replace('{ex}', exampleText)}
                                             style={{
                                                 width: '100%',
                                                 padding: '20px',
@@ -225,7 +243,7 @@ export default function Translator() {
                                         onClick={() => setMode('voice')}
                                         style={{ alignSelf: 'center', background: 'none', border: 'none', color: '#64748b', fontSize: '14px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                                     >
-                                        <Mic size={18} /> Back to Voice
+                                        <Mic size={18} /> {t.back_to_voice}
                                     </button>
                                 </div>
                             )}
@@ -240,7 +258,7 @@ export default function Translator() {
                             transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                             style={{ width: '40px', height: '40px', border: '4px solid #7c3aed', borderTopColor: 'transparent', borderRadius: '50%' }}
                         />
-                        <span style={{ fontWeight: '700', color: '#1e293b' }}>Translating with AI...</span>
+                        <span style={{ fontWeight: '700', color: '#1e293b' }}>{t.translating_with_ai}</span>
                     </div>
                 )}
             </div>

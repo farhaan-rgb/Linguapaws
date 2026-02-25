@@ -44,7 +44,9 @@ export default function WordHistory() {
             {/* Stats Summary */}
             <section className="card" style={{ background: proficiency.color, color: 'white', padding: '20px 16px', textAlign: 'center' }}>
                 <div style={{ fontSize: '32px', marginBottom: '4px' }}>{proficiency.icon}</div>
-                <span style={{ fontSize: '12px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px' }}>{t.current_rank.replace('{n}', proficiency.status)}</span>
+                <span style={{ fontSize: '12px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    {t.current_rank.replace('{n}', t[proficiency.status.toLowerCase()] || proficiency.status)}
+                </span>
                 <h2 style={{ fontSize: '48px', fontWeight: '800', margin: '4px 0' }}>{totalWords}</h2>
                 <p style={{ fontSize: '13px', opacity: 0.9 }}>{t.words_used_desc}</p>
             </section>
