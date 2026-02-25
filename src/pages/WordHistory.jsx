@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { wordTracker } from '../services/wordTracker';
+import { useTranslation } from '../hooks/useTranslation';
 
 export default function WordHistory() {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [allWords, setAllWords] = useState([]);
     const [totalWords, setTotalWords] = useState(0);
     const [isExpanded, setIsExpanded] = useState(false);
@@ -36,15 +38,15 @@ export default function WordHistory() {
                 <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}>
                     <ChevronLeft size={24} />
                 </button>
-                <h1 style={{ fontSize: '24px' }}>Word History</h1>
+                <h1 style={{ fontSize: '24px' }}>{t.word_history_title}</h1>
             </header>
 
             {/* Stats Summary */}
             <section className="card" style={{ background: proficiency.color, color: 'white', padding: '20px 16px', textAlign: 'center' }}>
                 <div style={{ fontSize: '32px', marginBottom: '4px' }}>{proficiency.icon}</div>
-                <span style={{ fontSize: '12px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px' }}>Current Rank: {proficiency.status}</span>
+                <span style={{ fontSize: '12px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px' }}>{t.current_rank.replace('{n}', proficiency.status)}</span>
                 <h2 style={{ fontSize: '48px', fontWeight: '800', margin: '4px 0' }}>{totalWords}</h2>
-                <p style={{ fontSize: '13px', opacity: 0.9 }}>Words you've successfully used in chat</p>
+                <p style={{ fontSize: '13px', opacity: 0.9 }}>{t.words_used_desc}</p>
             </section>
 
             {/* Word Cloud or Empty State */}
@@ -53,7 +55,7 @@ export default function WordHistory() {
                     {/* Word Cloud */}
                     <section className="card" style={{ padding: '12px 16px' }}>
                         <h3 style={{ fontSize: '15px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', color: '#1e293b' }}>
-                            <span style={{ fontSize: '18px' }}>🫧</span> Vocabulary Bubbles
+                            <span style={{ fontSize: '18px' }}>🫧</span> {t.vocabulary_bubbles}
                         </h3>
                         <div style={{
                             display: 'flex',
@@ -111,10 +113,10 @@ export default function WordHistory() {
                 <section className="card" style={{ padding: '40px 24px', textAlign: 'center' }}>
                     <div style={{ fontSize: '64px', marginBottom: '16px' }}>🫧</div>
                     <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px', color: '#1a1a1a' }}>
-                        No words yet!
+                        {t.no_words}
                     </h2>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6', marginBottom: '24px' }}>
-                        Words you use in chat with characters will appear here as bubbles. Start a conversation to grow your vocabulary!
+                        {t.no_words_desc}
                     </p>
                     <button
                         onClick={() => navigate('/')}
@@ -129,14 +131,14 @@ export default function WordHistory() {
                             cursor: 'pointer',
                         }}
                     >
-                        Start Chatting 🐾
+                        {t.start_chatting}
                     </button>
                 </section>
             )}
 
             {/* List Section */}
             <section className="card" style={{ padding: '12px 16px' }}>
-                <h3 style={{ fontSize: '15px', marginBottom: '12px' }}>Top Mastered Words</h3>
+                <h3 style={{ fontSize: '15px', marginBottom: '12px' }}>{t.top_mastered}</h3>
 
                 {topWords.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -196,7 +198,7 @@ export default function WordHistory() {
                                         textAlign: 'center'
                                     }}
                                 >
-                                    {isExpanded ? 'Show less' : `View ${otherWords.length} more words`}
+                                    {isExpanded ? t.show_less : t.show_more.replace('{n}', otherWords.length)}
                                 </button>
                             </>
                         )}

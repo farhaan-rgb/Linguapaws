@@ -3,9 +3,11 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, CheckCircle2, AlertCircle, Lightbulb, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { aiService } from '../services/ai';
+import { useTranslation } from '../hooks/useTranslation';
 
 export default function Feedback() {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const location = useLocation();
     const text = location.state?.text || "";
 
@@ -31,13 +33,13 @@ export default function Feedback() {
         return (
             <div className="app-container" style={{ padding: '40px 24px', textAlign: 'center' }}>
                 <div style={{ fontSize: '64px', marginBottom: '24px' }}>😿</div>
-                <h2 style={{ marginBottom: '16px' }}>No text to analyze!</h2>
+                <h2 style={{ marginBottom: '16px' }}>{t.no_text_analyze}</h2>
                 <button
                     onClick={() => navigate(-1)}
                     className="primary-button"
                     style={{ width: 'auto', padding: '12px 24px' }}
                 >
-                    Go Back
+                    {t.go_back}
                 </button>
             </div>
         );
@@ -64,7 +66,7 @@ export default function Feedback() {
                     <div style={{ width: '32px', height: '32px', background: '#dcfce7', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
                         ✍️
                     </div>
-                    <h1 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>Writing Feedback</h1>
+                    <h1 style={{ fontSize: '18px', fontWeight: '800', color: '#1e293b' }}>{t.feedback_title}</h1>
                 </div>
             </header>
 
@@ -76,7 +78,7 @@ export default function Feedback() {
                             transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                             style={{ width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTopColor: 'var(--accent-purple)', borderRadius: '50%' }}
                         />
-                        <p style={{ marginTop: '16px', color: '#64748b', fontWeight: '600' }}>Miko is grading your paw-work... 🐾</p>
+                        <p style={{ marginTop: '16px', color: '#64748b', fontWeight: '600' }}>{t.grading_msg}</p>
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -93,7 +95,7 @@ export default function Feedback() {
                         >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                                 <Sparkles size={20} color="#8b5cf6" />
-                                <h3 style={{ fontSize: '16px', fontWeight: '700' }}>Coach Miko Says:</h3>
+                                <h3 style={{ fontSize: '16px', fontWeight: '700' }}>{t.coach_says}</h3>
                             </div>
                             <p style={{ color: '#475569', lineHeight: '1.6', fontSize: '16px', fontStyle: 'italic' }}>
                                 "{analysis?.encouragement || "Great effort! Let's look at how we can make this even better. 🐾"}"
@@ -113,12 +115,12 @@ export default function Feedback() {
                             }}
                         >
                             <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9' }}>
-                                <span style={{ color: '#64748b', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Original</span>
+                                <span style={{ color: '#64748b', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t.original_label}</span>
                                 <p style={{ marginTop: '8px', fontSize: '16px', color: '#64748b' }}>{analysis?.original}</p>
                             </div>
                             <div style={{ padding: '24px', background: '#f0fdf4' }}>
                                 <span style={{ color: '#166534', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <CheckCircle2 size={14} /> Corrected
+                                    <CheckCircle2 size={14} /> {t.corrected_label}
                                 </span>
                                 <p style={{ marginTop: '12px', fontSize: '18px', color: '#14532d', fontWeight: '600', lineHeight: '1.5' }}>
                                     {analysis?.corrected}
@@ -129,7 +131,7 @@ export default function Feedback() {
                         {/* Errors List */}
                         {analysis?.errors && analysis.errors.length > 0 && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#64748b', paddingLeft: '8px' }}>Pointe-rs & Corrections</h4>
+                                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#64748b', paddingLeft: '8px' }}>{t.pointers_label}</h4>
                                 {analysis.errors.map((err, i) => (
                                     <motion.div
                                         key={i}
@@ -185,7 +187,7 @@ export default function Feedback() {
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                                     <Lightbulb size={20} color="#3b82f6" />
-                                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1e40af' }}>Pro Tips</h3>
+                                    <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1e40af' }}>{t.pro_tips}</h3>
                                 </div>
                                 <ul style={{ margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                     {analysis.suggestions.map((sug, i) => (

@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { LogOut, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Header() {
     const navigate = useNavigate();
     const { user, signOut } = useAuth();
+    const { t } = useTranslation();
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef(null);
 
@@ -149,7 +151,7 @@ export default function Header() {
                                     onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
                                 >
                                     <LogOut size={16} />
-                                    Sign out
+                                    {t.sign_out}
                                 </button>
                             </motion.div>
                         )}

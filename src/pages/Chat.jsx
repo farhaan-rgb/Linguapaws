@@ -6,10 +6,12 @@ import { aiService } from '../services/ai';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { wordTracker } from '../services/wordTracker';
 import { characters as defaultCharacters } from '../data/characters';
+import { useTranslation } from '../hooks/useTranslation';
 import ShadowCard from '../components/ShadowCard';
 
 export default function Chat() {
     const navigate = useNavigate();
+    const { t, langId } = useTranslation();
     const [searchParams] = useSearchParams();
     const topicId = searchParams.get('topic');
     const topicName = searchParams.get('name');
@@ -587,7 +589,7 @@ export default function Chat() {
                                 }}
                             >
                                 <Edit3 size={12} />
-                                Feedback
+                                {t.feedback}
                             </motion.button>
                         )}
 
@@ -612,7 +614,7 @@ export default function Chat() {
                                     }}
                                 >
                                     <Globe size={12} />
-                                    {translations[i] ? 'Original' : `Translate to ${nativeLang.name || 'Lang'}`}
+                                    {translations[i] ? t.original : t.translate_to.replace('{n}', nativeLang.name || 'Lang')}
                                 </motion.button>
 
                                 <motion.button
@@ -634,7 +636,7 @@ export default function Chat() {
                                     }}
                                 >
                                     <BookOpen size={12} title="Explore words" />
-                                    Dictionary
+                                    {t.dictionary}
                                 </motion.button>
 
                                 <motion.button
@@ -656,7 +658,7 @@ export default function Chat() {
                                     }}
                                 >
                                     <Volume2 size={12} />
-                                    Read Aloud
+                                    {t.read_aloud}
                                 </motion.button>
 
                                 <motion.button
@@ -678,7 +680,7 @@ export default function Chat() {
                                     }}
                                 >
                                     <Mic2 size={12} />
-                                    Shadow
+                                    {t.shadow}
                                 </motion.button>
                             </div>
                         )}
@@ -733,13 +735,13 @@ export default function Chat() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Sparkles size={18} color="#8b5cf6" />
-                            <span style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>Suggested Responses</span>
+                            <span style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>{t.suggested_responses}</span>
                         </div>
                         <button
                             onClick={() => setShowSuggestions(false)}
                             style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
                         >
-                            Close
+                            {t.close}
                         </button>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

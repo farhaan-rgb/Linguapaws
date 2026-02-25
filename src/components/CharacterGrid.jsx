@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Sparkles, X, Trash2 } from 'lucide-react';
 import { characters as defaultCharacters } from '../data/characters';
 import { aiService } from '../services/ai';
+import { useTranslation } from '../hooks/useTranslation';
 
 export default function CharacterGrid({ onSelectCharacter }) {
+    const { t } = useTranslation();
     const [customCharacters, setCustomCharacters] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newCharName, setNewCharName] = useState('');
@@ -113,9 +115,9 @@ export default function CharacterGrid({ onSelectCharacter }) {
         <section className="card" style={{ marginTop: '0px', position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div>
-                    <h3 style={{ fontSize: '15px', marginBottom: '0px' }}>Practice with Friends</h3>
+                    <h3 style={{ fontSize: '15px', marginBottom: '0px' }}>{t.practice_friends}</h3>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
-                        Chat with people across India.
+                        {t.friends_desc}
                     </p>
                 </div>
                 <button
@@ -191,8 +193,11 @@ export default function CharacterGrid({ onSelectCharacter }) {
                         <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)', display: 'block' }}>
                             {char.name}
                         </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block' }}>
+                            {t[`${char.id}_trait`] || char.trait}
+                        </span>
                         <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                            {char.region}
+                            {t[char.region.toLowerCase()] || char.region}
                         </span>
                     </motion.div>
                 ))}
@@ -230,7 +235,7 @@ export default function CharacterGrid({ onSelectCharacter }) {
                             }}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h3 style={{ fontSize: '20px', fontWeight: '800' }}>Create a New Friend</h3>
+                                <h3 style={{ fontSize: '20px', fontWeight: '800' }}>{t.create_friend}</h3>
                                 <button onClick={() => { setIsModalOpen(false); setError(''); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}>
                                     <X size={24} />
                                 </button>
@@ -252,7 +257,7 @@ export default function CharacterGrid({ onSelectCharacter }) {
 
                             <form onSubmit={handleAddCharacter}>
                                 <div style={{ marginBottom: '16px' }}>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#64748b' }}>Name Your Friend</label>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#64748b' }}>{t.friend_name}</label>
                                     <input
                                         value={newCharName}
                                         onChange={e => setNewCharName(e.target.value)}
@@ -261,7 +266,7 @@ export default function CharacterGrid({ onSelectCharacter }) {
                                     />
                                 </div>
                                 <div style={{ marginBottom: '24px' }}>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#64748b' }}>Describe Personality</label>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px', color: '#64748b' }}>{t.friend_personality}</label>
                                     <textarea
                                         value={newCharDesc}
                                         onChange={e => setNewCharDesc(e.target.value)}
@@ -290,11 +295,11 @@ export default function CharacterGrid({ onSelectCharacter }) {
                                     }}
                                 >
                                     {isGenerating ? (
-                                        <>Generating...</>
+                                        <>{t.generating}</>
                                     ) : (
                                         <>
                                             <Sparkles size={18} />
-                                            Bring to Life
+                                            {t.bring_to_life}
                                         </>
                                     )}
                                 </button>

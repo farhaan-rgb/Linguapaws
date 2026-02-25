@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 
 const topics = [
     { id: 'weather', name: 'Weather', icon: '☀️', color: '#e0f2fe' },
@@ -14,12 +15,13 @@ const topics = [
 ];
 
 export default function TopicGrid({ onSelectTopic }) {
+    const { t } = useTranslation();
     return (
         <section className="card" style={{ textAlign: 'center', padding: '16px' }}>
             <div style={{ paddingRight: 24 }}>
-                <h3 style={{ fontSize: '15px', marginBottom: '2px' }}>Choose a Topic</h3>
+                <h3 style={{ fontSize: '15px', marginBottom: '2px' }}>{t.choose_topic}</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '12px' }}>
-                    Pick a topic and jump right in.
+                    {t.topic_desc}
                 </p>
             </div>
 
@@ -63,7 +65,7 @@ export default function TopicGrid({ onSelectTopic }) {
                             lineHeight: '1.3',
                             color: 'var(--text-main)'
                         }}>
-                            {topic.name}
+                            {t[topic.id] || topic.name}
                         </span>
                     </div>
                 ))}
