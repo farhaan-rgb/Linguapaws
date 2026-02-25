@@ -191,10 +191,7 @@ export default function CharacterGrid({ onSelectCharacter }) {
                             )}
                         </div>
                         <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-main)', display: 'block' }}>
-                            {char.name}
-                        </span>
-                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block' }}>
-                            {t[`${char.id}_trait`] || char.trait}
+                            {t[`${char.id}_name`] || char.name}
                         </span>
                         <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                             {t[char.region.toLowerCase()] || char.region}

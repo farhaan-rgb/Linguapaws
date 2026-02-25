@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, Mic, Square, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
+import { useTranslation } from '../hooks/useTranslation';
 import { api } from '../services/api';
 
 /**
@@ -11,6 +12,7 @@ import { api } from '../services/api';
  */
 export default function ShadowCard({ phrase, character }) {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const { isRecording, startRecording, stopRecording } = useAudioRecorder();
     const audioRef = useRef(new Audio());
 
@@ -86,14 +88,14 @@ export default function ShadowCard({ phrase, character }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontSize: '15px' }}>🎙️</span>
                     <span style={{ fontSize: '11px', fontWeight: '700', color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                        Shadow this
+                        {t.shadow_this}
                     </span>
                 </div>
                 <button
                     onClick={() => setPhase('skipped')}
                     style={{ background: 'none', border: 'none', fontSize: '11px', color: '#94a3b8', cursor: 'pointer' }}
                 >
-                    Skip
+                    {t.skip}
                 </button>
             </div>
 
@@ -121,7 +123,7 @@ export default function ShadowCard({ phrase, character }) {
                             }}
                         >
                             <Volume2 size={12} />
-                            {isPlayingTarget ? 'Playing...' : 'Hear'}
+                            {isPlayingTarget ? t.playing : t.hear}
                         </motion.button>
 
                         {/* Record button */}
@@ -142,7 +144,7 @@ export default function ShadowCard({ phrase, character }) {
                             }}
                         >
                             {isRecording ? <Square size={11} fill="white" /> : <Mic size={12} />}
-                            {isRecording ? 'Stop' : 'Record'}
+                            {isRecording ? t.stop : t.record}
                         </motion.button>
                     </motion.div>
                 )}
@@ -154,7 +156,7 @@ export default function ShadowCard({ phrase, character }) {
                     >
                         <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
                             style={{ display: 'inline-block', fontSize: '16px' }}>🐾</motion.span>
-                        <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Analysing...</span>
+                        <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>{t.analysing}</span>
                     </motion.div>
                 )}
 
@@ -172,7 +174,7 @@ export default function ShadowCard({ phrase, character }) {
                             {score}
                         </div>
                         <span style={{ fontSize: '12px', color: '#475569', fontWeight: '600' }}>
-                            {scoreEmoji(score)} {score >= 80 ? 'Excellent!' : score >= 60 ? 'Good effort!' : 'Keep going!'}
+                            {scoreEmoji(score)} {score >= 80 ? t.excellent : score >= 60 ? t.good_effort : t.keep_going}
                         </span>
                         <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px' }}>
                             <motion.button whileTap={{ scale: 0.95 }} onClick={() => { setScore(null); setPhase('idle'); }}
@@ -186,7 +188,7 @@ export default function ShadowCard({ phrase, character }) {
                                     padding: '3px 10px', fontSize: '11px', fontWeight: '600',
                                     color: '#7c3aed', cursor: 'pointer',
                                 }}>
-                                Full analysis →
+                                {t.full_analysis} →
                             </motion.button>
                         </div>
                     </motion.div>

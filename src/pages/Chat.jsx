@@ -426,7 +426,11 @@ export default function Chat() {
     const handleReadAloud = async (text) => {
         if (isMuted) return; // Don't play if muted even on manual click, or alert user?
         setIsLoading(true);
-        const audioUrl = await aiService.generateSpeech(text, activeCharacter?.voice || 'alloy');
+        const speechText = text
+            .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
+            .replace(/<word>(.*?)<\/word>/g, '$1')
+            .replace(/<[^>]+>/g, '');
+        const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy');
         if (audioUrl) {
             audioRef.current.src = audioUrl;
             audioRef.current.play();
@@ -965,7 +969,13 @@ export default function Chat() {
                                 fontWeight: '600',
                                 letterSpacing: '0.5px'
                             }}>
-                                {callStatus === 'listening' ? '🎙️ Listening...' : callStatus === 'speaking' ? '🔊 Speaking...' : callStatus === 'thinking' ? '💭 Thinking...' : 'Tap mic to speak'}
+                                {callStatus === 'listening'
+                                    ? t.call_listening
+                                    : callStatus === 'speaking'
+                                        ? t.call_speaking
+                                        : callStatus === 'thinking'
+                                            ? t.call_thinking
+                                            : t.call_tap_mic}
                             </p>
                         </motion.div>
 

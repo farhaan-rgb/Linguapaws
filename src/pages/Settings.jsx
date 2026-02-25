@@ -158,7 +158,7 @@ export default function Settings() {
                                         gap: '4px',
                                     }}
                                 >
-                                    Change
+                                    {t.change}
                                     <motion.span
                                         animate={{ rotate: showLangPicker ? 180 : 0 }}
                                         transition={{ duration: 0.2 }}

@@ -78,8 +78,8 @@ export default function Translator() {
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: 'Linguapaws Translation',
-                    text: `English: ${translation}\n(${nativeLang.name}: ${inputText})`,
+                    title: t.share_title,
+                    text: `${t.english_translation_label} ${translation}\n(${nativeLangName}: ${inputText})`,
                     url: window.location.origin
                 });
             } catch (err) {
@@ -87,7 +87,7 @@ export default function Translator() {
             }
         } else {
             navigator.clipboard.writeText(translation);
-            alert('Translation copied to clipboard!');
+            alert(t.translation_copied);
         }
     };
 
