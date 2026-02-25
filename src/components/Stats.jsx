@@ -2,9 +2,24 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Languages, History, GraduationCap } from 'lucide-react';
 import { wordTracker } from '../services/wordTracker';
+import { useTranslation } from '../hooks/useTranslation';
 
 export default function Stats() {
     const navigate = useNavigate();
+    const { t } = useTranslation();
+    const getStoredJSON = (key) => {
+        try {
+            const item = localStorage.getItem(key);
+            return item ? JSON.parse(item) : null;
+        } catch {
+            return null;
+        }
+    };
+    const nativeLang = getStoredJSON('linguapaws_native_lang');
+    const level = getStoredJSON('linguapaws_level');
+    const isHindiBeginner =
+        nativeLang?.id === 'hi' &&
+        (level?.id === 'zero' || level?.id === 'basic');
     const wordCount = wordTracker.getTotalCount();
     const proficiency = wordTracker.getProficiency();
     const progress = wordTracker.getProgress();
@@ -17,15 +32,15 @@ export default function Stats() {
                     <div style={{ padding: '6px', background: proficiency.color + '22', borderRadius: '8px', color: proficiency.color }}>
                         <GraduationCap size={18} />
                     </div>
-                    <span style={{ fontSize: '15px', fontWeight: '700' }}>Proficiency Status</span>
+                    <span style={{ fontSize: '15px', fontWeight: '700' }}>{t.proficiency_status}</span>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
                     <h2 style={{ fontSize: '24px', fontWeight: '700', margin: 0 }}>
-                        {proficiency.icon} {proficiency.status}
+                        {proficiency.icon} {t[proficiency.status.toLowerCase()] || proficiency.status}
                     </h2>
                     <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                        Next: {proficiency.nextTier} words
+                        {t.next_tier.replace('{n}', proficiency.nextTier)}
                     </span>
                 </div>
 
@@ -55,7 +70,7 @@ export default function Stats() {
                     }}
                 >
                     <Languages size={24} style={{ marginBottom: '8px' }} />
-                    <span style={{ fontSize: '13px', fontWeight: '700' }}>Quick Translate</span>
+                    <span style={{ fontSize: '13px', fontWeight: '700' }}>{t.quick_translate}</span>
                 </section>
 
                 {/* New Words Learned */}
@@ -74,7 +89,9 @@ export default function Stats() {
                     }}
                 >
                     <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '4px' }}>{wordCount}</div>
-                    <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)' }}>New Words</span>
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-secondary)' }}>
+                        {isHindiBeginner ? (t.new_words || 'नए शब्द') : 'New Words'}
+                    </span>
                 </section>
             </div>
         </div>
