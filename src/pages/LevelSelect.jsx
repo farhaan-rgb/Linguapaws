@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { useTranslation } from '../hooks/useTranslation';
 
 // Question and level labels in each supported native language
 const TRANSLATIONS = {
