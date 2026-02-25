@@ -34,12 +34,17 @@ export function AuthProvider({ children }) {
             localStorage.setItem(TOKEN_KEY, data.token);
             localStorage.setItem(USER_KEY, JSON.stringify(data.user));
 
-            // Seed localStorage from DB values — DB is source of truth across devices
+            // Sync localStorage from DB — DB is the source of truth.
+            // Always write OR remove so a server-side reset is honoured on next login.
             if (data.user.nativeLang?.id) {
                 localStorage.setItem('linguapaws_native_lang', JSON.stringify(data.user.nativeLang));
+            } else {
+                localStorage.removeItem('linguapaws_native_lang');
             }
             if (data.user.englishLevel?.id) {
                 localStorage.setItem('linguapaws_level', JSON.stringify(data.user.englishLevel));
+            } else {
+                localStorage.removeItem('linguapaws_level');
             }
 
             setUser(data.user);
