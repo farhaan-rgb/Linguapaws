@@ -9,9 +9,13 @@ export default function Login() {
     const navigate = useNavigate();
     const [error, setError] = useState(null);
 
-    const handleSuccess = (credentialResponse) => {
-        signIn(credentialResponse);
-        navigate('/');
+    const handleSuccess = async (credentialResponse) => {
+        try {
+            await signIn(credentialResponse);
+            navigate('/');
+        } catch (err) {
+            setError('Sign-in failed. Please try again.');
+        }
     };
 
     const handleError = () => {
