@@ -119,6 +119,7 @@ const FALLBACK = {
 
 export default function LevelSelect() {
     const navigate = useNavigate();
+    const { t: tr } = useTranslation();
     const [selected, setSelected] = useState(null);
 
     const nativeLang = JSON.parse(localStorage.getItem('linguapaws_native_lang') || '{}');
@@ -128,6 +129,7 @@ export default function LevelSelect() {
         setSelected(level.id);
         const levelData = { id: level.id, label: level.label };
         localStorage.setItem('linguapaws_level', JSON.stringify(levelData));
+        window.dispatchEvent(new Event('linguapaws-language-changed'));
         // Sync to backend in background
         api.put('/api/settings', { englishLevel: levelData }).catch(() => { });
         setTimeout(() => navigate('/'), 350);
@@ -172,7 +174,7 @@ export default function LevelSelect() {
                     transition={{ delay: 0.2 }}
                     style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '32px' }}
                 >
-                    Miko will adjust to your level 🎯
+                    {tr.miko_adjust_level}
                 </motion.p>
             </div>
 

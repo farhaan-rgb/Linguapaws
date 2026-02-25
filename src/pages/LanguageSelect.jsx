@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { useTranslation } from '../hooks/useTranslation';
 
 const LANGUAGES = [
     {
@@ -48,11 +49,13 @@ const LANGUAGES = [
 
 export default function LanguageSelect() {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [selected, setSelected] = useState(null);
 
     const handleSelect = (lang) => {
         setSelected(lang.id);
         localStorage.setItem('linguapaws_native_lang', JSON.stringify(lang));
+        window.dispatchEvent(new Event('linguapaws-language-changed'));
         // Sync to backend in background
         api.put('/api/settings', { nativeLang: lang }).catch(() => { });
         setTimeout(() => { navigate('/level-select'); }, 350);
@@ -113,7 +116,7 @@ export default function LanguageSelect() {
             </div>
 
             <p style={{ marginTop: '24px', textAlign: 'center', fontSize: '13px', color: '#999' }}>
-                Miko will use this to help you translate difficult English sentences.
+                {t.native_lang_desc}
             </p>
         </div>
     );

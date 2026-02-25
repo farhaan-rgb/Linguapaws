@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Globe, Check, ChevronDown, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import { useTranslation } from '../hooks/useTranslation';
 
 const LANGUAGES = [
     { id: 'hi', name: 'Hindi', native: 'हिन्दी', landmark: '🕌', landmarkName: 'Taj Mahal, Agra' },
@@ -26,6 +27,7 @@ const LEVELS = [
 
 export default function Settings() {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [selectedLang, setSelectedLang] = useState(null);
     const [showLangPicker, setShowLangPicker] = useState(false);
     const [selectedLevel, setSelectedLevel] = useState(null); // { id, label, appDetected }
@@ -67,6 +69,7 @@ export default function Settings() {
     const handleSelect = (lang) => {
         setSelectedLang(lang);
         localStorage.setItem('linguapaws_native_lang', JSON.stringify(lang));
+        window.dispatchEvent(new Event('linguapaws-language-changed'));
         setShowLangPicker(false);
         api.put('/api/settings', { nativeLang: lang }).catch(() => { });
     };
@@ -76,6 +79,7 @@ export default function Settings() {
         setSelectedLevel(levelData);
         setShowLevelPicker(false);
         localStorage.setItem('linguapaws_level', JSON.stringify(levelData));
+        window.dispatchEvent(new Event('linguapaws-language-changed'));
         api.put('/api/settings', { englishLevel: levelData }).catch(() => { });
     };
 
@@ -96,7 +100,7 @@ export default function Settings() {
                 <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
                     <ChevronLeft size={24} />
                 </button>
-                <h1 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b' }}>Settings</h1>
+                <h1 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b' }}>{t.settings_title}</h1>
             </header>
 
             <div style={{ padding: '20px' }}>
@@ -106,7 +110,7 @@ export default function Settings() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                         <Globe size={16} color="var(--accent-purple)" />
                         <h2 style={{ fontSize: '13px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                            Native Language
+                            {t.native_lang_section}
                         </h2>
                     </div>
 
@@ -166,7 +170,7 @@ export default function Settings() {
                             </div>
                         ) : (
                             <div style={{ color: '#94a3b8', fontSize: '14px', textAlign: 'center', padding: '8px 0' }}>
-                                No language selected yet.
+                                {t.no_lang_set}
                             </div>
                         )}
 
@@ -225,7 +229,7 @@ export default function Settings() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                         <Zap size={16} color="var(--accent-purple)" />
                         <h2 style={{ fontSize: '13px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                            English Level
+                            {t.english_level_section}
                         </h2>
                     </div>
 
@@ -242,11 +246,11 @@ export default function Settings() {
                                         </div>
                                         {selectedLevel.appDetected ? (
                                             <div style={{ fontSize: '11px', color: '#10b981', fontWeight: '600', marginTop: '2px' }}>
-                                                🤖 Detected by Miko
+                                                {t.detected_by_ai}
                                             </div>
                                         ) : (
                                             <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                                                Set by you
+                                                {t.set_by_user}
                                             </div>
                                         )}
                                     </div>
@@ -262,7 +266,7 @@ export default function Settings() {
                                         cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
                                     }}
                                 >
-                                    Change
+                                    {t.change}
                                     <motion.span animate={{ rotate: showLevelPicker ? 180 : 0 }} transition={{ duration: 0.2 }} style={{ display: 'flex' }}>
                                         <ChevronDown size={14} />
                                     </motion.span>
@@ -270,7 +274,7 @@ export default function Settings() {
                             </div>
                         ) : (
                             <div style={{ color: '#94a3b8', fontSize: '14px', textAlign: 'center', padding: '8px 0' }}>
-                                No level set yet.
+                                {t.no_level_set}
                             </div>
                         )}
 

@@ -1,7 +1,19 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { UI_TRANSLATIONS } from '../constants/translations';
 
 export const useTranslation = () => {
+    const [version, setVersion] = useState(0);
+
+    useEffect(() => {
+        const handler = () => setVersion((v) => v + 1);
+        window.addEventListener('storage', handler);
+        window.addEventListener('linguapaws-language-changed', handler);
+        return () => {
+            window.removeEventListener('storage', handler);
+            window.removeEventListener('linguapaws-language-changed', handler);
+        };
+    }, []);
+
     // Safely parse localStorage items
     const getStoredJSON = (key) => {
         try {
@@ -91,7 +103,7 @@ export const useTranslation = () => {
                 return key;
             }
         });
-    }, [langId]);
+    }, [langId, version]);
 
     return { t, langId, isBeginner: isNativeEligible };
 };

@@ -46,6 +46,7 @@ export function AuthProvider({ children }) {
             } else {
                 localStorage.removeItem('linguapaws_level');
             }
+            window.dispatchEvent(new Event('linguapaws-language-changed'));
 
             setUser(data.user);
             return data.user;
