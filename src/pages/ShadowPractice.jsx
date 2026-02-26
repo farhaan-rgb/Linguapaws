@@ -35,7 +35,11 @@ export default function ShadowPractice() {
         if (isPlayingTarget) return;
         setIsPlayingTarget(true);
         try {
-            const url = await api.postAudio('/api/ai/speech', { text: targetText, voice });
+            const url = await api.postAudio('/api/ai/speech', {
+                text: targetText,
+                voice,
+                targetLang: targetLang?.name || null,
+            });
             audioRef.current.src = url;
             audioRef.current.onended = () => setIsPlayingTarget(false);
             await audioRef.current.play();
@@ -57,6 +61,7 @@ export default function ShadowPractice() {
                 const { text: transcript } = await api.post('/api/ai/transcribe', {
                     audioBase64: base64,
                     mimeType: blob.type || 'audio/webm',
+                    language: targetLang?.id || null,
                 });
 
                 if (!transcript?.trim()) {

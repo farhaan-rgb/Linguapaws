@@ -135,16 +135,16 @@ SHADOW PRACTICE TAGS:
     }
 
 
-    async generateSpeech(text, voice = 'alloy') {
+    async generateSpeech(text, voice = 'alloy', targetLang = null) {
         try {
-            return await api.postAudio('/api/ai/speech', { text, voice });
+            return await api.postAudio('/api/ai/speech', { text, voice, targetLang });
         } catch (error) {
             console.error('TTS Error:', error);
             return null;
         }
     }
 
-    async transcribeAudio(audioBlob) {
+    async transcribeAudio(audioBlob, language = null) {
         try {
             // Convert blob to base64
             const buffer = await audioBlob.arrayBuffer();
@@ -152,6 +152,7 @@ SHADOW PRACTICE TAGS:
             const data = await api.post('/api/ai/transcribe', {
                 audioBase64: base64,
                 mimeType: audioBlob.type || 'audio/webm',
+                language,
             });
             return data.text || null;
         } catch (error) {

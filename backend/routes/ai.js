@@ -28,10 +28,12 @@ router.post('/chat', async (req, res) => {
 
 // POST /api/ai/speech
 router.post('/speech', async (req, res) => {
-    const { text, voice = 'alloy' } = req.body;
+    const { text, voice = 'alloy', targetLang = null } = req.body;
     if (!text) return res.status(400).json({ error: 'text is required' });
 
-    const mp3 = await getClient().audio.speech.create({ model: 'tts-1', voice, input: text });
+    const nonEnglish = targetLang && targetLang.toLowerCase() !== 'english';
+    const model = nonEnglish ? 'tts-1-hd' : 'tts-1';
+    const mp3 = await getClient().audio.speech.create({ model, voice, input: text });
     const buffer = Buffer.from(await mp3.arrayBuffer());
     res.set('Content-Type', 'audio/mpeg');
     res.send(buffer);
@@ -39,12 +41,20 @@ router.post('/speech', async (req, res) => {
 
 // POST /api/ai/transcribe
 router.post('/transcribe', async (req, res) => {
-    const { audioBase64, mimeType = 'audio/webm' } = req.body;
+    const { audioBase64, mimeType = 'audio/webm', language = null } = req.body;
     if (!audioBase64) return res.status(400).json({ error: 'audioBase64 is required' });
 
     const buffer = Buffer.from(audioBase64, 'base64');
     const file = await OpenAI.toFile(buffer, 'audio.webm', { type: mimeType });
-    const transcription = await getClient().audio.transcriptions.create({ file, model: 'whisper-1' });
+    const languageMap = {
+        hi: 'hi', bn: 'bn', te: 'te', mr: 'mr', ta: 'ta', ur: 'ur', kn: 'kn', gu: 'gu', ml: 'ml', pa: 'pa', en: 'en',
+    };
+    const lang = languageMap[language] || undefined;
+    const transcription = await getClient().audio.transcriptions.create({
+        file,
+        model: 'whisper-1',
+        ...(lang ? { language: lang } : {}),
+    });
     res.json({ text: transcription.text });
 });
 

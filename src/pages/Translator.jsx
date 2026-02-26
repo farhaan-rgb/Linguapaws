@@ -57,7 +57,7 @@ export default function Translator() {
             const audioBlob = await stopRecording();
             if (audioBlob) {
                 setIsTranslating(true);
-                const transcript = await aiService.transcribeAudio(audioBlob);
+                const transcript = await aiService.transcribeAudio(audioBlob, nativeLang?.id || null);
                 if (transcript) {
                     setInputText(transcript);
                     await handleTranslateAction(transcript);

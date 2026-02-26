@@ -28,7 +28,9 @@ export default function ShadowCard({ phrase, character }) {
         setIsPlayingTarget(true);
         try {
             const url = await api.postAudio('/api/ai/speech', {
-                text: phrase, voice: character?.voice || 'alloy',
+                text: phrase,
+                voice: character?.voice || 'alloy',
+                targetLang: targetLang?.name || null,
             });
             audioRef.current.src = url;
             audioRef.current.onended = () => setIsPlayingTarget(false);
@@ -55,7 +57,9 @@ export default function ShadowCard({ phrase, character }) {
                 const buffer = await blob.arrayBuffer();
                 const base64 = bufferToBase64(buffer);
                 const { text: transcript } = await api.post('/api/ai/transcribe', {
-                    audioBase64: base64, mimeType: blob.type || 'audio/webm',
+                    audioBase64: base64,
+                    mimeType: blob.type || 'audio/webm',
+                    language: targetLang?.id || null,
                 });
                 if (!transcript?.trim()) { setPhase('idle'); return; }
                 const feedback = await api.post('/api/ai/pronunciation', {

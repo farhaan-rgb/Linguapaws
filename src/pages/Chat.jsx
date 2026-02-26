@@ -112,7 +112,7 @@ export default function Chat() {
         );
         greeting = greeting.replace(/<[^>]+>/g, '').trim();
         if (isMounted.current) {
-            const audioUrl = await aiService.generateSpeech(greeting, resolvedCharacter?.voice || 'alloy');
+            const audioUrl = await aiService.generateSpeech(greeting, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
             if (audioUrl && isMounted.current && isCallMode) {
                 audioRef.current.src = audioUrl;
                 audioRef.current.onended = () => setCallStatus('idle');
@@ -144,7 +144,7 @@ export default function Chat() {
             setCallStatus('thinking');
             const audioBlob = await stopRecording();
             if (audioBlob) {
-                const transcript = await aiService.transcribeAudio(audioBlob);
+                const transcript = await aiService.transcribeAudio(audioBlob, targetLang?.id || null);
                 if (transcript) {
                     setMessages(prev => [...prev, { role: 'user', content: transcript }]);
                     const userWords = transcript.match(/[\p{L}]{2,}/gu);
@@ -156,7 +156,7 @@ export default function Chat() {
 
                     setCallStatus('speaking');
                     if (isMounted.current) {
-                        const audioUrl = await aiService.generateSpeech(cleanResponse, resolvedCharacter?.voice || 'alloy');
+                        const audioUrl = await aiService.generateSpeech(cleanResponse, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
                         if (audioUrl && isMounted.current) {
                             audioRef.current.src = audioUrl;
                             audioRef.current.onended = () => setCallStatus('idle');
@@ -224,7 +224,7 @@ export default function Chat() {
 
             // Speak the greeting
             if (!isMuted && isMounted.current) {
-                const audioUrl = await aiService.generateSpeech(greeting, resolvedCharacter?.voice || 'alloy');
+                const audioUrl = await aiService.generateSpeech(greeting, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
                 if (audioUrl && isMounted.current) {
                     audioRef.current.src = audioUrl;
                     audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -271,7 +271,7 @@ export default function Chat() {
 
             // Read aloud the translation if not muted
             if (!isMuted && isMounted.current) {
-                const audioUrl = await aiService.generateSpeech(translatedText, activeCharacter?.voice || 'alloy');
+                const audioUrl = await aiService.generateSpeech(translatedText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
                 if (audioUrl && isMounted.current) {
                     audioRef.current.src = audioUrl;
                     audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -364,7 +364,7 @@ export default function Chat() {
 
         // Play voice (non-blocking — after UI is already updated)
         if (!isMuted && isMounted.current) {
-            const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy');
+            const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
             if (audioUrl && isMounted.current) {
                 audioRef.current.src = audioUrl;
                 audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -377,7 +377,7 @@ export default function Chat() {
             const audioBlob = await stopRecording();
             if (audioBlob) {
                 setIsLoading(true);
-                const transcript = await aiService.transcribeAudio(audioBlob);
+                const transcript = await aiService.transcribeAudio(audioBlob, targetLang?.id || null);
                 if (transcript) {
                     handleSend(transcript);
                 } else {
@@ -385,7 +385,7 @@ export default function Chat() {
                     setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
 
                     if (!isMuted && isMounted.current) {
-                        const audioUrl = await aiService.generateSpeech(errorMsg, activeCharacter?.voice || 'alloy');
+                        const audioUrl = await aiService.generateSpeech(errorMsg, activeCharacter?.voice || 'alloy', targetLang?.name || null);
                         if (audioUrl && isMounted.current) {
                             audioRef.current.src = audioUrl;
                             audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -408,7 +408,7 @@ export default function Chat() {
             .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
             .replace(/<word>(.*?)<\/word>/g, '$1')
             .replace(/<[^>]+>/g, '');
-        const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy');
+        const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
         if (audioUrl) {
             audioRef.current.src = audioUrl;
             audioRef.current.play();
