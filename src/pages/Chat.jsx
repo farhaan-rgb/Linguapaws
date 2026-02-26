@@ -198,7 +198,6 @@ export default function Chat() {
 
             setIsLoading(true);
             let greeting = "";
-            let greeting = "";
             const levelId = userLevel || 'conversational';
             const nativeLangName = nativeLang?.name || 'Hindi';
             const targetLangName = targetLang?.name || 'English';
