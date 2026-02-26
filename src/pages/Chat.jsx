@@ -116,6 +116,26 @@ export default function Chat() {
         return dp[alen][blen];
     };
 
+    const TARGET_SCRIPT_MAP = {
+        hi: 'Devanagari',
+        bn: 'Bengali',
+        te: 'Telugu',
+        ta: 'Tamil',
+        kn: 'Kannada',
+        gu: 'Gujarati',
+        ml: 'Malayalam',
+        pa: 'Gurmukhi',
+        ur: 'Arabic',
+    };
+
+    const stripTargetScript = (text) => {
+        if (!text) return text;
+        const script = TARGET_SCRIPT_MAP[(targetLang?.id || '').toLowerCase()];
+        if (!script) return text;
+        const re = new RegExp(`\\p{Script=${script}}+`, 'gu');
+        return text.replace(re, '').replace(/\s{2,}/g, ' ').trim();
+    };
+
     const similarityRatio = (a, b) => {
         const na = normalizePhrase(a);
         const nb = normalizePhrase(b);
@@ -174,7 +194,8 @@ export default function Chat() {
         `Do NOT show ${targetLangName} script in visible text. ` +
         `Whenever you ask the user to say a ${targetLangName} phrase, include the exact target phrase inside ` +
         `<target>...</target> (in ${targetLangName} script). In visible text, show ONLY a pronunciation guide ` +
-        `in ${nativeLangName} (use native script; if ${nativeLangName} is English, use Latin).`
+        `in ${nativeLangName} (use native script; if ${nativeLangName} is English, use Latin). ` +
+        `Always explain the meaning of the practice phrase in ${nativeLangName} so the user knows what they are saying.`
     );
 
     // Persist messages to sessionStorage on every update
@@ -578,11 +599,13 @@ export default function Chat() {
         }
 
         // Strip <word> tags for display BUT keep <shadow> tags so ShadowCard renders inline
-        const cleanResponse = responseWithoutMeta
-            .replace(/<word>(.*?)<\/word>/g, '$1')
-            .replace(/<target>.*?<\/target>/gs, '');
+        const cleanResponse = stripTargetScript(
+            responseWithoutMeta
+                .replace(/<word>(.*?)<\/word>/g, '$1')
+                .replace(/<target>.*?<\/target>/gs, '')
+        );
         // Strip ALL special tags from TTS so audio doesn't read "shadow the weather shadow"
-        const speechText = cleanResponse.replace(/<shadow>(.*?)<\/shadow>/gs, '$1');
+        const speechText = stripTargetScript(cleanResponse.replace(/<shadow>(.*?)<\/shadow>/gs, '$1'));
 
         setMessages(prev => [...prev, { role: 'assistant', content: cleanResponse }]);
         setIsLoading(false); // unblock UI before TTS — audio loading must not block chat
