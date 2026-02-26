@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,13 +8,34 @@ export default function Login() {
     const { signIn } = useAuth();
     const navigate = useNavigate();
     const [error, setError] = useState(null);
+    const [isSigningIn, setIsSigningIn] = useState(false);
+
+    useEffect(() => {
+        // Warm up backend to reduce cold-start login failures
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        fetch(`${baseUrl}/health`).catch(() => { });
+    }, []);
+
+    const signInWithRetry = async (credentialResponse, retries = 2) => {
+        try {
+            return await signIn(credentialResponse);
+        } catch (err) {
+            if (retries <= 0) throw err;
+            await new Promise(r => setTimeout(r, 600 * (3 - retries)));
+            return signInWithRetry(credentialResponse, retries - 1);
+        }
+    };
 
     const handleSuccess = async (credentialResponse) => {
         try {
-            await signIn(credentialResponse);
+            setIsSigningIn(true);
+            setError(null);
+            await signInWithRetry(credentialResponse);
             navigate('/');
         } catch (err) {
             setError('Sign-in failed. Please try again.');
+        } finally {
+            setIsSigningIn(false);
         }
     };
 
@@ -122,6 +143,7 @@ export default function Login() {
                         text="signin_with"
                         logo_alignment="left"
                         width="320"
+                        disabled={isSigningIn}
                     />
                     {error && (
                         <motion.p
@@ -130,6 +152,15 @@ export default function Login() {
                             style={{ fontSize: '13px', color: '#ef4444' }}
                         >
                             {error}
+                        </motion.p>
+                    )}
+                    {isSigningIn && (
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            style={{ fontSize: '13px', color: '#64748b' }}
+                        >
+                            Signing you in...
                         </motion.p>
                     )}
                 </div>
