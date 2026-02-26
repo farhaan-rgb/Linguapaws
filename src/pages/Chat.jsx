@@ -170,11 +170,11 @@ export default function Chat() {
     };
 
     const buildDisplayRule = (nativeLangName, targetLangName) => (
-        `CRITICAL DISPLAY RULE: Respond ONLY in ${nativeLangName} (native script). ` +
-        `Do NOT use ${targetLangName} script anywhere in visible text. ` +
+        `CRITICAL DISPLAY RULE: Respond in ${nativeLangName}. ` +
+        `Do NOT show ${targetLangName} script in visible text. ` +
         `Whenever you ask the user to say a ${targetLangName} phrase, include the exact target phrase inside ` +
-        `<target>...</target> (in ${targetLangName} script) and in the visible text show ONLY its pronunciation ` +
-        `in ${nativeLangName} script. Never show ${targetLangName} script outside <target> tags.`
+        `<target>...</target> (in ${targetLangName} script). In visible text, show ONLY a pronunciation guide ` +
+        `in ${nativeLangName} (use native script; if ${nativeLangName} is English, use Latin).`
     );
 
     // Persist messages to sessionStorage on every update
