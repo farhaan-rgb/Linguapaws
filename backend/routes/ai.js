@@ -52,12 +52,13 @@ router.post('/transcribe', async (req, res) => {
 // Body: { targetText, transcript }
 // Returns word-level comparison with tips tailored to Indian English
 router.post('/pronunciation', async (req, res) => {
-    const { targetText, transcript } = req.body;
+    const { targetText, transcript, targetLang } = req.body;
     if (!targetText || !transcript) {
         return res.status(400).json({ error: 'targetText and transcript are required' });
     }
 
-    const prompt = `You are an English pronunciation coach specializing in helping Indian English speakers.
+    const targetLangName = targetLang || 'English';
+    const prompt = `You are a ${targetLangName} pronunciation coach.
 
 Target sentence (what the user was supposed to say):
 "${targetText}"
@@ -65,16 +66,9 @@ Target sentence (what the user was supposed to say):
 What Whisper transcribed (what the user actually said):
 "${transcript}"
 
-Analyze word by word. For each word in the target:
+Analyze word by word when possible. For each word or meaningful chunk in the target:
 - Check if it was pronounced correctly (matched in transcript)
-- If incorrect, identify the specific error pattern common for Indian English speakers, such as:
-  * TH → T or D (three/tree, this/dis, the/de)
-  * W → V substitution (wine/vine, what/vat)
-  * V → W substitution (very/wery)
-  * Retroflex consonants
-  * Final consonant dropping
-  * Vowel elongation/shortening
-  * Word stress errors
+- If incorrect, identify the most likely pronunciation issue
 - Provide a concise, actionable tip (max 10 words)
 
 Also give:
@@ -85,10 +79,10 @@ Return ONLY valid JSON in this exact format:
 {
   "score": 82,
   "words": [
-    { "target": "The", "heard": "De", "correct": false, "tip": "TH: place tongue between teeth" },
-    { "target": "weather", "heard": "weather", "correct": true, "tip": null }
+    { "target": "word", "heard": "ward", "correct": false, "tip": "Shorten the vowel sound" },
+    { "target": "phrase", "heard": "phrase", "correct": true, "tip": null }
   ],
-  "encouragement": "Great attempt! Your vowels are really clear."
+  "encouragement": "Great attempt! Keep going."
 }`;
 
     const response = await getClient().chat.completions.create({

@@ -10,6 +10,7 @@ export default function ShadowPractice() {
     const { state } = useLocation();
     const targetText = state?.targetText || '';
     const voice = state?.voice || 'alloy';
+    const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{}');
 
     const { isRecording, startRecording, stopRecording } = useAudioRecorder();
     const audioRef = useRef(new Audio());
@@ -65,7 +66,11 @@ export default function ShadowPractice() {
                 }
 
                 // 2. Analyse pronunciation
-                const feedback = await api.post('/api/ai/pronunciation', { targetText, transcript });
+                const feedback = await api.post('/api/ai/pronunciation', {
+                    targetText,
+                    transcript,
+                    targetLang: targetLang?.name || 'English',
+                });
                 setResult({ ...feedback, transcript });
                 setPhase('result');
             } catch (err) {

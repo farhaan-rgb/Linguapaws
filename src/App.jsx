@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Chat from './pages/Chat';
 import WordHistory from './pages/WordHistory';
 import LanguageSelect from './pages/LanguageSelect';
+import LearnLanguageSelect from './pages/LearnLanguageSelect';
 import Dictionary from './pages/Dictionary';
 import Feedback from './pages/Feedback';
 import Settings from './pages/Settings';
@@ -72,6 +73,7 @@ function AppRoutes() {
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/select-language" element={<ProtectedRoute><LanguageSelect /></ProtectedRoute>} />
+      <Route path="/learn-language" element={<ProtectedRoute><LearnLanguageSelect /></ProtectedRoute>} />
       <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
       <Route path="/history" element={<ProtectedRoute><WordHistory /></ProtectedRoute>} />
       <Route path="/dictionary" element={<ProtectedRoute><Dictionary /></ProtectedRoute>} />

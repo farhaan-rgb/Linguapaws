@@ -7,9 +7,9 @@ class WordTracker {
         this.save(); // Persist sanitized data immediately (clears old bad entries)
     }
 
-    // Only accept purely alphabetic English words with 4+ characters
+    // Only accept letter words (any script) with 2+ characters
     isValidWord(word) {
-        return /^[a-z]{4,}$/.test(word);
+        return /^[\p{L}]{2,}$/u.test(word);
     }
 
     load() {
@@ -20,7 +20,7 @@ class WordTracker {
             if (typeof data !== 'object' || data === null) return {};
             const sanitized = {};
             for (const [key, value] of Object.entries(data)) {
-                if (!/^[a-z]{4,}$/.test(key)) continue;
+                if (!/^[\p{L}]{2,}$/u.test(key)) continue;
                 if (typeof value === 'number' && !isNaN(value)) {
                     sanitized[key] = value;
                 } else if (typeof value === 'object' && value !== null && typeof value.count === 'number') {

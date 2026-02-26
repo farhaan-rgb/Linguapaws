@@ -46,6 +46,11 @@ export function AuthProvider({ children }) {
             } else {
                 localStorage.removeItem('linguapaws_level');
             }
+            if (data.user.targetLang?.id) {
+                localStorage.setItem('linguapaws_target_lang', JSON.stringify(data.user.targetLang));
+            } else {
+                localStorage.removeItem('linguapaws_target_lang');
+            }
             window.dispatchEvent(new Event('linguapaws-language-changed'));
 
             setUser(data.user);

@@ -4,72 +4,48 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useTranslation } from '../hooks/useTranslation';
 
-const LANGUAGES = [
-    {
-        id: 'hi', name: 'Hindi', native: 'हिन्दी',
-        landmark: '🕌', landmarkName: 'Taj Mahal, Agra',
-    },
-    {
-        id: 'en', name: 'English', native: 'English',
-        landmark: '🗽', landmarkName: 'Statue of Liberty, New York',
-    },
-    {
-        id: 'bn', name: 'Bengali', native: 'বাংলা',
-        landmark: '🌉', landmarkName: 'Howrah Bridge, Kolkata',
-    },
-    {
-        id: 'te', name: 'Telugu', native: 'తెలుగు',
-        landmark: '🏛️', landmarkName: 'Charminar, Hyderabad',
-    },
-    {
-        id: 'mr', name: 'Marathi', native: 'मराठी',
-        landmark: '🗼', landmarkName: 'Gateway of India, Mumbai',
-    },
-    {
-        id: 'ta', name: 'Tamil', native: 'தமிழ்',
-        landmark: '🛕', landmarkName: 'Meenakshi Temple, Madurai',
-    },
-    {
-        id: 'ur', name: 'Urdu', native: 'اردو',
-        landmark: '🕌', landmarkName: 'Badshahi Mosque, Lahore',
-    },
-    {
-        id: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ',
-        landmark: '🏰', landmarkName: 'Mysore Palace, Mysore',
-    },
-    {
-        id: 'gu', name: 'Gujarati', native: 'ગુજરાતી',
-        landmark: '🌊', landmarkName: 'Rann of Kutch, Gujarat',
-    },
-    {
-        id: 'ml', name: 'Malayalam', native: 'മലയാളം',
-        landmark: '⛵', landmarkName: 'Kerala Backwaters',
-    },
+const NATIVE_LANGUAGES = [
+    { id: 'hi', name: 'Hindi', native: 'हिन्दी', landmark: '🕌', landmarkName: 'Taj Mahal, Agra' },
+    { id: 'en', name: 'English', native: 'English', landmark: '🗽', landmarkName: 'Statue of Liberty, New York' },
+    { id: 'bn', name: 'Bengali', native: 'বাংলা', landmark: '🌉', landmarkName: 'Howrah Bridge, Kolkata' },
+    { id: 'te', name: 'Telugu', native: 'తెలుగు', landmark: '🏛️', landmarkName: 'Charminar, Hyderabad' },
+    { id: 'mr', name: 'Marathi', native: 'मराठी', landmark: '🗼', landmarkName: 'Gateway of India, Mumbai' },
+    { id: 'ta', name: 'Tamil', native: 'தமிழ்', landmark: '🛕', landmarkName: 'Meenakshi Temple, Madurai' },
+    { id: 'ur', name: 'Urdu', native: 'اردو', landmark: '🕌', landmarkName: 'Badshahi Mosque, Lahore' },
+    { id: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', landmark: '🏰', landmarkName: 'Mysore Palace, Mysore' },
+    { id: 'gu', name: 'Gujarati', native: 'ગુજરાતી', landmark: '🌊', landmarkName: 'Rann of Kutch, Gujarat' },
+    { id: 'ml', name: 'Malayalam', native: 'മലയാളം', landmark: '⛵', landmarkName: 'Kerala Backwaters' },
 ];
 
-export default function LanguageSelect() {
+const PUNJABI = { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🛕', landmarkName: 'Golden Temple, Amritsar' };
+
+export default function LearnLanguageSelect() {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const [selected, setSelected] = useState(null);
 
+    const nativeLang = JSON.parse(localStorage.getItem('linguapaws_native_lang') || '{}');
+    const languages = [
+        ...NATIVE_LANGUAGES.filter(l => l.id !== nativeLang?.id),
+        PUNJABI,
+    ];
+
     const handleSelect = (lang) => {
         setSelected(lang.id);
-        localStorage.setItem('linguapaws_native_lang', JSON.stringify(lang));
-        window.dispatchEvent(new Event('linguapaws-language-changed'));
-        // Sync to backend in background
-        api.put('/api/settings', { nativeLang: lang }).catch(() => { });
-        setTimeout(() => { navigate('/learn-language'); }, 350);
+        localStorage.setItem('linguapaws_target_lang', JSON.stringify(lang));
+        api.put('/api/settings', { targetLang: lang }).catch(() => { });
+        setTimeout(() => { navigate('/level-select'); }, 350);
     };
 
     return (
         <div className="app-container" style={{ minHeight: '100vh', padding: '32px 24px', display: 'flex', flexDirection: 'column' }}>
             <header style={{ marginBottom: '32px' }}>
-                <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '6px' }}>{t.native_lang_title}</h1>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>{t.native_lang_question}</p>
+                <h1 style={{ fontSize: '28px', fontWeight: '800', marginBottom: '6px' }}>{t.learn_lang_title}</h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '15px' }}>{t.learn_lang_desc}</p>
             </header>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', flex: 1 }}>
-                {LANGUAGES.map((lang) => (
+                {languages.map((lang) => (
                     <motion.div
                         key={lang.id}
                         whileTap={{ scale: 0.95 }}
@@ -91,7 +67,6 @@ export default function LanguageSelect() {
                             textAlign: 'center',
                         }}
                     >
-                        {/* Landmark icon */}
                         <div style={{
                             width: '52px',
                             height: '52px',
@@ -108,16 +83,11 @@ export default function LanguageSelect() {
                             {lang.landmark}
                         </div>
 
-                        {/* Language name */}
                         <div style={{ fontWeight: '700', fontSize: '14px', color: '#1a1a1a' }}>{lang.name}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{lang.native}</div>
                     </motion.div>
                 ))}
             </div>
-
-            <p style={{ marginTop: '24px', textAlign: 'center', fontSize: '13px', color: '#999' }}>
-                {t.native_lang_desc}
-            </p>
         </div>
     );
 }

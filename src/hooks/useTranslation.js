@@ -34,6 +34,7 @@ export const useTranslation = () => {
         if (typeof lang === 'string') {
             const s = lang.trim().toLowerCase();
             const map = {
+                en: 'en', english: 'en',
                 hi: 'hi', hindi: 'hi', 'हिन्दी': 'hi', 'हिंदी': 'hi',
                 bn: 'bn', bengali: 'bn', 'বাংলা': 'bn',
                 te: 'te', telugu: 'te', 'తెలుగు': 'te',

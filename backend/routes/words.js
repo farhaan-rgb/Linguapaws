@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
 // Body: { word: string }
 router.post('/', async (req, res) => {
     const { word } = req.body;
-    if (!word || !/^[a-z]{4,}$/.test(word.toLowerCase().trim())) {
+    if (!word || !/^[\p{L}]{2,}$/u.test(word.trim())) {
         return res.status(400).json({ error: 'Invalid word' });
     }
     const normalized = word.toLowerCase().trim();

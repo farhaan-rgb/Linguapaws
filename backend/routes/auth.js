@@ -42,6 +42,7 @@ router.post('/google', async (req, res) => {
             picture: user.picture,
             nativeLang: user.nativeLang || null,
             englishLevel: user.englishLevel || null,
+            targetLang: user.targetLang || null,
         },
     });
 });

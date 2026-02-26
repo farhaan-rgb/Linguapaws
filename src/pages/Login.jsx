@@ -105,7 +105,7 @@ export default function Login() {
                             LinguaPaws
                         </h1>
                         <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                            Learn English your way
+                            Learn any language your way
                         </p>
                     </div>
                 </motion.div>
@@ -129,7 +129,7 @@ export default function Login() {
                         Welcome back! 👋
                     </h2>
                     <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                        Sign in to continue your English learning journey with Miko and friends.
+                        Sign in to continue your language learning journey with Miko and friends.
                     </p>
                 </div>
 
@@ -167,7 +167,7 @@ export default function Login() {
 
                 {/* Footer note */}
                 <p style={{ fontSize: '12px', color: '#aaa', lineHeight: '1.6' }}>
-                    By signing in, you agree to use this app for learning English.<br />
+                    By signing in, you agree to use this app for learning languages.<br />
                     No data is shared with third parties.
                 </p>
             </motion.div>

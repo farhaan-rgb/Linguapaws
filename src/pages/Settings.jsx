@@ -7,6 +7,7 @@ import { useTranslation } from '../hooks/useTranslation';
 
 const LANGUAGES = [
     { id: 'hi', name: 'Hindi', native: 'हिन्दी', landmark: '🕌', landmarkName: 'Taj Mahal, Agra' },
+    { id: 'en', name: 'English', native: 'English', landmark: '🗽', landmarkName: 'Statue of Liberty, New York' },
     { id: 'bn', name: 'Bengali', native: 'বাংলা', landmark: '🌉', landmarkName: 'Howrah Bridge, Kolkata' },
     { id: 'te', name: 'Telugu', native: 'తెలుగు', landmark: '🏛️', landmarkName: 'Charminar, Hyderabad' },
     { id: 'mr', name: 'Marathi', native: 'मराठी', landmark: '🗼', landmarkName: 'Gateway of India, Mumbai' },
@@ -15,14 +16,13 @@ const LANGUAGES = [
     { id: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', landmark: '🏰', landmarkName: 'Mysore Palace, Mysore' },
     { id: 'gu', name: 'Gujarati', native: 'ગુજરાતી', landmark: '🌊', landmarkName: 'Rann of Kutch, Gujarat' },
     { id: 'ml', name: 'Malayalam', native: 'മലയാളം', landmark: '⛵', landmarkName: 'Kerala Backwaters' },
-    { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🛕', landmarkName: 'Golden Temple, Amritsar' },
 ];
 
 const LEVELS = [
-    { id: 'zero', icon: '🌱', label: 'Beginner', sub: 'Little to no English' },
+    { id: 'zero', icon: '🌱', label: 'Beginner', sub: 'Little to no {n}' },
     { id: 'basic', icon: '🌿', label: 'Basic', sub: 'Some words and simple sentences' },
     { id: 'conversational', icon: '🌳', label: 'Conversational', sub: 'Can manage basic exchanges' },
-    { id: 'fluent', icon: '⭐', label: 'Fluent', sub: 'Comfortable in English' },
+    { id: 'fluent', icon: '⭐', label: 'Fluent', sub: 'Comfortable in {n}' },
 ];
 
 export default function Settings() {
@@ -31,6 +31,8 @@ export default function Settings() {
     const [selectedLang, setSelectedLang] = useState(null);
     const [showLangPicker, setShowLangPicker] = useState(false);
     const [selectedLevel, setSelectedLevel] = useState(null); // { id, label, appDetected }
+    const [selectedTargetLang, setSelectedTargetLang] = useState(null);
+    const [showTargetPicker, setShowTargetPicker] = useState(false);
     const [showLevelPicker, setShowLevelPicker] = useState(false);
 
     useEffect(() => {
@@ -54,6 +56,15 @@ export default function Settings() {
                 const savedLevel = localStorage.getItem('linguapaws_level');
                 if (savedLevel) setSelectedLevel(JSON.parse(savedLevel));
             }
+            if (data.targetLang?.id) {
+                const matched = [...LANGUAGES, { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🛕', landmarkName: 'Golden Temple, Amritsar' }]
+                    .find(l => l.id === data.targetLang.id) || data.targetLang;
+                setSelectedTargetLang(matched);
+                localStorage.setItem('linguapaws_target_lang', JSON.stringify(data.targetLang));
+            } else {
+                const savedTarget = localStorage.getItem('linguapaws_target_lang');
+                if (savedTarget) setSelectedTargetLang(JSON.parse(savedTarget));
+            }
         }).catch(() => {
             // Fallback to localStorage if backend unreachable
             const savedLang = localStorage.getItem('linguapaws_native_lang');
@@ -63,6 +74,8 @@ export default function Settings() {
             }
             const savedLevel = localStorage.getItem('linguapaws_level');
             if (savedLevel) setSelectedLevel(JSON.parse(savedLevel));
+            const savedTarget = localStorage.getItem('linguapaws_target_lang');
+            if (savedTarget) setSelectedTargetLang(JSON.parse(savedTarget));
         });
     }, []);
 
@@ -72,6 +85,13 @@ export default function Settings() {
         window.dispatchEvent(new Event('linguapaws-language-changed'));
         setShowLangPicker(false);
         api.put('/api/settings', { nativeLang: lang }).catch(() => { });
+    };
+
+    const handleTargetSelect = (lang) => {
+        setSelectedTargetLang(lang);
+        localStorage.setItem('linguapaws_target_lang', JSON.stringify(lang));
+        setShowTargetPicker(false);
+        api.put('/api/settings', { targetLang: lang }).catch(() => { });
     };
 
     const handleLevelSelect = (level) => {
@@ -224,14 +244,125 @@ export default function Settings() {
                     </div>
                 </section>
 
-                {/* ── English Level ── */}
+            {/* ── Learning Language ── */}
                 <section style={{ marginBottom: '16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                        <Zap size={16} color="var(--accent-purple)" />
+                        <Globe size={16} color="var(--accent-purple)" />
                         <h2 style={{ fontSize: '13px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                            {t.english_level_section}
+                        {t.learning_lang_section}
                         </h2>
                     </div>
+
+                <div style={{ background: 'white', borderRadius: '20px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #f0e8ff' }}>
+                    {selectedTargetLang ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{
+                                width: '44px',
+                                height: '44px',
+                                borderRadius: '14px',
+                                background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(59,130,246,0.1))',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '22px',
+                                flexShrink: 0,
+                            }}>
+                                {selectedTargetLang.landmark || '🌐'}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: '700', fontSize: '15px', color: '#1e293b' }}>{selectedTargetLang.name}</div>
+                                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>{selectedTargetLang.native}</div>
+                            </div>
+                            <motion.button
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setShowTargetPicker(v => !v)}
+                                style={{
+                                    background: showTargetPicker ? 'var(--accent-purple)' : '#f1f5f9',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    padding: '8px 14px',
+                                    fontSize: '13px',
+                                    fontWeight: '600',
+                                    color: showTargetPicker ? 'white' : '#64748b',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                }}
+                            >
+                                {t.change}
+                                <motion.span
+                                    animate={{ rotate: showTargetPicker ? 180 : 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    style={{ display: 'flex' }}
+                                >
+                                    <ChevronDown size={14} />
+                                </motion.span>
+                            </motion.button>
+                        </div>
+                    ) : (
+                        <div style={{ color: '#94a3b8', fontSize: '14px', textAlign: 'center', padding: '8px 0' }}>
+                            {t.no_lang_set}
+                        </div>
+                    )}
+
+                    <AnimatePresence>
+                        {showTargetPicker && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                style={{ overflow: 'hidden' }}
+                            >
+                                <div style={{ borderTop: '1px solid #f1f5f9', marginTop: '16px', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {[...LANGUAGES.filter(l => l.id !== selectedLang?.id), { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🛕', landmarkName: 'Golden Temple, Amritsar' }].map((lang) => (
+                                        <motion.button
+                                            key={lang.id}
+                                            whileTap={{ scale: 0.99 }}
+                                            onClick={() => handleTargetSelect(lang)}
+                                            style={{
+                                                padding: '12px 16px',
+                                                borderRadius: '14px',
+                                                background: selectedTargetLang?.id === lang.id ? 'linear-gradient(135deg, rgba(168,85,247,0.08), rgba(59,130,246,0.08))' : '#f8fafc',
+                                                border: selectedTargetLang?.id === lang.id ? '1.5px solid rgba(168,85,247,0.3)' : '1px solid transparent',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '12px',
+                                                cursor: 'pointer',
+                                                textAlign: 'left',
+                                            }}
+                                        >
+                                            <span style={{ fontSize: '22px' }}>{lang.landmark}</span>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: '600', fontSize: '14px', color: '#1e293b' }}>{lang.name}</div>
+                                                <div style={{ fontSize: '11px', color: '#94a3b8' }}>{lang.native}</div>
+                                            </div>
+                                            {selectedTargetLang?.id === lang.id && (
+                                                <div style={{
+                                                    width: '22px', height: '22px', borderRadius: '50%',
+                                                    background: 'var(--accent-purple)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                }}>
+                                                    <Check size={13} color="white" strokeWidth={3} />
+                                                </div>
+                                            )}
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </section>
+
+            {/* ── Learning Level ── */}
+            <section style={{ marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <Zap size={16} color="var(--accent-purple)" />
+                    <h2 style={{ fontSize: '13px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                        {(t.english_level_section || '').replace('{n}', (selectedTargetLang?.name || 'English'))}
+                    </h2>
+                </div>
 
                     <div style={{ background: 'white', borderRadius: '20px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #f0e8ff' }}>
                         {selectedLevel ? (
@@ -242,7 +373,7 @@ export default function Settings() {
                                     </span>
                                     <div>
                                         <div style={{ fontWeight: '700', fontSize: '15px', color: '#1e293b' }}>
-                                            {LEVELS.find(l => l.id === selectedLevel.id)?.label || selectedLevel.label}
+                                        {LEVELS.find(l => l.id === selectedLevel.id)?.label || selectedLevel.label}
                                         </div>
                                         {selectedLevel.appDetected ? (
                                             <div style={{ fontSize: '11px', color: '#10b981', fontWeight: '600', marginTop: '2px' }}>
@@ -300,7 +431,9 @@ export default function Settings() {
                                                 <span style={{ fontSize: '22px' }}>{level.icon}</span>
                                                 <div style={{ flex: 1 }}>
                                                     <div style={{ fontWeight: '600', fontSize: '14px', color: '#1e293b' }}>{level.label}</div>
-                                                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{level.sub}</div>
+                                                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                                        {level.sub.replace('{n}', (selectedTargetLang?.name || 'English'))}
+                                                    </div>
                                                 </div>
                                                 {selectedLevel?.id === level.id && (
                                                     <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'var(--accent-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

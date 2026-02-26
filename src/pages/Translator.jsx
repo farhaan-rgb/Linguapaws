@@ -19,35 +19,32 @@ export default function Translator() {
     const [detectedLang, setDetectedLang] = useState('');
 
     const nativeLang = JSON.parse(localStorage.getItem('linguapaws_native_lang') || '{"name": "any language", "code": "auto"}');
+    const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{"name": "English", "code": "en"}');
     const nativeLangName = nativeLang?.name || 'any language';
+    const targetLangName = targetLang?.name || 'English';
     const exampleMap = {
-        hi: 'Aaj din kya hai?',
-        te: 'Ninna nuvvu ekkadiki vellavu?',
-        mr: 'Aaj kay divas aahe?',
-        bn: 'Aj kon din?',
-        ta: 'Inru entha naal?',
-        kn: 'Ivattu yenu dina?',
-        gu: 'Aaje kyano divas che?',
-        ml: 'Innu ethra divasam?',
-        pa: 'Aj ki din hai?',
-        ur: 'Aaj ka din kya hai?',
+        en: 'What day is it today?',
+        hi: 'आज कौन सा दिन है?',
+        te: 'ఈ రోజు ఏ రోజు?',
+        mr: 'आज कोणता दिवस आहे?',
+        bn: 'আজ কোন দিন?',
+        ta: 'இன்று என்ன நாள்?',
+        kn: 'ಇಂದು ಯಾವ ದಿನ?',
+        gu: 'આજ કયો દિવસ છે?',
+        ml: 'ഇന്ന് എന്ത് ദിവസം?',
+        pa: 'ਅੱਜ ਕਿਹੜਾ ਦਿਨ ਹੈ?',
+        ur: 'آج کون سا دن ہے؟',
     };
-    const exampleText = exampleMap[nativeLang?.id] || 'Aaj kya din hai?';
+    const exampleText = exampleMap[nativeLang?.id] || 'What day is it today?';
 
     const handleTranslateAction = async (content) => {
         if (!content.trim()) return;
         setLastInput(content);
         setIsTranslating(true);
         try {
-            // Force "to English" mode for this page
-            const data = await aiService.translate(content, 'English', nativeLangName);
-            if (data && typeof data === 'object') {
-                setTranslation(data.translation);
-                setDetectedLang(data.detectedLanguage);
-            } else {
-                setTranslation(data);
-                setDetectedLang('');
-            }
+            const data = await aiService.translate(content, targetLangName, nativeLangName);
+            setTranslation(data?.translation || '');
+            setDetectedLang(data?.detectedLanguage || '');
         } catch (error) {
             console.error("Translation error:", error);
         } finally {
@@ -79,7 +76,7 @@ export default function Translator() {
             try {
                 await navigator.share({
                     title: t.share_title,
-                    text: `${t.english_translation_label} ${translation}\n(${nativeLangName}: ${inputText})`,
+                    text: `${t.translation_label.replace('{n}', targetLangName)} ${translation}\n(${nativeLangName}: ${inputText})`,
                     url: window.location.origin
                 });
             } catch (err) {
@@ -108,7 +105,7 @@ export default function Translator() {
                     </div>
                     <div>
                         <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase' }}>{t.translating_from}</span>
-                        <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>{nativeLangName} → English</h3>
+                        <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>{nativeLangName} → {targetLangName}</h3>
                     </div>
                 </div>
 
@@ -130,7 +127,9 @@ export default function Translator() {
                             </div>
 
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '8px' }}>
-                                <span style={{ fontSize: '11px', fontWeight: '700', opacity: 0.8, textTransform: 'uppercase' }}>{t.english_translation_label}</span>
+                                <span style={{ fontSize: '11px', fontWeight: '700', opacity: 0.8, textTransform: 'uppercase' }}>
+                                    {t.translation_label.replace('{n}', targetLangName)}
+                                </span>
                             </div>
                             <p style={{ fontSize: '22px', fontWeight: '700', marginBottom: '24px', lineHeight: '1.4' }}>"{translation}"</p>
 
@@ -162,7 +161,9 @@ export default function Translator() {
                                         <p style={{ color: '#64748b', fontSize: '16px', fontWeight: '600', marginBottom: '8px' }}>
                                             {isRecording ? t.listening : t.speak_in.replace('{n}', nativeLangName)}
                                         </p>
-                                        <p style={{ color: '#94a3b8', fontSize: '13px' }}>{t.convert_to_english}</p>
+                                        <p style={{ color: '#94a3b8', fontSize: '13px' }}>
+                                            {t.convert_to_target.replace('{n}', targetLangName)}
+                                        </p>
                                     </div>
 
                                     <motion.button

@@ -18,6 +18,12 @@ const userSchema = new mongoose.Schema(
             label: String,
             appDetected: Boolean, // true = AI recalibrated, false = user chose
         },
+        targetLang: {
+            // e.g. { id: 'es', name: 'Spanish', native: 'Español' }
+            id: String,
+            name: String,
+            native: String,
+        },
     },
     { timestamps: true }
 );

@@ -85,7 +85,7 @@ export default function Chat() {
 
     const fetchSuggestions = async () => {
         setIsLoading(true);
-        const sugs = await aiService.getSuggestions();
+        const sugs = await aiService.getSuggestions(targetLang?.name || 'English');
         setSuggestions(sugs);
         setShowSuggestions(true);
         setIsLoading(false);
@@ -101,8 +101,16 @@ export default function Chat() {
         }, 1000);
 
         // Auto-greet when the call connects
-        const greetings = resolvedCharacter?.greetings || ["Hey! Great to hear from you! Let's practice some English together!"];
-        const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+        let greeting = await aiService.getResponse(
+            `[CALL GREETING ONLY — keep it short. Greet warmly and invite practice.]`,
+            topicName,
+            activeCharacter,
+            nativeLang,
+            targetLang,
+            false,
+            userLevel
+        );
+        greeting = greeting.replace(/<[^>]+>/g, '').trim();
         if (isMounted.current) {
             const audioUrl = await aiService.generateSpeech(greeting, resolvedCharacter?.voice || 'alloy');
             if (audioUrl && isMounted.current && isCallMode) {
@@ -139,10 +147,10 @@ export default function Chat() {
                 const transcript = await aiService.transcribeAudio(audioBlob);
                 if (transcript) {
                     setMessages(prev => [...prev, { role: 'user', content: transcript }]);
-                    const userWords = transcript.toLowerCase().match(/\b(\w+)\b/g);
-                    if (userWords) userWords.forEach(w => { if (w.length > 3) wordTracker.addWord(w); });
+                    const userWords = transcript.match(/[\p{L}]{2,}/gu);
+                    if (userWords) userWords.forEach(w => { wordTracker.addWord(w); });
 
-                    const botResponse = await aiService.getResponse(transcript, topicName, activeCharacter, nativeLang);
+                    const botResponse = await aiService.getResponse(transcript, topicName, activeCharacter, nativeLang, targetLang, false, userLevel);
                     const cleanResponse = botResponse.replace(/<word>(.*?)<\/word>/g, '$1');
                     setMessages(prev => [...prev, { role: 'assistant', content: cleanResponse }]);
 
@@ -171,6 +179,7 @@ export default function Chat() {
     };
 
     const nativeLang = JSON.parse(localStorage.getItem('linguapaws_native_lang') || '{}');
+    const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{}');
 
     useEffect(() => {
         const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
@@ -189,58 +198,28 @@ export default function Chat() {
 
             setIsLoading(true);
             let greeting = "";
+            let greeting = "";
             const levelId = userLevel || 'conversational';
             const nativeLangName = nativeLang?.name || 'Hindi';
+            const targetLangName = targetLang?.name || 'English';
 
-            if (activeCharacter) {
-                if (levelId === 'zero' || levelId === 'basic') {
-                    // For beginners, ask AI to generate a level-aware greeting in character
-                    const scriptNote = `CRITICAL LANGUAGE RULE: The user's native language is ${nativeLangName}. You MUST write your entire response in ${nativeLangName} using its NATIVE SCRIPT (e.g. Devanagari for Hindi, Bengali script for Bengali, Tamil script for Tamil). Do NOT use Roman/Latin transliteration and do NOT use the character's own regional language — for example, even if the character is from Kolkata, do NOT use Bengali if the user's language is Hindi. The character's regional personality and warmth should show only through tone and the one English phrase.`;
-                    const levelNote = levelId === 'zero'
-                        ? `${scriptNote} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter.name}. End with just ONE simple English word or phrase like "Say: Hello!".`
-                        : `${scriptNote} Greet the user with a mix of ${nativeLangName} and simple English (2 sentences max), introducing yourself as ${activeCharacter.name}. Keep it warm and encouraging.`;
-                    const aiGreeting = await aiService.getResponse(
-                        `[GREETING ONLY — do not start a conversation, just greet the user. ${levelNote}]`,
-                        topicName, activeCharacter, nativeLang, false, levelId
-                    );
-                    // Strip any accidental tags
-                    greeting = aiGreeting.replace(/<[^>]+>/g, '').trim();
-                } else {
-                    // Conversational / Fluent — use fast hardcoded character greeting
-                    const greetings = activeCharacter.greetings || ["Hello! How are you today?"];
-                    greeting = greetings[Math.floor(Math.random() * greetings.length)];
-                }
-            } else {
+            const scriptNote = `CRITICAL LANGUAGE RULE: The user's native language is ${nativeLangName}. You MUST write all ${nativeLangName} parts in its NATIVE SCRIPT (e.g. Devanagari for Hindi, Bengali script for Bengali, Tamil script for Tamil). Do NOT use Roman/Latin transliteration and do NOT use the character's own regional language if it differs from the user's native language.`;
+            const levelNote = levelId === 'zero'
+                ? `${scriptNote} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. End with just ONE simple ${targetLangName} word or phrase like "Say: Hello!".`
+                : levelId === 'basic'
+                    ? `${scriptNote} Greet the user with a mix of ${nativeLangName} and simple ${targetLangName} (2 sentences max), introducing yourself as ${activeCharacter?.name || 'Miko'}. Keep it warm and encouraging.`
+                    : `${scriptNote} Greet the user in ${targetLangName} (2 sentences max), introducing yourself as ${activeCharacter?.name || 'Miko'}. Keep it warm and encouraging.`;
 
-
-                if (levelId === 'zero') {
-                    // Mostly native language — one simple English phrase at the end
-                    const zeroGreetings = {
-                        hi: `नमस्ते! 🐾 मैं Miko हूँ — आपका English सीखने का दोस्त! घबराइए मत, हम बहुत धीरे-धीरे शुरू करेंगे। बस इतना कहिए: "Hello!"`,
-                        te: `నమస్కారం! 🐾 నేను Miko — మీ English నేర్పించే స్నేహితుడిని! భయపడకండి, మనం నెమ్మదిగా మొదలు పెడదాం. ఇది చెప్పండి: "Hello!"`,
-                        mr: `नमस्कार! 🐾 मी Miko — तुमचा English शिकण्याचा मित्र! घाबरू नका, आपण हळूहळू सुरुवात करू. फक्त म्हणा: "Hello!"`,
-                        bn: `নমস্কার! 🐾 আমি Miko — আপনার ইংরেজি শেখার বন্ধু! ভয় পাবেন না, আমরা ধীরে ধীরে শুরু করব। শুধু বলুন: "Hello!"`,
-                        ta: `வணக்கம்! 🐾 நான் Miko — உங்கள் English கற்பிக்கும் நண்பன்! பயப்படாதீர்கள், நாம் மெதுவாக ஆரம்பிப்போம். இதை சொல்லுங்கள்: "Hello!"`,
-                        kn: `ನಮಸ್ಕಾರ! 🐾 ನಾನು Miko — ನಿಮ್ಮ English ಕಲಿಕೆಯ ಸ್ನೇಹಿತ! ಭಯಪಡಬೇಡಿ, ನಾವು ನಿಧಾನವಾಗಿ ಪ್ರಾರಂಭಿಸೋಣ. ಹೇಳಿ: "Hello!"`,
-                        gu: `નમસ્તે! 🐾 હું Miko — તમારો English શીખવાનો મિત્ર! ગભરાશો નહીં, આપણે ધીરે ધીરે શરૂ કરીશું. ફક્ત કહો: "Hello!"`,
-                        pa: `ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ! 🐾 ਮੈਂ Miko ਹਾਂ — ਤੁਹਾਡਾ English ਸਿੱਖਣ ਦਾ ਦੋਸਤ! ਡਰੋ ਨਾ, ਅਸੀਂ ਹੌਲੀ ਹੌਲੀ ਸ਼ੁਰੂ ਕਰਾਂਗੇ। ਬੱਸ ਕਹੋ: "Hello!"`,
-                        or: `ନମସ୍କାର! 🐾 ମୁଁ Miko — ତୁମର English ଶିକ୍ଷା ବନ୍ଧୁ! ଡରଅ ନାହିଁ, ଆମେ ଧୀରେ ଧୀରେ ଆରମ୍ଭ କରିବା। ବସ୍ କୁହ: "Hello!"`,
-                        ml: `നമസ്കാരം! 🐾 ഞാൻ Miko — നിങ്ങളുടെ English പഠന സുഹൃത്ത്! ഭയപ്പെടേണ്ട, നമ്മൾ സ천ിനെ ആരംഭിക്കും. ഇത് പറയൂ: "Hello!"`,
-                        ur: `السلام علیکم! 🐾 میں Miko ہوں — آپ کا انگریزی سیکھنے کا دوست! گھبرائیں نہیں، ہم آہستہ آہستہ شروع کریں گے۔ بس کہیں: "Hello!"`,
-                    };
-                    greeting = zeroGreetings[nativeLang?.id] || `${nativeLangName} में: नमस्ते! मैं Miko हूँ। बस कहिए: "Hello!" 🐾`;
-                } else if (levelId === 'basic') {
-                    greeting = topicName
-                        ? `Meow! 🐾 Let's talk about ${topicName} today! (${nativeLangName}: हम "${topicName}" के बारे में बात करेंगे।) Ready? Say: "Yes, I am ready!"`
-                        : `Meow! 🐾 I'm Miko — your English buddy! We'll go slowly, no worries. Can you say: "My name is ___."?`;
-                } else {
-                    // Conversational / Fluent — full English
-                    greeting = topicName
-                        ? `Meow! I'm so excited to talk about ${topicName} with you! 🐾 How are you feeling today?`
-                        : `Meow! Purr-fect timing! Ready for some English practice? What's on your mind today? 🐾`;
-                }
-            }
-
+            const aiGreeting = await aiService.getResponse(
+                `[GREETING ONLY — do not start a conversation, just greet the user. ${levelNote}]`,
+                topicName,
+                activeCharacter,
+                nativeLang,
+                targetLang,
+                false,
+                levelId
+            );
+            greeting = aiGreeting.replace(/<[^>]+>/g, '').trim();
             setMessages([{ role: 'assistant', content: greeting }]);
             aiService.history.push({ role: 'assistant', content: greeting });
 
@@ -286,7 +265,8 @@ export default function Chat() {
         if (!nativeLang.name) return;
 
         setIsLoading(true);
-        const translatedText = await aiService.translate(text, nativeLang.name);
+        const translated = await aiService.translate(text, nativeLang.name, targetLang?.name || null);
+        const translatedText = translated?.translation;
         if (translatedText) {
             setTranslations(prev => ({ ...prev, [index]: translatedText }));
 
@@ -308,12 +288,10 @@ export default function Chat() {
         setMessages(prev => [...prev, { role: 'user', content: text }]);
 
         // Track user's words (only track words longer than 3 characters)
-        const userWords = text.toLowerCase().match(/\b(\w+)\b/g);
+        const userWords = text.match(/[\p{L}]{2,}/gu);
         if (userWords) {
             userWords.forEach(word => {
-                if (word.length > 3) {
-                    wordTracker.addWord(word);
-                }
+                wordTracker.addWord(word);
             });
         }
 
@@ -324,7 +302,8 @@ export default function Chat() {
         // React state updates are async so we track the effective level locally.
         let effectiveLevel = userLevel;
         const isFirstMessage = exchangeCount.current === 0;
-        if (isFirstMessage) {
+        const allowRecalibration = (targetLang?.id || '').toLowerCase() === 'en';
+        if (isFirstMessage && allowRecalibration) {
             const latinChars = (text.match(/[a-zA-Z]/g) || []).length;
             const latinRatio = latinChars / Math.max(text.replace(/\s/g, '').length, 1);
             const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
@@ -340,15 +319,15 @@ export default function Chat() {
                 setTimeout(() => setRecalibrationToast(null), 4000);
             };
 
-            // Non-English message + high stated level → recalibrate down
+            // Non-target-language message + high stated level → recalibrate down
             if (latinRatio < 0.15 && (userLevel === 'fluent' || userLevel === 'conversational')) {
                 applyRecalibration('zero');
             }
-            // Very basic English + high stated level → recalibrate to basic
+            // Very basic target-language + high stated level → recalibrate to basic
             else if (latinRatio > 0.5 && latinRatio < 0.85 && text.trim().split(/\s+/).length <= 4 && userLevel === 'fluent') {
                 applyRecalibration('basic');
             }
-            // Fluent English paragraphs + stated zero → recalibrate up  
+            // Fluent target-language paragraphs + stated zero → recalibrate up  
             else if (latinRatio > 0.85 && text.trim().split(/\s+/).length > 6 && (userLevel === 'zero' || userLevel === 'basic')) {
                 applyRecalibration('fluent');
             }
@@ -359,7 +338,7 @@ export default function Chat() {
         exchangeCount.current += 1;
         const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
 
-        const botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, triggerShadow, effectiveLevel);
+        const botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel);
 
         // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
 

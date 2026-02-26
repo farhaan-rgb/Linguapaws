@@ -10,6 +10,10 @@ export default function Feedback() {
     const { t } = useTranslation();
     const location = useLocation();
     const text = location.state?.text || "";
+    const nativeLang = JSON.parse(localStorage.getItem('linguapaws_native_lang') || '{}');
+    const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{}');
+    const nativeLangName = nativeLang?.name || 'English';
+    const targetLangName = targetLang?.name || 'English';
 
     const [loading, setLoading] = useState(true);
     const [analysis, setAnalysis] = useState(null);
@@ -21,7 +25,7 @@ export default function Feedback() {
                 return;
             }
 
-            const feedback = await aiService.getFeedback(text);
+            const feedback = await aiService.getFeedback(text, targetLangName, nativeLangName);
             setAnalysis(feedback);
             setLoading(false);
         };

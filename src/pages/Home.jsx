@@ -11,8 +11,18 @@ export default function Home() {
 
     React.useEffect(() => {
         const nativeLang = localStorage.getItem('linguapaws_native_lang');
+        const targetLang = localStorage.getItem('linguapaws_target_lang');
+        const level = localStorage.getItem('linguapaws_level');
         if (!nativeLang) {
             navigate('/select-language');
+            return;
+        }
+        if (!targetLang) {
+            navigate('/learn-language');
+            return;
+        }
+        if (!level) {
+            navigate('/level-select');
         }
     }, [navigate]);
 

@@ -12,6 +12,10 @@ export default function Dictionary() {
 
     const [definitions, setDefinitions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const nativeLang = JSON.parse(localStorage.getItem('linguapaws_native_lang') || '{}');
+    const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{}');
+    const nativeLangName = nativeLang?.name || 'English';
+    const targetLangName = targetLang?.name || 'English';
 
     useEffect(() => {
         if (!text) {
@@ -23,7 +27,7 @@ export default function Dictionary() {
             setIsLoading(true);
             const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
             aiService.init(apiKey);
-            const data = await aiService.getDefinitions(text);
+            const data = await aiService.getDefinitions(text, targetLangName, nativeLangName);
             if (data && Array.isArray(data)) {
                 setDefinitions(data);
             }

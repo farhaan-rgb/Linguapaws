@@ -52,12 +52,14 @@ export default function CharacterGrid({ onSelectCharacter }) {
 
         setIsGenerating(true);
         try {
+            const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{}');
+            const targetLangName = targetLang?.name || 'English';
             // Collect face types already in use by all characters (default + custom) to avoid duplicates
             const usedFaceTypes = [
                 ...defaultCharacters.filter(c => c.id !== 'miko').map(c => c.id), // default characters use their id as face type
                 ...customCharacters.map(c => c.faceType).filter(Boolean)
             ];
-            const data = await aiService.generateCharacter(newCharName, newCharDesc, usedFaceTypes);
+            const data = await aiService.generateCharacter(newCharName, newCharDesc, usedFaceTypes, targetLangName);
             const newChar = {
                 id: `custom_${Date.now()}`,
                 name: newCharName,
@@ -71,7 +73,7 @@ export default function CharacterGrid({ onSelectCharacter }) {
                 prompt: data.prompt,
                 greetings: data.greetings || [
                     `Hi! I'm ${newCharName}. So glad to meet you!`,
-                    `Hey there! Ready for some English practice?`,
+                    `Hey there! Ready to practice ${targetLangName}?`,
                     `Hello! I'm looking forward to our chat.`
                 ]
             };

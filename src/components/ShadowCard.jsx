@@ -15,6 +15,7 @@ export default function ShadowCard({ phrase, character }) {
     const { t } = useTranslation();
     const { isRecording, startRecording, stopRecording } = useAudioRecorder();
     const audioRef = useRef(new Audio());
+    const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{}');
 
     const [phase, setPhase] = useState('idle'); // idle | recording | analysing | done | skipped
     const [score, setScore] = useState(null);
@@ -57,7 +58,11 @@ export default function ShadowCard({ phrase, character }) {
                     audioBase64: base64, mimeType: blob.type || 'audio/webm',
                 });
                 if (!transcript?.trim()) { setPhase('idle'); return; }
-                const feedback = await api.post('/api/ai/pronunciation', { targetText: phrase, transcript });
+                const feedback = await api.post('/api/ai/pronunciation', {
+                    targetText: phrase,
+                    transcript,
+                    targetLang: targetLang?.name || 'English',
+                });
                 setScore(feedback.score ?? null);
                 setPhase('done');
             } catch { setPhase('idle'); }
