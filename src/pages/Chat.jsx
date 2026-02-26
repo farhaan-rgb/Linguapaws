@@ -135,11 +135,30 @@ export default function Chat() {
     const extractPromptedPhrase = (text) => {
         if (!text) return null;
         const clean = text.replace(/<[^>]+>/g, '');
+        const targetLangId = (targetLang?.id || '').toLowerCase();
+
+        const findQuotedByScript = (scriptName) => {
+            const re = /["“]([^"”]+?)["”]/g;
+            let match;
+            while ((match = re.exec(clean)) !== null) {
+                const candidate = match[1].trim();
+                if (!candidate) continue;
+                const scriptRe = new RegExp(`\\p{Script=${scriptName}}`, 'u');
+                if (scriptRe.test(candidate)) return candidate;
+            }
+            return null;
+        };
+
+        if (targetLangId === 'kn') {
+            const kannada = findQuotedByScript('Kannada');
+            if (kannada) return kannada;
+        }
+
         const patterns = [
-            /(?:say|try saying)\s*:\s*["“]?(.+?)["”]?(?:$|\n)/i,
-            /it'?s\s*:\s*["“]?(.+?)["”]?(?:$|\n)/i,
-            /give it a try[:\s]*["“]?(.+?)["”]?(?:$|\n)/i,
-            /can you try saying\s*["“]?(.+?)["”]?(?:$|\n)/i,
+            /(?:say|try saying)\s*:\s*["“]([^"”]+?)["”]/i,
+            /it'?s\s*:\s*["“]([^"”]+?)["”]/i,
+            /give it a try[:\s]*["“]([^"”]+?)["”]/i,
+            /can you try saying\s*["“]([^"”]+?)["”]/i,
         ];
         for (const pattern of patterns) {
             const m = clean.match(pattern);
@@ -498,7 +517,8 @@ export default function Chat() {
             const userMessageIndex = messages.length; // index of the message we're about to append
             setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(matchRatio * 100) }));
         }
-        const acceptNote = (promptedPhrase && matchRatio >= 0.7)
+        const threshold = 0.5;
+        const acceptNote = (promptedPhrase && matchRatio >= threshold)
             ? `The user attempted to repeat the requested phrase. Similarity is ~${Math.round(matchRatio * 100)}%. Treat this as correct and move forward; do not ask to repeat again.`
             : null;
 
@@ -507,6 +527,10 @@ export default function Chat() {
             const targetLangName = targetLang?.name || 'English';
             const nativeLangName = nativeLang?.name || 'English';
             botResponse = `Great job! ✅ You said it well. In ${nativeLangName}, nice work. Let's continue learning ${targetLangName}. What would you like to talk about next?`;
+        } else if (promptedPhrase && matchRatio < threshold) {
+            const prompt = promptedPhrase.replace(/[.!?]+$/g, '');
+            const nativeLangName = nativeLang?.name || 'English';
+            botResponse = `Nice try! In ${nativeLangName}, you're close. Let's repeat the same phrase: "${prompt}". Please say it again.`;
         }
 
         // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
