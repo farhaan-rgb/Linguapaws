@@ -123,23 +123,23 @@ export default function Settings() {
                         border: '1px solid #f0e8ff',
                     }}>
                         {selectedLang ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{
-                                    width: '52px',
-                                    height: '52px',
+                                    width: '44px',
+                                    height: '44px',
                                     borderRadius: '14px',
                                     background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(59,130,246,0.1))',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    fontSize: '26px',
+                                    fontSize: '22px',
                                     flexShrink: 0,
                                 }}>
                                     {selectedLang.landmark || '🌐'}
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: '700', fontSize: '17px', color: '#1e293b' }}>{selectedLang.name}</div>
-                                    <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '2px' }}>{selectedLang.native}</div>
+                                    <div style={{ fontWeight: '700', fontSize: '15px', color: '#1e293b' }}>{selectedLang.name}</div>
+                                    <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>{selectedLang.native}</div>
                                 </div>
                                 <motion.button
                                     whileTap={{ scale: 0.95 }}
@@ -237,7 +237,7 @@ export default function Settings() {
                         {selectedLevel ? (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                    <span style={{ fontSize: '28px' }}>
+                                    <span style={{ fontSize: '22px', width: '44px', height: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                                         {LEVELS.find(l => l.id === selectedLevel.id)?.icon || '🌿'}
                                     </span>
                                     <div>
