@@ -37,6 +37,7 @@ export default function Chat() {
     const [userLevel, setUserLevel] = useState(() => JSON.parse(localStorage.getItem('linguapaws_level') || '{}')?.id || 'conversational');
     const [recalibrationToast, setRecalibrationToast] = useState(null); // toast message when AI recalibrates
     const [transliterations, setTransliterations] = useState({});
+    const [matchScores, setMatchScores] = useState({});
     const scrollRef = useRef(null);
     const audioRef = useRef(new Audio());
     const hasGreeted = useRef(messages.length > 0); // Skip greeting if chat already has messages
@@ -302,8 +303,6 @@ export default function Chat() {
     }, [messages]);
 
     useEffect(() => {
-        const shouldAdd = userLevel === 'zero' || userLevel === 'basic';
-        if (!shouldAdd) return;
         const nativeLangName = nativeLang?.name || 'English';
         const targetLangName = targetLang?.name || 'English';
         const pending = [];
@@ -416,9 +415,13 @@ export default function Chat() {
         exchangeCount.current += 1;
         const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
 
-        const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-        const promptedPhrase = extractPromptedPhrase(lastAssistant?.content || '');
+        const lastAssistantWithPrompt = [...messages].reverse().find(m => m.role === 'assistant' && extractPromptedPhrase(m.content));
+        const promptedPhrase = extractPromptedPhrase(lastAssistantWithPrompt?.content || '');
         const matchRatio = promptedPhrase ? similarityRatio(text, promptedPhrase) : 0;
+        if (promptedPhrase) {
+            const userMessageIndex = messages.length; // index of the message we're about to append
+            setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(matchRatio * 100) }));
+        }
         const acceptNote = (promptedPhrase && matchRatio >= 0.7)
             ? `The user attempted to repeat the requested phrase. Similarity is ~${Math.round(matchRatio * 100)}%. Treat this as correct and move forward; do not ask to repeat again.`
             : null;
@@ -637,28 +640,45 @@ export default function Chat() {
                         </motion.div>
 
                         {msg.role === 'user' && (
-                            <motion.button
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => navigate('/feedback', { state: { text: msg.content } })}
-                                style={{
-                                    alignSelf: 'flex-end',
-                                    marginTop: '8px',
-                                    background: 'rgba(59, 130, 246, 0.1)',
-                                    border: '1px solid rgba(59, 130, 246, 0.2)',
-                                    color: '#3b82f6',
-                                    fontSize: '11px',
-                                    fontWeight: '700',
-                                    cursor: 'pointer',
-                                    padding: '4px 12px',
-                                    borderRadius: '12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px'
-                                }}
-                            >
-                                <Edit3 size={12} />
-                                {t.feedback}
-                            </motion.button>
+                            <>
+                                {typeof matchScores[i] === 'number' && (
+                                    <div style={{
+                                        alignSelf: 'flex-end',
+                                        marginTop: '6px',
+                                        background: '#eef2ff',
+                                        color: '#4338ca',
+                                        fontSize: '11px',
+                                        fontWeight: '700',
+                                        padding: '4px 10px',
+                                        borderRadius: '10px',
+                                        border: '1px solid #e0e7ff',
+                                    }}>
+                                        Match: {matchScores[i]}%
+                                    </div>
+                                )}
+                                <motion.button
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => navigate('/feedback', { state: { text: msg.content } })}
+                                    style={{
+                                        alignSelf: 'flex-end',
+                                        marginTop: '8px',
+                                        background: 'rgba(59, 130, 246, 0.1)',
+                                        border: '1px solid rgba(59, 130, 246, 0.2)',
+                                        color: '#3b82f6',
+                                        fontSize: '11px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        padding: '4px 12px',
+                                        borderRadius: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px'
+                                    }}
+                                >
+                                    <Edit3 size={12} />
+                                    {t.feedback}
+                                </motion.button>
+                            </>
                         )}
 
                         {msg.role === 'assistant' && (
@@ -775,7 +795,7 @@ export default function Chat() {
                                 {translations[i]}
                             </motion.div>
                         )}
-                        {msg.role === 'assistant' && (userLevel === 'zero' || userLevel === 'basic') && transliterations[i] && (
+                        {msg.role === 'assistant' && transliterations[i] && (
                             <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
