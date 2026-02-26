@@ -135,8 +135,16 @@ export default function Chat() {
     const extractPromptedPhrase = (text) => {
         if (!text) return null;
         const clean = text.replace(/<[^>]+>/g, '');
-        const sayMatch = clean.match(/(?:say|try saying)\s*:\s*["“]?(.+?)["”]?(?:$|\n)/i);
-        if (sayMatch && sayMatch[1]) return sayMatch[1].trim();
+        const patterns = [
+            /(?:say|try saying)\s*:\s*["“]?(.+?)["”]?(?:$|\n)/i,
+            /it'?s\s*:\s*["“]?(.+?)["”]?(?:$|\n)/i,
+            /give it a try[:\s]*["“]?(.+?)["”]?(?:$|\n)/i,
+            /can you try saying\s*["“]?(.+?)["”]?(?:$|\n)/i,
+        ];
+        for (const pattern of patterns) {
+            const m = clean.match(pattern);
+            if (m && m[1]) return m[1].trim();
+        }
         return null;
     };
 
@@ -463,7 +471,9 @@ export default function Chat() {
 
         const lastAssistantWithPrompt = [...messages].reverse().find(m => m.role === 'assistant' && extractPromptedPhrase(m.content));
         const promptedPhrase = extractPromptedPhrase(lastAssistantWithPrompt?.content || '');
-        let matchRatio = promptedPhrase ? similarityRatio(text, promptedPhrase) : 0;
+        const expected = (promptedPhrase || '').replace(/[.!?]+$/g, '').trim();
+        const actual = (text || '').replace(/[.!?]+$/g, '').trim();
+        let matchRatio = expected ? similarityRatio(actual, expected) : 0;
         let usedTranslit = false;
 
         if (promptedPhrase && isMostlyLatin(text) && !isMostlyLatin(promptedPhrase)) {
@@ -479,7 +489,7 @@ export default function Chat() {
                 } catch { /* ignore */ }
             }
             if (translit) {
-                matchRatio = similarityRatioLatin(text, translit);
+                matchRatio = similarityRatioLatin(actual, translit);
                 usedTranslit = true;
             }
         }
@@ -493,7 +503,7 @@ export default function Chat() {
             : null;
 
         let botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, acceptNote);
-        if (acceptNote && /say|try saying/i.test(botResponse)) {
+        if (acceptNote && /say|try saying|give it a try|it'?s\s*:/i.test(botResponse)) {
             const targetLangName = targetLang?.name || 'English';
             const nativeLangName = nativeLang?.name || 'English';
             botResponse = `Great job! ✅ You said it well. In ${nativeLangName}, nice work. Let's continue learning ${targetLangName}. What would you like to talk about next?`;
