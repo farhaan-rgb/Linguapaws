@@ -204,7 +204,7 @@ export default function Chat() {
 
             const scriptNote = `CRITICAL LANGUAGE RULE: The user's native language is ${nativeLangName}. You MUST write all ${nativeLangName} parts in its NATIVE SCRIPT (e.g. Devanagari for Hindi, Bengali script for Bengali, Tamil script for Tamil). Do NOT use Roman/Latin transliteration and do NOT use the character's own regional language if it differs from the user's native language.`;
             const levelNote = levelId === 'zero'
-                ? `${scriptNote} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. End with just ONE simple ${targetLangName} word or phrase like "Say: Hello!".`
+                ? `${scriptNote} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Write MOST of the greeting in ${nativeLangName} so a complete beginner understands, then end with just ONE simple ${targetLangName} word or phrase like "Say: Hello!". Do NOT use more than one ${targetLangName} phrase.`
                 : levelId === 'basic'
                     ? `${scriptNote} Greet the user with a mix of ${nativeLangName} and simple ${targetLangName} (2 sentences max), introducing yourself as ${activeCharacter?.name || 'Miko'}. Keep it warm and encouraging.`
                     : `${scriptNote} Greet the user in ${targetLangName} (2 sentences max), introducing yourself as ${activeCharacter?.name || 'Miko'}. Keep it warm and encouraging.`;
