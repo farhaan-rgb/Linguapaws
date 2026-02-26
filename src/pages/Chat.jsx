@@ -58,6 +58,24 @@ export default function Chat() {
             .trim();
     };
 
+    const normalizeLatin = (value) => {
+        if (!value) return '';
+        return value
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/\p{Diacritic}/gu, '')
+            .replace(/[^a-z0-9]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    };
+
+    const isMostlyLatin = (value) => {
+        const letters = (value || '').match(/\p{L}/gu) || [];
+        if (letters.length === 0) return false;
+        const latin = (value.match(/\p{Script=Latin}/gu) || []).length;
+        return latin / letters.length >= 0.8;
+    };
+
     const levenshtein = (a, b) => {
         const alen = a.length;
         const blen = b.length;
@@ -82,6 +100,14 @@ export default function Chat() {
     const similarityRatio = (a, b) => {
         const na = normalizePhrase(a);
         const nb = normalizePhrase(b);
+        if (!na || !nb) return 0;
+        const dist = levenshtein(na, nb);
+        return 1 - dist / Math.max(na.length, nb.length, 1);
+    };
+
+    const similarityRatioLatin = (a, b) => {
+        const na = normalizeLatin(a);
+        const nb = normalizeLatin(b);
         if (!na || !nb) return 0;
         const dist = levenshtein(na, nb);
         return 1 - dist / Math.max(na.length, nb.length, 1);
@@ -417,7 +443,27 @@ export default function Chat() {
 
         const lastAssistantWithPrompt = [...messages].reverse().find(m => m.role === 'assistant' && extractPromptedPhrase(m.content));
         const promptedPhrase = extractPromptedPhrase(lastAssistantWithPrompt?.content || '');
-        const matchRatio = promptedPhrase ? similarityRatio(text, promptedPhrase) : 0;
+        let matchRatio = promptedPhrase ? similarityRatio(text, promptedPhrase) : 0;
+        let usedTranslit = false;
+
+        if (promptedPhrase && isMostlyLatin(text) && !isMostlyLatin(promptedPhrase)) {
+            const assistantIndex = messages.lastIndexOf(lastAssistantWithPrompt);
+            let translit = transliterations[assistantIndex];
+            if (!translit) {
+                try {
+                    const data = await aiService.transliterate(promptedPhrase, targetLang?.name || 'English', nativeLang?.name || 'English');
+                    translit = data?.transliteration || '';
+                    if (translit) {
+                        setTransliterations(prev => ({ ...prev, [assistantIndex]: translit }));
+                    }
+                } catch { /* ignore */ }
+            }
+            if (translit) {
+                matchRatio = similarityRatioLatin(text, translit);
+                usedTranslit = true;
+            }
+        }
+
         if (promptedPhrase) {
             const userMessageIndex = messages.length; // index of the message we're about to append
             setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(matchRatio * 100) }));
@@ -426,7 +472,12 @@ export default function Chat() {
             ? `The user attempted to repeat the requested phrase. Similarity is ~${Math.round(matchRatio * 100)}%. Treat this as correct and move forward; do not ask to repeat again.`
             : null;
 
-        const botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, acceptNote);
+        let botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, acceptNote);
+        if (acceptNote && /say|try saying/i.test(botResponse)) {
+            const targetLangName = targetLang?.name || 'English';
+            const nativeLangName = nativeLang?.name || 'English';
+            botResponse = `Great job! ✅ You said it well. In ${nativeLangName}, nice work. Let's continue learning ${targetLangName}. What would you like to talk about next?`;
+        }
 
         // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
 
