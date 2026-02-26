@@ -52,8 +52,8 @@ export default function Chat() {
         if (!value) return '';
         return value
             .toLowerCase()
-            .normalize('NFKC')
-            .replace(/[^\p{L}\p{N}]+/gu, ' ')
+            .normalize('NFC')
+            .replace(/[^\p{L}\p{M}\p{N}]+/gu, ' ')
             .replace(/\s+/g, ' ')
             .trim();
     };
@@ -84,9 +84,20 @@ export default function Chat() {
         return latin / letters.length >= 0.8;
     };
 
+    const splitGraphemes = (value) => {
+        if (Array.isArray(value)) return value;
+        const seg = typeof Intl !== 'undefined' && Intl.Segmenter
+            ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+            : null;
+        if (seg) return Array.from(seg.segment(value), s => s.segment);
+        return Array.from(value);
+    };
+
     const levenshtein = (a, b) => {
-        const alen = a.length;
-        const blen = b.length;
+        const aa = splitGraphemes(a);
+        const bb = splitGraphemes(b);
+        const alen = aa.length;
+        const blen = bb.length;
         if (alen === 0) return blen;
         if (blen === 0) return alen;
         const dp = Array.from({ length: alen + 1 }, () => new Array(blen + 1).fill(0));
@@ -94,7 +105,7 @@ export default function Chat() {
         for (let j = 0; j <= blen; j++) dp[0][j] = j;
         for (let i = 1; i <= alen; i++) {
             for (let j = 1; j <= blen; j++) {
-                const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                const cost = aa[i - 1] === bb[j - 1] ? 0 : 1;
                 dp[i][j] = Math.min(
                     dp[i - 1][j] + 1,
                     dp[i][j - 1] + 1,
@@ -110,7 +121,7 @@ export default function Chat() {
         const nb = normalizePhrase(b);
         if (!na || !nb) return 0;
         const dist = levenshtein(na, nb);
-        return 1 - dist / Math.max(na.length, nb.length, 1);
+        return 1 - dist / Math.max(splitGraphemes(na).length, splitGraphemes(nb).length, 1);
     };
 
     const similarityRatioLatin = (a, b) => {
@@ -118,7 +129,7 @@ export default function Chat() {
         const nb = normalizeLatin(b);
         if (!na || !nb) return 0;
         const dist = levenshtein(na, nb);
-        return 1 - dist / Math.max(na.length, nb.length, 1);
+        return 1 - dist / Math.max(splitGraphemes(na).length, splitGraphemes(nb).length, 1);
     };
 
     const extractPromptedPhrase = (text) => {
