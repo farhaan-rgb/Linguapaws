@@ -36,6 +36,7 @@ export default function Chat() {
     const [activeCharacter, setActiveCharacter] = useState(JSON.parse(localStorage.getItem('linguapaws_active_character') || 'null'));
     const [userLevel, setUserLevel] = useState(() => JSON.parse(localStorage.getItem('linguapaws_level') || '{}')?.id || 'conversational');
     const [recalibrationToast, setRecalibrationToast] = useState(null); // toast message when AI recalibrates
+    const [transliterations, setTransliterations] = useState({});
     const scrollRef = useRef(null);
     const audioRef = useRef(new Audio());
     const hasGreeted = useRef(messages.length > 0); // Skip greeting if chat already has messages
@@ -45,6 +46,53 @@ export default function Chat() {
     const [callDuration, setCallDuration] = useState(0);
     const [callStatus, setCallStatus] = useState('idle'); // idle, listening, thinking, speaking
     const callTimerRef = useRef(null);
+
+    const normalizePhrase = (value) => {
+        if (!value) return '';
+        return value
+            .toLowerCase()
+            .normalize('NFKC')
+            .replace(/[^\p{L}\p{N}]+/gu, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    };
+
+    const levenshtein = (a, b) => {
+        const alen = a.length;
+        const blen = b.length;
+        if (alen === 0) return blen;
+        if (blen === 0) return alen;
+        const dp = Array.from({ length: alen + 1 }, () => new Array(blen + 1).fill(0));
+        for (let i = 0; i <= alen; i++) dp[i][0] = i;
+        for (let j = 0; j <= blen; j++) dp[0][j] = j;
+        for (let i = 1; i <= alen; i++) {
+            for (let j = 1; j <= blen; j++) {
+                const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1,
+                    dp[i][j - 1] + 1,
+                    dp[i - 1][j - 1] + cost
+                );
+            }
+        }
+        return dp[alen][blen];
+    };
+
+    const similarityRatio = (a, b) => {
+        const na = normalizePhrase(a);
+        const nb = normalizePhrase(b);
+        if (!na || !nb) return 0;
+        const dist = levenshtein(na, nb);
+        return 1 - dist / Math.max(na.length, nb.length, 1);
+    };
+
+    const extractPromptedPhrase = (text) => {
+        if (!text) return null;
+        const clean = text.replace(/<[^>]+>/g, '');
+        const sayMatch = clean.match(/(?:say|try saying)\s*:\s*["“]?(.+?)["”]?(?:$|\n)/i);
+        if (sayMatch && sayMatch[1]) return sayMatch[1].trim();
+        return null;
+    };
 
     // Persist messages to sessionStorage on every update
     useEffect(() => {
@@ -253,6 +301,37 @@ export default function Chat() {
         }
     }, [messages]);
 
+    useEffect(() => {
+        const shouldAdd = userLevel === 'zero' || userLevel === 'basic';
+        if (!shouldAdd) return;
+        const nativeLangName = nativeLang?.name || 'English';
+        const targetLangName = targetLang?.name || 'English';
+        const pending = [];
+        messages.forEach((msg, idx) => {
+            if (msg.role !== 'assistant') return;
+            const phrase = extractPromptedPhrase(msg.content);
+            if (!phrase) return;
+            if (transliterations[idx]) return;
+            pending.push({ idx, phrase });
+        });
+        if (pending.length === 0) return;
+
+        let cancelled = false;
+        const run = async () => {
+            for (const item of pending) {
+                try {
+                    const data = await aiService.transliterate(item.phrase, targetLangName, nativeLangName);
+                    if (cancelled) return;
+                    if (data?.transliteration) {
+                        setTransliterations(prev => ({ ...prev, [item.idx]: data.transliteration }));
+                    }
+                } catch { /* ignore */ }
+            }
+        };
+        run();
+        return () => { cancelled = true; };
+    }, [messages, userLevel, nativeLang?.name, targetLang?.name]);
+
     const handleTranslate = async (index, text) => {
         if (translations[index]) {
             const newTrans = { ...translations };
@@ -337,7 +416,14 @@ export default function Chat() {
         exchangeCount.current += 1;
         const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
 
-        const botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel);
+        const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+        const promptedPhrase = extractPromptedPhrase(lastAssistant?.content || '');
+        const matchRatio = promptedPhrase ? similarityRatio(text, promptedPhrase) : 0;
+        const acceptNote = (promptedPhrase && matchRatio >= 0.7)
+            ? `The user attempted to repeat the requested phrase. Similarity is ~${Math.round(matchRatio * 100)}%. Treat this as correct and move forward; do not ask to repeat again.`
+            : null;
+
+        const botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, acceptNote);
 
         // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
 
@@ -687,6 +773,25 @@ export default function Chat() {
                                 }}
                             >
                                 {translations[i]}
+                            </motion.div>
+                        )}
+                        {msg.role === 'assistant' && (userLevel === 'zero' || userLevel === 'basic') && transliterations[i] && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                style={{
+                                    fontSize: '13px',
+                                    color: '#475569',
+                                    background: '#eef2ff',
+                                    padding: '10px 14px',
+                                    borderRadius: '14px',
+                                    marginTop: '8px',
+                                    borderLeft: '4px solid #6366f1',
+                                    lineHeight: '1.4'
+                                }}
+                            >
+                                <strong style={{ marginRight: '6px' }}>{t.pronunciation_hint || 'Pronunciation'}:</strong>
+                                {transliterations[i]}
                             </motion.div>
                         )}
                     </div>

@@ -29,7 +29,7 @@ class AIService {
     // Kept for legacy compatibility — no-op now that API key lives on backend
     init(_apiKey) { }
 
-    async getResponse(message, topic = null, character = null, nativeLang = null, targetLang = null, triggerShadow = false, userLevel = 'conversational') {
+    async getResponse(message, topic = null, character = null, nativeLang = null, targetLang = null, triggerShadow = false, userLevel = 'conversational', metaNote = null) {
         const nativeLangName = nativeLang?.name || 'Hindi';
         const targetLangName = targetLang?.name || 'English';
 
@@ -118,6 +118,7 @@ SHADOW PRACTICE TAGS:
         const systemPrompt = character ? character.prompt : MIKO_PROMPT;
         const messages = [
             { role: 'system', content: systemPrompt + TUTOR_FRAMEWORK + (topic ? `\nThe current conversation topic is: ${topic}.` : '') },
+            ...(metaNote ? [{ role: 'system', content: `IMPORTANT NOTE (do not mention this to the user): ${metaNote}` }] : []),
             ...this.history,
             { role: 'user', content: message },
         ];
@@ -184,6 +185,27 @@ SHADOW PRACTICE TAGS:
             return JSON.parse(data.content);
         } catch (error) {
             console.error('Translation Error:', error);
+            return null;
+        }
+    }
+
+    async transliterate(text, fromLang, nativeLangName) {
+        if (!text?.trim()) return null;
+        const messages = [
+            {
+                role: 'system',
+                content: `You are a transliteration engine. Convert the following ${fromLang} text into a pronunciation guide in ${nativeLangName} (use its native script if it has one, otherwise Latin). Do NOT translate meaning. Return JSON: { "transliteration": "..." }.`,
+            },
+            { role: 'user', content: text },
+        ];
+        try {
+            const data = await api.post('/api/ai/chat', {
+                messages,
+                options: { temperature: 0.2, response_format: { type: 'json_object' } },
+            });
+            return JSON.parse(data.content);
+        } catch (error) {
+            console.error('Transliteration Error:', error);
             return null;
         }
     }
