@@ -134,6 +134,8 @@ export default function Chat() {
 
     const extractPromptedPhrase = (text) => {
         if (!text) return null;
+        const targetMatch = text.match(/<target>(.*?)<\/target>/s);
+        if (targetMatch && targetMatch[1]) return targetMatch[1].trim();
         const clean = text.replace(/<[^>]+>/g, '');
         const targetLangId = (targetLang?.id || '').toLowerCase();
 
@@ -166,6 +168,14 @@ export default function Chat() {
         }
         return null;
     };
+
+    const buildDisplayRule = (nativeLangName, targetLangName) => (
+        `CRITICAL DISPLAY RULE: Respond ONLY in ${nativeLangName} (native script). ` +
+        `Do NOT use ${targetLangName} script anywhere in visible text. ` +
+        `Whenever you ask the user to say a ${targetLangName} phrase, include the exact target phrase inside ` +
+        `<target>...</target> (in ${targetLangName} script) and in the visible text show ONLY its pronunciation ` +
+        `in ${nativeLangName} script. Never show ${targetLangName} script outside <target> tags.`
+    );
 
     // Persist messages to sessionStorage on every update
     useEffect(() => {
@@ -222,6 +232,9 @@ export default function Chat() {
         }, 1000);
 
         // Auto-greet when the call connects
+        const nativeLangName = nativeLang?.name || 'English';
+        const targetLangName = targetLang?.name || 'English';
+        const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
         let greeting = await aiService.getResponse(
             `[CALL GREETING ONLY — keep it short. Greet warmly and invite practice.]`,
             topicName,
@@ -229,11 +242,12 @@ export default function Chat() {
             nativeLang,
             targetLang,
             false,
-            userLevel
+            userLevel,
+            displayRuleNote
         );
         greeting = greeting.replace(/<[^>]+>/g, '').trim();
         if (isMounted.current) {
-            const audioUrl = await aiService.generateSpeech(greeting, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+            const audioUrl = await aiService.generateSpeech(greeting, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
             if (audioUrl && isMounted.current && isCallMode) {
                 audioRef.current.src = audioUrl;
                 audioRef.current.onended = () => setCallStatus('idle');
@@ -271,13 +285,18 @@ export default function Chat() {
                     const userWords = transcript.match(/[\p{L}]{2,}/gu);
                     if (userWords) userWords.forEach(w => { wordTracker.addWord(w); });
 
-                    const botResponse = await aiService.getResponse(transcript, topicName, activeCharacter, nativeLang, targetLang, false, userLevel);
-                    const cleanResponse = botResponse.replace(/<word>(.*?)<\/word>/g, '$1');
+                    const nativeLangName = nativeLang?.name || 'English';
+                    const targetLangName = targetLang?.name || 'English';
+                    const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
+                    const botResponse = await aiService.getResponse(transcript, topicName, activeCharacter, nativeLang, targetLang, false, userLevel, displayRuleNote);
+                    const cleanResponse = botResponse
+                        .replace(/<word>(.*?)<\/word>/g, '$1')
+                        .replace(/<target>.*?<\/target>/gs, '');
                     setMessages(prev => [...prev, { role: 'assistant', content: cleanResponse }]);
 
                     setCallStatus('speaking');
                     if (isMounted.current) {
-                        const audioUrl = await aiService.generateSpeech(cleanResponse, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+                        const audioUrl = await aiService.generateSpeech(cleanResponse, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
                         if (audioUrl && isMounted.current) {
                             audioRef.current.src = audioUrl;
                             audioRef.current.onended = () => setCallStatus('idle');
@@ -323,12 +342,12 @@ export default function Chat() {
             const nativeLangName = nativeLang?.name || 'Hindi';
             const targetLangName = targetLang?.name || 'English';
 
-            const scriptNote = `CRITICAL LANGUAGE RULE: The user's native language is ${nativeLangName}. You MUST write all ${nativeLangName} parts in its NATIVE SCRIPT (e.g. Devanagari for Hindi, Bengali script for Bengali, Tamil script for Tamil). Do NOT use Roman/Latin transliteration and do NOT use the character's own regional language if it differs from the user's native language.`;
+            const displayRule = buildDisplayRule(nativeLangName, targetLangName);
             const levelNote = levelId === 'zero'
-                ? `${scriptNote} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Write MOST of the greeting in ${nativeLangName} so a complete beginner understands, then end with just ONE simple ${targetLangName} word or phrase like "Say: Hello!". Do NOT use more than one ${targetLangName} phrase.`
+                ? `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. End with ONE simple practice phrase and ask them to try saying it. Include the phrase inside <target>...</target> and show only its pronunciation in ${nativeLangName} script in the visible text.`
                 : levelId === 'basic'
-                    ? `${scriptNote} Greet the user with a mix of ${nativeLangName} and simple ${targetLangName} (2 sentences max), introducing yourself as ${activeCharacter?.name || 'Miko'}. Keep it warm and encouraging.`
-                    : `${scriptNote} Greet the user in ${targetLangName} (2 sentences max), introducing yourself as ${activeCharacter?.name || 'Miko'}. Keep it warm and encouraging.`;
+                    ? `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. End with ONE simple practice phrase and ask them to try saying it. Include the phrase inside <target>...</target> and show only its pronunciation in ${nativeLangName} script in the visible text.`
+                    : `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. End with ONE simple practice phrase and ask them to try saying it. Include the phrase inside <target>...</target> and show only its pronunciation in ${nativeLangName} script in the visible text.`;
 
             const aiGreeting = await aiService.getResponse(
                 `[GREETING ONLY — do not start a conversation, just greet the user. ${levelNote}]`,
@@ -345,7 +364,7 @@ export default function Chat() {
 
             // Speak the greeting
             if (!isMuted && isMounted.current) {
-                const audioUrl = await aiService.generateSpeech(greeting, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+                const audioUrl = await aiService.generateSpeech(greeting, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
                 if (audioUrl && isMounted.current) {
                     audioRef.current.src = audioUrl;
                     audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -422,7 +441,7 @@ export default function Chat() {
 
             // Read aloud the translation if not muted
             if (!isMuted && isMounted.current) {
-                const audioUrl = await aiService.generateSpeech(translatedText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
+                const audioUrl = await aiService.generateSpeech(translatedText, activeCharacter?.voice || 'alloy', nativeLang?.name || null);
                 if (audioUrl && isMounted.current) {
                     audioRef.current.src = audioUrl;
                     audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -488,16 +507,19 @@ export default function Chat() {
         exchangeCount.current += 1;
         const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
 
-        const lastAssistantWithPrompt = [...messages].reverse().find(m => m.role === 'assistant' && extractPromptedPhrase(m.content));
-        const promptedPhrase = extractPromptedPhrase(lastAssistantWithPrompt?.content || '');
+        const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+        const promptedPhrase = extractPromptedPhrase(lastAssistant?.content || '');
         const expected = (promptedPhrase || '').replace(/[.!?]+$/g, '').trim();
         const actual = (text || '').replace(/[.!?]+$/g, '').trim();
         let matchRatio = expected ? similarityRatio(actual, expected) : 0;
-        let usedTranslit = false;
+        let displayPhrase = promptedPhrase;
+        let translit = null;
+        const isNativeEnglish = (nativeLang?.id || '').toLowerCase() === 'en' ||
+            (nativeLang?.name || '').toLowerCase() === 'english';
 
-        if (promptedPhrase && isMostlyLatin(text) && !isMostlyLatin(promptedPhrase)) {
-            const assistantIndex = messages.lastIndexOf(lastAssistantWithPrompt);
-            let translit = transliterations[assistantIndex];
+        if (promptedPhrase && (!isNativeEnglish || !isMostlyLatin(promptedPhrase))) {
+            const assistantIndex = messages.lastIndexOf(lastAssistant);
+            translit = transliterations[assistantIndex];
             if (!translit) {
                 try {
                     const data = await aiService.transliterate(promptedPhrase, targetLang?.name || 'English', nativeLang?.name || 'English');
@@ -507,10 +529,11 @@ export default function Chat() {
                     }
                 } catch { /* ignore */ }
             }
-            if (translit) {
-                matchRatio = similarityRatioLatin(actual, translit);
-                usedTranslit = true;
-            }
+            if (translit) displayPhrase = translit;
+        }
+
+        if (promptedPhrase && isMostlyLatin(text) && translit) {
+            matchRatio = similarityRatioLatin(actual, translit);
         }
 
         if (promptedPhrase) {
@@ -522,15 +545,21 @@ export default function Chat() {
             ? `The user attempted to repeat the requested phrase. Similarity is ~${Math.round(matchRatio * 100)}%. Treat this as correct and move forward; do not ask to repeat again.`
             : null;
 
-        let botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, acceptNote);
+        const nativeLangName = nativeLang?.name || 'English';
+        const targetLangName = targetLang?.name || 'English';
+        const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
+        const metaNote = [displayRuleNote, acceptNote].filter(Boolean).join(' ');
+        let botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
         if (acceptNote && /say|try saying|give it a try|it'?s\s*:/i.test(botResponse)) {
-            const targetLangName = targetLang?.name || 'English';
-            const nativeLangName = nativeLang?.name || 'English';
-            botResponse = `Great job! ✅ You said it well. In ${nativeLangName}, nice work. Let's continue learning ${targetLangName}. What would you like to talk about next?`;
+            const successMsg = `Great job! You said it well. Let's continue learning ${targetLangName}. What would you like to talk about next?`;
+            const translated = await aiService.translate(successMsg, nativeLangName, 'English');
+            botResponse = translated?.translation || successMsg;
         } else if (promptedPhrase && matchRatio < threshold) {
-            const prompt = promptedPhrase.replace(/[.!?]+$/g, '');
-            const nativeLangName = nativeLang?.name || 'English';
-            botResponse = `Nice try! In ${nativeLangName}, you're close. Let's repeat the same phrase: "${prompt}". Please say it again.`;
+            const prompt = (displayPhrase || promptedPhrase || '').replace(/[.!?]+$/g, '');
+            const retryMsg = `Nice try! You're close. Let's repeat the same phrase: "${prompt}". Please say it again.`;
+            const translated = await aiService.translate(retryMsg, nativeLangName, 'English');
+            const baseMsg = translated?.translation || retryMsg;
+            botResponse = `${baseMsg} <target>${promptedPhrase}</target>`;
         }
 
         // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
@@ -549,7 +578,9 @@ export default function Chat() {
         }
 
         // Strip <word> tags for display BUT keep <shadow> tags so ShadowCard renders inline
-        const cleanResponse = responseWithoutMeta.replace(/<word>(.*?)<\/word>/g, '$1');
+        const cleanResponse = responseWithoutMeta
+            .replace(/<word>(.*?)<\/word>/g, '$1')
+            .replace(/<target>.*?<\/target>/gs, '');
         // Strip ALL special tags from TTS so audio doesn't read "shadow the weather shadow"
         const speechText = cleanResponse.replace(/<shadow>(.*?)<\/shadow>/gs, '$1');
 
@@ -558,7 +589,7 @@ export default function Chat() {
 
         // Play voice (non-blocking — after UI is already updated)
         if (!isMuted && isMounted.current) {
-            const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
+            const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', nativeLang?.name || null);
             if (audioUrl && isMounted.current) {
                 audioRef.current.src = audioUrl;
                 audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -579,7 +610,7 @@ export default function Chat() {
                     setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
 
                     if (!isMuted && isMounted.current) {
-                        const audioUrl = await aiService.generateSpeech(errorMsg, activeCharacter?.voice || 'alloy', targetLang?.name || null);
+                        const audioUrl = await aiService.generateSpeech(errorMsg, activeCharacter?.voice || 'alloy', nativeLang?.name || null);
                         if (audioUrl && isMounted.current) {
                             audioRef.current.src = audioUrl;
                             audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -602,7 +633,7 @@ export default function Chat() {
             .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
             .replace(/<word>(.*?)<\/word>/g, '$1')
             .replace(/<[^>]+>/g, '');
-        const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
+        const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', nativeLang?.name || null);
         if (audioUrl) {
             audioRef.current.src = audioUrl;
             audioRef.current.play();
