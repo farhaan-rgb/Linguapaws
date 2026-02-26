@@ -69,6 +69,14 @@ export default function Chat() {
             .trim();
     };
 
+    const formatTransliteration = (value, nativeLangValue) => {
+        if (!value) return '';
+        const isEnglish = (nativeLangValue?.id || '').toLowerCase() === 'en' ||
+            (nativeLangValue?.name || '').toLowerCase() === 'english';
+        if (isEnglish) return normalizeLatin(value);
+        return value.replace(/[!?]+$/g, '').trim();
+    };
+
     const isMostlyLatin = (value) => {
         const letters = (value || '').match(/\p{L}/gu) || [];
         if (letters.length === 0) return false;
@@ -348,7 +356,8 @@ export default function Chat() {
                     const data = await aiService.transliterate(item.phrase, targetLangName, nativeLangName);
                     if (cancelled) return;
                     if (data?.transliteration) {
-                        setTransliterations(prev => ({ ...prev, [item.idx]: data.transliteration }));
+                        const formatted = formatTransliteration(data.transliteration, nativeLang);
+                        setTransliterations(prev => ({ ...prev, [item.idx]: formatted }));
                     }
                 } catch { /* ignore */ }
             }
@@ -452,7 +461,7 @@ export default function Chat() {
             if (!translit) {
                 try {
                     const data = await aiService.transliterate(promptedPhrase, targetLang?.name || 'English', nativeLang?.name || 'English');
-                    translit = data?.transliteration || '';
+                    translit = formatTransliteration(data?.transliteration || '', nativeLang);
                     if (translit) {
                         setTransliterations(prev => ({ ...prev, [assistantIndex]: translit }));
                     }
