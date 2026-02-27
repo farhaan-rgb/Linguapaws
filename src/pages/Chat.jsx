@@ -186,6 +186,45 @@ export default function Chat() {
         return re.test(text);
     };
 
+    const cleanupDisplayText = (text) => {
+        if (!text) return text;
+        return text
+            .replace(/"\s*"/g, '')
+            .replace(/"\s*[.?!]+\s*"/g, '')
+            .replace(/\s{2,}/g, ' ')
+            .trim();
+    };
+
+    const buildPronunciationHint = (phrase) => {
+        if (!phrase || !isNativeEnglish()) return '';
+        const isVowel = (ch) => /[aeiou]/i.test(ch);
+        const words = phrase.split(/\s+/).filter(Boolean);
+        const hinted = words.map((word) => {
+            const parts = [];
+            let i = 0;
+            while (i < word.length) {
+                let start = i;
+                while (i < word.length && !isVowel(word[i])) i++;
+                if (i < word.length) {
+                    i++;
+                    while (i < word.length && isVowel(word[i])) i++;
+                    parts.push(word.slice(start, i));
+                } else {
+                    parts.push(word.slice(start));
+                    break;
+                }
+            }
+            return parts.join('-');
+        });
+        return hinted.join(' ');
+    };
+
+    const isTopicPrompt = (text) => {
+        if (!text) return false;
+        const clean = cleanupDisplayText(stripTargetScript(text));
+        return /what would you like to (talk about|discuss|learn) next|what do you want to (learn|practice) next|choose a topic|pick a topic|what would you like to talk about now/i.test(clean);
+    };
+
     const similarityRatio = (a, b) => {
         const na = normalizePhrase(a);
         const nb = normalizePhrase(b);
@@ -317,7 +356,9 @@ export default function Chat() {
             .replace(/<word>(.*?)<\/word>/g, '$1')
             .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
             .trim();
-        const displayGreeting = stripTargetScript(storedGreeting.replace(/<target>.*?<\/target>/gs, ''));
+        const displayGreeting = cleanupDisplayText(
+            stripTargetScript(storedGreeting.replace(/<target>.*?<\/target>/gs, ''))
+        );
         if (isMounted.current) {
             const audioUrl = await aiService.generateSpeech(displayGreeting, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
             if (audioUrl && isMounted.current && isCallMode) {
@@ -365,7 +406,9 @@ export default function Chat() {
                         .replace(/<word>(.*?)<\/word>/g, '$1')
                         .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                         .trim();
-                    const displayResponse = stripTargetScript(storedResponse.replace(/<target>.*?<\/target>/gs, ''));
+                    const displayResponse = cleanupDisplayText(
+                        stripTargetScript(storedResponse.replace(/<target>.*?<\/target>/gs, ''))
+                    );
                     setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
 
                     setCallStatus('speaking');
@@ -436,7 +479,9 @@ export default function Chat() {
                 .replace(/<word>(.*?)<\/word>/g, '$1')
                 .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                 .trim();
-            const displayGreeting = stripTargetScript(storedGreeting.replace(/<target>.*?<\/target>/gs, ''));
+        const displayGreeting = cleanupDisplayText(
+            stripTargetScript(storedGreeting.replace(/<target>.*?<\/target>/gs, ''))
+        );
             setMessages([{ role: 'assistant', content: storedGreeting }]);
             aiService.history.push({ role: 'assistant', content: storedGreeting });
 
@@ -615,7 +660,9 @@ export default function Chat() {
         const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
 
         const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-        const promptedPhrase = extractPromptedPhrase(lastAssistant?.content || '');
+        const promptedPhrase = isTopicPrompt(lastAssistant?.content)
+            ? ''
+            : extractPromptedPhrase(lastAssistant?.content || '');
         const expected = (promptedPhrase || '').replace(/[.!?]+$/g, '').trim();
         const actual = (text || '').replace(/[.!?]+$/g, '').trim();
         let matchRatio = expected ? similarityRatio(actual, expected) : 0;
@@ -657,7 +704,7 @@ export default function Chat() {
         const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
         const metaNote = [displayRuleNote, acceptNote].filter(Boolean).join(' ');
         let botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
-        if (acceptNote && /say|try saying|give it a try|it'?s\s*:/i.test(botResponse)) {
+        if (acceptNote) {
             const successMsg = `Great job! You said it well. Let's continue learning ${targetLangName}. What would you like to talk about next?`;
             const translated = await aiService.translate(successMsg, nativeLangName, 'English');
             botResponse = translated?.translation || successMsg;
@@ -689,7 +736,9 @@ export default function Chat() {
             .replace(/<word>(.*?)<\/word>/g, '$1')
             .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
             .trim();
-        const displayResponse = stripTargetScript(storedResponse.replace(/<target>.*?<\/target>/gs, ''));
+        const displayResponse = cleanupDisplayText(
+            stripTargetScript(storedResponse.replace(/<target>.*?<\/target>/gs, ''))
+        );
         // Strip ALL special tags from TTS so audio doesn't read hidden tags
         const speechText = stripTargetScript(displayResponse);
 
@@ -883,7 +932,7 @@ export default function Chat() {
                         >
                             {msg.role === 'user'
                                 ? (userTransliterations[i] || stripTargetScript(msg.content) || '...')
-                                : renderMessageContent(stripTargetScript(msg.content))}
+                                : renderMessageContent(cleanupDisplayText(stripTargetScript(msg.content)))}
                         </motion.div>
 
                         {msg.role === 'user' && (
@@ -1059,6 +1108,11 @@ export default function Chat() {
                             >
                                 <strong style={{ marginRight: '6px' }}>{t.pronunciation_hint || 'Pronunciation'}:</strong>
                                 {transliterations[i]}
+                                {isNativeEnglish() && (
+                                    <span style={{ marginLeft: '6px', color: '#64748b', fontSize: '12px' }}>
+                                        (pron: {buildPronunciationHint(transliterations[i])})
+                                    </span>
+                                )}
                             </motion.div>
                         )}
                     </div>
