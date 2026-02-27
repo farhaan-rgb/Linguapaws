@@ -353,10 +353,12 @@ export default function Chat() {
         setIsLoading(true);
 
         try {
-        const sugs = await aiService.getSuggestions(targetLang?.name || 'English');
-        setSuggestions(sugs);
-        setShowSuggestions(true);
-        setIsLoading(false);
+            const sugs = await aiService.getSuggestions(targetLang?.name || 'English');
+            setSuggestions(sugs);
+            setShowSuggestions(true);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     // ===== CALL MODE LOGIC =====
