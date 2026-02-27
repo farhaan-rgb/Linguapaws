@@ -225,6 +225,23 @@ export default function Chat() {
         return /what would you like to (talk about|discuss|learn) next|what do you want to (learn|practice) next|choose a topic|pick a topic|what would you like to talk about now/i.test(clean);
     };
 
+    const isTopicReply = (text) => {
+        if (!text) return false;
+        const clean = cleanupDisplayText(text).toLowerCase();
+        if (!clean) return false;
+        const quick = [
+            'anything',
+            'you decide',
+            'your choice',
+            'whatever',
+            'any topic',
+            'surprise me',
+            'no preference',
+        ];
+        if (quick.includes(clean)) return true;
+        return clean.split(/\s+/).length <= 4 && !hasTargetScript(text);
+    };
+
     const similarityRatio = (a, b) => {
         const na = normalizePhrase(a);
         const nb = normalizePhrase(b);
@@ -292,12 +309,15 @@ export default function Chat() {
         sessionStorage.setItem(chatSessionKey, JSON.stringify(messages));
     }, [messages]);
 
-    // Strip <shadow> tags; we don't render shadow cards inside chat.
-    const renderMessageContent = (content) => {
-        const stripped = content
-            .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
-            .replace(/<target>.*?<\/target>/gs, '');
-        return stripped;
+    // Render assistant messages with safe substitutions (no target script on screen).
+    const renderMessageContent = (content, idx) => {
+        let rendered = content.replace(/<shadow>(.*?)<\/shadow>/gs, '$1');
+        if (rendered.includes('<target>')) {
+            const replacement = transliterations[idx] || '';
+            rendered = rendered.replace(/<target>.*?<\/target>/gs, replacement);
+        }
+        rendered = cleanupDisplayText(stripTargetScript(rendered));
+        return rendered;
     };
 
     // Resolve the active character — fall back to Miko when none is selected
@@ -660,7 +680,7 @@ export default function Chat() {
         const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
 
         const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-        const promptedPhrase = isTopicPrompt(lastAssistant?.content)
+        const promptedPhrase = (isTopicPrompt(lastAssistant?.content) || isTopicReply(text))
             ? ''
             : extractPromptedPhrase(lastAssistant?.content || '');
         const expected = (promptedPhrase || '').replace(/[.!?]+$/g, '').trim();
@@ -714,6 +734,10 @@ export default function Chat() {
             const translated = await aiService.translate(retryMsg, nativeLangName, 'English');
             const baseMsg = translated?.translation || retryMsg;
             botResponse = `${baseMsg} <target>${promptedPhrase}</target>`;
+        } else if (isTopicReply(text)) {
+            const followupMsg = `Great! Tell me a topic you like (travel, food, friends), or say "you decide".`;
+            const translated = await aiService.translate(followupMsg, nativeLangName, 'English');
+            botResponse = translated?.translation || followupMsg;
         }
 
         // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
@@ -932,7 +956,7 @@ export default function Chat() {
                         >
                             {msg.role === 'user'
                                 ? (userTransliterations[i] || stripTargetScript(msg.content) || '...')
-                                : renderMessageContent(cleanupDisplayText(stripTargetScript(msg.content)))}
+                                : renderMessageContent(msg.content, i)}
                         </motion.div>
 
                         {msg.role === 'user' && (
