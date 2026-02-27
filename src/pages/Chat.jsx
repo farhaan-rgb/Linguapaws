@@ -351,6 +351,8 @@ export default function Chat() {
 
     const fetchSuggestions = async () => {
         setIsLoading(true);
+
+        try {
         const sugs = await aiService.getSuggestions(targetLang?.name || 'English');
         setSuggestions(sugs);
         setShowSuggestions(true);
@@ -649,6 +651,7 @@ export default function Chat() {
 
         setIsLoading(true);
 
+        try {
         // ── CLIENT-SIDE RECALIBRATION (first message only) ────────────────────
         // Deterministically detect obvious level mismatches before calling AI.
         // React state updates are async so we track the effective level locally.
@@ -793,6 +796,13 @@ export default function Chat() {
                 audioRef.current.src = audioUrl;
                 audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
             }
+        }
+        } catch (err) {
+            console.error('Chat send failed:', err);
+            const errorMsg = "Sorry, I couldn't respond. Please try again.";
+            setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
+        } finally {
+            setIsLoading(false);
         }
     };
 
