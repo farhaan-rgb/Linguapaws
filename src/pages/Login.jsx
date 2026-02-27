@@ -30,10 +30,17 @@ export default function Login() {
         try {
             setIsSigningIn(true);
             setError(null);
-            await signInWithRetry(credentialResponse);
+            if (!credentialResponse?.credential) {
+                throw new Error('Missing Google credential.');
+            }
+            const signInPromise = signInWithRetry(credentialResponse);
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Sign-in timed out. Please try again.')), 15000);
+            });
+            await Promise.race([signInPromise, timeoutPromise]);
             navigate('/');
         } catch (err) {
-            setError('Sign-in failed. Please try again.');
+            setError(err?.message || 'Sign-in failed. Please try again.');
         } finally {
             setIsSigningIn(false);
         }
