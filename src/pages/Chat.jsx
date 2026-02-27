@@ -255,8 +255,10 @@ export default function Chat() {
 
     // Strip <shadow> tags; we don't render shadow cards inside chat.
     const renderMessageContent = (content) => {
-        if (!content.includes('<shadow>')) return content;
-        return content.replace(/<shadow>(.*?)<\/shadow>/gs, '$1');
+        const stripped = content
+            .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
+            .replace(/<target>.*?<\/target>/gs, '');
+        return stripped;
     };
 
     // Resolve the active character — fall back to Miko when none is selected
@@ -311,9 +313,13 @@ export default function Chat() {
             userLevel,
             displayRuleNote
         );
-        greeting = stripTargetScript(greeting.replace(/<[^>]+>/g, '').trim());
+        const storedGreeting = greeting
+            .replace(/<word>(.*?)<\/word>/g, '$1')
+            .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
+            .trim();
+        const displayGreeting = stripTargetScript(storedGreeting.replace(/<target>.*?<\/target>/gs, ''));
         if (isMounted.current) {
-            const audioUrl = await aiService.generateSpeech(greeting, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
+            const audioUrl = await aiService.generateSpeech(displayGreeting, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
             if (audioUrl && isMounted.current && isCallMode) {
                 audioRef.current.src = audioUrl;
                 audioRef.current.onended = () => setCallStatus('idle');
@@ -355,14 +361,16 @@ export default function Chat() {
                     const targetLangName = targetLang?.name || 'English';
                     const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
                     const botResponse = await aiService.getResponse(transcript, topicName, activeCharacter, nativeLang, targetLang, false, userLevel, displayRuleNote);
-                    const cleanResponse = botResponse
+                    const storedResponse = botResponse
                         .replace(/<word>(.*?)<\/word>/g, '$1')
-                        .replace(/<target>.*?<\/target>/gs, '');
-                    setMessages(prev => [...prev, { role: 'assistant', content: cleanResponse }]);
+                        .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
+                        .trim();
+                    const displayResponse = stripTargetScript(storedResponse.replace(/<target>.*?<\/target>/gs, ''));
+                    setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
 
                     setCallStatus('speaking');
                     if (isMounted.current) {
-                        const audioUrl = await aiService.generateSpeech(cleanResponse, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
+                        const audioUrl = await aiService.generateSpeech(displayResponse, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
                         if (audioUrl && isMounted.current) {
                             audioRef.current.src = audioUrl;
                             audioRef.current.onended = () => setCallStatus('idle');
@@ -424,13 +432,17 @@ export default function Chat() {
                 false,
                 levelId
             );
-            greeting = stripTargetScript(aiGreeting.replace(/<[^>]+>/g, '').trim());
-            setMessages([{ role: 'assistant', content: greeting }]);
-            aiService.history.push({ role: 'assistant', content: greeting });
+            const storedGreeting = aiGreeting
+                .replace(/<word>(.*?)<\/word>/g, '$1')
+                .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
+                .trim();
+            const displayGreeting = stripTargetScript(storedGreeting.replace(/<target>.*?<\/target>/gs, ''));
+            setMessages([{ role: 'assistant', content: storedGreeting }]);
+            aiService.history.push({ role: 'assistant', content: storedGreeting });
 
             // Speak the greeting
             if (!isMuted && isMounted.current) {
-                const audioUrl = await aiService.generateSpeech(greeting, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
+                const audioUrl = await aiService.generateSpeech(displayGreeting, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
                 if (audioUrl && isMounted.current) {
                     audioRef.current.src = audioUrl;
                     audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -673,16 +685,15 @@ export default function Chat() {
         }
 
         // Strip <word> tags for display BUT keep <shadow> tags so ShadowCard renders inline
-        const cleanResponse = stripTargetScript(
-            responseWithoutMeta
-                .replace(/<word>(.*?)<\/word>/g, '$1')
-                .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
-                .replace(/<target>.*?<\/target>/gs, '')
-        );
-        // Strip ALL special tags from TTS so audio doesn't read "shadow the weather shadow"
-        const speechText = stripTargetScript(cleanResponse.replace(/<shadow>(.*?)<\/shadow>/gs, '$1'));
+        const storedResponse = responseWithoutMeta
+            .replace(/<word>(.*?)<\/word>/g, '$1')
+            .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
+            .trim();
+        const displayResponse = stripTargetScript(storedResponse.replace(/<target>.*?<\/target>/gs, ''));
+        // Strip ALL special tags from TTS so audio doesn't read hidden tags
+        const speechText = stripTargetScript(displayResponse);
 
-        setMessages(prev => [...prev, { role: 'assistant', content: cleanResponse }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
         setIsLoading(false); // unblock UI before TTS — audio loading must not block chat
 
         // Play voice (non-blocking — after UI is already updated)
