@@ -195,6 +195,11 @@ export default function Chat() {
             .trim();
     };
 
+    const stripLatinDiacritics = (text) => {
+        if (!text) return text;
+        return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').normalize('NFC');
+    };
+
     const buildPronunciationHint = (phrase) => {
         if (!phrase || !isNativeEnglish()) return '';
         const isVowel = (ch) => /[aeiou]/i.test(ch);
@@ -317,6 +322,9 @@ export default function Chat() {
             rendered = rendered.replace(/<target>.*?<\/target>/gs, replacement);
         }
         rendered = cleanupDisplayText(stripTargetScript(rendered));
+        if (isNativeEnglish()) {
+            rendered = stripLatinDiacritics(rendered);
+        }
         return rendered;
     };
 
@@ -376,9 +384,10 @@ export default function Chat() {
             .replace(/<word>(.*?)<\/word>/g, '$1')
             .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
             .trim();
-        const displayGreeting = cleanupDisplayText(
+        let displayGreeting = cleanupDisplayText(
             stripTargetScript(storedGreeting.replace(/<target>.*?<\/target>/gs, ''))
         );
+        if (isNativeEnglish()) displayGreeting = stripLatinDiacritics(displayGreeting);
         if (isMounted.current) {
             const audioUrl = await aiService.generateSpeech(displayGreeting, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
             if (audioUrl && isMounted.current && isCallMode) {
@@ -426,9 +435,10 @@ export default function Chat() {
                         .replace(/<word>(.*?)<\/word>/g, '$1')
                         .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                         .trim();
-                    const displayResponse = cleanupDisplayText(
+                    let displayResponse = cleanupDisplayText(
                         stripTargetScript(storedResponse.replace(/<target>.*?<\/target>/gs, ''))
                     );
+                    if (isNativeEnglish()) displayResponse = stripLatinDiacritics(displayResponse);
                     setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
 
                     setCallStatus('speaking');
@@ -499,9 +509,10 @@ export default function Chat() {
                 .replace(/<word>(.*?)<\/word>/g, '$1')
                 .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                 .trim();
-        const displayGreeting = cleanupDisplayText(
+        let displayGreeting = cleanupDisplayText(
             stripTargetScript(storedGreeting.replace(/<target>.*?<\/target>/gs, ''))
         );
+        if (isNativeEnglish()) displayGreeting = stripLatinDiacritics(displayGreeting);
             setMessages([{ role: 'assistant', content: storedGreeting }]);
             aiService.history.push({ role: 'assistant', content: storedGreeting });
 
@@ -680,7 +691,9 @@ export default function Chat() {
         const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
 
         const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-        const promptedPhrase = (isTopicPrompt(lastAssistant?.content) || isTopicReply(text))
+        const lastWasTopicPrompt = isTopicPrompt(lastAssistant?.content);
+        const isTopicAnswer = lastWasTopicPrompt && isTopicReply(text);
+        const promptedPhrase = (lastWasTopicPrompt || isTopicReply(text))
             ? ''
             : extractPromptedPhrase(lastAssistant?.content || '');
         const expected = (promptedPhrase || '').replace(/[.!?]+$/g, '').trim();
@@ -723,7 +736,14 @@ export default function Chat() {
         const targetLangName = targetLang?.name || 'English';
         const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
         const metaNote = [displayRuleNote, acceptNote].filter(Boolean).join(' ');
-        let botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
+        let botResponse = '';
+        if (isTopicAnswer) {
+            const followupMsg = `Great! Tell me a topic you like (travel, food, friends), or say "you decide".`;
+            const translated = await aiService.translate(followupMsg, nativeLangName, 'English');
+            botResponse = translated?.translation || followupMsg;
+        } else {
+            botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
+        }
         if (acceptNote) {
             const successMsg = `Great job! You said it well. Let's continue learning ${targetLangName}. What would you like to talk about next?`;
             const translated = await aiService.translate(successMsg, nativeLangName, 'English');
@@ -734,10 +754,6 @@ export default function Chat() {
             const translated = await aiService.translate(retryMsg, nativeLangName, 'English');
             const baseMsg = translated?.translation || retryMsg;
             botResponse = `${baseMsg} <target>${promptedPhrase}</target>`;
-        } else if (isTopicReply(text)) {
-            const followupMsg = `Great! Tell me a topic you like (travel, food, friends), or say "you decide".`;
-            const translated = await aiService.translate(followupMsg, nativeLangName, 'English');
-            botResponse = translated?.translation || followupMsg;
         }
 
         // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
@@ -760,9 +776,10 @@ export default function Chat() {
             .replace(/<word>(.*?)<\/word>/g, '$1')
             .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
             .trim();
-        const displayResponse = cleanupDisplayText(
+        let displayResponse = cleanupDisplayText(
             stripTargetScript(storedResponse.replace(/<target>.*?<\/target>/gs, ''))
         );
+        if (isNativeEnglish()) displayResponse = stripLatinDiacritics(displayResponse);
         // Strip ALL special tags from TTS so audio doesn't read hidden tags
         const speechText = stripTargetScript(displayResponse);
 
