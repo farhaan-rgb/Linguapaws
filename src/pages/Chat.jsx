@@ -37,6 +37,7 @@ export default function Chat() {
     const [userLevel, setUserLevel] = useState(() => JSON.parse(localStorage.getItem('linguapaws_level') || '{}')?.id || 'conversational');
     const [recalibrationToast, setRecalibrationToast] = useState(null); // toast message when AI recalibrates
     const [transliterations, setTransliterations] = useState({});
+    const [userTransliterations, setUserTransliterations] = useState({});
     const [matchScores, setMatchScores] = useState({});
     const scrollRef = useRef(null);
     const audioRef = useRef(new Audio());
@@ -134,6 +135,14 @@ export default function Chat() {
         if (!script) return text;
         const re = new RegExp(`\\p{Script=${script}}+`, 'gu');
         return text.replace(re, '').replace(/\s{2,}/g, ' ').trim();
+    };
+
+    const hasTargetScript = (text) => {
+        if (!text) return false;
+        const script = TARGET_SCRIPT_MAP[(targetLang?.id || '').toLowerCase()];
+        if (!script) return false;
+        const re = new RegExp(`\\p{Script=${script}}`, 'u');
+        return re.test(text);
     };
 
     const similarityRatio = (a, b) => {
@@ -266,7 +275,7 @@ export default function Chat() {
             userLevel,
             displayRuleNote
         );
-        greeting = greeting.replace(/<[^>]+>/g, '').trim();
+        greeting = stripTargetScript(greeting.replace(/<[^>]+>/g, '').trim());
         if (isMounted.current) {
             const audioUrl = await aiService.generateSpeech(greeting, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
             if (audioUrl && isMounted.current && isCallMode) {
@@ -379,7 +388,7 @@ export default function Chat() {
                 false,
                 levelId
             );
-            greeting = aiGreeting.replace(/<[^>]+>/g, '').trim();
+            greeting = stripTargetScript(aiGreeting.replace(/<[^>]+>/g, '').trim());
             setMessages([{ role: 'assistant', content: greeting }]);
             aiService.history.push({ role: 'assistant', content: greeting });
 
@@ -443,6 +452,35 @@ export default function Chat() {
         run();
         return () => { cancelled = true; };
     }, [messages, userLevel, nativeLang?.name, targetLang?.name]);
+
+    useEffect(() => {
+        const nativeLangName = nativeLang?.name || 'English';
+        const targetLangName = targetLang?.name || 'English';
+        const pending = [];
+        messages.forEach((msg, idx) => {
+            if (msg.role !== 'user') return;
+            if (!hasTargetScript(msg.content)) return;
+            if (userTransliterations[idx]) return;
+            pending.push({ idx, text: msg.content });
+        });
+        if (pending.length === 0) return;
+
+        let cancelled = false;
+        const run = async () => {
+            for (const item of pending) {
+                try {
+                    const data = await aiService.transliterate(item.text, targetLangName, nativeLangName);
+                    if (cancelled) return;
+                    if (data?.transliteration) {
+                        const formatted = formatTransliteration(data.transliteration, nativeLang);
+                        setUserTransliterations(prev => ({ ...prev, [item.idx]: formatted }));
+                    }
+                } catch { /* ignore */ }
+            }
+        };
+        run();
+        return () => { cancelled = true; };
+    }, [messages, nativeLang?.name, targetLang?.name]);
 
     const handleTranslate = async (index, text) => {
         if (translations[index]) {
@@ -795,7 +833,9 @@ export default function Chat() {
                                 lineHeight: '1.5'
                             }}
                         >
-                            {renderMessageContent(msg.content, resolvedCharacter)}
+                            {msg.role === 'user'
+                                ? (userTransliterations[i] || stripTargetScript(msg.content) || '...')
+                                : renderMessageContent(stripTargetScript(msg.content), resolvedCharacter)}
                         </motion.div>
 
                         {msg.role === 'user' && (
