@@ -7,7 +7,6 @@ import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { wordTracker } from '../services/wordTracker';
 import { characters as defaultCharacters } from '../data/characters';
 import { useTranslation } from '../hooks/useTranslation';
-import ShadowCard from '../components/ShadowCard';
 
 export default function Chat() {
     const navigate = useNavigate();
@@ -129,9 +128,48 @@ export default function Chat() {
         ur: 'Arabic',
     };
 
+    const TARGET_SCRIPT_BY_NAME = {
+        hindi: 'Devanagari',
+        bengali: 'Bengali',
+        telugu: 'Telugu',
+        tamil: 'Tamil',
+        kannada: 'Kannada',
+        gujarati: 'Gujarati',
+        malayalam: 'Malayalam',
+        punjabi: 'Gurmukhi',
+        urdu: 'Arabic',
+    };
+
+    const isNativeEnglish = (lang = nativeLang) => {
+        const id = (lang?.id || '').toLowerCase();
+        const name = (lang?.name || '').toLowerCase();
+        return id === 'en' || name === 'english';
+    };
+
+    const resolveTargetScript = () => {
+        const id = (targetLang?.id || '').toLowerCase();
+        const name = (targetLang?.name || '').toLowerCase();
+        return TARGET_SCRIPT_MAP[id] || TARGET_SCRIPT_BY_NAME[name] || null;
+    };
+
+    const stripNonLatinLetters = (text) => {
+        if (!text) return text;
+        const chars = Array.from(text);
+        const kept = chars.filter((ch) => {
+            if (/\p{L}|\p{M}/u.test(ch)) {
+                return /\p{Script=Latin}/u.test(ch);
+            }
+            return true;
+        });
+        return kept.join('').replace(/\s{2,}/g, ' ').trim();
+    };
+
     const stripTargetScript = (text) => {
         if (!text) return text;
-        const script = TARGET_SCRIPT_MAP[(targetLang?.id || '').toLowerCase()];
+        if (isNativeEnglish()) {
+            return stripNonLatinLetters(text);
+        }
+        const script = resolveTargetScript();
         if (!script) return text;
         const re = new RegExp(`\\p{Script=${script}}+`, 'gu');
         return text.replace(re, '').replace(/\s{2,}/g, ' ').trim();
@@ -139,7 +177,10 @@ export default function Chat() {
 
     const hasTargetScript = (text) => {
         if (!text) return false;
-        const script = TARGET_SCRIPT_MAP[(targetLang?.id || '').toLowerCase()];
+        if (isNativeEnglish()) {
+            return /[\p{L}\p{M}]/u.test(text) && !/[\p{Script=Latin}]/u.test(text);
+        }
+        const script = resolveTargetScript();
         if (!script) return false;
         const re = new RegExp(`\\p{Script=${script}}`, 'u');
         return re.test(text);
@@ -212,15 +253,10 @@ export default function Chat() {
         sessionStorage.setItem(chatSessionKey, JSON.stringify(messages));
     }, [messages]);
 
-    // Parse <shadow>phrase</shadow> tags in assistant messages and render ShadowCard inline
-    const renderMessageContent = (content, character) => {
+    // Strip <shadow> tags; we don't render shadow cards inside chat.
+    const renderMessageContent = (content) => {
         if (!content.includes('<shadow>')) return content;
-        const parts = content.split(/(<shadow>.*?<\/shadow>)/gs);
-        return parts.map((part, i) => {
-            const m = part.match(/^<shadow>(.*?)<\/shadow>$/s);
-            if (m) return <ShadowCard key={i} phrase={m[1]} character={character} />;
-            return <span key={i}>{part}</span>;
-        });
+        return content.replace(/<shadow>(.*?)<\/shadow>/gs, '$1');
     };
 
     // Resolve the active character — fall back to Miko when none is selected
@@ -640,6 +676,7 @@ export default function Chat() {
         const cleanResponse = stripTargetScript(
             responseWithoutMeta
                 .replace(/<word>(.*?)<\/word>/g, '$1')
+                .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                 .replace(/<target>.*?<\/target>/gs, '')
         );
         // Strip ALL special tags from TTS so audio doesn't read "shadow the weather shadow"
@@ -835,7 +872,7 @@ export default function Chat() {
                         >
                             {msg.role === 'user'
                                 ? (userTransliterations[i] || stripTargetScript(msg.content) || '...')
-                                : renderMessageContent(stripTargetScript(msg.content), resolvedCharacter)}
+                                : renderMessageContent(stripTargetScript(msg.content))}
                         </motion.div>
 
                         {msg.role === 'user' && (

@@ -105,13 +105,8 @@ TEACHING APPROACH:
 - Match response LENGTH to level — shorter for lower levels, fuller for higher levels.
 - Ask ONE follow-up question per turn (unless using a <shadow> tag — see below).
 
-SHADOW PRACTICE TAGS:
-- When you correct a clear pronunciation error, include ONE <shadow>example phrase</shadow> tag in your response. The phrase should be 5-8 words max.
-- Embed the tag NATURALLY inside a sentence, like: "You could say it as <shadow>I want to go out today</shadow> 🐾"
-- The <shadow> phrase must be written in ${nativeLangName} as a pronunciation guide (native script, or Latin if ${nativeLangName} is English). Do not use ${targetLangName} script.
-- CRITICAL: When your message contains a <shadow> tag, do NOT ask a follow-up question. End the message after the shadow phrase. One action at a time.
-- Use AT MOST ONE <shadow> tag per response. Only at CONVERSATIONAL or FLUENT levels.
-- Do NOT use <shadow> unless you corrected a pronunciation error, OR it is a scheduled practice round.${triggerShadow ? '\n- SCHEDULED PRACTICE ROUND: Include ONE <shadow>phrase</shadow> tag for a natural phrase from your response. End your message after it — no follow-up question this turn.' : ''}
+SHADOW PRACTICE:
+- Do NOT use <shadow> tags. Shadow cards are disabled in chat.
 === END TUTOR RULES ===`;
 
 
