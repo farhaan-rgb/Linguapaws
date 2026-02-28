@@ -5,39 +5,21 @@ export const useAudioRecorder = () => {
     const [audioUrl, setAudioUrl] = useState(null);
     const mediaRecorder = useRef(null);
     const audioChunks = useRef([]);
-    const mimeTypeRef = useRef(null);
-    const streamRef = useRef(null);
 
     const startRecording = useCallback(async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            streamRef.current = stream;
-            const preferredTypes = [
-                'audio/webm;codecs=opus',
-                'audio/webm',
-                'audio/ogg;codecs=opus',
-                'audio/ogg',
-                'audio/mp4',
-            ];
-            const supported = preferredTypes.find((t) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t));
-            mimeTypeRef.current = supported || null;
-            mediaRecorder.current = new MediaRecorder(stream, supported ? { mimeType: supported } : undefined);
+            mediaRecorder.current = new MediaRecorder(stream);
             audioChunks.current = [];
 
             mediaRecorder.current.ondataavailable = (event) => {
-                if (event.data && event.data.size > 0) {
-                    audioChunks.current.push(event.data);
-                }
+                audioChunks.current.push(event.data);
             };
 
             mediaRecorder.current.onstop = () => {
-                const audioBlob = new Blob(audioChunks.current, { type: mimeTypeRef.current || 'audio/webm' });
+                const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
                 const url = URL.createObjectURL(audioBlob);
                 setAudioUrl(url);
-                if (streamRef.current) {
-                    streamRef.current.getTracks().forEach((track) => track.stop());
-                    streamRef.current = null;
-                }
             };
 
             mediaRecorder.current.start();
@@ -54,12 +36,7 @@ export const useAudioRecorder = () => {
 
             return new Promise((resolve) => {
                 const handleStop = () => {
-                    if (!audioChunks.current.length) {
-                        mediaRecorder.current.removeEventListener('stop', handleStop);
-                        resolve(null);
-                        return;
-                    }
-                    const audioBlob = new Blob(audioChunks.current, { type: mimeTypeRef.current || 'audio/webm' });
+                    const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
                     mediaRecorder.current.removeEventListener('stop', handleStop);
                     resolve(audioBlob);
                 };

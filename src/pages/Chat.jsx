@@ -812,11 +812,6 @@ export default function Chat() {
         if (isRecording) {
             const audioBlob = await stopRecording();
             if (audioBlob) {
-                if (audioBlob.size === 0) {
-                    const errorMsg = "Meow... I couldn't capture audio. Please try again. 😿";
-                    setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
-                    return;
-                }
                 setIsLoading(true);
                 const transcript = await aiService.transcribeAudio(audioBlob, targetLang?.id || null);
                 if (transcript) {
