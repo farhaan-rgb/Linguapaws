@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Send, Mic, Square, BookOpen, Globe, Edit3, Sparkles, Keyboard, Volume2, VolumeX, Phone, PhoneOff, Mic2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { aiService } from '../services/ai';
+import { api } from '../services/api';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { wordTracker } from '../services/wordTracker';
 import { characters as defaultCharacters } from '../data/characters';
@@ -193,6 +194,15 @@ export default function Chat() {
             .replace(/"\s*[.?!]+\s*"/g, '')
             .replace(/\s{2,}/g, ' ')
             .trim();
+    };
+
+    const safeTranslate = async (text, nativeLangName) => {
+        try {
+            const translated = await aiService.translate(text, nativeLangName, 'English');
+            return translated?.translation || text;
+        } catch {
+            return text;
+        }
     };
 
     const stripLatinDiacritics = (text) => {
@@ -509,10 +519,10 @@ export default function Chat() {
                 .replace(/<word>(.*?)<\/word>/g, '$1')
                 .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                 .trim();
-        let displayGreeting = cleanupDisplayText(
-            stripTargetScript(storedGreeting.replace(/<target>.*?<\/target>/gs, ''))
-        );
-        if (isNativeEnglish()) displayGreeting = stripLatinDiacritics(displayGreeting);
+            let displayGreeting = cleanupDisplayText(
+                stripTargetScript(storedGreeting.replace(/<target>.*?<\/target>/gs, ''))
+            );
+            if (isNativeEnglish()) displayGreeting = stripLatinDiacritics(displayGreeting);
             setMessages([{ role: 'assistant', content: storedGreeting }]);
             aiService.history.push({ role: 'assistant', content: storedGreeting });
 
@@ -649,150 +659,155 @@ export default function Chat() {
 
         setIsLoading(true);
 
-        // ── CLIENT-SIDE RECALIBRATION (first message only) ────────────────────
-        // Deterministically detect obvious level mismatches before calling AI.
-        // React state updates are async so we track the effective level locally.
-        let effectiveLevel = userLevel;
-        const isFirstMessage = exchangeCount.current === 0;
-        const allowRecalibration = (targetLang?.id || '').toLowerCase() === 'en';
-        if (isFirstMessage && allowRecalibration) {
-            const latinChars = (text.match(/[a-zA-Z]/g) || []).length;
-            const latinRatio = latinChars / Math.max(text.replace(/\s/g, '').length, 1);
-            const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
-            const charName = activeCharacter?.name || 'Miko';
+        try {
+            // ── CLIENT-SIDE RECALIBRATION (first message only) ────────────────────
+            // Deterministically detect obvious level mismatches before calling AI.
+            // React state updates are async so we track the effective level locally.
+            let effectiveLevel = userLevel;
+            const isFirstMessage = exchangeCount.current === 0;
+            const allowRecalibration = (targetLang?.id || '').toLowerCase() === 'en';
+            if (isFirstMessage && allowRecalibration) {
+                const latinChars = (text.match(/[a-zA-Z]/g) || []).length;
+                const latinRatio = latinChars / Math.max(text.replace(/\s/g, '').length, 1);
+                const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
+                const charName = activeCharacter?.name || 'Miko';
 
-            const applyRecalibration = (newLevelId) => {
-                effectiveLevel = newLevelId;
-                setUserLevel(newLevelId);
+                const applyRecalibration = (newLevelId) => {
+                    effectiveLevel = newLevelId;
+                    setUserLevel(newLevelId);
+                    const newLevel = { id: newLevelId, label: LEVEL_LABELS[newLevelId], appDetected: true };
+                    localStorage.setItem('linguapaws_level', JSON.stringify(newLevel));
+                    api.put('/api/settings', { englishLevel: newLevel }).catch(() => { });
+                    setRecalibrationToast(`${charName} adjusted to your level: ${LEVEL_LABELS[newLevelId]} 🎯`);
+                    setTimeout(() => setRecalibrationToast(null), 4000);
+                };
+
+                // Non-target-language message + high stated level → recalibrate down
+                if (latinRatio < 0.15 && (userLevel === 'fluent' || userLevel === 'conversational')) {
+                    applyRecalibration('zero');
+                }
+                // Very basic target-language + high stated level → recalibrate to basic
+                else if (latinRatio > 0.5 && latinRatio < 0.85 && text.trim().split(/\s+/).length <= 4 && userLevel === 'fluent') {
+                    applyRecalibration('basic');
+                }
+                // Fluent target-language paragraphs + stated zero → recalibrate up  
+                else if (latinRatio > 0.85 && text.trim().split(/\s+/).length > 6 && (userLevel === 'zero' || userLevel === 'basic')) {
+                    applyRecalibration('fluent');
+                }
+            }
+            // ── END CLIENT-SIDE RECALIBRATION ─────────────────────────────────────
+
+            // Increment exchange count and determine if this is a scheduled shadow round
+            exchangeCount.current += 1;
+            const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
+
+            const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+            const lastWasTopicPrompt = isTopicPrompt(lastAssistant?.content);
+            const isTopicAnswer = lastWasTopicPrompt && isTopicReply(text);
+            const promptedPhrase = (lastWasTopicPrompt || isTopicReply(text))
+                ? ''
+                : extractPromptedPhrase(lastAssistant?.content || '');
+            const expected = (promptedPhrase || '').replace(/[.!?]+$/g, '').trim();
+            const actual = (text || '').replace(/[.!?]+$/g, '').trim();
+            let matchRatio = expected ? similarityRatio(actual, expected) : 0;
+            let displayPhrase = promptedPhrase;
+            let translit = null;
+            const isNativeEnglish = (nativeLang?.id || '').toLowerCase() === 'en' ||
+                (nativeLang?.name || '').toLowerCase() === 'english';
+
+            if (promptedPhrase && (!isNativeEnglish || !isMostlyLatin(promptedPhrase))) {
+                const assistantIndex = messages.lastIndexOf(lastAssistant);
+                translit = transliterations[assistantIndex];
+                if (!translit) {
+                    try {
+                        const data = await aiService.transliterate(promptedPhrase, targetLang?.name || 'English', nativeLang?.name || 'English');
+                        translit = formatTransliteration(data?.transliteration || '', nativeLang);
+                        if (translit) {
+                            setTransliterations(prev => ({ ...prev, [assistantIndex]: translit }));
+                        }
+                    } catch { /* ignore */ }
+                }
+                if (translit) displayPhrase = translit;
+            }
+
+            if (promptedPhrase && isMostlyLatin(text) && translit) {
+                matchRatio = similarityRatioLatin(actual, translit);
+            }
+
+            if (promptedPhrase) {
+                const userMessageIndex = messages.length; // index of the message we're about to append
+                setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(matchRatio * 100) }));
+            }
+            const threshold = 0.5;
+            const acceptNote = (promptedPhrase && matchRatio >= threshold)
+                ? `The user attempted to repeat the requested phrase. Similarity is ~${Math.round(matchRatio * 100)}%. Treat this as correct and move forward; do not ask to repeat again.`
+                : null;
+
+            const nativeLangName = nativeLang?.name || 'English';
+            const targetLangName = targetLang?.name || 'English';
+            const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
+            const metaNote = [displayRuleNote, acceptNote].filter(Boolean).join(' ');
+            let botResponse = '';
+            if (isTopicAnswer) {
+                const followupMsg = `Great! Tell me a topic you like (travel, food, friends), or say "you decide".`;
+                botResponse = await safeTranslate(followupMsg, nativeLangName);
+            } else {
+                botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
+            }
+            if (acceptNote) {
+                const successMsg = `Great job! You said it well. Let's continue learning ${targetLangName}. What would you like to talk about next?`;
+                botResponse = await safeTranslate(successMsg, nativeLangName);
+            } else if (promptedPhrase && matchRatio < threshold) {
+                const prompt = (displayPhrase || promptedPhrase || '').replace(/[.!?]+$/g, '');
+                const retryMsg = `Nice try! You're close. Let's repeat the same phrase: "${prompt}". Please say it again.`;
+                const baseMsg = await safeTranslate(retryMsg, nativeLangName);
+                botResponse = `${baseMsg} <target>${promptedPhrase}</target>`;
+            }
+
+            // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
+
+            const recalibrateMatch = botResponse.match(/<recalibrate>(zero|basic|conversational|fluent)<\/recalibrate>/);
+            let responseWithoutMeta = botResponse.replace(/<recalibrate>.*?<\/recalibrate>/g, '');
+            if (recalibrateMatch) {
+                const newLevelId = recalibrateMatch[1];
+                const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
                 const newLevel = { id: newLevelId, label: LEVEL_LABELS[newLevelId], appDetected: true };
+                setUserLevel(newLevelId);
                 localStorage.setItem('linguapaws_level', JSON.stringify(newLevel));
                 api.put('/api/settings', { englishLevel: newLevel }).catch(() => { });
-                setRecalibrationToast(`${charName} adjusted to your level: ${LEVEL_LABELS[newLevelId]} 🎯`);
+                setRecalibrationToast(`Miko adjusted to your level: ${LEVEL_LABELS[newLevelId]} 🎯`);
                 setTimeout(() => setRecalibrationToast(null), 4000);
-            };
-
-            // Non-target-language message + high stated level → recalibrate down
-            if (latinRatio < 0.15 && (userLevel === 'fluent' || userLevel === 'conversational')) {
-                applyRecalibration('zero');
             }
-            // Very basic target-language + high stated level → recalibrate to basic
-            else if (latinRatio > 0.5 && latinRatio < 0.85 && text.trim().split(/\s+/).length <= 4 && userLevel === 'fluent') {
-                applyRecalibration('basic');
+
+            // Strip <word> tags for display BUT keep <shadow> tags so ShadowCard renders inline
+            const storedResponse = responseWithoutMeta
+                .replace(/<word>(.*?)<\/word>/g, '$1')
+                .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
+                .trim();
+            let displayResponse = cleanupDisplayText(
+                stripTargetScript(storedResponse.replace(/<target>.*?<\/target>/gs, ''))
+            );
+            if (isNativeEnglish()) displayResponse = stripLatinDiacritics(displayResponse);
+            // Strip ALL special tags from TTS so audio doesn't read hidden tags
+            const speechText = stripTargetScript(displayResponse);
+
+            setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
+            setIsLoading(false); // unblock UI before TTS — audio loading must not block chat
+
+            // Play voice (non-blocking — after UI is already updated)
+            if (!isMuted && isMounted.current) {
+                const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', nativeLang?.name || null);
+                if (audioUrl && isMounted.current) {
+                    audioRef.current.src = audioUrl;
+                    audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
+                }
             }
-            // Fluent target-language paragraphs + stated zero → recalibrate up  
-            else if (latinRatio > 0.85 && text.trim().split(/\s+/).length > 6 && (userLevel === 'zero' || userLevel === 'basic')) {
-                applyRecalibration('fluent');
-            }
-        }
-        // ── END CLIENT-SIDE RECALIBRATION ─────────────────────────────────────
-
-        // Increment exchange count and determine if this is a scheduled shadow round
-        exchangeCount.current += 1;
-        const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
-
-        const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-        const lastWasTopicPrompt = isTopicPrompt(lastAssistant?.content);
-        const isTopicAnswer = lastWasTopicPrompt && isTopicReply(text);
-        const promptedPhrase = (lastWasTopicPrompt || isTopicReply(text))
-            ? ''
-            : extractPromptedPhrase(lastAssistant?.content || '');
-        const expected = (promptedPhrase || '').replace(/[.!?]+$/g, '').trim();
-        const actual = (text || '').replace(/[.!?]+$/g, '').trim();
-        let matchRatio = expected ? similarityRatio(actual, expected) : 0;
-        let displayPhrase = promptedPhrase;
-        let translit = null;
-        const isNativeEnglish = (nativeLang?.id || '').toLowerCase() === 'en' ||
-            (nativeLang?.name || '').toLowerCase() === 'english';
-
-        if (promptedPhrase && (!isNativeEnglish || !isMostlyLatin(promptedPhrase))) {
-            const assistantIndex = messages.lastIndexOf(lastAssistant);
-            translit = transliterations[assistantIndex];
-            if (!translit) {
-                try {
-                    const data = await aiService.transliterate(promptedPhrase, targetLang?.name || 'English', nativeLang?.name || 'English');
-                    translit = formatTransliteration(data?.transliteration || '', nativeLang);
-                    if (translit) {
-                        setTransliterations(prev => ({ ...prev, [assistantIndex]: translit }));
-                    }
-                } catch { /* ignore */ }
-            }
-            if (translit) displayPhrase = translit;
-        }
-
-        if (promptedPhrase && isMostlyLatin(text) && translit) {
-            matchRatio = similarityRatioLatin(actual, translit);
-        }
-
-        if (promptedPhrase) {
-            const userMessageIndex = messages.length; // index of the message we're about to append
-            setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(matchRatio * 100) }));
-        }
-        const threshold = 0.5;
-        const acceptNote = (promptedPhrase && matchRatio >= threshold)
-            ? `The user attempted to repeat the requested phrase. Similarity is ~${Math.round(matchRatio * 100)}%. Treat this as correct and move forward; do not ask to repeat again.`
-            : null;
-
-        const nativeLangName = nativeLang?.name || 'English';
-        const targetLangName = targetLang?.name || 'English';
-        const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
-        const metaNote = [displayRuleNote, acceptNote].filter(Boolean).join(' ');
-        let botResponse = '';
-        if (isTopicAnswer) {
-            const followupMsg = `Great! Tell me a topic you like (travel, food, friends), or say "you decide".`;
-            const translated = await aiService.translate(followupMsg, nativeLangName, 'English');
-            botResponse = translated?.translation || followupMsg;
-        } else {
-            botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
-        }
-        if (acceptNote) {
-            const successMsg = `Great job! You said it well. Let's continue learning ${targetLangName}. What would you like to talk about next?`;
-            const translated = await aiService.translate(successMsg, nativeLangName, 'English');
-            botResponse = translated?.translation || successMsg;
-        } else if (promptedPhrase && matchRatio < threshold) {
-            const prompt = (displayPhrase || promptedPhrase || '').replace(/[.!?]+$/g, '');
-            const retryMsg = `Nice try! You're close. Let's repeat the same phrase: "${prompt}". Please say it again.`;
-            const translated = await aiService.translate(retryMsg, nativeLangName, 'English');
-            const baseMsg = translated?.translation || retryMsg;
-            botResponse = `${baseMsg} <target>${promptedPhrase}</target>`;
-        }
-
-        // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
-
-        const recalibrateMatch = botResponse.match(/<recalibrate>(zero|basic|conversational|fluent)<\/recalibrate>/);
-        let responseWithoutMeta = botResponse.replace(/<recalibrate>.*?<\/recalibrate>/g, '');
-        if (recalibrateMatch) {
-            const newLevelId = recalibrateMatch[1];
-            const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
-            const newLevel = { id: newLevelId, label: LEVEL_LABELS[newLevelId], appDetected: true };
-            setUserLevel(newLevelId);
-            localStorage.setItem('linguapaws_level', JSON.stringify(newLevel));
-            api.put('/api/settings', { englishLevel: newLevel }).catch(() => { });
-            setRecalibrationToast(`Miko adjusted to your level: ${LEVEL_LABELS[newLevelId]} 🎯`);
-            setTimeout(() => setRecalibrationToast(null), 4000);
-        }
-
-        // Strip <word> tags for display BUT keep <shadow> tags so ShadowCard renders inline
-        const storedResponse = responseWithoutMeta
-            .replace(/<word>(.*?)<\/word>/g, '$1')
-            .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
-            .trim();
-        let displayResponse = cleanupDisplayText(
-            stripTargetScript(storedResponse.replace(/<target>.*?<\/target>/gs, ''))
-        );
-        if (isNativeEnglish()) displayResponse = stripLatinDiacritics(displayResponse);
-        // Strip ALL special tags from TTS so audio doesn't read hidden tags
-        const speechText = stripTargetScript(displayResponse);
-
-        setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
-        setIsLoading(false); // unblock UI before TTS — audio loading must not block chat
-
-        // Play voice (non-blocking — after UI is already updated)
-        if (!isMuted && isMounted.current) {
-            const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', nativeLang?.name || null);
-            if (audioUrl && isMounted.current) {
-                audioRef.current.src = audioUrl;
-                audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
-            }
+        } catch (err) {
+            console.error('Chat send failed:', err);
+            const errorMsg = "Sorry, I couldn't respond. Please try again.";
+            setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
+        } finally {
+            setIsLoading(false);
         }
     };
 

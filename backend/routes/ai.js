@@ -54,7 +54,7 @@ router.post('/transcribe', async (req, res) => {
     const transcription = await getClient().audio.transcriptions.create({
         file,
         model: 'whisper-1',
-        ...(lang === 'en' ? { language: lang } : {}),
+        ...(lang ? { language: lang } : {}),
     });
     res.json({ text: transcription.text });
 });
