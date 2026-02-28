@@ -10,9 +10,6 @@ export const useAudioRecorder = () => {
 
     const startRecording = useCallback(async () => {
         try {
-            if (typeof MediaRecorder === 'undefined') {
-                throw new Error('MediaRecorder is not supported in this browser.');
-            }
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             streamRef.current = stream;
             const preferredTypes = [
@@ -52,6 +49,9 @@ export const useAudioRecorder = () => {
 
     const stopRecording = useCallback(() => {
         if (mediaRecorder.current && isRecording) {
+            mediaRecorder.current.stop();
+            setIsRecording(false);
+
             return new Promise((resolve) => {
                 const handleStop = () => {
                     if (!audioChunks.current.length) {
@@ -63,12 +63,7 @@ export const useAudioRecorder = () => {
                     mediaRecorder.current.removeEventListener('stop', handleStop);
                     resolve(audioBlob);
                 };
-                mediaRecorder.current.addEventListener('stop', handleStop, { once: true });
-                try {
-                    mediaRecorder.current.requestData();
-                } catch { /* ignore */ }
-                mediaRecorder.current.stop();
-                setIsRecording(false);
+                mediaRecorder.current.addEventListener('stop', handleStop);
             });
         }
         return null;

@@ -144,18 +144,9 @@ SHADOW PRACTICE:
 
     async transcribeAudio(audioBlob, language = null) {
         try {
-            // Convert blob to base64 safely without exceeding call stack
-            const base64 = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(audioBlob);
-                reader.onloadend = () => {
-                    const dataUrl = reader.result;
-                    const base64Str = dataUrl.split(',')[1];
-                    resolve(base64Str);
-                };
-                reader.onerror = reject;
-            });
-
+            // Convert blob to base64
+            const buffer = await audioBlob.arrayBuffer();
+            const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
             const data = await api.post('/api/ai/transcribe', {
                 audioBase64: base64,
                 mimeType: audioBlob.type || 'audio/webm',
