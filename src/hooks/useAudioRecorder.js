@@ -23,9 +23,8 @@ export const useAudioRecorder = () => {
                 'audio/mp4',
             ];
             const supported = preferredTypes.find((t) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t));
-
+            mimeTypeRef.current = supported || null;
             mediaRecorder.current = new MediaRecorder(stream, supported ? { mimeType: supported } : undefined);
-            mimeTypeRef.current = mediaRecorder.current.mimeType || supported || 'audio/webm';
             audioChunks.current = [];
 
             mediaRecorder.current.ondataavailable = (event) => {
@@ -35,7 +34,7 @@ export const useAudioRecorder = () => {
             };
 
             mediaRecorder.current.onstop = () => {
-                const audioBlob = new Blob(audioChunks.current, { type: mimeTypeRef.current });
+                const audioBlob = new Blob(audioChunks.current, { type: mimeTypeRef.current || 'audio/webm' });
                 const url = URL.createObjectURL(audioBlob);
                 setAudioUrl(url);
                 if (streamRef.current) {
@@ -60,7 +59,7 @@ export const useAudioRecorder = () => {
                         resolve(null);
                         return;
                     }
-                    const audioBlob = new Blob(audioChunks.current, { type: mimeTypeRef.current });
+                    const audioBlob = new Blob(audioChunks.current, { type: mimeTypeRef.current || 'audio/webm' });
                     mediaRecorder.current.removeEventListener('stop', handleStop);
                     resolve(audioBlob);
                 };
