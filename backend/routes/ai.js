@@ -50,10 +50,11 @@ router.post('/transcribe', async (req, res) => {
         hi: 'hi', bn: 'bn', te: 'te', mr: 'mr', ta: 'ta', ur: 'ur', kn: 'kn', gu: 'gu', ml: 'ml', pa: 'pa', en: 'en',
     };
     const lang = languageMap[language] || undefined;
+    // Some deployments reject certain language codes; only force language for English.
     const transcription = await getClient().audio.transcriptions.create({
         file,
         model: 'whisper-1',
-        ...(lang ? { language: lang } : {}),
+        ...(lang === 'en' ? { language: lang } : {}),
     });
     res.json({ text: transcription.text });
 });
