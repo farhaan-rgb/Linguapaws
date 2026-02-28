@@ -766,8 +766,8 @@ export default function Chat() {
 
             // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
 
-            const recalibrateMatch = botResponse.match(/<recalibrate>(zero|basic|conversational|fluent)<\/recalibrate>/);
-            let responseWithoutMeta = botResponse.replace(/<recalibrate>.*?<\/recalibrate>/g, '');
+            const recalibrateMatch = (botResponse || '').match(/<recalibrate>(zero|basic|conversational|fluent)<\/recalibrate>/);
+            let responseWithoutMeta = (botResponse || '').replace(/<recalibrate>.*?<\/recalibrate>/g, '');
             if (recalibrateMatch) {
                 const newLevelId = recalibrateMatch[1];
                 const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
