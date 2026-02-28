@@ -754,14 +754,25 @@ export default function Chat() {
             } else {
                 botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
             }
+
+            // If the user correctly spoke the prompted phrase, override the AI's natural response with our success message
             if (acceptNote) {
                 const successMsg = `Great job! You said it well. Let's continue learning ${targetLangName}. What would you like to talk about next?`;
                 botResponse = await safeTranslate(successMsg, nativeLangName);
             } else if (promptedPhrase && matchRatio < threshold) {
+                // If they failed the pronunciation threshold, override the natural AI response with a retry prompt
                 const prompt = (displayPhrase || promptedPhrase || '').replace(/[.!?]+$/g, '');
                 const retryMsg = `Nice try! You're close. Let's repeat the same phrase: "${prompt}". Please say it again.`;
                 const baseMsg = await safeTranslate(retryMsg, nativeLangName);
                 botResponse = `${baseMsg} <target>${promptedPhrase}</target>`;
+            }
+
+            // Fallback safety if translation service or API completely fails
+            if (!botResponse || typeof botResponse !== 'string' || botResponse.trim() === '') {
+                botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
+                if (!botResponse) {
+                    throw new Error("AI Service returned empty string on secondary fallback.");
+                }
             }
 
             // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
@@ -790,6 +801,10 @@ export default function Chat() {
             if (isNativeEnglish()) displayResponse = stripLatinDiacritics(displayResponse);
             // Strip ALL special tags from TTS so audio doesn't read hidden tags
             const speechText = stripTargetScript(displayResponse);
+
+            if (!storedResponse || !speechText) {
+                throw new Error("Empty AI response generated; falling back to error message.");
+            }
 
             setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
             setIsLoading(false); // unblock UI before TTS — audio loading must not block chat
