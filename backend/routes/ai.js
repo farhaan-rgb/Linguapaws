@@ -41,22 +41,40 @@ router.post('/speech', async (req, res) => {
 
 // POST /api/ai/transcribe
 router.post('/transcribe', async (req, res) => {
-    const { audioBase64, mimeType = 'audio/webm', language = null } = req.body;
-    if (!audioBase64) return res.status(400).json({ error: 'audioBase64 is required' });
+    try {
+        const { audioBase64, mimeType = 'audio/webm', language = null } = req.body;
+        if (!audioBase64) return res.status(400).json({ error: 'audioBase64 is required' });
 
-    const buffer = Buffer.from(audioBase64, 'base64');
-    const file = await OpenAI.toFile(buffer, 'audio.webm', { type: mimeType });
-    const languageMap = {
-        hi: 'hi', bn: 'bn', te: 'te', mr: 'mr', ta: 'ta', ur: 'ur', kn: 'kn', gu: 'gu', ml: 'ml', pa: 'pa', en: 'en',
-    };
-    const lang = languageMap[language] || undefined;
-    // Some deployments reject certain language codes; only force language for English.
-    const transcription = await getClient().audio.transcriptions.create({
-        file,
-        model: 'whisper-1',
-        ...(lang ? { language: lang } : {}),
-    });
-    res.json({ text: transcription.text });
+        const buffer = Buffer.from(audioBase64, 'base64');
+        const mimeMap = {
+            'audio/mp4': 'm4a',
+            'audio/webm': 'webm',
+            'audio/wav': 'wav',
+            'audio/ogg': 'ogg',
+            'video/mp4': 'm4a'
+        };
+        const ext = mimeMap[mimeType.split(';')[0]] || 'webm';
+
+        const file = await OpenAI.toFile(buffer, `audio.${ext}`, { type: mimeType });
+
+        // Whisper only supports a specific subset of ISO-639-1 codes. 
+        // For others (like Telugu 'te' or Bengali 'bn'), we must omit the language param and let it auto-detect.
+        const supportedByWhisper = {
+            hi: 'hi', mr: 'mr', ta: 'ta', ur: 'ur', gu: 'gu', kn: 'kn', ml: 'ml', pa: 'pa', en: 'en',
+            // 'te' (Telugu) and 'bn' (Bengali) are often rejected by the API depending on the model version used.
+        };
+        const lang = supportedByWhisper[language] || undefined;
+
+        const transcription = await getClient().audio.transcriptions.create({
+            file,
+            model: 'whisper-1',
+            ...(lang ? { language: lang } : {}),
+        });
+        res.json({ text: transcription.text });
+    } catch (error) {
+        console.error('Transcription Error:', error?.response?.data || error.message);
+        res.status(500).json({ error: 'Failed to transcribe audio' });
+    }
 });
 
 // POST /api/ai/pronunciation
