@@ -819,7 +819,7 @@ export default function Chat() {
             }
         } catch (err) {
             console.error('Chat send failed:', err);
-            const errorMsg = "Sorry, I couldn't respond. Please try again.";
+            const errorMsg = `Crash details: ${err.message}. Stack: ${err.stack || ''}`;
             setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
         } finally {
             setIsLoading(false);
