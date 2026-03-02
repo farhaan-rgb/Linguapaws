@@ -1,5 +1,6 @@
 import { useMemo, useEffect, useState } from 'react';
 import { UI_TRANSLATIONS } from '../constants/translations';
+import { getStoredJSON } from '../utils/storage';
 
 export const useTranslation = () => {
     const [version, setVersion] = useState(0);
@@ -13,18 +14,6 @@ export const useTranslation = () => {
             window.removeEventListener('linguapaws-language-changed', handler);
         };
     }, []);
-
-    // Safely parse localStorage items
-    const getStoredJSON = (key) => {
-        try {
-            const item = localStorage.getItem(key);
-            return item ? JSON.parse(item) : null;
-        } catch (e) {
-            console.error(`Error parsing localStorage key "${key}":`, e);
-            // Fall back to raw string (older data or non-JSON writes)
-            return localStorage.getItem(key);
-        }
-    };
 
     const currentLang = getStoredJSON('linguapaws_native_lang');
     const currentLevel = getStoredJSON('linguapaws_level');

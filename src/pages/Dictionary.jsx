@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, Book, Star, Volume2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { aiService } from '../services/ai';
+import { getStoredJSON } from '../utils/storage';
 
 export default function Dictionary() {
     const navigate = useNavigate();
@@ -12,8 +13,8 @@ export default function Dictionary() {
 
     const [definitions, setDefinitions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const nativeLang = JSON.parse(localStorage.getItem('linguapaws_native_lang') || '{}');
-    const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{}');
+    const nativeLang = getStoredJSON('linguapaws_native_lang', {});
+    const targetLang = getStoredJSON('linguapaws_target_lang', {});
     const nativeLangName = nativeLang?.name || 'English';
     const targetLangName = targetLang?.name || 'English';
 

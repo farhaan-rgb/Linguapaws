@@ -218,6 +218,28 @@ export default function Login() {
                     By signing in, you agree to use this app for learning languages.<br />
                     No data is shared with third parties.
                 </p>
+
+                <button
+                    onClick={() => {
+                        if (window.confirm("This will clear all your local settings (language, levels, character selection). Are you sure?")) {
+                            localStorage.clear();
+                            sessionStorage.clear();
+                            window.location.reload();
+                        }
+                    }}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#94a3b8',
+                        fontSize: '11px',
+                        textDecoration: 'underline',
+                        cursor: 'pointer',
+                        opacity: 0.6,
+                        marginTop: '12px'
+                    }}
+                >
+                    Trouble loading? Reset app data 🧹
+                </button>
             </motion.div>
 
             {/* Background blobs */}

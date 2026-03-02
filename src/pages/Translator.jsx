@@ -5,6 +5,7 @@ import { Send, Share2, Languages, ChevronLeft, Mic, Square, Keyboard, History } 
 import { aiService } from '../services/ai';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { useTranslation } from '../hooks/useTranslation';
+import { getStoredJSON } from '../utils/storage';
 
 export default function Translator() {
     const navigate = useNavigate();
@@ -18,8 +19,8 @@ export default function Translator() {
     const [lastInput, setLastInput] = useState('');
     const [detectedLang, setDetectedLang] = useState('');
 
-    const nativeLang = JSON.parse(localStorage.getItem('linguapaws_native_lang') || '{"name": "any language", "code": "auto"}');
-    const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{"name": "English", "code": "en"}');
+    const nativeLang = getStoredJSON('linguapaws_native_lang', { name: "any language", code: "auto" });
+    const targetLang = getStoredJSON('linguapaws_target_lang', { name: "English", code: "en" });
     const nativeLangName = nativeLang?.name || 'any language';
     const targetLangName = targetLang?.name || 'English';
     const exampleMap = {

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useTranslation } from '../hooks/useTranslation';
+import { getStoredJSON, setStoredJSON } from '../utils/storage';
 
 // Question and level labels in each supported native language
 const TRANSLATIONS = {
@@ -123,8 +124,8 @@ export default function LevelSelect() {
     const { t: tr } = useTranslation();
     const [selected, setSelected] = useState(null);
 
-    const nativeLang = JSON.parse(localStorage.getItem('linguapaws_native_lang') || '{}');
-    const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{}');
+    const nativeLang = getStoredJSON('linguapaws_native_lang', {});
+    const targetLang = getStoredJSON('linguapaws_target_lang', {});
     const targetName = targetLang?.name || 'English';
     const t = TRANSLATIONS[nativeLang?.id] || FALLBACK;
     const applyTarget = (text) => (text || '').replace('{n}', targetName);
@@ -133,7 +134,7 @@ export default function LevelSelect() {
     const handleSelect = (level) => {
         setSelected(level.id);
         const levelData = { id: level.id, label: level.label };
-        localStorage.setItem('linguapaws_level', JSON.stringify(levelData));
+        setStoredJSON('linguapaws_level', levelData);
         window.dispatchEvent(new Event('linguapaws-language-changed'));
         // Sync to backend in background
         api.put('/api/settings', { englishLevel: levelData }).catch(() => { });

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useTranslation } from '../hooks/useTranslation';
+import { getStoredJSON } from '../utils/storage';
 
 const NATIVE_LANGUAGES = [
     { id: 'hi', name: 'Hindi', native: 'हिन्दी', landmark: '🕌', landmarkName: 'Taj Mahal, Agra' },
@@ -23,8 +24,7 @@ export default function LearnLanguageSelect() {
     const navigate = useNavigate();
     const { t } = useTranslation();
     const [selected, setSelected] = useState(null);
-
-    const nativeLang = JSON.parse(localStorage.getItem('linguapaws_native_lang') || '{}');
+    const nativeLang = getStoredJSON('linguapaws_native_lang', {});
     const languages = [
         ...NATIVE_LANGUAGES.filter(l => l.id !== nativeLang?.id),
         PUNJABI,

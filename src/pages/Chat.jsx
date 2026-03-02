@@ -8,6 +8,7 @@ import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { wordTracker } from '../services/wordTracker';
 import { characters as defaultCharacters } from '../data/characters';
 import { useTranslation } from '../hooks/useTranslation';
+import { getStoredJSON, setStoredJSON } from '../utils/storage';
 
 export default function Chat() {
     const navigate = useNavigate();
@@ -16,28 +17,14 @@ export default function Chat() {
     const topicId = searchParams.get('topic');
     const topicName = searchParams.get('name');
 
-    const getStoredJSON = (key, fallback = {}) => {
-        try {
-            const item = localStorage.getItem(key);
-            if (!item || item === 'undefined' || item === 'null') return fallback;
-            return JSON.parse(item);
-        } catch (e) {
-            console.warn(`Error parsing localStorage key "${key}":`, e);
-            return fallback;
-        }
-    };
-
     const { isRecording, startRecording, stopRecording } = useAudioRecorder();
 
     // Restore chat session from sessionStorage — survives navigation to Shadow/Dictionary
     const activeChar = getStoredJSON('linguapaws_active_character', { id: 'miko' });
     const chatSessionKey = `linguapaws_chat_${activeChar?.id || 'miko'}_${searchParams.get('topic') || 'free'}`;
-    const [messages, setMessages] = useState(() => {
-        try {
-            const saved = sessionStorage.getItem(chatSessionKey);
-            return saved ? JSON.parse(saved) : [];
-        } catch { return []; }
-    });
+
+    const [messages, setMessages] = useState(() => getStoredJSON(chatSessionKey, [], sessionStorage));
+
     const [isLoading, setIsLoading] = useState(false);
     const [inputText, setInputText] = useState('');
     const [inputMode, setInputMode] = useState(localStorage.getItem('linguapaws_input_mode') || 'voice');
@@ -46,7 +33,7 @@ export default function Chat() {
     const [translations, setTranslations] = useState({});
     const [isMuted, setIsMuted] = useState(localStorage.getItem('linguapaws_muted') === 'true');
 
-    const [activeCharacter, setActiveCharacter] = useState(() => activeChar);
+    const [activeCharacter, setActiveCharacter] = useState(activeChar);
     const [userLevel, setUserLevel] = useState(() => getStoredJSON('linguapaws_level', { id: 'conversational' })?.id || 'conversational');
 
     const nativeLang = getStoredJSON('linguapaws_native_lang', {});
