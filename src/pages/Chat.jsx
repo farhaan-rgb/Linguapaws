@@ -712,10 +712,10 @@ export default function Chat() {
             let matchRatio = expected ? similarityRatio(actual, expected) : 0;
             let displayPhrase = promptedPhrase;
             let translit = null;
-            const isNativeEnglish = (nativeLang?.id || '').toLowerCase() === 'en' ||
+            const isNativeEng = (nativeLang?.id || '').toLowerCase() === 'en' ||
                 (nativeLang?.name || '').toLowerCase() === 'english';
 
-            if (promptedPhrase && (!isNativeEnglish || !isMostlyLatin(promptedPhrase))) {
+            if (promptedPhrase && (!isNativeEng || !isMostlyLatin(promptedPhrase))) {
                 const assistantIndex = messages.lastIndexOf(lastAssistant);
                 translit = transliterations[assistantIndex];
                 if (!translit) {
