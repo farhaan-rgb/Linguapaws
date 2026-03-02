@@ -42,7 +42,7 @@ router.post('/speech', async (req, res) => {
 // POST /api/ai/transcribe
 router.post('/transcribe', async (req, res) => {
     try {
-        const { audioBase64, mimeType = 'audio/webm', language = null } = req.body;
+        const { audioBase64, mimeType = 'audio/webm', nativeLang = null, targetLang = null } = req.body;
         if (!audioBase64) return res.status(400).json({ error: 'audioBase64 is required' });
 
         const buffer = Buffer.from(audioBase64, 'base64');
@@ -57,20 +57,67 @@ router.post('/transcribe', async (req, res) => {
 
         const file = await OpenAI.toFile(buffer, `audio.${ext}`, { type: mimeType });
 
-        // Whisper only supports a specific subset of ISO-639-1 codes. 
-        // For others (like Telugu 'te' or Bengali 'bn'), we must omit the language param and let it auto-detect.
-        const supportedByWhisper = {
-            hi: 'hi', mr: 'mr', ta: 'ta', ur: 'ur', gu: 'gu', kn: 'kn', ml: 'ml', pa: 'pa', en: 'en',
-            // 'te' (Telugu) and 'bn' (Bengali) are often rejected by the API depending on the model version used.
-        };
-        const lang = supportedByWhisper[language] || undefined;
+        // Language IDs that Whisper supports well
+        const supportedByWhisper = new Set([
+            'hi', 'mr', 'ta', 'ur', 'gu', 'kn', 'ml', 'pa', 'en',
+            'te', 'bn', 'fr', 'es', 'de', 'it', 'pt', 'ja', 'ko', 'zh',
+        ]);
+
+        const nativeLangId = (nativeLang?.id || '').toLowerCase();
+        const targetLangId = (targetLang?.id || '').toLowerCase();
+        const nativeLangName = nativeLang?.name || null;
+        const targetLangName = targetLang?.name || null;
+
+        // Strategy: Transcribe with native language hint first (users speak their native
+        // language most of the time). If the native lang is not supported, try target lang,
+        // then fall back to auto-detect.
+        const primaryLang = supportedByWhisper.has(nativeLangId) ? nativeLangId
+            : supportedByWhisper.has(targetLangId) ? targetLangId
+                : undefined;
 
         const transcription = await getClient().audio.transcriptions.create({
             file,
             model: 'whisper-1',
-            ...(lang ? { language: lang } : {}),
+            ...(primaryLang ? { language: primaryLang } : {}),
         });
-        res.json({ text: transcription.text });
+
+        let rawText = (transcription.text || '').trim();
+        if (!rawText) return res.json({ text: null });
+
+        // If we have both language contexts, use a quick GPT pass to verify/correct
+        // the transcription. This catches cases where Whisper mishears "Anything" as
+        // "ap karte hain" etc.
+        if (nativeLangName && targetLangName) {
+            try {
+                const verifyResponse = await getClient().chat.completions.create({
+                    model: 'gpt-4o-mini',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: `You are a speech transcription corrector for a language learning app.
+The user is learning ${targetLangName} and their native language is ${nativeLangName}.
+They will ONLY speak in one of these two languages: ${nativeLangName} or ${targetLangName}.
+
+A speech-to-text engine produced the following transcript. Your job:
+1. If the transcript is clearly valid ${nativeLangName} or ${targetLangName}, return it as-is.
+2. If the transcript appears to be in a DIFFERENT language (neither ${nativeLangName} nor ${targetLangName}), it was likely misheard. Try to figure out what the user actually said in ${nativeLangName} or ${targetLangName} based on phonetic similarity, and return the corrected version.
+3. If the transcript is romanized ${targetLangName} (e.g. transliterated), that is valid — return it as-is.
+4. Keep your response EXTREMELY short — return ONLY the corrected transcript text, nothing else. No quotes, no explanation.`
+                        },
+                        { role: 'user', content: rawText }
+                    ],
+                    temperature: 0.1,
+                    max_tokens: 150,
+                });
+                const corrected = (verifyResponse.choices[0].message.content || '').trim();
+                if (corrected) rawText = corrected;
+            } catch (verifyErr) {
+                // If verification fails, use raw transcript — better than nothing
+                console.warn('Transcript verification failed, using raw:', verifyErr.message);
+            }
+        }
+
+        res.json({ text: rawText });
     } catch (error) {
         console.error('Transcription Error:', error?.response?.data || error.message);
         res.status(500).json({ error: 'Failed to transcribe audio' });

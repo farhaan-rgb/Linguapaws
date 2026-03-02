@@ -431,7 +431,7 @@ export default function Chat() {
             setCallStatus('thinking');
             const audioBlob = await stopRecording();
             if (audioBlob) {
-                const transcript = await aiService.transcribeAudio(audioBlob, targetLang?.id || null);
+                const transcript = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang);
                 if (transcript) {
                     setMessages(prev => [...prev, { role: 'user', content: transcript }]);
                     const userWords = transcript.match(/[\p{L}]{2,}/gu);
@@ -831,7 +831,7 @@ export default function Chat() {
             const audioBlob = await stopRecording();
             if (audioBlob) {
                 setIsLoading(true);
-                const transcript = await aiService.transcribeAudio(audioBlob, targetLang?.id || null);
+                const transcript = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang);
                 if (transcript) {
                     handleSend(transcript);
                 } else {

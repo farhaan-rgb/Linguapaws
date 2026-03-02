@@ -142,7 +142,7 @@ SHADOW PRACTICE:
         }
     }
 
-    async transcribeAudio(audioBlob, language = null) {
+    async transcribeAudio(audioBlob, nativeLang = null, targetLang = null) {
         try {
             // Convert blob to base64
             const buffer = await audioBlob.arrayBuffer();
@@ -150,7 +150,8 @@ SHADOW PRACTICE:
             const data = await api.post('/api/ai/transcribe', {
                 audioBase64: base64,
                 mimeType: audioBlob.type || 'audio/webm',
-                language,
+                nativeLang,
+                targetLang,
             });
             return data.text || null;
         } catch (error) {
