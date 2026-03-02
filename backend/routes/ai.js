@@ -141,8 +141,9 @@ A speech-to-text engine produced the following transcript. Your job:
 
         res.json({ text: rawText });
     } catch (error) {
-        console.error('Transcription Error:', error?.response?.data || error.message);
-        res.status(500).json({ error: 'Failed to transcribe audio' });
+        const errorDetail = error?.response?.data?.error?.message || error?.message || 'Unknown error';
+        console.error('Transcription Detailed Error:', errorDetail);
+        res.status(500).json({ error: `Transcription failed: ${errorDetail}` });
     }
 });
 

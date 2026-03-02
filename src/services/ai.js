@@ -151,26 +151,46 @@ SHADOW PRACTICE:
 
     async transcribeAudio(audioBlob, nativeLang = null, targetLang = null, expectingTargetLang = false) {
         try {
-            // Convert blob to base64
+            // Convert blob to base64 — use chunked encoding to avoid
+            // "Maximum call stack size exceeded" from spreading large arrays
             const buffer = await audioBlob.arrayBuffer();
             if (buffer.byteLength === 0) {
                 return { error: 'Audio buffer is empty. Please check your microphone settings.' };
             }
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-            const response = await api.post('/api/ai/transcribe', {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            const chunkSize = 8192;
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+                binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
+            }
+            const base64 = btoa(binary);
+            const payload = {
                 audioBase64: base64,
                 mimeType: audioBlob.type || 'audio/webm',
                 nativeLang,
                 targetLang,
                 expectingTargetLang,
-            });
-            if (!response.text) {
-                return { error: 'No transcription text returned from the engine.' };
+            };
+
+            // Retry once on transient failures (cold-start timeouts, rate limits)
+            let lastError;
+            for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                    const response = await api.post('/api/ai/transcribe', payload);
+                    if (!response.text) {
+                        return { error: 'No transcription text returned from the engine.' };
+                    }
+                    return { text: response.text };
+                } catch (err) {
+                    lastError = err;
+                    console.warn(`Transcription attempt ${attempt + 1} failed:`, err.message);
+                    if (attempt === 0) await new Promise(r => setTimeout(r, 1000));
+                }
             }
-            return { text: response.text };
+            const detail = lastError?.message || 'Unknown network error';
+            return { error: `Transcription failed: ${detail}` };
         } catch (error) {
             console.error('Transcription Error:', error);
-            // Check for specific error types if possible (e.g. from axios/fetch)
             const detail = error.message || 'Unknown network error';
             return { error: `Transcription failed: ${detail}` };
         }
