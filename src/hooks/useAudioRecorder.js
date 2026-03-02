@@ -5,24 +5,28 @@ export const useAudioRecorder = () => {
     const [audioUrl, setAudioUrl] = useState(null);
     const mediaRecorder = useRef(null);
     const audioChunks = useRef([]);
+    const isRecordingRef = useRef(false); // ref-based flag avoids stale closure issues
 
     const startRecording = useCallback(async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder.current = new MediaRecorder(stream);
+
+            // Determine a widely-supported MIME type
+            const preferredTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+            const mimeType = preferredTypes.find(t => MediaRecorder.isTypeSupported(t)) || '';
+
+            mediaRecorder.current = new MediaRecorder(stream, mimeType ? { mimeType } : {});
             audioChunks.current = [];
 
             mediaRecorder.current.ondataavailable = (event) => {
-                audioChunks.current.push(event.data);
+                if (event.data && event.data.size > 0) {
+                    audioChunks.current.push(event.data);
+                }
             };
 
-            mediaRecorder.current.onstop = () => {
-                const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
-                const url = URL.createObjectURL(audioBlob);
-                setAudioUrl(url);
-            };
-
-            mediaRecorder.current.start();
+            // Request data every 250ms so chunks accumulate even for short recordings
+            mediaRecorder.current.start(250);
+            isRecordingRef.current = true;
             setIsRecording(true);
         } catch (err) {
             console.error("Error accessing microphone:", err);
@@ -30,21 +34,30 @@ export const useAudioRecorder = () => {
     }, []);
 
     const stopRecording = useCallback(() => {
-        if (mediaRecorder.current && isRecording) {
-            mediaRecorder.current.stop();
+        if (mediaRecorder.current && isRecordingRef.current) {
+            isRecordingRef.current = false;
             setIsRecording(false);
 
             return new Promise((resolve) => {
                 const handleStop = () => {
-                    const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
                     mediaRecorder.current.removeEventListener('stop', handleStop);
+
+                    // Stop all tracks so the browser releases the mic indicator
+                    const tracks = mediaRecorder.current.stream?.getTracks();
+                    if (tracks) tracks.forEach(t => t.stop());
+
+                    const mimeType = mediaRecorder.current.mimeType || 'audio/webm';
+                    const audioBlob = new Blob(audioChunks.current, { type: mimeType });
+                    const url = URL.createObjectURL(audioBlob);
+                    setAudioUrl(url);
                     resolve(audioBlob);
                 };
                 mediaRecorder.current.addEventListener('stop', handleStop);
+                mediaRecorder.current.stop();
             });
         }
-        return null;
-    }, [isRecording]);
+        return Promise.resolve(null);
+    }, []);
 
     return { isRecording, startRecording, stopRecording, audioUrl };
 };
