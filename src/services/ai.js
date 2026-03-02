@@ -134,7 +134,8 @@ SHADOW PRACTICE:
             return reply;
         } catch (error) {
             console.error('Chat Error:', error);
-            return "Oops! My whiskers got tangled. Can you try again? 😿";
+            const prefix = character?.id === 'miko' ? "My whiskers got tangled! 😿 " : "";
+            return `${prefix}I'm having a bit of trouble connecting to my brain. Please try again in a moment.`;
         }
     }
 
