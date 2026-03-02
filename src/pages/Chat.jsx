@@ -16,10 +16,22 @@ export default function Chat() {
     const topicId = searchParams.get('topic');
     const topicName = searchParams.get('name');
 
+    const getStoredJSON = (key, fallback = {}) => {
+        try {
+            const item = localStorage.getItem(key);
+            if (!item || item === 'undefined' || item === 'null') return fallback;
+            return JSON.parse(item);
+        } catch (e) {
+            console.warn(`Error parsing localStorage key "${key}":`, e);
+            return fallback;
+        }
+    };
+
     const { isRecording, startRecording, stopRecording } = useAudioRecorder();
 
     // Restore chat session from sessionStorage — survives navigation to Shadow/Dictionary
-    const chatSessionKey = `linguapaws_chat_${JSON.parse(localStorage.getItem('linguapaws_active_character') || 'null')?.id || 'miko'}_${searchParams.get('topic') || 'free'}`;
+    const activeChar = getStoredJSON('linguapaws_active_character', { id: 'miko' });
+    const chatSessionKey = `linguapaws_chat_${activeChar?.id || 'miko'}_${searchParams.get('topic') || 'free'}`;
     const [messages, setMessages] = useState(() => {
         try {
             const saved = sessionStorage.getItem(chatSessionKey);
@@ -33,18 +45,8 @@ export default function Chat() {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [translations, setTranslations] = useState({});
     const [isMuted, setIsMuted] = useState(localStorage.getItem('linguapaws_muted') === 'true');
-    const getStoredJSON = (key, fallback = {}) => {
-        try {
-            const item = localStorage.getItem(key);
-            if (!item || item === 'undefined' || item === 'null') return fallback;
-            return JSON.parse(item);
-        } catch (e) {
-            console.warn(`Error parsing localStorage key "${key}":`, e);
-            return fallback;
-        }
-    };
 
-    const [activeCharacter, setActiveCharacter] = useState(() => getStoredJSON('linguapaws_active_character', null));
+    const [activeCharacter, setActiveCharacter] = useState(() => activeChar);
     const [userLevel, setUserLevel] = useState(() => getStoredJSON('linguapaws_level', { id: 'conversational' })?.id || 'conversational');
 
     const nativeLang = getStoredJSON('linguapaws_native_lang', {});
