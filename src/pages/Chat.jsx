@@ -33,8 +33,23 @@ export default function Chat() {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [translations, setTranslations] = useState({});
     const [isMuted, setIsMuted] = useState(localStorage.getItem('linguapaws_muted') === 'true');
-    const [activeCharacter, setActiveCharacter] = useState(JSON.parse(localStorage.getItem('linguapaws_active_character') || 'null'));
-    const [userLevel, setUserLevel] = useState(() => JSON.parse(localStorage.getItem('linguapaws_level') || '{}')?.id || 'conversational');
+    const getStoredJSON = (key, fallback = {}) => {
+        try {
+            const item = localStorage.getItem(key);
+            if (!item || item === 'undefined' || item === 'null') return fallback;
+            return JSON.parse(item);
+        } catch (e) {
+            console.warn(`Error parsing localStorage key "${key}":`, e);
+            return fallback;
+        }
+    };
+
+    const [activeCharacter, setActiveCharacter] = useState(() => getStoredJSON('linguapaws_active_character', null));
+    const [userLevel, setUserLevel] = useState(() => getStoredJSON('linguapaws_level', { id: 'conversational' })?.id || 'conversational');
+
+    const nativeLang = getStoredJSON('linguapaws_native_lang', {});
+    const targetLang = getStoredJSON('linguapaws_target_lang', {});
+
     const [recalibrationToast, setRecalibrationToast] = useState(null); // toast message when AI recalibrates
     const [transliterations, setTransliterations] = useState({});
     const [userTransliterations, setUserTransliterations] = useState({});
@@ -497,8 +512,6 @@ export default function Chat() {
         }
     };
 
-    const nativeLang = JSON.parse(localStorage.getItem('linguapaws_native_lang') || '{}');
-    const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{}');
 
     useEffect(() => {
         const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
@@ -1101,8 +1114,8 @@ export default function Chat() {
                                         gap: '6px',
                                         boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                                     }}
-                                    aria-label={translations[i] ? t.original : t.translate_to.replace('{n}', nativeLang.name || 'Lang')}
-                                    title={translations[i] ? t.original : t.translate_to.replace('{n}', nativeLang.name || 'Lang')}
+                                    aria-label={translations[i] ? t.original : (typeof t.translate_to === 'string' ? t.translate_to.replace('{n}', nativeLang?.name || 'Lang') : 'Translate')}
+                                    title={translations[i] ? t.original : (typeof t.translate_to === 'string' ? t.translate_to.replace('{n}', nativeLang?.name || 'Lang') : 'Translate')}
                                 >
                                     <Globe size={12} />
                                 </motion.button>
