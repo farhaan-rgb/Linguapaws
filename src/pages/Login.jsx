@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
-    const { signIn } = useAuth();
+    const { signIn, signInAsGuest } = useAuth();
     const navigate = useNavigate();
     const [error, setError] = useState(null);
     const [isSigningIn, setIsSigningIn] = useState(false);
@@ -141,7 +141,7 @@ export default function Login() {
                 </div>
 
                 {/* Google Sign-in Button */}
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
                     <GoogleLogin
                         onSuccess={handleSuccess}
                         onError={handleError}
@@ -152,6 +152,47 @@ export default function Login() {
                         width="320"
                         disabled={isSigningIn}
                     />
+
+                    <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px' }}>
+                        <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                        <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500' }}>OR</span>
+                        <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
+                    </div>
+
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={async () => {
+                            try {
+                                setIsSigningIn(true);
+                                await signInAsGuest();
+                                navigate('/');
+                            } catch (err) {
+                                setError('Guest sign-in failed.');
+                            } finally {
+                                setIsSigningIn(false);
+                            }
+                        }}
+                        disabled={isSigningIn}
+                        style={{
+                            width: '100%',
+                            padding: '12px',
+                            borderRadius: '32px',
+                            background: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            color: '#475569',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        👤 Continue as Guest
+                    </motion.button>
+
                     {error && (
                         <motion.p
                             initial={{ opacity: 0 }}

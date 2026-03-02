@@ -73,7 +73,13 @@ export const useAudioRecorder = () => {
                     resolve(audioBlob);
                 };
                 mediaRecorder.current.addEventListener('stop', handleStop);
-                mediaRecorder.current.stop();
+
+                // Add a small delay before actual stop to catch trailing audio
+                setTimeout(() => {
+                    if (mediaRecorder.current.state !== 'inactive') {
+                        mediaRecorder.current.stop();
+                    }
+                }, 200);
             });
         }
         return Promise.resolve(null);

@@ -47,4 +47,43 @@ router.post('/google', async (req, res) => {
     });
 });
 
+// POST /api/auth/guest
+// Creates or restores a persistent guest user session
+router.post('/guest', async (req, res) => {
+    // We'll use a unique ID for guests to keep their progress between refreshes if they stay on the same device,
+    // otherwise just make a new one. For this demo, we'll just use a 'guest' identity.
+    const guestId = 'guest_tester_123';
+
+    let user = await User.findOneAndUpdate(
+        { googleSub: guestId },
+        {
+            name: 'Guest Explorer',
+            email: 'guest@linguapaws.local',
+            picture: '👤',
+            isGuest: true
+        },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    const token = jwt.sign(
+        { userId: user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+    );
+
+    res.json({
+        token,
+        user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            picture: user.picture,
+            nativeLang: user.nativeLang || null,
+            englishLevel: user.englishLevel || null,
+            targetLang: user.targetLang || null,
+            isGuest: true
+        }
+    });
+});
+
 module.exports = router;

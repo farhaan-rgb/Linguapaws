@@ -154,13 +154,20 @@ export default function Chat() {
     };
 
     const isAssistantExpectingTarget = (msgs) => {
+        // Look through recent messages for the most recent tutorial state
         for (let i = msgs.length - 1; i >= 0; i--) {
             const msg = msgs[i];
             if (msg.role !== 'assistant') continue;
+
+            // If the message contains a target tag, we are definitely in a tutorial step
+            if (msg.content.includes('<target>')) return true;
+
             // Skip generic error messages that don't change the tutorial context
             const isError = msg.content.includes("couldn't quite hear") || msg.content.includes("whiskers got tangled");
             if (isError) continue;
-            return msg.content.includes('<target>');
+
+            // If it's a normal assistant message without tags, we are no longer in a tutorial step
+            return false;
         }
         return false;
     };
@@ -720,10 +727,11 @@ export default function Chat() {
             exchangeCount.current += 1;
             const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
 
+            // Find the most recent instruction from Miko
+            // We prioritize messages with <target> tags because they are actively teaching
             const lastAssistant = [...messages].reverse().find(m =>
                 m.role === 'assistant' &&
-                !m.content.includes("couldn't quite hear") &&
-                !m.content.includes("whiskers got tangled")
+                (m.content.includes('<target>') || (!m.content.includes("couldn't quite hear") && !m.content.includes("whiskers got tangled")))
             );
             const lastWasTopicPrompt = isTopicPrompt(lastAssistant?.content);
             const isTopicAnswer = lastWasTopicPrompt && isTopicReply(text);

@@ -30,35 +30,49 @@ export function AuthProvider({ children }) {
             const data = await api.post('/api/auth/google', {
                 credential: credentialResponse.credential,
             });
-            // data = { token, user }
-            localStorage.setItem(TOKEN_KEY, data.token);
-            localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-
-            // Sync localStorage from DB — DB is the source of truth.
-            // Always write OR remove so a server-side reset is honoured on next login.
-            if (data.user.nativeLang?.id) {
-                localStorage.setItem('linguapaws_native_lang', JSON.stringify(data.user.nativeLang));
-            } else {
-                localStorage.removeItem('linguapaws_native_lang');
-            }
-            if (data.user.englishLevel?.id) {
-                localStorage.setItem('linguapaws_level', JSON.stringify(data.user.englishLevel));
-            } else {
-                localStorage.removeItem('linguapaws_level');
-            }
-            if (data.user.targetLang?.id) {
-                localStorage.setItem('linguapaws_target_lang', JSON.stringify(data.user.targetLang));
-            } else {
-                localStorage.removeItem('linguapaws_target_lang');
-            }
-            window.dispatchEvent(new Event('linguapaws-language-changed'));
-
-            setUser(data.user);
-            return data.user;
+            return handleAuthData(data);
         } catch (err) {
             console.error('Sign-in failed:', err);
             throw err;
         }
+    };
+
+    const signInAsGuest = async () => {
+        try {
+            const data = await api.post('/api/auth/guest');
+            return handleAuthData(data);
+        } catch (err) {
+            console.error('Guest sign-in failed:', err);
+            throw err;
+        }
+    };
+
+    const handleAuthData = (data) => {
+        // data = { token, user }
+        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+
+        // Sync localStorage from DB — DB is the source of truth.
+        // Always write OR remove so a server-side reset is honoured on next login.
+        if (data.user.nativeLang?.id) {
+            localStorage.setItem('linguapaws_native_lang', JSON.stringify(data.user.nativeLang));
+        } else {
+            localStorage.removeItem('linguapaws_native_lang');
+        }
+        if (data.user.englishLevel?.id) {
+            localStorage.setItem('linguapaws_level', JSON.stringify(data.user.englishLevel));
+        } else {
+            localStorage.removeItem('linguapaws_level');
+        }
+        if (data.user.targetLang?.id) {
+            localStorage.setItem('linguapaws_target_lang', JSON.stringify(data.user.targetLang));
+        } else {
+            localStorage.removeItem('linguapaws_target_lang');
+        }
+        window.dispatchEvent(new Event('linguapaws-language-changed'));
+
+        setUser(data.user);
+        return data.user;
     };
 
     const signOut = () => {
@@ -69,7 +83,7 @@ export function AuthProvider({ children }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+        <AuthContext.Provider value={{ user, loading, signIn, signInAsGuest, signOut }}>
             {children}
         </AuthContext.Provider>
     );

@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema(
     {
-        googleSub: { type: String, required: true, unique: true }, // Google user ID
+        googleSub: { type: String, unique: true, sparse: true }, // Google user ID, optional for guests
+        isGuest: { type: Boolean, default: false },
         name: { type: String, required: true },
         email: { type: String, required: true },
         picture: { type: String },

@@ -82,10 +82,19 @@ router.post('/transcribe', async (req, res) => {
             whisperLang = undefined; // auto-detect
         }
 
+        // Use initial_prompt to guide Whisper towards the correct script/vocab
+        let prompt;
+        if (expectingTargetLang && targetLangName) {
+            prompt = `The user is speaking ${targetLangName}. Possibly about: ${targetLangName} phrases, greetings, or common sentences. Example words might include native scripts if needed.`;
+        } else if (nativeLangName) {
+            prompt = `The user is speaking ${nativeLangName} or English.`;
+        }
+
         const transcription = await getClient().audio.transcriptions.create({
             file,
             model: 'whisper-1',
             ...(whisperLang ? { language: whisperLang } : {}),
+            ...(prompt ? { prompt } : {}),
         });
 
         let rawText = (transcription.text || '').trim();
@@ -111,10 +120,11 @@ ${expectingTargetLang
                                     : `The user is replying conversationally, so they could be speaking in either ${nativeLangName} or ${targetLangName}.`}
 
 A speech-to-text engine produced the following transcript. Your job:
-1. If the transcript is clearly valid ${nativeLangName} or ${targetLangName}, return it as-is.
-2. If the transcript appears to be in a DIFFERENT language (neither ${nativeLangName} nor ${targetLangName}), it was likely misheard. Try to figure out what the user actually said in ${likelyLang} or ${otherLang} based on phonetic similarity, and return the corrected version.
-3. If the transcript is romanized ${targetLangName} (e.g. transliterated into Latin script), that is VALID — return it as-is. Do NOT convert it to ${nativeLangName}.
-4. Keep your response EXTREMELY short — return ONLY the corrected transcript text, nothing else. No quotes, no explanation.`
+1. If the transcript is romanized ${targetLangName} (e.g. transliterated into Latin script), that is VALID — return it as-is. Do NOT convert it to ${nativeLangName}.
+2. CRITICAL: If the transcript is in ${nativeLangName} but the user was expected to speak in ${targetLangName}, check if the transcript looks like a translation or a phonetic mishearing of an likely ${targetLangName} phrase. If so, return the likely ${targetLangName} phrase instead (in native script if possible, or transliterated if that's what was produced).
+3. If the transcript is clearly valid ${nativeLangName} or ${targetLangName}, return it as-is.
+4. If the transcript appears to be in a DIFFERENT language (neither ${nativeLangName} nor ${targetLangName}), try to figure out what the user actually said in ${targetLangName} or ${nativeLangName} based on phonetic similarity.
+5. Keep your response EXTREMELY short — return ONLY the text, nothing else.`
                         },
                         { role: 'user', content: rawText }
                     ],
