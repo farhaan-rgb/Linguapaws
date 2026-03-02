@@ -95,7 +95,9 @@ function App() {
     <GoogleOAuthProvider clientId={CLIENT_ID}>
       <AuthProvider>
         <Router>
-          <AppRoutes />
+          <ErrorBoundary>
+            <AppRoutes />
+          </ErrorBoundary>
         </Router>
       </AuthProvider>
     </GoogleOAuthProvider>
