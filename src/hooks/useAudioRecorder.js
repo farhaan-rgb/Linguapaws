@@ -4,12 +4,30 @@ export const useAudioRecorder = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [audioUrl, setAudioUrl] = useState(null);
     const mediaRecorder = useRef(null);
+    const streamRef = useRef(null);
     const audioChunks = useRef([]);
     const isRecordingRef = useRef(false); // ref-based flag avoids stale closure issues
 
-    const startRecording = useCallback(async () => {
+    const prepare = useCallback(async () => {
+        if (streamRef.current && streamRef.current.active) return streamRef.current;
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            streamRef.current = stream;
+            return stream;
+        } catch (err) {
+            console.error("Error warming up microphone:", err);
+            return null;
+        }
+    }, []);
+
+    const startRecording = useCallback(async () => {
+        try {
+            // Use existing stream if available and active, otherwise get a new one
+            let stream = streamRef.current;
+            if (!stream || !stream.active) {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                streamRef.current = stream;
+            }
 
             // Determine a widely-supported MIME type
             const preferredTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
@@ -24,8 +42,8 @@ export const useAudioRecorder = () => {
                 }
             };
 
-            // Request data every 250ms so chunks accumulate even for short recordings
-            mediaRecorder.current.start(250);
+            // Request data every 100ms (more frequent than 250ms for better responsiveness)
+            mediaRecorder.current.start(100);
             isRecordingRef.current = true;
             setIsRecording(true);
         } catch (err) {
@@ -33,7 +51,7 @@ export const useAudioRecorder = () => {
         }
     }, []);
 
-    const stopRecording = useCallback(() => {
+    const stopRecording = useCallback((shouldStopStream = false) => {
         if (mediaRecorder.current && isRecordingRef.current) {
             isRecordingRef.current = false;
             setIsRecording(false);
@@ -42,9 +60,11 @@ export const useAudioRecorder = () => {
                 const handleStop = () => {
                     mediaRecorder.current.removeEventListener('stop', handleStop);
 
-                    // Stop all tracks so the browser releases the mic indicator
-                    const tracks = mediaRecorder.current.stream?.getTracks();
-                    if (tracks) tracks.forEach(t => t.stop());
+                    if (shouldStopStream) {
+                        const tracks = streamRef.current?.getTracks();
+                        if (tracks) tracks.forEach(t => t.stop());
+                        streamRef.current = null;
+                    }
 
                     const mimeType = mediaRecorder.current.mimeType || 'audio/webm';
                     const audioBlob = new Blob(audioChunks.current, { type: mimeType });
@@ -59,5 +79,5 @@ export const useAudioRecorder = () => {
         return Promise.resolve(null);
     }, []);
 
-    return { isRecording, startRecording, stopRecording, audioUrl };
+    return { isRecording, startRecording, stopRecording, prepare, audioUrl };
 };

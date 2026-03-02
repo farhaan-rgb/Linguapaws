@@ -153,6 +153,18 @@ export default function Chat() {
         return TARGET_SCRIPT_MAP[id] || TARGET_SCRIPT_BY_NAME[name] || null;
     };
 
+    const isAssistantExpectingTarget = (msgs) => {
+        for (let i = msgs.length - 1; i >= 0; i--) {
+            const msg = msgs[i];
+            if (msg.role !== 'assistant') continue;
+            // Skip generic error messages that don't change the tutorial context
+            const isError = msg.content.includes("couldn't quite hear") || msg.content.includes("whiskers got tangled");
+            if (isError) continue;
+            return msg.content.includes('<target>');
+        }
+        return false;
+    };
+
     const stripNonLatinLetters = (text) => {
         if (!text) return text;
         const chars = Array.from(text);
@@ -432,8 +444,8 @@ export default function Chat() {
             const audioBlob = await stopRecording();
             if (audioBlob) {
                 // Check if the bot asked the user to repeat a target-language phrase
-                const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
-                const expectingTarget = !!(lastAssistantMsg?.content && /<target>/.test(lastAssistantMsg.content));
+                // We look back past error messages to find the real context
+                const expectingTarget = isAssistantExpectingTarget(messages);
                 const transcript = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang, expectingTarget);
                 if (transcript) {
                     setMessages(prev => [...prev, { role: 'user', content: transcript }]);
@@ -540,6 +552,10 @@ export default function Chat() {
 
             setIsLoading(false);
         };
+
+        if (inputMode === 'voice') {
+            prepare().catch(() => { });
+        }
 
         greet();
         return () => {
@@ -704,7 +720,11 @@ export default function Chat() {
             exchangeCount.current += 1;
             const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
 
-            const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+            const lastAssistant = [...messages].reverse().find(m =>
+                m.role === 'assistant' &&
+                !m.content.includes("couldn't quite hear") &&
+                !m.content.includes("whiskers got tangled")
+            );
             const lastWasTopicPrompt = isTopicPrompt(lastAssistant?.content);
             const isTopicAnswer = lastWasTopicPrompt && isTopicReply(text);
             const promptedPhrase = (lastWasTopicPrompt || isTopicReply(text))
@@ -835,8 +855,8 @@ export default function Chat() {
             if (audioBlob) {
                 setIsLoading(true);
                 // Check if the bot asked the user to repeat a target-language phrase
-                const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
-                const expectingTarget = !!(lastAssistantMsg?.content && /<target>/.test(lastAssistantMsg.content));
+                // We look back past error messages to find the real context
+                const expectingTarget = isAssistantExpectingTarget(messages);
                 const transcript = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang, expectingTarget);
                 if (transcript) {
                     handleSend(transcript);
