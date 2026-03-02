@@ -457,8 +457,9 @@ export default function Chat() {
                 // Check if the bot asked the user to repeat a target-language phrase
                 // We look back past error messages to find the real context
                 const expectingTarget = isAssistantExpectingTarget(messages);
-                const transcript = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang, expectingTarget);
-                if (transcript) {
+                const result = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang, expectingTarget);
+                if (result?.text) {
+                    const transcript = result.text;
                     setMessages(prev => [...prev, { role: 'user', content: transcript }]);
                     const userWords = transcript.match(/[\p{L}]{2,}/gu);
                     if (userWords) userWords.forEach(w => { wordTracker.addWord(w); });
@@ -489,6 +490,10 @@ export default function Chat() {
                         }
                     }
                 } else {
+                    const detail = result?.error || "I couldn't quite catch that.";
+                    const prefix = activeCharacter?.id === 'miko' ? "Meow... " : "";
+                    const errorMsg = `${prefix}${detail} Could you try again? 😿`;
+                    setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
                     setCallStatus('idle');
                 }
             } else {
@@ -852,7 +857,8 @@ export default function Chat() {
             }
         } catch (err) {
             console.error('Chat send failed:', err);
-            const errorMsg = `Crash details: ${err.message}. Stack: ${err.stack || ''}`;
+            const prefix = activeCharacter?.id === 'miko' ? "Meow... " : "";
+            const errorMsg = `${prefix}Oops, something went wrong: ${err.message}. Please try again later. 😿`;
             setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
         } finally {
             setIsLoading(false);
@@ -867,11 +873,13 @@ export default function Chat() {
                 // Check if the bot asked the user to repeat a target-language phrase
                 // We look back past error messages to find the real context
                 const expectingTarget = isAssistantExpectingTarget(messages);
-                const transcript = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang, expectingTarget);
-                if (transcript) {
-                    handleSend(transcript);
+                const result = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang, expectingTarget);
+                if (result?.text) {
+                    handleSend(result.text);
                 } else {
-                    const errorMsg = "Meow... I couldn't quite hear that. Could you try again? 😿";
+                    const detail = result?.error || "I couldn't quite catch that.";
+                    const prefix = activeCharacter?.id === 'miko' ? "Meow... " : "";
+                    const errorMsg = `${prefix}${detail} Could you try again? 😿`;
                     setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
 
                     if (!isMuted && isMounted.current) {

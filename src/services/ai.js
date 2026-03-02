@@ -152,18 +152,26 @@ SHADOW PRACTICE:
         try {
             // Convert blob to base64
             const buffer = await audioBlob.arrayBuffer();
+            if (buffer.byteLength === 0) {
+                return { error: 'Audio buffer is empty. Please check your microphone settings.' };
+            }
             const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-            const data = await api.post('/api/ai/transcribe', {
+            const response = await api.post('/api/ai/transcribe', {
                 audioBase64: base64,
                 mimeType: audioBlob.type || 'audio/webm',
                 nativeLang,
                 targetLang,
                 expectingTargetLang,
             });
-            return data.text || null;
+            if (!response.text) {
+                return { error: 'No transcription text returned from the engine.' };
+            }
+            return { text: response.text };
         } catch (error) {
             console.error('Transcription Error:', error);
-            return null;
+            // Check for specific error types if possible (e.g. from axios/fetch)
+            const detail = error.message || 'Unknown network error';
+            return { error: `Transcription failed: ${detail}` };
         }
     }
 
