@@ -431,7 +431,10 @@ export default function Chat() {
             setCallStatus('thinking');
             const audioBlob = await stopRecording();
             if (audioBlob) {
-                const transcript = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang);
+                // Check if the bot asked the user to repeat a target-language phrase
+                const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
+                const expectingTarget = !!(lastAssistantMsg?.content && /<target>/.test(lastAssistantMsg.content));
+                const transcript = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang, expectingTarget);
                 if (transcript) {
                     setMessages(prev => [...prev, { role: 'user', content: transcript }]);
                     const userWords = transcript.match(/[\p{L}]{2,}/gu);
@@ -831,7 +834,10 @@ export default function Chat() {
             const audioBlob = await stopRecording();
             if (audioBlob) {
                 setIsLoading(true);
-                const transcript = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang);
+                // Check if the bot asked the user to repeat a target-language phrase
+                const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
+                const expectingTarget = !!(lastAssistantMsg?.content && /<target>/.test(lastAssistantMsg.content));
+                const transcript = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang, expectingTarget);
                 if (transcript) {
                     handleSend(transcript);
                 } else {

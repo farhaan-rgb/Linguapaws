@@ -142,7 +142,7 @@ SHADOW PRACTICE:
         }
     }
 
-    async transcribeAudio(audioBlob, nativeLang = null, targetLang = null) {
+    async transcribeAudio(audioBlob, nativeLang = null, targetLang = null, expectingTargetLang = false) {
         try {
             // Convert blob to base64
             const buffer = await audioBlob.arrayBuffer();
@@ -152,6 +152,7 @@ SHADOW PRACTICE:
                 mimeType: audioBlob.type || 'audio/webm',
                 nativeLang,
                 targetLang,
+                expectingTargetLang,
             });
             return data.text || null;
         } catch (error) {

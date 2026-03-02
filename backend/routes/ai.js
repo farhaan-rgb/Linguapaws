@@ -42,7 +42,7 @@ router.post('/speech', async (req, res) => {
 // POST /api/ai/transcribe
 router.post('/transcribe', async (req, res) => {
     try {
-        const { audioBase64, mimeType = 'audio/webm', nativeLang = null, targetLang = null } = req.body;
+        const { audioBase64, mimeType = 'audio/webm', nativeLang = null, targetLang = null, expectingTargetLang = false } = req.body;
         if (!audioBase64) return res.status(400).json({ error: 'audioBase64 is required' });
 
         const buffer = Buffer.from(audioBase64, 'base64');
@@ -68,26 +68,35 @@ router.post('/transcribe', async (req, res) => {
         const nativeLangName = nativeLang?.name || null;
         const targetLangName = targetLang?.name || null;
 
-        // Strategy: Transcribe with native language hint first (users speak their native
-        // language most of the time). If the native lang is not supported, try target lang,
-        // then fall back to auto-detect.
-        const primaryLang = supportedByWhisper.has(nativeLangId) ? nativeLangId
-            : supportedByWhisper.has(targetLangId) ? targetLangId
-                : undefined;
+        // Context-aware Whisper hinting:
+        // - If the bot asked the user to repeat a target-language phrase, hint with target language
+        //   so Whisper doesn't force-interpret Telugu/Hindi/etc. speech as English.
+        // - Otherwise, don't force a single language — let Whisper auto-detect. The GPT
+        //   verification pass will handle any misidentification.
+        let whisperLang;
+        if (expectingTargetLang && supportedByWhisper.has(targetLangId)) {
+            whisperLang = targetLangId;
+        } else if (!expectingTargetLang && supportedByWhisper.has(nativeLangId)) {
+            whisperLang = nativeLangId;
+        } else {
+            whisperLang = undefined; // auto-detect
+        }
 
         const transcription = await getClient().audio.transcriptions.create({
             file,
             model: 'whisper-1',
-            ...(primaryLang ? { language: primaryLang } : {}),
+            ...(whisperLang ? { language: whisperLang } : {}),
         });
 
         let rawText = (transcription.text || '').trim();
         if (!rawText) return res.json({ text: null });
 
         // If we have both language contexts, use a quick GPT pass to verify/correct
-        // the transcription. This catches cases where Whisper mishears "Anything" as
-        // "ap karte hain" etc.
+        // the transcription. This catches cases where Whisper mishears speech in one
+        // language as another (e.g. Telugu "miru ela unnaru" → English "Look how they are").
         if (nativeLangName && targetLangName) {
+            const likelyLang = expectingTargetLang ? targetLangName : nativeLangName;
+            const otherLang = expectingTargetLang ? nativeLangName : targetLangName;
             try {
                 const verifyResponse = await getClient().chat.completions.create({
                     model: 'gpt-4o-mini',
@@ -97,11 +106,14 @@ router.post('/transcribe', async (req, res) => {
                             content: `You are a speech transcription corrector for a language learning app.
 The user is learning ${targetLangName} and their native language is ${nativeLangName}.
 They will ONLY speak in one of these two languages: ${nativeLangName} or ${targetLangName}.
+${expectingTargetLang
+                                    ? `The user was asked to repeat a ${targetLangName} phrase, so they most likely spoke in ${targetLangName} (possibly romanized/transliterated).`
+                                    : `The user is replying conversationally, so they could be speaking in either ${nativeLangName} or ${targetLangName}.`}
 
 A speech-to-text engine produced the following transcript. Your job:
 1. If the transcript is clearly valid ${nativeLangName} or ${targetLangName}, return it as-is.
-2. If the transcript appears to be in a DIFFERENT language (neither ${nativeLangName} nor ${targetLangName}), it was likely misheard. Try to figure out what the user actually said in ${nativeLangName} or ${targetLangName} based on phonetic similarity, and return the corrected version.
-3. If the transcript is romanized ${targetLangName} (e.g. transliterated), that is valid — return it as-is.
+2. If the transcript appears to be in a DIFFERENT language (neither ${nativeLangName} nor ${targetLangName}), it was likely misheard. Try to figure out what the user actually said in ${likelyLang} or ${otherLang} based on phonetic similarity, and return the corrected version.
+3. If the transcript is romanized ${targetLangName} (e.g. transliterated into Latin script), that is VALID — return it as-is. Do NOT convert it to ${nativeLangName}.
 4. Keep your response EXTREMELY short — return ONLY the corrected transcript text, nothing else. No quotes, no explanation.`
                         },
                         { role: 'user', content: rawText }
