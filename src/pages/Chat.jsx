@@ -17,7 +17,7 @@ export default function Chat() {
     const topicId = searchParams.get('topic');
     const topicName = searchParams.get('name');
 
-    const { isRecording, startRecording, stopRecording } = useAudioRecorder();
+    const { isRecording, startRecording, stopRecording, prepare } = useAudioRecorder();
 
     // Restore chat session from sessionStorage — survives navigation to Shadow/Dictionary
     const activeChar = getStoredJSON('linguapaws_active_character', { id: 'miko' });
