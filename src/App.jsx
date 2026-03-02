@@ -14,6 +14,7 @@ import Translator from './pages/Translator';
 import Login from './pages/Login';
 import ShadowPractice from './pages/ShadowPractice';
 import LevelSelect from './pages/LevelSelect';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -74,7 +75,7 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/select-language" element={<ProtectedRoute><LanguageSelect /></ProtectedRoute>} />
       <Route path="/learn-language" element={<ProtectedRoute><LearnLanguageSelect /></ProtectedRoute>} />
-      <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+      <Route path="/chat" element={<ProtectedRoute><ErrorBoundary><Chat /></ErrorBoundary></ProtectedRoute>} />
       <Route path="/history" element={<ProtectedRoute><WordHistory /></ProtectedRoute>} />
       <Route path="/dictionary" element={<ProtectedRoute><Dictionary /></ProtectedRoute>} />
       <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
