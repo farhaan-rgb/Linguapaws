@@ -57,10 +57,14 @@ router.post('/transcribe', async (req, res) => {
 
         const file = await OpenAI.toFile(buffer, `audio.${ext}`, { type: mimeType });
 
-        // Language IDs that Whisper supports well
+        // Language IDs that Whisper's `language` parameter ACTUALLY supports (ISO 639-1).
+        // Verified against OpenAI docs. Languages NOT supported include:
+        // te (Telugu), bn (Bengali), gu (Gujarati), ml (Malayalam), pa (Punjabi), or (Odia)
+        // For unsupported languages, we let Whisper auto-detect + GPT verification corrects.
         const supportedByWhisper = new Set([
-            'hi', 'mr', 'ta', 'ur', 'gu', 'kn', 'ml', 'pa', 'en',
-            'te', 'bn', 'fr', 'es', 'de', 'it', 'pt', 'ja', 'ko', 'zh',
+            'hi', 'mr', 'ta', 'ur', 'kn', 'en',
+            'fr', 'es', 'de', 'it', 'pt', 'ja', 'ko', 'zh',
+            'ne', 'ar', 'ru', 'tr', 'pl', 'nl', 'sv', 'th', 'vi',
         ]);
 
         const nativeLangId = (nativeLang?.id || '').toLowerCase();
