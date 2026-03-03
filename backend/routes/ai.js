@@ -1,5 +1,6 @@
 const express = require('express');
 const OpenAI = require('openai');
+const textToSpeech = require('@google-cloud/text-to-speech');
 const requireAuth = require('../middleware/auth');
 
 const router = express.Router();
@@ -11,19 +12,127 @@ const getClient = () => {
     return openai;
 };
 
+let googleTtsClient;
+const getGoogleTtsClient = () => {
+    if (googleTtsClient) return googleTtsClient;
+    const jsonCreds = process.env.GOOGLE_TTS_CREDENTIALS_JSON;
+    if (jsonCreds) {
+        const credentials = JSON.parse(jsonCreds);
+        googleTtsClient = new textToSpeech.TextToSpeechClient({ credentials });
+        return googleTtsClient;
+    }
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+        googleTtsClient = new textToSpeech.TextToSpeechClient();
+        return googleTtsClient;
+    }
+    return null;
+};
+
+const resolveLanguageCode = (targetLang) => {
+    if (!targetLang) return 'en-IN';
+    const raw = typeof targetLang === 'string' ? targetLang : (targetLang.name || targetLang.id || '');
+    const key = String(raw).trim().toLowerCase();
+    const map = {
+        english: 'en-IN',
+        en: 'en-IN',
+        hindi: 'hi-IN',
+        hi: 'hi-IN',
+        telugu: 'te-IN',
+        te: 'te-IN',
+        kannada: 'kn-IN',
+        kn: 'kn-IN',
+        tamil: 'ta-IN',
+        ta: 'ta-IN',
+        malayalam: 'ml-IN',
+        ml: 'ml-IN',
+        bengali: 'bn-IN',
+        bn: 'bn-IN',
+        gujarati: 'gu-IN',
+        gu: 'gu-IN',
+        punjabi: 'pa-IN',
+        pa: 'pa-IN',
+        marathi: 'mr-IN',
+        mr: 'mr-IN',
+        urdu: 'ur-IN',
+        ur: 'ur-IN',
+        odia: 'or-IN',
+        or: 'or-IN'
+    };
+    return map[key] || 'en-IN';
+};
+
+const buildGeminiPayload = (messages, options = {}) => {
+    const systemText = messages
+        .filter(m => m.role === 'system')
+        .map(m => m.content)
+        .join('\n');
+    const contents = messages
+        .filter(m => m.role !== 'system')
+        .map(m => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.content }]
+        }));
+
+    const generationConfig = {
+        temperature: options.temperature ?? 0.8,
+        maxOutputTokens: options.max_tokens ?? 500
+    };
+    if (options.response_format?.type === 'json_object') {
+        generationConfig.responseMimeType = 'application/json';
+    }
+
+    return {
+        contents,
+        ...(systemText ? { systemInstruction: { parts: [{ text: systemText }] } } : {}),
+        generationConfig
+    };
+};
+
+const geminiGenerate = async (messages, options = {}) => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error('GEMINI_API_KEY is not set');
+    }
+    const model = options.model || process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const payload = buildGeminiPayload(messages, options);
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Gemini error ${response.status}: ${text}`);
+    }
+    const data = await response.json();
+    const candidate = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!candidate) {
+        throw new Error('Gemini returned empty response');
+    }
+    return candidate;
+};
+
 // POST /api/ai/chat
 router.post('/chat', async (req, res) => {
     const { messages, options = {} } = req.body;
     if (!messages?.length) return res.status(400).json({ error: 'messages are required' });
-
-    const response = await getClient().chat.completions.create({
-        model: options.model || 'gpt-4o-mini',
-        messages,
-        temperature: options.temperature ?? 0.8,
-        max_tokens: options.max_tokens ?? 500,
-        response_format: options.response_format || undefined,
-    });
-    res.json({ content: response.choices[0].message.content });
+    try {
+        if (process.env.GEMINI_API_KEY) {
+            const content = await geminiGenerate(messages, options);
+            return res.json({ content });
+        }
+        const response = await getClient().chat.completions.create({
+            model: options.model || 'gpt-4o-mini',
+            messages,
+            temperature: options.temperature ?? 0.8,
+            max_tokens: options.max_tokens ?? 500,
+            response_format: options.response_format || undefined,
+        });
+        return res.json({ content: response.choices[0].message.content });
+    } catch (err) {
+        return res.status(502).json({ error: err.message || 'AI request failed' });
+    }
 });
 
 // POST /api/ai/speech
@@ -31,12 +140,29 @@ router.post('/speech', async (req, res) => {
     const { text, voice = 'alloy', targetLang = null } = req.body;
     if (!text) return res.status(400).json({ error: 'text is required' });
 
-    const nonEnglish = targetLang && targetLang.toLowerCase() !== 'english';
-    const model = nonEnglish ? 'tts-1-hd' : 'tts-1';
-    const mp3 = await getClient().audio.speech.create({ model, voice, input: text });
-    const buffer = Buffer.from(await mp3.arrayBuffer());
-    res.set('Content-Type', 'audio/mpeg');
-    res.send(buffer);
+    try {
+        const googleClient = getGoogleTtsClient();
+        if (googleClient) {
+            const languageCode = resolveLanguageCode(targetLang);
+            const [response] = await googleClient.synthesizeSpeech({
+                input: { text },
+                voice: { languageCode, ssmlGender: 'NEUTRAL' },
+                audioConfig: { audioEncoding: 'MP3' }
+            });
+            const buffer = Buffer.from(response.audioContent, 'base64');
+            res.set('Content-Type', 'audio/mpeg');
+            return res.send(buffer);
+        }
+
+        const nonEnglish = targetLang && targetLang.toLowerCase() !== 'english';
+        const model = nonEnglish ? 'tts-1-hd' : 'tts-1';
+        const mp3 = await getClient().audio.speech.create({ model, voice, input: text });
+        const buffer = Buffer.from(await mp3.arrayBuffer());
+        res.set('Content-Type', 'audio/mpeg');
+        return res.send(buffer);
+    } catch (err) {
+        return res.status(502).json({ error: err.message || 'TTS failed' });
+    }
 });
 
 // POST /api/ai/transcribe
