@@ -436,7 +436,7 @@ export default function Chat() {
         );
         if (isNativeEnglish()) displayGreeting = stripLatinDiacritics(displayGreeting);
         if (isMounted.current) {
-            const audioUrl = await aiService.generateSpeech(displayGreeting, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
+            const audioUrl = await aiService.generateSpeech(displayGreeting, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
             if (audioUrl && isMounted.current && isCallMode) {
                 audioRef.current.src = audioUrl;
                 audioRef.current.onended = () => setCallStatus('idle');
@@ -494,7 +494,7 @@ export default function Chat() {
 
                     setCallStatus('speaking');
                     if (isMounted.current) {
-                        const audioUrl = await aiService.generateSpeech(displayResponse, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
+                        const audioUrl = await aiService.generateSpeech(displayResponse, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
                         if (audioUrl && isMounted.current) {
                             audioRef.current.src = audioUrl;
                             audioRef.current.onended = () => setCallStatus('idle');
@@ -549,10 +549,10 @@ export default function Chat() {
             } else if (levelId === 'basic') {
                 levelNote = `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}, but sprinkle in 1-2 transliterated ${targetLangName} words with meanings in parentheses. Ask a simple question they can answer with a ${targetLangName} word. Include the key phrase inside <target>...</target>.`;
             } else if (levelId === 'conversational') {
-                levelNote = `${displayRule} Greet the user in mostly transliterated ${targetLangName} with ${nativeLangName} translations in parentheses after new phrases. Introduce yourself as ${activeCharacter?.name || 'Miko'} and ask a casual question about their day or interests. Include key phrases inside <target>...</target>.`;
+                levelNote = `${displayRule} Greet the user in mostly transliterated ${targetLangName} with ${nativeLangName} translations in parentheses after new phrases. Introduce yourself as ${activeCharacter?.name || 'Miko'} and ask a casual question about their day or interests. Do NOT ask them to repeat a phrase. Just have a natural conversation.`;
             } else {
                 // fluent
-                levelNote = `${displayRule} Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. Speak naturally and casually like a local friend. Introduce yourself as ${activeCharacter?.name || 'Miko'} and start a conversation about something interesting. Include key phrases inside <target>...</target>.`;
+                levelNote = `${displayRule} Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. No English translations, no parenthetical hints. Speak naturally and casually like a local friend. Introduce yourself as ${activeCharacter?.name || 'Miko'} and start a flowing conversation about something interesting. Do NOT ask the user to repeat a phrase. Do NOT include <target> tags. Just talk naturally.`;
             }
 
             const aiGreeting = await aiService.getResponse(
@@ -577,7 +577,7 @@ export default function Chat() {
 
             // Speak the greeting
             if (!isMuted && isMounted.current) {
-                const audioUrl = await aiService.generateSpeech(displayGreeting, resolvedCharacter?.voice || 'alloy', nativeLang?.name || null);
+                const audioUrl = await aiService.generateSpeech(displayGreeting, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
                 if (audioUrl && isMounted.current) {
                     audioRef.current.src = audioUrl;
                     audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -687,7 +687,7 @@ export default function Chat() {
 
             // Read aloud the translation if not muted
             if (!isMuted && isMounted.current) {
-                const audioUrl = await aiService.generateSpeech(translatedText, activeCharacter?.voice || 'alloy', nativeLang?.name || null);
+                const audioUrl = await aiService.generateSpeech(translatedText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
                 if (audioUrl && isMounted.current) {
                     audioRef.current.src = audioUrl;
                     audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -888,7 +888,7 @@ export default function Chat() {
 
             // Play voice (non-blocking — after UI is already updated)
             if (!isMuted && isMounted.current) {
-                const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', nativeLang?.name || null);
+                const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
                 if (audioUrl && isMounted.current) {
                     audioRef.current.src = audioUrl;
                     audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -922,7 +922,7 @@ export default function Chat() {
                     setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
 
                     if (!isMuted && isMounted.current) {
-                        const audioUrl = await aiService.generateSpeech(errorMsg, activeCharacter?.voice || 'alloy', nativeLang?.name || null);
+                        const audioUrl = await aiService.generateSpeech(errorMsg, activeCharacter?.voice || 'alloy', targetLang?.name || null);
                         if (audioUrl && isMounted.current) {
                             audioRef.current.src = audioUrl;
                             audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -945,7 +945,7 @@ export default function Chat() {
             .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
             .replace(/<word>(.*?)<\/word>/g, '$1')
             .replace(/<[^>]+>/g, '');
-        const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', nativeLang?.name || null);
+        const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
         if (audioUrl) {
             audioRef.current.src = audioUrl;
             audioRef.current.play();

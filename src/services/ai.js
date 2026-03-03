@@ -182,15 +182,76 @@ SHADOW PRACTICE:
         }
     }
 
+    // Language name → BCP 47 code mapping for browser speechSynthesis
+    _getLangCode(targetLang) {
+        if (!targetLang) return null;
+        const key = String(targetLang).trim().toLowerCase();
+        const map = {
+            english: 'en-IN', en: 'en-IN',
+            hindi: 'hi-IN', hi: 'hi-IN',
+            telugu: 'te-IN', te: 'te-IN',
+            kannada: 'kn-IN', kn: 'kn-IN',
+            tamil: 'ta-IN', ta: 'ta-IN',
+            malayalam: 'ml-IN', ml: 'ml-IN',
+            bengali: 'bn-IN', bn: 'bn-IN',
+            gujarati: 'gu-IN', gu: 'gu-IN',
+            punjabi: 'pa-IN', pa: 'pa-IN',
+            marathi: 'mr-IN', mr: 'mr-IN',
+            urdu: 'ur-IN', ur: 'ur-IN',
+            odia: 'or-IN', or: 'or-IN',
+        };
+        return map[key] || null;
+    }
+
+    // Try browser's native speechSynthesis. Returns true if it spoke, false otherwise.
+    _tryBrowserTTS(text, langCode) {
+        if (!window.speechSynthesis || !langCode) return false;
+
+        const voices = window.speechSynthesis.getVoices();
+        // Find a voice matching the language code (e.g. te-IN, hi-IN)
+        const langPrefix = langCode.split('-')[0]; // e.g. 'te'
+        const voice = voices.find(v => v.lang === langCode)
+            || voices.find(v => v.lang.startsWith(langPrefix));
+
+        if (!voice) return false;
+
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.voice = voice;
+        utterance.lang = langCode;
+        utterance.rate = 0.9;  // Slightly slower for learning
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+        return true;
+    }
 
     async generateSpeech(text, voice = 'alloy', targetLang = null) {
         try {
+            // Try browser native TTS first (free, zero-latency, native accent)
+            const langCode = this._getLangCode(targetLang);
+            if (langCode) {
+                // Ensure voices are loaded (some browsers load them async)
+                if (window.speechSynthesis && window.speechSynthesis.getVoices().length === 0) {
+                    await new Promise(resolve => {
+                        window.speechSynthesis.onvoiceschanged = resolve;
+                        setTimeout(resolve, 500); // Timeout fallback
+                    });
+                }
+                if (this._tryBrowserTTS(text, langCode)) {
+                    return null; // Speech is playing natively, no URL needed
+                }
+            }
+
+            // Fallback to OpenAI API
             return await api.postAudio('/api/ai/speech', { text, voice, targetLang });
         } catch (error) {
             console.error('TTS Error:', error);
             return null;
         }
     }
+
 
     async transcribeAudio(audioBlob, nativeLang = null, targetLang = null, expectingTargetLang = false) {
         try {
