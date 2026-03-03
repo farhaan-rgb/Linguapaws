@@ -40,6 +40,7 @@ export default function Chat() {
     const targetLang = getStoredJSON('linguapaws_target_lang', {});
 
     const [recalibrationToast, setRecalibrationToast] = useState(null); // toast message when AI recalibrates
+    const [levelUpToast, setLevelUpToast] = useState(null); // celebration message when user levels up
     const [transliterations, setTransliterations] = useState({});
     const [userTransliterations, setUserTransliterations] = useState({});
     const [matchScores, setMatchScores] = useState({});
@@ -814,18 +815,37 @@ export default function Chat() {
             }
 
             // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
+            const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
+            const charName = resolvedCharacter?.name || activeCharacter?.name || 'Miko';
 
             const recalibrateMatch = (botResponse || '').match(/<recalibrate>(zero|basic|conversational|fluent)<\/recalibrate>/);
             let responseWithoutMeta = (botResponse || '').replace(/<recalibrate>.*?<\/recalibrate>/g, '');
             if (recalibrateMatch) {
                 const newLevelId = recalibrateMatch[1];
-                const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
                 const newLevel = { id: newLevelId, label: LEVEL_LABELS[newLevelId], appDetected: true };
                 setUserLevel(newLevelId);
                 localStorage.setItem('linguapaws_level', JSON.stringify(newLevel));
                 api.put('/api/settings', { englishLevel: newLevel }).catch(() => { });
-                setRecalibrationToast(`Miko adjusted to your level: ${LEVEL_LABELS[newLevelId]} 🎯`);
+                setRecalibrationToast(`${charName} adjusted to your level: ${LEVEL_LABELS[newLevelId]} 🎯`);
                 setTimeout(() => setRecalibrationToast(null), 4000);
+            }
+
+            // Check for AI-triggered level-up progression
+            const levelUpMatch = responseWithoutMeta.match(/<level_up>(zero|basic|conversational|fluent)<\/level_up>/);
+            responseWithoutMeta = responseWithoutMeta.replace(/<level_up>.*?<\/level_up>/g, '');
+            if (levelUpMatch) {
+                const newLevelId = levelUpMatch[1];
+                const newLevel = { id: newLevelId, label: LEVEL_LABELS[newLevelId], appDetected: true };
+                setUserLevel(newLevelId);
+                localStorage.setItem('linguapaws_level', JSON.stringify(newLevel));
+                api.put('/api/settings', { englishLevel: newLevel }).catch(() => { });
+                const LEVEL_UP_MESSAGES = {
+                    basic: "🌿 You've graduated from mimicry! Time to start making choices.",
+                    conversational: "🌳 Amazing progress! Let's start having real conversations.",
+                    fluent: "⭐ You're ready for full immersion! No more training wheels.",
+                };
+                setLevelUpToast(LEVEL_UP_MESSAGES[newLevelId] || `🎉 Level up: ${LEVEL_LABELS[newLevelId]}!`);
+                setTimeout(() => setLevelUpToast(null), 6000);
             }
 
             // Strip <word> tags for display BUT keep <shadow> tags so ShadowCard renders inline
@@ -1014,6 +1034,32 @@ export default function Chat() {
                         }}
                     >
                         {recalibrationToast}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Level-up celebration toast */}
+            <AnimatePresence>
+                {levelUpToast && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8, y: -12 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.8, y: -12 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                        style={{
+                            margin: '0 20px 8px',
+                            padding: '14px 20px',
+                            borderRadius: '16px',
+                            background: 'linear-gradient(135deg, #f59e0b, #f97316, #ef4444)',
+                            color: 'white',
+                            fontSize: '15px',
+                            fontWeight: '700',
+                            textAlign: 'center',
+                            boxShadow: '0 6px 20px rgba(245, 158, 11, 0.4)',
+                            letterSpacing: '0.3px',
+                        }}
+                    >
+                        {levelUpToast}
                     </motion.div>
                 )}
             </AnimatePresence>
