@@ -349,6 +349,7 @@ export default function Chat() {
     }, [messages]);
 
     // Render assistant messages with safe substitutions (no target script on screen).
+    // Also renders **bold** markdown as <strong> JSX.
     const renderMessageContent = (content, idx) => {
         let rendered = content.replace(/<shadow>(.*?)<\/shadow>/gs, '$1');
         if (rendered.includes('<target>')) {
@@ -359,7 +360,15 @@ export default function Chat() {
         if (isNativeEnglish()) {
             rendered = stripLatinDiacritics(rendered);
         }
-        return rendered;
+        // Parse **bold** into JSX
+        const parts = rendered.split(/(\*\*.*?\*\*)/g);
+        if (parts.length <= 1) return rendered;
+        return parts.map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={i}>{part.slice(2, -2)}</strong>;
+            }
+            return part;
+        });
     };
 
     // Resolve the active character — fall back to Miko when none is selected
@@ -530,11 +539,17 @@ export default function Chat() {
             const targetLangName = targetLang?.name || 'English';
 
             const displayRule = buildDisplayRule(nativeLangName, targetLangName);
-            const levelNote = levelId === 'zero'
-                ? `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. End with ONE simple practice phrase and ask them to try saying it. Include the phrase inside <target>...</target> and show only its pronunciation in ${nativeLangName} script in the visible text.`
-                : levelId === 'basic'
-                    ? `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. End with ONE simple practice phrase and ask them to try saying it. Include the phrase inside <target>...</target> and show only its pronunciation in ${nativeLangName} script in the visible text.`
-                    : `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. End with ONE simple practice phrase and ask them to try saying it. Include the phrase inside <target>...</target> and show only its pronunciation in ${nativeLangName} script in the visible text.`;
+            let levelNote;
+            if (levelId === 'zero') {
+                levelNote = `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. Set up a fun scene (e.g. "Let's order a coffee!") and end with ONE simple practice phrase (3-7 words). Show only its transliterated pronunciation. Include the phrase inside <target>...</target>. Ask them to try saying it.`;
+            } else if (levelId === 'basic') {
+                levelNote = `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}, but sprinkle in 1-2 transliterated ${targetLangName} words with meanings in parentheses. Ask a simple question they can answer with a ${targetLangName} word. Include the key phrase inside <target>...</target>.`;
+            } else if (levelId === 'conversational') {
+                levelNote = `${displayRule} Greet the user in mostly transliterated ${targetLangName} with ${nativeLangName} translations in parentheses after new phrases. Introduce yourself as ${activeCharacter?.name || 'Miko'} and ask a casual question about their day or interests. Include key phrases inside <target>...</target>.`;
+            } else {
+                // fluent
+                levelNote = `${displayRule} Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. Speak naturally and casually like a local friend. Introduce yourself as ${activeCharacter?.name || 'Miko'} and start a conversation about something interesting. Include key phrases inside <target>...</target>.`;
+            }
 
             const aiGreeting = await aiService.getResponse(
                 `[GREETING ONLY — do not start a conversation, just greet the user. ${levelNote}]`,
