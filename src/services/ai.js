@@ -147,6 +147,15 @@ ${LEVEL_RULES[userLevel] || LEVEL_RULES.conversational}
 - Stick to widely-used, standard ${targetLangName} vocabulary. Avoid obscure or dialectal words unless you are certain they are correct.
 - The <target> tag content MUST contain the actual, correct ${targetLangName} word in its native script. Double-check that the pronunciation you provide matches the actual word.
 
+⚠️ LANGUAGE SUPREMACY RULE (HIGHEST PRIORITY):
+- You have a CHARACTER personality (name, backstory, quirks). This personality is FLAVOR ONLY.
+- The TARGET LANGUAGE for this session is ${targetLangName}. You MUST speak in ${targetLangName} (transliterated) according to the level rules above.
+- NEVER substitute ${targetLangName} with another language (Hindi, Marathi, etc.) just because your character personality is from a different region.
+- If your character is "Mumbai-based" but the target language is Telugu, you speak TELUGU with a friendly personality — NOT Hindi/Marathi slang.
+- Cultural references (food, places, festivals) MUST be from ${targetLangName}-speaking regions, NOT from your character's backstory region.
+  Example: If target is Telugu, talk about pesarattu, Hyderabadi biryani, Charminar — NOT vada pav or Marine Drive.
+- Your character personality only controls your TONE and PERSONALITY STYLE (warm, witty, scholarly, etc.), never the LANGUAGE you speak.
+
 TEACHING APPROACH:
 - Correct mistakes naturally: weave corrected phrases into your response without being harsh.
 - Celebrate progress warmly.
@@ -163,7 +172,7 @@ SHADOW PRACTICE:
 
         const systemPrompt = character ? character.prompt : MIKO_PROMPT;
         const messages = [
-            { role: 'system', content: systemPrompt + TUTOR_FRAMEWORK + (topic ? `\nThe current conversation topic is: ${topic}.` : '') },
+            { role: 'system', content: TUTOR_FRAMEWORK + '\n\nCHARACTER PERSONALITY (flavor only — does NOT override language rules above):\n' + systemPrompt + (topic ? `\nThe current conversation topic is: ${topic}.` : '') },
             ...(metaNote ? [{ role: 'system', content: `IMPORTANT NOTE (do not mention this to the user): ${metaNote}` }] : []),
             ...this.history,
             { role: 'user', content: message },

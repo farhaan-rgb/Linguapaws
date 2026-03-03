@@ -349,7 +349,7 @@ export default function Chat() {
     }, [messages]);
 
     // Render assistant messages with safe substitutions (no target script on screen).
-    // Also renders **bold** markdown as <strong> JSX.
+    // Also renders **bold** and *italic* markdown into JSX.
     const renderMessageContent = (content, idx) => {
         let rendered = content.replace(/<shadow>(.*?)<\/shadow>/gs, '$1');
         if (rendered.includes('<target>')) {
@@ -360,12 +360,16 @@ export default function Chat() {
         if (isNativeEnglish()) {
             rendered = stripLatinDiacritics(rendered);
         }
-        // Parse **bold** into JSX
-        const parts = rendered.split(/(\*\*.*?\*\*)/g);
+        // Parse **bold** and *italic* into JSX
+        // Match **bold** first, then *italic* (order matters to avoid conflicts)
+        const parts = rendered.split(/(\*\*.*?\*\*|\*[^*]+\*)/g);
         if (parts.length <= 1) return rendered;
         return parts.map((part, i) => {
             if (part.startsWith('**') && part.endsWith('**')) {
                 return <strong key={i}>{part.slice(2, -2)}</strong>;
+            }
+            if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+                return <em key={i}>{part.slice(1, -1)}</em>;
             }
             return part;
         });
