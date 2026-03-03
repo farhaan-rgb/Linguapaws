@@ -113,23 +113,33 @@ const geminiGenerate = async (messages, options = {}) => {
     return candidate;
 };
 
+const generateWithFallback = async (messages, options = {}) => {
+    if (process.env.GEMINI_API_KEY) {
+        try {
+            return await geminiGenerate(messages, options);
+        } catch (err) {
+            console.warn('Gemini generate failed, falling back to openai:', err.message);
+        }
+    }
+
+    // Fallback to OpenAI
+    const response = await getClient().chat.completions.create({
+        model: options.model || 'gpt-4o-mini',
+        messages,
+        temperature: options.temperature ?? 0.8,
+        max_tokens: options.max_tokens ?? 500,
+        response_format: options.response_format || undefined,
+    });
+    return (response.choices[0].message.content || '').trim();
+};
+
 // POST /api/ai/chat
 router.post('/chat', async (req, res) => {
     const { messages, options = {} } = req.body;
     if (!messages?.length) return res.status(400).json({ error: 'messages are required' });
     try {
-        if (process.env.GEMINI_API_KEY) {
-            const content = await geminiGenerate(messages, options);
-            return res.json({ content });
-        }
-        const response = await getClient().chat.completions.create({
-            model: options.model || 'gpt-4o-mini',
-            messages,
-            temperature: options.temperature ?? 0.8,
-            max_tokens: options.max_tokens ?? 500,
-            response_format: options.response_format || undefined,
-        });
-        return res.json({ content: response.choices[0].message.content });
+        const content = await generateWithFallback(messages, options);
+        return res.json({ content });
     } catch (err) {
         return res.status(502).json({ error: err.message || 'AI request failed' });
     }
@@ -237,17 +247,15 @@ router.post('/transcribe', async (req, res) => {
             const likelyLang = expectingTargetLang ? targetLangName : nativeLangName;
             const otherLang = expectingTargetLang ? nativeLangName : targetLangName;
             try {
-                const verifyResponse = await getClient().chat.completions.create({
-                    model: 'gpt-4o-mini',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: `You are a speech transcription corrector for a language learning app.
+                const corrected = await generateWithFallback([
+                    {
+                        role: 'system',
+                        content: `You are a speech transcription corrector for a language learning app.
 The user is learning ${targetLangName} and their native language is ${nativeLangName}.
 They will ONLY speak in one of these two languages: ${nativeLangName} or ${targetLangName}.
 ${expectingTargetLang
-                                    ? `The user was asked to repeat a ${targetLangName} phrase, so they most likely spoke in ${targetLangName} (possibly romanized/transliterated).`
-                                    : `The user is replying conversationally, so they could be speaking in either ${nativeLangName} or ${targetLangName}.`}
+                                ? `The user was asked to repeat a ${targetLangName} phrase, so they most likely spoke in ${targetLangName} (possibly romanized/transliterated).`
+                                : `The user is replying conversationally, so they could be speaking in either ${nativeLangName} or ${targetLangName}.`}
 
 A speech-to-text engine produced the following transcript. Your job:
 1. If the transcript is romanized ${targetLangName} (e.g. transliterated into Latin script), that is VALID — return it as-is. Do NOT convert it to ${nativeLangName}.
@@ -255,13 +263,13 @@ A speech-to-text engine produced the following transcript. Your job:
 3. If the transcript is clearly valid ${nativeLangName} or ${targetLangName}, return it as-is.
 4. If the transcript appears to be in a DIFFERENT language (neither ${nativeLangName} nor ${targetLangName}), try to figure out what the user actually said in ${targetLangName} or ${nativeLangName} based on phonetic similarity.
 5. Keep your response EXTREMELY short — return ONLY the text, nothing else.`
-                        },
-                        { role: 'user', content: rawText }
-                    ],
+                    },
+                    { role: 'user', content: rawText }
+                ], {
+                    model: 'gpt-4o-mini',
                     temperature: 0.1,
                     max_tokens: 150,
                 });
-                const corrected = (verifyResponse.choices[0].message.content || '').trim();
                 if (corrected) rawText = corrected;
             } catch (verifyErr) {
                 // If verification fails, use raw transcript — better than nothing
@@ -314,17 +322,17 @@ Return ONLY valid JSON in this exact format:
   "encouragement": "Great attempt! Keep going."
 }`;
 
-    const response = await getClient().chat.completions.create({
+    const content = await generateWithFallback([
+        { role: 'system', content: 'You are a pronunciation analysis system. Return ONLY valid JSON.' },
+        { role: 'user', content: prompt },
+    ], {
         model: 'gpt-4o-mini',
-        messages: [
-            { role: 'system', content: 'You are a pronunciation analysis system. Return ONLY valid JSON.' },
-            { role: 'user', content: prompt },
-        ],
         temperature: 0.2,
         response_format: { type: 'json_object' },
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const cleanContent = content.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+    const result = JSON.parse(cleanContent);
     res.json(result);
 });
 
