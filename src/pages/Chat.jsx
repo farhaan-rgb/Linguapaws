@@ -897,7 +897,11 @@ export default function Chat() {
             const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
 
             // We combine display rules with our hidden note about user performance
-            const metaNote = [displayRuleNote, acceptNote, transitionNote].filter(Boolean).join('\n');
+            let baseMetaNote = [displayRuleNote, acceptNote, transitionNote].filter(Boolean).join('\n');
+            if (effectiveLevel === 'basic') {
+                baseMetaNote += '\n[SYSTEM REMINDER: You MUST evaluate the grammar of the user\'s response. Output <success>true</success> if word order was correct, or <success>false</success> if incorrect/missing. You MUST output one of these tags in this response. This is critical.]';
+            }
+            const metaNote = baseMetaNote;
 
             let botResponse = '';
             if (isTopicAnswer && effectiveLevel !== 'zero') {
@@ -950,26 +954,33 @@ export default function Chat() {
             }
 
             // Check for AI-triggered short-term progress (Guided Sentence Construction success)
-            const successMatch = responseWithoutMeta.match(/<success>true<\/success>/i);
-            responseWithoutMeta = responseWithoutMeta.replace(/<success>true<\/success>/gi, '');
-            if (successMatch && effectiveLevel !== 'zero') {
-                console.log('[Progress] AI reported success, calling /api/progress/increment...');
-                setSentenceSuccesses(prev => ({ ...prev, [userMessageIndex]: true }));
-                api.post('/api/progress/increment')
-                    .then(progressResult => {
-                        console.log('[Progress] AI step API result:', JSON.stringify(progressResult));
-                        setProgress(progressResult);
-                        // Level up is also handled holistically by the AI <level_up> tag for higher levels
-                        if (progressResult.leveledUp) {
-                            setUserLevel(progressResult.level);
-                            localStorage.setItem('linguapaws_level', JSON.stringify({
-                                id: progressResult.level,
-                                label: progressResult.levelLabel,
-                                appDetected: true,
-                            }));
-                        }
-                    })
-                    .catch(err => console.warn('Failed to increment AI progress:', err));
+            let statusTag = 'missing';
+            const successMatch = responseWithoutMeta.match(/<success>\s*(true|false)\s*<\/success>/i);
+            responseWithoutMeta = responseWithoutMeta.replace(/<success>.*?<\/success>/gi, '');
+            if (successMatch) {
+                statusTag = successMatch[1].toLowerCase();
+                if (statusTag === 'true' && effectiveLevel !== 'zero') {
+                    console.log('[Progress] AI reported success, calling /api/progress/increment...');
+                    api.post('/api/progress/increment')
+                        .then(progressResult => {
+                            console.log('[Progress] AI step API result:', JSON.stringify(progressResult));
+                            setProgress(progressResult);
+                            // Level up is also handled holistically by the AI <level_up> tag for higher levels
+                            if (progressResult.leveledUp) {
+                                setUserLevel(progressResult.level);
+                                localStorage.setItem('linguapaws_level', JSON.stringify({
+                                    id: progressResult.level,
+                                    label: progressResult.levelLabel,
+                                    appDetected: true,
+                                }));
+                            }
+                        })
+                        .catch(err => console.warn('Failed to increment AI progress:', err));
+                }
+            }
+
+            if (effectiveLevel === 'basic') {
+                setSentenceSuccesses(prev => ({ ...prev, [userMessageIndex]: statusTag }));
             }
 
             // Strip <word> tags for display BUT keep <shadow> tags so ShadowCard renders inline
@@ -1331,19 +1342,19 @@ export default function Chat() {
                                     <div style={{
                                         alignSelf: 'flex-end',
                                         marginTop: '6px',
-                                        background: '#ecfdf5',
-                                        color: '#059669',
+                                        background: sentenceSuccesses[i] === 'true' ? '#ecfdf5' : sentenceSuccesses[i] === 'false' ? '#fef2f2' : '#f3f4f6',
+                                        color: sentenceSuccesses[i] === 'true' ? '#059669' : sentenceSuccesses[i] === 'false' ? '#dc2626' : '#4b5563',
                                         fontSize: '11px',
                                         fontWeight: '700',
                                         padding: '4px 10px',
                                         borderRadius: '10px',
-                                        border: '1px solid #d1fae5',
+                                        border: `1px solid ${sentenceSuccesses[i] === 'true' ? '#d1fae5' : sentenceSuccesses[i] === 'false' ? '#fee2e2' : '#e5e7eb'}`,
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: '4px'
                                     }}>
-                                        <Check size={12} strokeWidth={3} />
-                                        Great Sentence!
+                                        {sentenceSuccesses[i] === 'true' && <Check size={12} strokeWidth={3} />}
+                                        {sentenceSuccesses[i] === 'true' ? 'Success' : sentenceSuccesses[i] === 'false' ? 'Not Successful' : 'Status Not Received'}
                                     </div>
                                 ) : typeof matchScores[i] === 'number' && (
                                     <div style={{
