@@ -9,6 +9,8 @@ const authRoutes = require('./routes/auth');
 const wordsRoutes = require('./routes/words');
 const settingsRoutes = require('./routes/settings');
 const aiRoutes = require('./routes/ai');
+const progressRoutes = require('./routes/progress');
+const chatsRoutes = require('./routes/chats');
 
 const app = express();
 
@@ -22,6 +24,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/words', wordsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/progress', progressRoutes);
+app.use('/api/chats', chatsRoutes);
 
 // ── Health check ─────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));

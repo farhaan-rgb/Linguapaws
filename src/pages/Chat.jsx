@@ -19,11 +19,12 @@ export default function Chat() {
 
     const { isRecording, startRecording, stopRecording, prepare } = useAudioRecorder();
 
-    // Restore chat session from sessionStorage — survives navigation to Shadow/Dictionary
+    // Character and chat identification
     const activeChar = getStoredJSON('linguapaws_active_character', { id: 'miko' });
-    const chatSessionKey = `linguapaws_chat_${activeChar?.id || 'miko'}_${searchParams.get('topic') || 'free'}`;
+    const characterId = activeChar?.id || 'miko';
+    const chatTopic = searchParams.get('topic') || 'free';
 
-    const [messages, setMessages] = useState(() => getStoredJSON(chatSessionKey, [], sessionStorage));
+    const [messages, setMessages] = useState([]);
 
     const [isLoading, setIsLoading] = useState(false);
     const [inputText, setInputText] = useState('');
@@ -39,19 +40,18 @@ export default function Chat() {
     const nativeLang = getStoredJSON('linguapaws_native_lang', {});
     const targetLang = getStoredJSON('linguapaws_target_lang', {});
 
-    const [recalibrationToast, setRecalibrationToast] = useState(null); // toast message when AI recalibrates
-    const [copyToast, setCopyToast] = useState(false); // brief "Copied!" feedback
-    const [levelUpToast, setLevelUpToast] = useState(null); // celebration message when user levels up
+    const [recalibrationToast, setRecalibrationToast] = useState(null);
+    const [copyToast, setCopyToast] = useState(false);
+    const [levelUpToast, setLevelUpToast] = useState(null);
     const [transliterations, setTransliterations] = useState({});
     const [userTransliterations, setUserTransliterations] = useState({});
     const [matchScores, setMatchScores] = useState({});
+    // Progress bar state (loaded from DB)
+    const [progress, setProgress] = useState({ level: 'zero', levelLabel: 'Beginner', successfulRepeats: 0, needed: 3, nextLevelLabel: 'Basic' });
     const scrollRef = useRef(null);
     const audioRef = useRef(new Audio());
-    const hasGreeted = useRef(messages.length > 0); // Skip greeting if chat already has messages
-    const exchangeCount = useRef(messages.filter(m => m.role === 'user').length); // Track exchanges for shadow trigger
-    const successfulRepeats = useRef(
-        parseInt(localStorage.getItem('linguapaws_successful_repeats') || '0', 10)
-    ); // Track successful phrase repetitions for client-side level-up (persisted)
+    const hasGreeted = useRef(false);
+    const exchangeCount = useRef(0);
     const isMounted = useRef(true);
     const [isCallMode, setIsCallMode] = useState(false);
     const [callDuration, setCallDuration] = useState(0);
@@ -347,10 +347,40 @@ export default function Chat() {
         `Always explain the meaning of the practice phrase in ${nativeLangName} so the user knows what they are saying.`
     );
 
-    // Persist messages to sessionStorage on every update
+    // Load chat messages and progress from database on mount
     useEffect(() => {
-        sessionStorage.setItem(chatSessionKey, JSON.stringify(messages));
-    }, [messages]);
+        let cancelled = false;
+        (async () => {
+            try {
+                const [chatData, progressData] = await Promise.all([
+                    api.get(`/api/chats?characterId=${characterId}&topic=${chatTopic}`),
+                    api.get('/api/progress'),
+                ]);
+                if (cancelled) return;
+                if (chatData.messages?.length > 0) {
+                    setMessages(chatData.messages);
+                    hasGreeted.current = true;
+                    exchangeCount.current = chatData.messages.filter(m => m.role === 'user').length;
+                }
+                setProgress(progressData);
+                setUserLevel(progressData.level || 'zero');
+            } catch (err) {
+                console.warn('Failed to load chat/progress from DB:', err);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [characterId, chatTopic]);
+
+    // Persist messages to database whenever they change
+    const saveTimerRef = useRef(null);
+    useEffect(() => {
+        if (messages.length === 0) return;
+        // Debounce saves to avoid hammering the DB on rapid updates
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(() => {
+            api.put('/api/chats', { characterId, topic: chatTopic, messages }).catch(() => { });
+        }, 1000);
+    }, [messages, characterId, chatTopic]);
 
     // Render assistant messages with safe substitutions (no target script on screen).
     // Also renders **bold** and *italic* markdown into JSX.
@@ -802,30 +832,28 @@ export default function Chat() {
             }
             const threshold = 0.5;
 
-            // Client-side level progression (fallback if AI doesn't emit <level_up> tags)
+            // Server-side level progression via DB
             if (promptedPhrase && matchRatio >= threshold) {
-                successfulRepeats.current += 1;
-                localStorage.setItem('linguapaws_successful_repeats', String(successfulRepeats.current));
-                const PROGRESSION_THRESHOLDS = { zero: 3, basic: 5, conversational: 8 };
-                const NEXT_LEVEL = { zero: 'basic', basic: 'conversational', conversational: 'fluent' };
-                const currentLevel = userLevel || 'zero';
-                const needed = PROGRESSION_THRESHOLDS[currentLevel];
-                if (needed && successfulRepeats.current >= needed && NEXT_LEVEL[currentLevel]) {
-                    const newLevelId = NEXT_LEVEL[currentLevel];
-                    const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
-                    const newLevel = { id: newLevelId, label: LEVEL_LABELS[newLevelId], appDetected: true };
-                    setUserLevel(newLevelId);
-                    localStorage.setItem('linguapaws_level', JSON.stringify(newLevel));
-                    api.put('/api/settings', { englishLevel: newLevel }).catch(() => { });
-                    const LEVEL_UP_MESSAGES = {
-                        basic: "🌿 You've graduated from mimicry! Time to start making choices.",
-                        conversational: "🌳 Amazing progress! Let's start having real conversations.",
-                        fluent: "⭐ You're ready for full immersion! No more training wheels.",
-                    };
-                    setLevelUpToast(LEVEL_UP_MESSAGES[newLevelId] || `🎉 Level up: ${LEVEL_LABELS[newLevelId]}!`);
-                    setTimeout(() => setLevelUpToast(null), 6000);
-                    successfulRepeats.current = 0; // Reset for next level
-                    localStorage.setItem('linguapaws_successful_repeats', '0');
+                try {
+                    const progressResult = await api.post('/api/progress/increment');
+                    setProgress(progressResult);
+                    if (progressResult.leveledUp) {
+                        setUserLevel(progressResult.level);
+                        localStorage.setItem('linguapaws_level', JSON.stringify({
+                            id: progressResult.level,
+                            label: progressResult.levelLabel,
+                            appDetected: true,
+                        }));
+                        const LEVEL_UP_MESSAGES = {
+                            basic: "🌿 You've graduated from mimicry! Time to start making choices.",
+                            conversational: "🌳 Amazing progress! Let's start having real conversations.",
+                            fluent: "⭐ You're ready for full immersion! No more training wheels.",
+                        };
+                        setLevelUpToast(LEVEL_UP_MESSAGES[progressResult.level] || `🎉 Level up: ${progressResult.levelLabel}!`);
+                        setTimeout(() => setLevelUpToast(null), 6000);
+                    }
+                } catch (err) {
+                    console.warn('Failed to increment progress:', err);
                 }
             }
 
@@ -1118,6 +1146,49 @@ export default function Chat() {
                     <Phone size={20} />
                 </motion.button>
             </div>
+
+            {/* Progress bar */}
+            {progress.needed && (
+                <div style={{
+                    padding: '8px 20px',
+                    background: 'linear-gradient(135deg, #faf5ff, #eff6ff)',
+                    borderBottom: '1px solid #e8e0f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                }}>
+                    <span style={{ fontSize: '14px' }}>
+                        {progress.level === 'zero' ? '🌱' : progress.level === 'basic' ? '🌿' : progress.level === 'conversational' ? '🌳' : '⭐'}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#7c3aed' }}>
+                                {progress.levelLabel}
+                            </span>
+                            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                {progress.successfulRepeats}/{progress.needed} → {progress.nextLevelLabel}
+                            </span>
+                        </div>
+                        <div style={{
+                            height: '6px',
+                            background: '#e2e8f0',
+                            borderRadius: '3px',
+                            overflow: 'hidden',
+                        }}>
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.min((progress.successfulRepeats / progress.needed) * 100, 100)}%` }}
+                                transition={{ duration: 0.5, ease: 'easeOut' }}
+                                style={{
+                                    height: '100%',
+                                    background: 'linear-gradient(90deg, #a855f7, #3b82f6)',
+                                    borderRadius: '3px',
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Recalibration toast */}
             <AnimatePresence>

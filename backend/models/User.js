@@ -25,6 +25,7 @@ const userSchema = new mongoose.Schema(
             name: String,
             native: String,
         },
+        successfulRepeats: { type: Number, default: 0 },
     },
     { timestamps: true }
 );
