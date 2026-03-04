@@ -854,6 +854,7 @@ export default function Chat() {
             }
             const threshold = 0.5;
 
+            let transitionNote = '';
             // Server-side level progression via DB
             if (promptedPhrase && matchRatio >= threshold) {
                 console.log('[Progress] Match >= 50%, calling /api/progress/increment...');
@@ -863,6 +864,8 @@ export default function Chat() {
                     setProgress(progressResult);
                     if (progressResult.leveledUp) {
                         setUserLevel(progressResult.level);
+                        effectiveLevel = progressResult.level;
+                        transitionNote = `[SYSTEM: USER HAS ADVANCED TO LEVEL ${progressResult.level.toUpperCase()}. Stop using the previous level's pattern. Adapt your style IMMEDIATELY to the new level.]`;
                         localStorage.setItem('linguapaws_level', JSON.stringify({
                             id: progressResult.level,
                             label: progressResult.levelLabel,
@@ -882,7 +885,7 @@ export default function Chat() {
             }
 
             const acceptNote = (promptedPhrase && matchRatio >= threshold)
-                ? `The user successfully repeated the requested phrase. Congratulate them briefly, then immediately set up a new engaging scenario and ask them to say a NEW phrase. DO NOT ask them what they want to talk about.`
+                ? `The user's pronunciation was PERFECT. You MUST enthusiastically praise them. Do NOT correct them. Do NOT tell them they were 'almost right'. Do NOT provide alternative variations. Congratulate them briefly, then immediately set up a new engaging scenario and ask them to say a NEW phrase. DO NOT ask them what they want to talk about.`
                 : (promptedPhrase && matchRatio < threshold)
                     ? `The user attempted the phrase but their pronunciation was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`
                     : null;
@@ -892,7 +895,7 @@ export default function Chat() {
             const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
 
             // We combine display rules with our hidden note about user performance
-            const metaNote = [displayRuleNote, acceptNote].filter(Boolean).join('\n');
+            const metaNote = [displayRuleNote, acceptNote, transitionNote].filter(Boolean).join('\n');
 
             let botResponse = '';
             if (isTopicAnswer && effectiveLevel !== 'zero') {
