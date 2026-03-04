@@ -554,7 +554,7 @@ export default function Chat() {
             if (levelId === 'zero') {
                 levelNote = `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. Set up a fun scene (e.g. "Let's order a coffee!") and end with ONE simple practice phrase (3-7 words). Show only its transliterated pronunciation. Include the phrase inside <target>...</target>. Ask them to try saying it.`;
             } else if (levelId === 'basic') {
-                levelNote = `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}, but sprinkle in 1-2 transliterated ${targetLangName} words with meanings in parentheses. Ask a simple question they can answer with a ${targetLangName} word. Include the key phrase inside <target>...</target>.`;
+                levelNote = `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}, but sprinkle in 1-2 transliterated ${targetLangName} words with meanings in parentheses. Ask a simple question they can answer with a ${targetLangName} word (e.g., "Do you want coffee?"). DO NOT include a <target> tag and DO NOT ask them to repeat anything. Just start a conversation.`;
             } else if (levelId === 'conversational') {
                 levelNote = `${displayRule} Greet the user in mostly transliterated ${targetLangName} with ${nativeLangName} translations in parentheses after new phrases. Introduce yourself as ${activeCharacter?.name || 'Miko'} and ask a casual question about their day or interests. Do NOT ask them to repeat a phrase. Just have a natural conversation.`;
             } else {
@@ -884,8 +884,9 @@ export default function Chat() {
                 }
             }
 
+            const isBeginner = effectiveLevel === 'zero';
             const acceptNote = (promptedPhrase && matchRatio >= threshold)
-                ? `The user's pronunciation was PERFECT. You MUST enthusiastically praise them. Do NOT correct them. Do NOT tell them they were 'almost right'. Do NOT provide alternative variations. Congratulate them briefly, then immediately set up a new engaging scenario and ask them to say a NEW phrase. DO NOT ask them what they want to talk about.`
+                ? `The user's pronunciation was PERFECT. You MUST enthusiastically praise them. Do NOT correct them. Do NOT tell them they were 'almost right'. Do NOT provide alternative variations. Congratulate them briefly. ${isBeginner ? 'Then immediately set up a new engaging scenario and ask them to say a NEW phrase.' : 'Then move the conversation forward naturally by asking a simple question. DO NOT ask them to repeat anything.'} DO NOT ask them what they want to talk about.`
                 : (promptedPhrase && matchRatio < threshold)
                     ? `The user attempted the phrase but their pronunciation was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`
                     : null;
