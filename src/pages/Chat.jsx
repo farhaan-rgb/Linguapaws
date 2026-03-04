@@ -305,47 +305,6 @@ export default function Chat() {
         if (!text) return null;
         const targetMatch = text.match(/<target>(.*?)<\/target>/s);
         if (targetMatch && targetMatch[1]) return targetMatch[1].trim();
-        const clean = text.replace(/<[^>]+>/g, '');
-        const targetLangId = (targetLang?.id || '').toLowerCase();
-
-        const findQuotedByScript = (scriptName) => {
-            const re = /["“]([^"”]+?)["”]/g;
-            let match;
-            while ((match = re.exec(clean)) !== null) {
-                const candidate = match[1].trim();
-                if (!candidate) continue;
-                const scriptRe = new RegExp(`\\p{Script=${scriptName}}`, 'u');
-                if (scriptRe.test(candidate)) return candidate;
-            }
-            return null;
-        };
-
-        if (targetLangId === 'kn') {
-            const kannada = findQuotedByScript('Kannada');
-            if (kannada) return kannada;
-        }
-
-        // Patterns that match both "quoted" and **bold** phrases
-        const patterns = [
-            /(?:say|try saying)\s*:\s*["“”]([^"“”]+?)["“”]/i,
-            /(?:say|try saying)\s*:\s*\*\*(.+?)\*\*/i,
-            /it'?s\s*:\s*["“”]([^"“”]+?)["“”]/i,
-            /it'?s\s*:\s*\*\*(.+?)\*\*/i,
-            /give it a try[:\s]*["“”]([^"“”]+?)["“”]/i,
-            /can you try saying\s*["“”]([^"“”]+?)["“”]/i,
-            /can you try saying\s*\*\*(.+?)\*\*/i,
-        ];
-        for (const pattern of patterns) {
-            const m = clean.match(pattern);
-            if (m && m[1]) return m[1].trim();
-        }
-
-        // Fallback: extract the first **bold** text in the message (the practice phrase)
-        const boldMatch = clean.match(/\*\*(.+?)\*\*/);
-        if (boldMatch && boldMatch[1] && boldMatch[1].trim().length > 2) {
-            return boldMatch[1].trim();
-        }
-
         return null;
     };
 
@@ -353,8 +312,7 @@ export default function Chat() {
         `CRITICAL DISPLAY RULE: Respond in ${nativeLangName}. ` +
         `Do NOT show ${targetLangName} script in visible text. ` +
         `Whenever you ask the user to say a ${targetLangName} phrase, include the exact target phrase inside ` +
-        `<target>...</target> (in ${targetLangName} script). In visible text, show ONLY a pronunciation guide ` +
-        `in ${nativeLangName} (use native script; if ${nativeLangName} is English, use Latin). ` +
+        `<target>...</target> (in ${targetLangName} script). ` +
         `Always explain the meaning of the practice phrase in ${nativeLangName} so the user knows what they are saying.`
     );
 
@@ -397,10 +355,14 @@ export default function Chat() {
     // Also renders **bold** and *italic* markdown into JSX.
     const renderMessageContent = (content, idx) => {
         let rendered = content.replace(/<shadow>(.*?)<\/shadow>/gs, '$1');
-        // Strip <target> tags entirely — the AI already shows the transliterated
-        // pronunciation in the visible text, so inserting the transliteration here
-        // would cause the phrase to appear twice.
-        rendered = rendered.replace(/<target>.*?<\/target>/gs, '');
+
+        // Dynamically replace <target> tags with the bold transliterated text.
+        // This makes the transliterated pronunciation appear seamlessly inside the 
+        // assistant's text bubble exactly where the <target> tag was placed.
+        rendered = rendered.replace(/<target>.*?<\/target>/gs, () => {
+            const t = transliterations[idx];
+            return `**${t || '...'}**`;
+        });
         rendered = cleanupDisplayText(stripTargetScript(rendered));
         if (isNativeEnglish()) {
             rendered = stripLatinDiacritics(rendered);
@@ -807,7 +769,7 @@ export default function Chat() {
             );
             const lastWasTopicPrompt = isTopicPrompt(lastAssistant?.content);
             const isTopicAnswer = lastWasTopicPrompt && isTopicReply(text);
-            const promptedPhrase = (lastWasTopicPrompt || isTopicReply(text))
+            const promptedPhrase = lastWasTopicPrompt
                 ? ''
                 : extractPromptedPhrase(lastAssistant?.content || '');
             const expected = (promptedPhrase || '').replace(/[.!?]+$/g, '').trim();
@@ -1490,30 +1452,9 @@ export default function Chat() {
                                 {translations[i]}
                             </motion.div>
                         )}
-                        {msg.role === 'assistant' && transliterations[i] && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                style={{
-                                    fontSize: '13px',
-                                    color: '#475569',
-                                    background: '#eef2ff',
-                                    padding: '10px 14px',
-                                    borderRadius: '14px',
-                                    marginTop: '8px',
-                                    borderLeft: '4px solid #6366f1',
-                                    lineHeight: '1.4'
-                                }}
-                            >
-                                <strong style={{ marginRight: '6px' }}>{t.pronunciation_hint || 'Pronunciation'}:</strong>
-                                {transliterations[i]}
-                                {isNativeEnglish() && (
-                                    <span style={{ marginLeft: '6px', color: '#64748b', fontSize: '12px' }}>
-                                        (pron: {buildPronunciationHint(transliterations[i])})
-                                    </span>
-                                )}
-                            </motion.div>
-                        )}
+                        {/* The pronunciation box is intentionally removed here. 
+                           The pronunciation is now rendered inline via renderMessageContent
+                           replacing the <target> tag directly. */}
                     </div>
                 ))}
                 {isLoading && (
