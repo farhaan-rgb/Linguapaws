@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Send, Mic, Square, BookOpen, Globe, Edit3, Sparkles, Keyboard, Volume2, VolumeX, Phone, PhoneOff, Mic2 } from 'lucide-react';
+import { ChevronLeft, Send, Mic, Square, BookOpen, Globe, Edit3, Sparkles, Keyboard, Volume2, VolumeX, Phone, PhoneOff, Mic2, Copy } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { aiService } from '../services/ai';
 import { api } from '../services/api';
@@ -40,6 +40,7 @@ export default function Chat() {
     const targetLang = getStoredJSON('linguapaws_target_lang', {});
 
     const [recalibrationToast, setRecalibrationToast] = useState(null); // toast message when AI recalibrates
+    const [copyToast, setCopyToast] = useState(false); // brief "Copied!" feedback
     const [levelUpToast, setLevelUpToast] = useState(null); // celebration message when user levels up
     const [transliterations, setTransliterations] = useState({});
     const [userTransliterations, setUserTransliterations] = useState({});
@@ -48,6 +49,7 @@ export default function Chat() {
     const audioRef = useRef(new Audio());
     const hasGreeted = useRef(messages.length > 0); // Skip greeting if chat already has messages
     const exchangeCount = useRef(messages.filter(m => m.role === 'user').length); // Track exchanges for shadow trigger
+    const successfulRepeats = useRef(0); // Track successful phrase repetitions for client-side level-up
     const isMounted = useRef(true);
     const [isCallMode, setIsCallMode] = useState(false);
     const [callDuration, setCallDuration] = useState(0);
@@ -352,10 +354,10 @@ export default function Chat() {
     // Also renders **bold** and *italic* markdown into JSX.
     const renderMessageContent = (content, idx) => {
         let rendered = content.replace(/<shadow>(.*?)<\/shadow>/gs, '$1');
-        if (rendered.includes('<target>')) {
-            const replacement = transliterations[idx] || '';
-            rendered = rendered.replace(/<target>.*?<\/target>/gs, replacement);
-        }
+        // Strip <target> tags entirely — the AI already shows the transliterated
+        // pronunciation in the visible text, so inserting the transliteration here
+        // would cause the phrase to appear twice.
+        rendered = rendered.replace(/<target>.*?<\/target>/gs, '');
         rendered = cleanupDisplayText(stripTargetScript(rendered));
         if (isNativeEnglish()) {
             rendered = stripLatinDiacritics(rendered);
@@ -797,6 +799,32 @@ export default function Chat() {
                 setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(matchRatio * 100) }));
             }
             const threshold = 0.5;
+
+            // Client-side level progression (fallback if AI doesn't emit <level_up> tags)
+            if (promptedPhrase && matchRatio >= threshold) {
+                successfulRepeats.current += 1;
+                const PROGRESSION_THRESHOLDS = { zero: 3, basic: 5, conversational: 8 };
+                const NEXT_LEVEL = { zero: 'basic', basic: 'conversational', conversational: 'fluent' };
+                const currentLevel = userLevel || 'zero';
+                const needed = PROGRESSION_THRESHOLDS[currentLevel];
+                if (needed && successfulRepeats.current >= needed && NEXT_LEVEL[currentLevel]) {
+                    const newLevelId = NEXT_LEVEL[currentLevel];
+                    const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
+                    const newLevel = { id: newLevelId, label: LEVEL_LABELS[newLevelId], appDetected: true };
+                    setUserLevel(newLevelId);
+                    localStorage.setItem('linguapaws_level', JSON.stringify(newLevel));
+                    api.put('/api/settings', { englishLevel: newLevel }).catch(() => { });
+                    const LEVEL_UP_MESSAGES = {
+                        basic: "🌿 You've graduated from mimicry! Time to start making choices.",
+                        conversational: "🌳 Amazing progress! Let's start having real conversations.",
+                        fluent: "⭐ You're ready for full immersion! No more training wheels.",
+                    };
+                    setLevelUpToast(LEVEL_UP_MESSAGES[newLevelId] || `🎉 Level up: ${LEVEL_LABELS[newLevelId]}!`);
+                    setTimeout(() => setLevelUpToast(null), 6000);
+                    successfulRepeats.current = 0; // Reset for next level
+                }
+            }
+
             const acceptNote = (promptedPhrase && matchRatio >= threshold)
                 ? `The user attempted to repeat the requested phrase. Similarity is ~${Math.round(matchRatio * 100)}%. Treat this as correct and move forward; do not ask to repeat again.`
                 : null;
@@ -1011,6 +1039,60 @@ export default function Chat() {
                     }}
                 >
                     {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                </motion.button>
+
+                <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                        const transcript = messages
+                            .filter(m => m.role === 'user' || m.role === 'assistant')
+                            .map(m => {
+                                const label = m.role === 'assistant' ? 'Tutor' : 'Learner';
+                                const clean = m.content
+                                    .replace(/<target>.*?<\/target>/gs, '')
+                                    .replace(/<shadow>.*?<\/shadow>/gs, '')
+                                    .replace(/<recalibrate>.*?<\/recalibrate>/gs, '')
+                                    .replace(/<level_up>.*?<\/level_up>/gs, '')
+                                    .replace(/<[^>]+>/g, '')
+                                    .replace(/\*\*(.*?)\*\*/g, '$1')
+                                    .replace(/\*(.*?)\*/g, '$1')
+                                    .trim();
+                                return `${label}: ${clean}`;
+                            })
+                            .join('\n');
+                        navigator.clipboard.writeText(transcript).then(() => {
+                            setCopyToast(true);
+                            setTimeout(() => setCopyToast(false), 2000);
+                        });
+                    }}
+                    style={{
+                        background: 'white',
+                        border: '1px solid #eee',
+                        padding: '10px',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        color: copyToast ? '#10b981' : '#64748b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                        position: 'relative',
+                    }}
+                >
+                    <Copy size={20} />
+                    {copyToast && (
+                        <span style={{
+                            position: 'absolute',
+                            top: '-28px',
+                            background: '#10b981',
+                            color: 'white',
+                            fontSize: '11px',
+                            fontWeight: '700',
+                            padding: '4px 10px',
+                            borderRadius: '8px',
+                            whiteSpace: 'nowrap',
+                        }}>Copied!</span>
+                    )}
                 </motion.button>
 
                 <motion.button
