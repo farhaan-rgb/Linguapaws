@@ -325,16 +325,27 @@ export default function Chat() {
             if (kannada) return kannada;
         }
 
+        // Patterns that match both "quoted" and **bold** phrases
         const patterns = [
-            /(?:say|try saying)\s*:\s*["“]([^"”]+?)["”]/i,
-            /it'?s\s*:\s*["“]([^"”]+?)["”]/i,
-            /give it a try[:\s]*["“]([^"”]+?)["”]/i,
-            /can you try saying\s*["“]([^"”]+?)["”]/i,
+            /(?:say|try saying)\s*:\s*["“”]([^"“”]+?)["“”]/i,
+            /(?:say|try saying)\s*:\s*\*\*(.+?)\*\*/i,
+            /it'?s\s*:\s*["“”]([^"“”]+?)["“”]/i,
+            /it'?s\s*:\s*\*\*(.+?)\*\*/i,
+            /give it a try[:\s]*["“”]([^"“”]+?)["“”]/i,
+            /can you try saying\s*["“”]([^"“”]+?)["“”]/i,
+            /can you try saying\s*\*\*(.+?)\*\*/i,
         ];
         for (const pattern of patterns) {
             const m = clean.match(pattern);
             if (m && m[1]) return m[1].trim();
         }
+
+        // Fallback: extract the first **bold** text in the message (the practice phrase)
+        const boldMatch = clean.match(/\*\*(.+?)\*\*/);
+        if (boldMatch && boldMatch[1] && boldMatch[1].trim().length > 2) {
+            return boldMatch[1].trim();
+        }
+
         return null;
     };
 
