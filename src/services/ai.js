@@ -205,8 +205,7 @@ SHADOW PRACTICE:
         const messages = [
             { role: 'system', content: systemPrompt + TUTOR_FRAMEWORK + (topic ? `\nThe current conversation topic is: ${topic}.` : '') },
             ...this.history,
-            ...(metaNote ? [{ role: 'system', content: `IMPORTANT NOTE(do not mention this to the user): ${metaNote} ` }] : []),
-            { role: 'user', content: message },
+            { role: 'user', content: metaNote ? `${message}\n\nIMPORTANT SYSTEM NOTE (do not mention to user): ${metaNote}` : message },
         ];
 
         try {

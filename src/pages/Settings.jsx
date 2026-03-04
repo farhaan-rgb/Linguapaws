@@ -450,7 +450,7 @@ export default function Settings() {
                 </section>
 
                 <div style={{ marginTop: '32px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '12px', color: '#cbd5e1' }}>LinguaPaws v1.0.0 (Build: dc3ae4e) 🐾</p>
+                    <p style={{ fontSize: '12px', color: '#cbd5e1' }}>LinguaPaws v1.0.0 (Build: fbd9dfc) 🐾</p>
                 </div>
             </div>
         </div>
