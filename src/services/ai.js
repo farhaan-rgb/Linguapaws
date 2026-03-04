@@ -204,8 +204,8 @@ SHADOW PRACTICE:
         const systemPrompt = character ? character.prompt : MIKO_PROMPT;
         const messages = [
             { role: 'system', content: systemPrompt + TUTOR_FRAMEWORK + (topic ? `\nThe current conversation topic is: ${topic}.` : '') },
-            ...(metaNote ? [{ role: 'system', content: `IMPORTANT NOTE(do not mention this to the user): ${metaNote} ` }] : []),
             ...this.history,
+            ...(metaNote ? [{ role: 'system', content: `IMPORTANT NOTE(do not mention this to the user): ${metaNote} ` }] : []),
             { role: 'user', content: message },
         ];
 
