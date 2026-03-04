@@ -882,31 +882,24 @@ export default function Chat() {
             }
 
             const acceptNote = (promptedPhrase && matchRatio >= threshold)
-                ? `The user attempted to repeat the requested phrase. Similarity is ~${Math.round(matchRatio * 100)}%. Treat this as correct and move forward; do not ask to repeat again.`
-                : null;
+                ? `The user successfully repeated the requested phrase. Congratulate them briefly, then immediately set up a new engaging scenario and ask them to say a NEW phrase. DO NOT ask them what they want to talk about.`
+                : (promptedPhrase && matchRatio < threshold)
+                    ? `The user attempted the phrase but their pronunciation was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`
+                    : null;
 
             const nativeLangName = nativeLang?.name || 'English';
             const targetLangName = targetLang?.name || 'English';
             const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
-            const metaNote = [displayRuleNote, acceptNote].filter(Boolean).join(' ');
+
+            // We combine display rules with our hidden note about user performance
+            const metaNote = [displayRuleNote, acceptNote].filter(Boolean).join('\n');
+
             let botResponse = '';
-            if (isTopicAnswer) {
+            if (isTopicAnswer && effectiveLevel !== 'zero') {
                 const followupMsg = `Great! Tell me a topic you like (travel, food, friends), or say "you decide".`;
                 botResponse = await safeTranslate(followupMsg, nativeLangName);
             } else {
                 botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
-            }
-
-            // If the user correctly spoke the prompted phrase, override the AI's natural response with our success message
-            if (acceptNote) {
-                const successMsg = `Great job! You said it well. Let's continue learning ${targetLangName}. What would you like to talk about next?`;
-                botResponse = await safeTranslate(successMsg, nativeLangName);
-            } else if (promptedPhrase && matchRatio < threshold) {
-                // If they failed the pronunciation threshold, override the natural AI response with a retry prompt
-                const prompt = (displayPhrase || promptedPhrase || '').replace(/[.!?]+$/g, '');
-                const retryMsg = `Nice try! You're close. Let's repeat the same phrase: "${prompt}". Please say it again.`;
-                const baseMsg = await safeTranslate(retryMsg, nativeLangName);
-                botResponse = `${baseMsg} <target>${promptedPhrase}</target>`;
             }
 
             // Fallback safety if translation service or API completely fails
@@ -1102,14 +1095,22 @@ export default function Chat() {
                     onClick={() => {
                         const transcript = messages
                             .filter(m => m.role === 'user' || m.role === 'assistant')
-                            .map(m => {
+                            .map((m, idx) => {
                                 const label = m.role === 'assistant' ? 'Tutor' : 'Learner';
-                                const clean = m.content
-                                    .replace(/<target>.*?<\/target>/gs, '')
+
+                                let clean = m.content;
+                                if (m.role === 'assistant') {
+                                    // Inject the transliteration for the copy just like we do for the UI
+                                    clean = clean.replace(/<target>.*?<\/target>/gs, () => {
+                                        return transliterations[idx] || '';
+                                    });
+                                }
+
+                                clean = clean
                                     .replace(/<shadow>.*?<\/shadow>/gs, '')
                                     .replace(/<recalibrate>.*?<\/recalibrate>/gs, '')
                                     .replace(/<level_up>.*?<\/level_up>/gs, '')
-                                    .replace(/<[^>]+>/g, '')
+                                    .replace(/<[^>]+>/g, '') // remove any other remaining tags
                                     .replace(/\*\*(.*?)\*\*/g, '$1')
                                     .replace(/\*(.*?)\*/g, '$1')
                                     .trim();
