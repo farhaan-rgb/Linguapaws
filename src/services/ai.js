@@ -46,6 +46,7 @@ AI BEHAVIOR:
   "[Engaging Scene Setup]. To say '[Meaning of phrase in ${nativeLangName}]', you can say: <target>[Target Script]</target>. Try saying it!"
 - Before asking the user to say a phrase, set up a scenario that EXACTLY matches the meaning of the phrase you chose.
 - Introduce EXACTLY ONE short practice phrase per message. MAXIMUM 3-4 words per phrase. Use ONLY the simplest, most common vocabulary. Avoid complex grammar entirely.
+- NEVER use brackets or placeholders like [name] in a practice phrase. Use a real example instead (e.g., "Nanna hesaru Rahul").
 - ALWAYS put the practice phrase exclusively inside a hidden <target>...</target> tag in its native script.
 - Do NOT write out the transliterated spelling or pronunciation in bold text yourself. ONLY use the <target> tag for the phrase they need to repeat.
 - Always explicitly state the meaning in ${nativeLangName} before asking them to say it.
@@ -60,6 +61,9 @@ Include it ONCE. Do NOT mention levelling up.`,
             basic: `
 USER LEVEL: BASIC — "The Toddler" (Knows some words, can mimic phrases)
 GOAL: Stop just repeating — start CHOOSING and ANSWERING. Build a vocabulary of common words. Maximum 3-4 words per phrase.
+
+PATTERN BREAK: STOP using the "To say X, you can say: <target>Y</target>" pattern from the previous level. 
+Instead of feeding the user phrases, start asking simple questions (e.g., "Do you want coffee?", "How are you?") and expect a short, 1-2 word response using words they just learned.
 
 AI BEHAVIOR:
 - Write ~80% in ${nativeLangName}, ~20% in transliterated ${targetLangName}.
@@ -112,16 +116,16 @@ PROGRESSION: This is the highest level. No <level_up> tag needed.`,
 
         // Language-specific phrasebooks to anchor AI to the CORRECT language
         const PHRASEBOOKS = {
-            Kannada: 'Namaskara = Hello\nOndu coffee kodi = One coffee please\nDhanyavadagalu = Thank you\nHegiddira = How are you?\nNaanu [name] = I am [name]\nShubha dina = Good day\nNeevu hegiddira = How are you (formal)?\nHaudhu = Yes\nIlla = No\nKshamisi = Sorry/Excuse me\nMenu kodi = Can I have the menu?',
-            Telugu: 'Namaskaram = Hello\nOka coffee ivvandi = One coffee please\nDhanyavaadalu = Thank you\nEla unnaru = How are you?\nNenu baagunnanu = I am fine\nSubhodayam = Good morning\nAvunu = Yes\nLedu = No\nKshaminchhandi = Sorry\nMenu ivvandi = Can I have the menu?',
-            Hindi: 'Namaste = Hello\nEk coffee dijiye = One coffee please\nDhanyavaad = Thank you\nAap kaise hain = How are you?\nMain theek hoon = I am fine\nShubh din = Good day\nHaan = Yes\nNahin = No\nMaaf kijiye = Sorry\nMenu dijiye = Can I have the menu?',
-            Tamil: 'Vanakkam = Hello\nOru coffee kudunga = One coffee please\nNandri = Thank you\nEppadi irukkireerkal = How are you?\nNaan nallaa irukken = I am fine\nAam = Yes\nIllai = No\nMannikkavum = Sorry\nMenu kudunga = Can I have the menu?',
-            Bengali: 'Namaskar = Hello\nEktu coffee din = One coffee please\nDhanyabad = Thank you\nApni kemon achen = How are you?\nAmi bhalo achi = I am fine\nHaan = Yes\nNa = No\nDukkhito = Sorry\nMenu din = Can I have the menu?',
-            Marathi: 'Namaskar = Hello\nEk coffee dya = One coffee please\nDhanyavaad = Thank you\nTumi kasa aahat = How are you?\nMi bara aahe = I am fine\nHo = Yes\nNahi = No\nMaaf kara = Sorry\nMenu dya = Can I have the menu?',
-            Gujarati: 'Namaskar = Hello\nEk coffee apo = One coffee please\nAabhar = Thank you\nKem cho = How are you?\nHu majama chhu = I am fine\nHa = Yes\nNa = No\nMaaf karo = Sorry\nMenu apo = Can I have the menu?',
-            Malayalam: 'Namaskkaram = Hello\nOru coffee tharu = One coffee please\nNandi = Thank you\nSugamaano = How are you?\nEnikku sukham = I am fine\nAthe = Yes\nAlla = No\nKshamikkuka = Sorry\nMenu tharu = Can I have the menu?',
-            Urdu: 'Assalamu Alaikum = Hello\nEk coffee dijiye = One coffee please\nShukriya = Thank you\nAap kaise hain = How are you?\nMain theek hoon = I am fine\nHaan = Yes\nNahin = No\nMaaf kijiye = Sorry\nMenu dijiye = Can I have the menu?',
-            Punjabi: 'Sat Sri Akaal = Hello\nIkk coffee deo ji = One coffee please\nDhannvaad = Thank you\nTusi ki haal ho = How are you?\nMain theek haan = I am fine\nHaanji = Yes\nNahin = No\nMaafi = Sorry\nMenu deo ji = Can I have the menu?',
+            Kannada: 'Namaskara = Hello\nOndu coffee kodi = One coffee please\nDhanyavadagalu = Thank you\nHegiddira = How are you?\nNanna hesaru [Name] = My name is [Name]\nShubha dina = Good day\nNeevu hegiddira = How are you (formal)?\nHaudhu = Yes\nIlla = No\nKshamisi = Sorry/Excuse me\nMenu kodi = Can I have the menu?\nInnondu coffee kodi = Give another coffee\nIdeya? = Do you have it?',
+            Telugu: 'Namaskaram = Hello\nOka coffee ivvandi = One coffee please\nDhanyavaadalu = Thank you\nEla unnaru = How are you?\nNenu [Name] = I am [Name]\nSubhodayam = Good morning\nAvunu = Yes\nLedu = No\nKshaminchhandi = Sorry\nMenu ivvandi = Can I have the menu?\nInko coffee ivvandi = Give another coffee\nUndha? = Do you have it?',
+            Hindi: 'Namaste = Hello\nEk coffee dijiye = One coffee please\nDhanyavaad = Thank you\nAap kaise hain = How are you?\nMain [Name] hoon = I am [Name]\nShubh din = Good day\nHaan = Yes\nNahin = No\nMaaf kijiye = Sorry\nMenu dijiye = Can I have the menu?\nEk aur coffee dijiye = Give another coffee\nKya yeh hai? = Do you have it?',
+            Tamil: 'Vanakkam = Hello\nOru coffee kudunga = One coffee please\nNandri = Thank you\nEppadi irukkireerkal = How are you?\nEn peyar [Name] = My name is [Name]\nAam = Yes\nIllai = No\nMannikkavum = Sorry\nMenu kudunga = Can I have the menu?\nInnoru coffee kudunga = Give another coffee\nIrukka? = Do you have it?',
+            Bengali: 'Namaskar = Hello\nEktu coffee din = One coffee please\nDhanyabad = Thank you\nApni kemon achen = How are you?\nAmar naam [Name] = My name is [Name]\nHaan = Yes\nNa = No\nDukkhito = Sorry\nMenu din = Can I have the menu?\nAr ekta coffee din = Give another coffee\nAche? = Do you have it?',
+            Marathi: 'Namaskar = Hello\nEk coffee dya = One coffee please\nDhanyavaad = Thank you\nTumi kasa aahat = How are you?\nMazhe naav [Name] aahe = My name is [Name]\nHo = Yes\nNahi = No\nMaaf kara = Sorry\nMenu dya = Can I have the menu?\nAjun ek coffee dya = Give another coffee\nAahe ka? = Do you have it?',
+            Gujarati: 'Namaskar = Hello\nEk coffee apo = One coffee please\nAabhar = Thank you\nKem cho = How are you?\nMaaru naam [Name] chhe = My name is [Name]\nHa = Yes\nNa = No\nMaaf karo = Sorry\nMenu apo = Can I have the menu?\nBiju ek coffee apo = Give another coffee\nChhe? = Do you have it?',
+            Malayalam: 'Namaskkaram = Hello\nOru coffee tharu = One coffee please\nNandi = Thank you\nSugamaano = How are you?\nEnte peru [Name] ennanu = My name is [Name]\nAthe = Yes\nAlla = No\nKshamikkuka = Sorry\nMenu tharu = Can I have the menu?\nOru coffee koodi tharu = Give another coffee\nUndo? = Do you have it?',
+            Urdu: 'Assalamu Alaikum = Hello\nEk coffee dijiye = One coffee please\nShukriya = Thank you\nAap kaise hain = How are you?\nMera naam [Name] hai = My name is [Name]\nHaan = Yes\nNahin = No\nMaaf kijiye = Sorry\nMenu dijiye = Can I have the menu?\nEk aur coffee dijiye = Give another coffee\nKya yeh hai? = Do you have it?',
+            Punjabi: 'Sat Sri Akaal = Hello\nIkk coffee deo ji = One coffee please\nDhannvaad = Thank you\nTusi ki haal ho = How are you?\nMera naam [Name] hai = My name is [Name]\nHaanji = Yes\nNahin = No\nMaafi = Sorry\nMenu deo ji = Can I have the menu?\nIkk hor coffee deo ji = Give another coffee\nHege? = Do you have it?',
         };
         const phrasebook = PHRASEBOOKS[targetLangName] || '';
 
@@ -133,13 +137,15 @@ The user has stated their ${targetLangName} level as: ${userLevel}.
 You MUST teach ONLY ${targetLangName} phrases. NOT Telugu, NOT Hindi, NOT Tamil, NOT any other language.
 Here are verified ${targetLangName} phrases you can use as reference (Target Phrase = Meaning):
 ${phrasebook}
-You MUST pick an exact pair from the glossary above. Never mix the meaning of one phrase with the target script of another.
+You MUST pick an exact pair from the glossary above. Use only the Spoken/Colloquial forms. 
+Never mix the meaning of one phrase with the target script of another. Never use literal translations if they sound robotic.
 
 ⚠️ CRITICAL DISPLAY RULE — SPOKEN-ONLY APP:
 This is a SPOKEN language learning app. The user is learning to SPEAK ${targetLangName}, NOT to read or write it.
 - NEVER show ${targetLangName} in its native script in visible text.
 - For teaching pronunciation, you MUST include the actual ${targetLangName} script inside a hidden <target>...</target> tag. The user will NEVER see this code — the app will automatically convert it into a beautiful pronunciation guide for the user.
 - NEVER try to Romanize the phrase yourself. Just provide the <target> tag.
+- NEVER use brackets or placeholders in a target phrase (e.g., use "Nanna hesaru Farhaan" instead of "[Name]").
 - Example: "Say: <target>[${targetLangName} script here]</target>"
 
 ⚠️ STEP 1 — LEVEL CHECK (do this BEFORE applying level rules):
