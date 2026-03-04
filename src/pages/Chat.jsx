@@ -807,7 +807,45 @@ export default function Chat() {
             const isNativeEng = (nativeLang?.id || '').toLowerCase() === 'en' ||
                 (nativeLang?.name || '').toLowerCase() === 'english';
 
-            if (promptedPhrase && (!isNativeEng || !isMostlyLatin(promptedPhrase))) {
+            // When the target phrase is in non-Latin script but user typed Latin,
+            // we need to compare against a transliterated version
+            if (promptedPhrase && isMostlyLatin(actual) && !isMostlyLatin(expected)) {
+                const assistantIndex = messages.lastIndexOf(lastAssistant);
+                translit = transliterations[assistantIndex];
+                if (!translit) {
+                    try {
+                        const data = await aiService.transliterate(promptedPhrase, targetLang?.name || 'English', nativeLang?.name || 'English');
+                        translit = formatTransliteration(data?.transliteration || '', nativeLang);
+                        if (translit) {
+                            setTransliterations(prev => ({ ...prev, [assistantIndex]: translit }));
+                        }
+                    } catch { /* ignore */ }
+                }
+                if (translit) {
+                    displayPhrase = translit;
+                    matchRatio = similarityRatioLatin(actual, translit);
+                }
+
+                // Fallback: extract bold Latin text from AI message as alternate match target
+                // e.g. "Say: **Oka coffee ivvandi**" → "Oka coffee ivvandi"
+                if (matchRatio < 0.5 && lastAssistant?.content) {
+                    const boldMatches = lastAssistant.content.match(/\*\*(.*?)\*\*/g);
+                    if (boldMatches) {
+                        for (const bold of boldMatches) {
+                            const boldText = bold.replace(/\*\*/g, '').trim();
+                            if (isMostlyLatin(boldText) && boldText.length > 2) {
+                                const altRatio = similarityRatioLatin(actual, boldText);
+                                if (altRatio > matchRatio) {
+                                    matchRatio = altRatio;
+                                    displayPhrase = boldText;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                console.log('[Match Debug]', { actual, expected, translit, matchRatio: Math.round(matchRatio * 100) + '%' });
+            } else if (promptedPhrase && (!isNativeEng || !isMostlyLatin(promptedPhrase))) {
                 const assistantIndex = messages.lastIndexOf(lastAssistant);
                 translit = transliterations[assistantIndex];
                 if (!translit) {
@@ -820,10 +858,10 @@ export default function Chat() {
                     } catch { /* ignore */ }
                 }
                 if (translit) displayPhrase = translit;
-            }
 
-            if (promptedPhrase && isMostlyLatin(text) && translit) {
-                matchRatio = similarityRatioLatin(actual, translit);
+                if (isMostlyLatin(text) && translit) {
+                    matchRatio = similarityRatioLatin(actual, translit);
+                }
             }
 
             if (promptedPhrase) {
