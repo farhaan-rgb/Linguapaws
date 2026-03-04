@@ -813,6 +813,15 @@ export default function Chat() {
             const expected = (promptedPhrase || '').replace(/[.!?]+$/g, '').trim();
             const actual = (text || '').replace(/[.!?]+$/g, '').trim();
             let matchRatio = expected ? similarityRatio(actual, expected) : 0;
+
+            console.log('[Match Step 1]', {
+                lastAssistantContent: lastAssistant?.content?.substring(0, 100),
+                promptedPhrase,
+                expected,
+                actual,
+                initialMatchRatio: Math.round(matchRatio * 100) + '%',
+                bothLatin: isMostlyLatin(actual) && isMostlyLatin(expected),
+            });
             let displayPhrase = promptedPhrase;
             let translit = null;
             const isNativeEng = (nativeLang?.id || '').toLowerCase() === 'en' ||
@@ -876,15 +885,19 @@ export default function Chat() {
             }
 
             if (promptedPhrase) {
-                const userMessageIndex = messages.length; // index of the message we're about to append
-                setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(matchRatio * 100) }));
+                const userMessageIndex = messages.length;
+                const scorePercent = Math.round(matchRatio * 100);
+                setMatchScores(prev => ({ ...prev, [userMessageIndex]: scorePercent }));
+                console.log('[Match Step 2] Score set:', scorePercent + '% for message index', userMessageIndex);
             }
             const threshold = 0.5;
 
             // Server-side level progression via DB
             if (promptedPhrase && matchRatio >= threshold) {
+                console.log('[Progress] Match >= 50%, calling /api/progress/increment...');
                 try {
                     const progressResult = await api.post('/api/progress/increment');
+                    console.log('[Progress] API result:', JSON.stringify(progressResult));
                     setProgress(progressResult);
                     if (progressResult.leveledUp) {
                         setUserLevel(progressResult.level);
