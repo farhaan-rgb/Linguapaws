@@ -50,9 +50,8 @@ router.post('/google', async (req, res) => {
 // POST /api/auth/guest
 // Creates or restores a persistent guest user session
 router.post('/guest', async (req, res) => {
-    // We'll use a unique ID for guests to keep their progress between refreshes if they stay on the same device,
-    // otherwise just make a new one. For this demo, we'll just use a 'guest' identity.
-    const guestId = 'guest_tester_123';
+    // Generate a unique identifier. If they clear local storage, they get a new one.
+    const guestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     let user = await User.findOneAndUpdate(
         { googleSub: guestId },

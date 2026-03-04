@@ -11,13 +11,34 @@ const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conver
 
 // GET /api/progress — return current level and repeat count
 router.get('/', async (req, res) => {
-    const user = req.user;
+    const user = await User.findById(req.user._id);
     const currentLevelId = user.englishLevel?.id || 'zero';
-    const needed = PROGRESSION_THRESHOLDS[currentLevelId] || null;
+    let needed = PROGRESSION_THRESHOLDS[currentLevelId] || null;
+    let successfulRepeats = user.successfulRepeats || 0;
+
+    // Self-healing check: if somehow we are AT or ABOVE threshold, auto-level-up
+    if (needed && successfulRepeats >= needed && NEXT_LEVEL[currentLevelId]) {
+        const newLevelId = NEXT_LEVEL[currentLevelId];
+        user.englishLevel = { id: newLevelId, label: LEVEL_LABELS[newLevelId], appDetected: true };
+        user.successfulRepeats = 0;
+        await user.save();
+
+        // Refresh values for response
+        const newLevel = newLevelId;
+        return res.json({
+            level: newLevel,
+            levelLabel: LEVEL_LABELS[newLevel],
+            successfulRepeats: 0,
+            needed: PROGRESSION_THRESHOLDS[newLevel] || null,
+            nextLevel: NEXT_LEVEL[newLevel] || null,
+            nextLevelLabel: LEVEL_LABELS[NEXT_LEVEL[newLevel]] || null,
+        });
+    }
+
     res.json({
         level: currentLevelId,
         levelLabel: LEVEL_LABELS[currentLevelId] || 'Beginner',
-        successfulRepeats: user.successfulRepeats || 0,
+        successfulRepeats,
         needed, // null if at max level (fluent)
         nextLevel: NEXT_LEVEL[currentLevelId] || null,
         nextLevelLabel: LEVEL_LABELS[NEXT_LEVEL[currentLevelId]] || null,

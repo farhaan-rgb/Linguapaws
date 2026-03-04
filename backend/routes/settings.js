@@ -21,7 +21,11 @@ router.put('/', async (req, res) => {
 
     const update = {};
     if (nativeLang?.id && nativeLang?.name) update.nativeLang = nativeLang;
-    if (englishLevel?.id) update.englishLevel = englishLevel;
+    if (englishLevel?.id) {
+        update.englishLevel = englishLevel;
+        // CRITICAL: Reset repeats when level is manually changed or set during onboarding
+        update.successfulRepeats = 0;
+    }
     if (targetLang?.id && targetLang?.name) update.targetLang = targetLang;
 
     if (Object.keys(update).length === 0) {
@@ -30,7 +34,7 @@ router.put('/', async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
         req.user._id,
-        update,
+        { $set: update },
         { new: true }
     ).lean();
 
