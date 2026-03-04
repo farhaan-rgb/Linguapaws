@@ -49,7 +49,9 @@ export default function Chat() {
     const audioRef = useRef(new Audio());
     const hasGreeted = useRef(messages.length > 0); // Skip greeting if chat already has messages
     const exchangeCount = useRef(messages.filter(m => m.role === 'user').length); // Track exchanges for shadow trigger
-    const successfulRepeats = useRef(0); // Track successful phrase repetitions for client-side level-up
+    const successfulRepeats = useRef(
+        parseInt(localStorage.getItem('linguapaws_successful_repeats') || '0', 10)
+    ); // Track successful phrase repetitions for client-side level-up (persisted)
     const isMounted = useRef(true);
     const [isCallMode, setIsCallMode] = useState(false);
     const [callDuration, setCallDuration] = useState(0);
@@ -803,6 +805,7 @@ export default function Chat() {
             // Client-side level progression (fallback if AI doesn't emit <level_up> tags)
             if (promptedPhrase && matchRatio >= threshold) {
                 successfulRepeats.current += 1;
+                localStorage.setItem('linguapaws_successful_repeats', String(successfulRepeats.current));
                 const PROGRESSION_THRESHOLDS = { zero: 3, basic: 5, conversational: 8 };
                 const NEXT_LEVEL = { zero: 'basic', basic: 'conversational', conversational: 'fluent' };
                 const currentLevel = userLevel || 'zero';
@@ -822,6 +825,7 @@ export default function Chat() {
                     setLevelUpToast(LEVEL_UP_MESSAGES[newLevelId] || `🎉 Level up: ${LEVEL_LABELS[newLevelId]}!`);
                     setTimeout(() => setLevelUpToast(null), 6000);
                     successfulRepeats.current = 0; // Reset for next level
+                    localStorage.setItem('linguapaws_successful_repeats', '0');
                 }
             }
 
