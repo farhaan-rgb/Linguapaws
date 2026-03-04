@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Send, Mic, Square, BookOpen, Globe, Edit3, Sparkles, Keyboard, Volume2, VolumeX, Phone, PhoneOff, Mic2, Copy } from 'lucide-react';
+import { ChevronLeft, Send, Mic, Square, BookOpen, Globe, Edit3, Sparkles, Keyboard, Volume2, VolumeX, Phone, PhoneOff, Mic2, Copy, Check } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { aiService } from '../services/ai';
 import { api } from '../services/api';
@@ -46,6 +46,7 @@ export default function Chat() {
     const [transliterations, setTransliterations] = useState({});
     const [userTransliterations, setUserTransliterations] = useState({});
     const [matchScores, setMatchScores] = useState({});
+    const [sentenceSuccesses, setSentenceSuccesses] = useState({});
     // Progress bar state (loaded from DB)
     const [progress, setProgress] = useState({ level: 'zero', levelLabel: 'Beginner', successfulRepeats: 0, needed: 3, nextLevelLabel: 'Basic' });
     const scrollRef = useRef(null);
@@ -760,6 +761,7 @@ export default function Chat() {
             // Increment exchange count and determine if this is a scheduled shadow round
             exchangeCount.current += 1;
             const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
+            const userMessageIndex = messages.length;
 
             // Find the most recent instruction from Miko
             // We prioritize messages with <target> tags because they are actively teaching
@@ -847,7 +849,6 @@ export default function Chat() {
             }
 
             if (promptedPhrase) {
-                const userMessageIndex = messages.length;
                 const scorePercent = Math.round(matchRatio * 100);
                 setMatchScores(prev => ({ ...prev, [userMessageIndex]: scorePercent }));
                 console.log('[Match Step 2] Score set:', scorePercent + '% for message index', userMessageIndex);
@@ -953,6 +954,7 @@ export default function Chat() {
             responseWithoutMeta = responseWithoutMeta.replace(/<success>true<\/success>/gi, '');
             if (successMatch && effectiveLevel !== 'zero') {
                 console.log('[Progress] AI reported success, calling /api/progress/increment...');
+                setSentenceSuccesses(prev => ({ ...prev, [userMessageIndex]: true }));
                 api.post('/api/progress/increment')
                     .then(progressResult => {
                         console.log('[Progress] AI step API result:', JSON.stringify(progressResult));
@@ -1325,7 +1327,25 @@ export default function Chat() {
 
                         {msg.role === 'user' && (
                             <>
-                                {typeof matchScores[i] === 'number' && (
+                                {sentenceSuccesses[i] ? (
+                                    <div style={{
+                                        alignSelf: 'flex-end',
+                                        marginTop: '6px',
+                                        background: '#ecfdf5',
+                                        color: '#059669',
+                                        fontSize: '11px',
+                                        fontWeight: '700',
+                                        padding: '4px 10px',
+                                        borderRadius: '10px',
+                                        border: '1px solid #d1fae5',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                    }}>
+                                        <Check size={12} strokeWidth={3} />
+                                        Great Sentence!
+                                    </div>
+                                ) : typeof matchScores[i] === 'number' && (
                                     <div style={{
                                         alignSelf: 'flex-end',
                                         marginTop: '6px',
