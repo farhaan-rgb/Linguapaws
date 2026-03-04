@@ -948,6 +948,28 @@ export default function Chat() {
                 setTimeout(() => setLevelUpToast(null), 6000);
             }
 
+            // Check for AI-triggered short-term progress (Guided Sentence Construction success)
+            const successMatch = responseWithoutMeta.match(/<success>true<\/success>/i);
+            responseWithoutMeta = responseWithoutMeta.replace(/<success>true<\/success>/gi, '');
+            if (successMatch && effectiveLevel !== 'zero') {
+                console.log('[Progress] AI reported success, calling /api/progress/increment...');
+                api.post('/api/progress/increment')
+                    .then(progressResult => {
+                        console.log('[Progress] AI step API result:', JSON.stringify(progressResult));
+                        setProgress(progressResult);
+                        // Level up is also handled holistically by the AI <level_up> tag for higher levels
+                        if (progressResult.leveledUp) {
+                            setUserLevel(progressResult.level);
+                            localStorage.setItem('linguapaws_level', JSON.stringify({
+                                id: progressResult.level,
+                                label: progressResult.levelLabel,
+                                appDetected: true,
+                            }));
+                        }
+                    })
+                    .catch(err => console.warn('Failed to increment AI progress:', err));
+            }
+
             // Strip <word> tags for display BUT keep <shadow> tags so ShadowCard renders inline
             const storedResponse = responseWithoutMeta
                 .replace(/<word>(.*?)<\/word>/g, '$1')
