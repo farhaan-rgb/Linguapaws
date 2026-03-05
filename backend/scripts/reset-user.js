@@ -11,6 +11,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Word = require('../models/Word');
+const Chat = require('../models/Chat');
 
 const EMAIL = 'farhaan.vvc@gmail.com';
 
@@ -31,15 +32,20 @@ async function main() {
 
     console.log(`Found user: ${user.name} (${user.email}), _id: ${user._id}`);
 
-    // 1. Clear onboarding fields
+    // 1. Clear onboarding fields and set successfulRepeats to 0
     await User.findByIdAndUpdate(user._id, {
         $unset: { nativeLang: '', englishLevel: '', targetLang: '' },
+        $set: { successfulRepeats: 0 },
     });
     console.log('✅  Cleared nativeLang and englishLevel');
 
     // 2. Delete all word history
     const result = await Word.deleteMany({ userId: user._id });
     console.log(`✅  Deleted ${result.deletedCount} word(s) from history`);
+
+    // 3. Delete all chat history
+    const chatResult = await Chat.deleteMany({ userId: user._id });
+    console.log(`✅  Deleted ${chatResult.deletedCount} chat(s) from history`);
 
     console.log('\n🎉  User reset to new-user state. They will see the onboarding flow on next login.');
     await mongoose.disconnect();
