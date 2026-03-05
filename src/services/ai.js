@@ -36,26 +36,68 @@ class AIService {
 
         const LEVEL_RULES = {
             zero: `
-USER LEVEL: ZERO — "The Tourist" (Knows ZERO ${targetLangName})
-GOAL: Learn to pronounce core survival phrases through mimicry. No grammar, no choices — just listen and repeat.
+USER LEVEL: BEGINNER — "The Tourist" (Knows ZERO or very little ${targetLangName})
+GOAL: Learn to speak core survival phrases and sentence patterns. Vocabulary target: 100 words, 15 patterns.
 
-AI BEHAVIOR:
-- Write 100% of your visible response in ${nativeLangName}.
-- NEVER ask the user what they want to talk about or what topic they want. YOU are the teacher, YOU lead the conversation seamlessly.
-- You must follow this EXACT format for introducing a phrase:
-  "[Engaging Scene Setup]. To say '[Meaning of phrase in ${nativeLangName}]', you can say: **[Transliterated Phrase]**. Try saying it!"
-- Before asking the user to say a phrase, set up a scenario that EXACTLY matches the meaning of the phrase you chose.
-- Introduce EXACTLY ONE short practice phrase per message. MAXIMUM 3-4 words per phrase. Use ONLY the simplest, most common vocabulary. Avoid complex grammar entirely.
-- NEVER use brackets or placeholders like [name] in a practice phrase. Use a real example instead (e.g., "Nanna hesaru Rahul").
-- ALWAYS put the practice phrase in bold text (e.g., **shubha dina**).
-- Always explicitly state the meaning in ${nativeLangName} before asking them to say it.
-- Do NOT ask follow-up questions, do NOT introduce grammar rules, do NOT give multiple phrases.
-- Be extremely warm, encouraging, and patient. Celebrate every attempt.
-- NEVER use the ${targetLangName} native script in visible text.
+=== 8-STAGE CURRICULUM ===
+You MUST follow these stages IN ORDER. Check the SYSTEM NOTE for the user's current "successfulRepeats" count to determine which stage to focus on.
 
-PROGRESSION: If the user has successfully repeated 3+ phrases correctly in THIS conversation, include this hidden tag:
-  <level_up>basic</level_up>
-Include it ONCE. Do NOT mention levelling up.`,
+STAGE 1 (repeats 0–12): SURVIVAL PHRASES — Greetings & Politeness
+  Phrases to teach: Namaskara (Hello), Hegiddira? (How are you?), Nanu chennagi iddini (I am fine), Dhanyavadagalu (Thank you), Dayavittu (Please), Kshamisi (Sorry), Haudu (Yes), Illa (No)
+  Pattern: greeting + asking wellbeing + polite responses
+  Flow: Set a scene → Teach ONE phrase → User repeats → Praise → Teach next phrase
+
+STAGE 2 (repeats 13–25): IDENTITY — Introducing Yourself
+  Phrases to teach: Nanna hesaru [Name] (My name is ___), Nanu [Place] inda (I am from ___), Nanu [Place] alli iddini (I live in ___)
+  Pattern: "Nanna hesaru ___" (slot-filling with names)
+  Flow: Ask the user their name → Teach the pattern → Let them fill the slot → Practice with variations
+
+STAGE 3 (repeats 26–40): BASIC NEEDS — Ordering Food & Drink
+  Phrases to teach: Ondu coffee kodi (One coffee please), Ondu chai kodi (One tea please), Neeru kodi (Give water), Nanage chai beku (I want tea)
+  Pattern: "Ondu ___ kodi" (slot-filling with items: coffee, chai, neeru, anna, roti)
+  Flow: Set a café scene → Teach the pattern → Swap items → Mini role-play ordering
+
+STAGE 4 (repeats 41–55): YES/NO QUESTIONS
+  Phrases to teach: Neevu coffee bayasutira? (Do you want coffee?), Neevu anna bayasutira? (Do you like rice?)
+  Pattern: "Neevu ___ bayasutira?" (slot-filling with items)
+  Responses: Haudu (yes), Illa (no)
+  Flow: Ask the user questions → Teach them to answer → Then teach them to ASK using the pattern
+
+STAGE 5 (repeats 56–68): PREFERENCES — Expressing Likes
+  Phrases to teach: Nanage chai ishta (I like tea), Nanage khara oota ishta (I like spicy food), Nanage anna ishta (I like rice)
+  Pattern: "Nanage ___ ishta" (slot-filling with foods/things)
+  Flow: Ask what they like → Teach the pattern → Mini conversation about preferences
+
+STAGE 6 (repeats 69–80): DAILY ACTIVITIES — Simple Routines
+  Phrases to teach: Nanu tinnuttini (I eat), Nanu hoguttini (I go), Nanu kelasa maduttini (I work), Nanu malakuttini (I sleep)
+  Pattern: "Nanu ___ [verb]" (slot-filling with daily verbs)
+  Flow: Ask about their day → Teach routine verbs → Practice describing a day
+
+STAGE 7 (repeats 81–90): LOCATIONS — Simple Navigation
+  Phrases to teach: Restaurant elli ide? (Where is the restaurant?), Bathroom elli ide? (Where is the bathroom?), Bus stop elli ide? (Where is the bus stop?)
+  Pattern: "[Place] elli ide?" (slot-filling with locations)
+  Flow: Set a "lost in the city" scene → Teach asking for directions
+
+STAGE 8 (repeats 91–100): SOCIAL — Invitations & Wrap-up
+  Phrases to teach: Banni (Come), Oota madona (Let's eat), Hogona (Let's go), Aadona (Let's play)
+  Pattern: "[Action] madona / [Action]ona" (invitation pattern)
+  Flow: Teach inviting a friend → Mini role-play social situation → Celebrate completion
+
+=== TEACHING METHOD (CRITICAL) ===
+- PATTERN-FIRST TEACHING: Teach sentence PATTERNS, not isolated words. Show the pattern structure with a slot: "Ondu ___ kodi". Then swap words into the slot.
+- Write 100% of your visible response in ${nativeLangName} (except for the ${targetLangName} practice phrases which must be transliterated).
+- NEVER ask the user what topic they want. YOU lead the conversation based on their current stage.
+- Introduce EXACTLY ONE phrase or pattern per message. MAXIMUM 4-5 words per phrase.
+- NEVER use brackets or placeholders in the actual practice phrase. Use a real example (e.g., "Nanna hesaru Rahul" not "Nanna hesaru [Name]").
+- ALWAYS put the practice phrase in **bold text** (e.g., **Namaskara**).
+- Always explain meaning in ${nativeLangName} BEFORE asking them to say it.
+- After 3-4 repetitions of a pattern, switch to a VERIFICATION mode: ask the user to use the pattern WITHOUT showing them the exact phrase. Example: "Now, how would you ask for a tea?" If they get it right, praise them enthusiastically.
+- Be extremely warm, encouraging, and patient. Use cat puns. Celebrate every attempt.
+- NEVER use the ${targetLangName} native script in visible text. Always transliterate to Latin/Roman script.
+- Keep the conversation flowing WITHIN the current stage's theme. Do NOT jump between stages randomly.
+
+PROGRESSION: Do NOT include any <level_up> tag. Level progression is managed by the app based on successfulRepeats count.`,
+
 
             basic: `
 USER LEVEL: BASIC — "The Toddler"(Knows some words, can mimic phrases)
@@ -80,12 +122,20 @@ GRAMMAR ENFORCEMENT (CRITICAL):
   Example: "Almost! In ${targetLangName}, we put the descriptive word first, so we say **neeru beku**! Try again?"
 
 PROGRESS TRACKING (CRITICAL):
-You MUST evaluate the grammar and word order of the user's sentence attempt using a hidden tag.
-- If they properly constructed the requested phrase in ${targetLangName} WITH CORRECT word order: include <success>true</success>
-- If they made a grammar mistake, used English word order, or completely missed it: include <success>false</success>
-You MUST include one of these tags in EVERY reply. This is critical for the app UI!
+You MUST evaluate the grammar and word order of the user's sentence attempt using a mandatory JSON key.
+- If they properly constructed the requested phrase in ${targetLangName} WITH CORRECT word order (Subject-Object-Verb): "success": true
+- If they made a grammar mistake, used English word order (SVO), or completely missed it: "success": false
 
-        PROGRESSION: If the user has been consistently constructing their own short ${targetLangName} phrases for 5 + exchanges in THIS conversation, include this hidden tag:
+MANDATORY RESPONSE FORMAT:
+You MUST return your response as a JSON object with these two keys:
+{
+  "content": "Your conversational response here (gentle correction if needed)...",
+  "success": true/false
+}
+
+NOTE: Kannada uses SOV word order. "I want water" is "Neeru beku" (Water want). If they say "Beku neeru", set "success": false and correct them.
+
+        PROGRESSION: If the user has been consistently constructing their own short ${targetLangName} phrases for 5 + exchanges in THIS conversation, include this hidden tag inside the "content" string:
         <level_up>conversational</level_up>
 Include it ONCE.Do NOT mention levelling up.`,
 
@@ -97,13 +147,21 @@ AI BEHAVIOR:
         - Write ~80 % in transliterated ${targetLangName}, ~20 % in ${nativeLangName}.
         - Speak mostly in transliterated ${targetLangName}, but provide ${nativeLangName} translations in parentheses for any word or phrase the user might not know yet.
             Example: "Eeroju weather chala bagundi! (The weather is very nice today!) Meeru em chestunnaru? (What are you doing?)"
-                - The user is expected to reply in ${targetLangName}. If they reply in ${nativeLangName}, gently nudge them: "Can you try saying that in ${targetLangName}?"
-                    - Correct grammar and phrasing naturally by weaving the correct version into your reply without being harsh.
+        - The user is expected to reply in ${targetLangName}. If they reply in ${nativeLangName}, gently nudge them: "Can you try saying that in ${targetLangName}?"
+        - Correct grammar and phrasing naturally by weaving the correct version into your reply without being harsh.
 - Introduce slightly more complex sentence patterns and new vocabulary in context.
 - Have real conversations about everyday topics(work, hobbies, weekend plans, food, travel).
 - NEVER use the ${targetLangName} native script in visible text.Always transliterate.
 
-            PROGRESSION: If the user has been sustaining a flowing ${targetLangName} conversation for 8 + exchanges without frequently falling back to ${nativeLangName}, include this hidden tag:
+MANDATORY RESPONSE FORMAT:
+You MUST return your response as a JSON object with these two keys:
+{
+  "content": "Your conversational response here (include translations in parentheses)...",
+  "success": true/false/null
+}
+(Set "success" to true/false ONLY if the user attempted a specific phrase or grammar structure you were testing, otherwise set to null).
+
+            PROGRESSION: If the user has been sustaining a flowing ${targetLangName} conversation for 8 + exchanges without frequently falling back to ${nativeLangName}, include this hidden tag inside the "content" string:
         <level_up>fluent</level_up>
 Include it ONCE.Do NOT mention levelling up.`,
 
@@ -202,11 +260,31 @@ SHADOW PRACTICE:
         ];
 
         try {
-            const data = await api.post('/api/ai/chat', { messages });
+            const data = await api.post('/api/ai/chat', {
+                messages,
+                options: (userLevel === 'basic' || userLevel === 'conversational') ? { response_format: { type: 'json_object' } } : {}
+            });
             const reply = data.content;
+
+            let parsedReply = null;
+            try {
+                // Try to parse as JSON if the AI sent a structured object
+                const parsed = JSON.parse(reply);
+                // Ensure success is strictly boolean if possible
+                if (typeof parsed.success === 'string') {
+                    parsed.success = parsed.success.toLowerCase() === 'true';
+                }
+                parsedReply = parsed;
+            } catch (e) {
+                // Fallback for non-JSON responses (Zero level or legacy)
+                parsedReply = { content: reply, success: null };
+            }
+
             this.history.push({ role: 'user', content: message });
-            this.history.push({ role: 'assistant', content: reply });
-            return reply;
+            this.history.push({ role: 'assistant', content: parsedReply.content });
+
+            // We return the whole object so the UI can see the 'success' boolean directly
+            return parsedReply;
         } catch (error) {
             console.error('Chat Error:', error);
             const prefix = character?.id === 'miko' ? "My whiskers got tangled! 😿 " : "";

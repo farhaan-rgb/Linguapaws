@@ -47,7 +47,7 @@ export default function Chat() {
     const [matchScores, setMatchScores] = useState({});
     const [sentenceSuccesses, setSentenceSuccesses] = useState({});
     // Progress bar state (loaded from DB)
-    const [progress, setProgress] = useState({ level: 'zero', levelLabel: 'Beginner', successfulRepeats: 0, needed: 3, nextLevelLabel: 'Basic' });
+    const [progress, setProgress] = useState({ level: 'zero', levelLabel: 'Beginner', successfulRepeats: 0, needed: 100, nextLevelLabel: 'Basic' });
     const scrollRef = useRef(null);
     const audioRef = useRef(new Audio());
     const hasGreeted = useRef(false);
@@ -388,7 +388,7 @@ export default function Chat() {
         // Auto-greet when the call connects
         const nativeLangName = nativeLang?.name || 'English';
         const targetLangName = targetLang?.name || 'English';
-        let greeting = await aiService.getResponse(
+        const rawGreeting = await aiService.getResponse(
             `[CALL GREETING ONLY — keep it short. Greet warmly and invite practice.]`,
             topicName,
             activeCharacter,
@@ -397,6 +397,7 @@ export default function Chat() {
             false,
             userLevel
         );
+        const greeting = rawGreeting?.content || rawGreeting;
         const storedGreeting = greeting
             .replace(/<word>(.*?)<\/word>/g, '$1')
             .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
@@ -448,8 +449,8 @@ export default function Chat() {
                     const userWords = transcript.match(/[\p{L}]{2,}/gu);
                     if (userWords) userWords.forEach(w => { wordTracker.addWord(w); });
 
-                    const botResponse = await aiService.getResponse(transcript, topicName, activeCharacter, nativeLang, targetLang, false, userLevel);
-                    const storedResponse = botResponse
+                    const rawResponse = await aiService.getResponse(transcript, topicName, activeCharacter, nativeLang, targetLang, false, userLevel);
+                    const storedResponse = (rawResponse?.content || rawResponse)
                         .replace(/<word>(.*?)<\/word>/g, '$1')
                         .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                         .trim();
@@ -458,6 +459,16 @@ export default function Chat() {
                     );
                     if (isNativeEnglish()) displayResponse = stripLatinDiacritics(displayResponse);
                     setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
+
+                    // Handle success status if present (Guided Sentence Construction)
+                    if (rawResponse?.success !== undefined && rawResponse.success !== null) {
+                        const statusTag = rawResponse.success ? 'true' : 'false';
+                        // Use messages.length because it's the index of the user message we just added
+                        setSentenceSuccesses(prev => ({ ...prev, [messages.length]: statusTag }));
+                        if (statusTag === 'true') {
+                            api.post('/api/progress/increment').catch(() => { });
+                        }
+                    }
 
                     setCallStatus('speaking');
                     if (isMounted.current) {
@@ -510,8 +521,9 @@ export default function Chat() {
             const targetLangName = targetLang?.name || 'English';
 
             let levelNote;
+            const currentRepeats = progress?.successfulRepeats || 0;
             if (levelId === 'zero') {
-                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. Set up a fun scene (e.g. "Let's order a coffee!") and end with ONE simple practice phrase (3-7 words). Show only its transliterated pronunciation. Ask them to try saying it.`;
+                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The user has ${currentRepeats} successfulRepeats out of 100. Check the 8-STAGE CURRICULUM to determine which stage they are on, then set up a fun scene relevant to that stage and end with ONE simple practice phrase from that stage's vocabulary. Show only its transliterated pronunciation in bold. Ask them to try saying it.`;
             } else if (levelId === 'basic') {
                 levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}, but sprinkle in 1-2 transliterated ${targetLangName} words with meanings in parentheses. Ask a simple question they can answer with a ${targetLangName} word (e.g., "Do you want coffee?"). DO NOT ask them to repeat anything. Just start a conversation.`;
             } else if (levelId === 'conversational') {
@@ -521,7 +533,7 @@ export default function Chat() {
                 levelNote = `Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. No English translations, no parenthetical hints. Speak naturally and casually like a local friend. Introduce yourself as ${activeCharacter?.name || 'Miko'} and start a flowing conversation about something interesting. Do NOT ask the user to repeat a phrase. Just talk naturally.`;
             }
 
-            const aiGreeting = await aiService.getResponse(
+            const rawGreeting = await aiService.getResponse(
                 `[GREETING ONLY — do not start a conversation, just greet the user. ${levelNote}]`,
                 topicName,
                 activeCharacter,
@@ -530,6 +542,7 @@ export default function Chat() {
                 false,
                 levelId
             );
+            const aiGreeting = rawGreeting?.content || rawGreeting;
             const storedGreeting = aiGreeting
                 .replace(/<word>(.*?)<\/word>/g, '$1')
                 .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
@@ -539,7 +552,6 @@ export default function Chat() {
             );
             if (isNativeEnglish()) displayGreeting = stripLatinDiacritics(displayGreeting);
             setMessages([{ role: 'assistant', content: storedGreeting }]);
-            aiService.history.push({ role: 'assistant', content: storedGreeting });
 
             // Speak the greeting
             if (!isMuted && isMounted.current) {
@@ -763,34 +775,39 @@ export default function Chat() {
             }
 
             const isBeginner = effectiveLevel === 'zero';
+            const currentRepeats = progress?.successfulRepeats || 0;
             const acceptNote = (promptedPhrase && matchRatio >= threshold)
-                ? `The user's pronunciation was PERFECT. You MUST enthusiastically praise them. Do NOT correct them. Do NOT tell them they were 'almost right'. Do NOT provide alternative variations. Congratulate them briefly. ${isBeginner ? 'Then immediately set up a new engaging scenario and ask them to say a NEW phrase.' : 'Then move the conversation forward naturally by asking a simple question. DO NOT ask them to repeat anything.'} DO NOT ask them what they want to talk about.`
+                ? `The user's pronunciation was PERFECT. You MUST enthusiastically praise them. Do NOT correct them. Do NOT tell them they were 'almost right'. Do NOT provide alternative variations. Congratulate them briefly. ${isBeginner ? 'Then immediately continue with the CURRENT STAGE curriculum — either teach the next phrase in the same pattern, or if they have practiced 3-4 phrases in this pattern, try a VERIFICATION challenge (ask them to use the pattern without showing the exact phrase).' : 'Then move the conversation forward naturally by asking a simple question. DO NOT ask them to repeat anything.'} DO NOT ask them what they want to talk about.`
                 : (promptedPhrase && matchRatio < threshold)
                     ? `The user attempted the phrase but their pronunciation was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`
                     : null;
 
             // We combine display rules with our hidden note about user performance
             let baseMetaNote = [acceptNote, transitionNote].filter(Boolean).join('\n');
+            if (isBeginner) {
+                baseMetaNote += `\n[SYSTEM: The user's current successfulRepeats count is ${currentRepeats} out of 100. Use this to determine which STAGE of the curriculum to focus on. Stay within that stage's theme and patterns.]`;
+            }
             if (effectiveLevel === 'basic') {
-                baseMetaNote += '\n[SYSTEM REMINDER: You MUST evaluate the grammar of the user\'s response. Output <success>true</success> if word order was correct, or <success>false</success> if incorrect/missing. You MUST output one of these tags in this response. This is critical.]';
+                baseMetaNote += '\n[SYSTEM REMINDER: You MUST evaluate the grammar of the user\'s response. Output the result in the JSON "success" field. Set "success": true if word order was correct, or "success": false if incorrect/missing. This is critical.]';
             }
             const metaNote = baseMetaNote;
 
-            let botResponse = '';
+            let rawResponse = null;
             if (isTopicAnswer && effectiveLevel !== 'zero') {
                 const followupMsg = `Great! Tell me a topic you like (travel, food, friends), or say "you decide".`;
-                botResponse = await safeTranslate(followupMsg, nativeLangName);
+                const translated = await safeTranslate(followupMsg, nativeLangName);
+                rawResponse = { content: translated, success: null };
             } else {
-                botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
+                rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
             }
 
-            // Fallback safety if translation service or API completely fails
-            if (!botResponse || typeof botResponse !== 'string' || botResponse.trim() === '') {
-                botResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
-                if (!botResponse) {
-                    throw new Error("AI Service returned empty string on secondary fallback.");
-                }
+            // Fallback safety
+            if (!rawResponse || (!rawResponse.content && typeof rawResponse !== 'string')) {
+                rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
             }
+
+            let botResponse = rawResponse?.content || rawResponse;
+            if (typeof botResponse !== 'string') botResponse = '';
 
             // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
             const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
@@ -826,12 +843,24 @@ export default function Chat() {
                 setTimeout(() => setLevelUpToast(null), 6000);
             }
 
+            console.log('[AI Response Raw]', rawResponse);
             // Check for AI-triggered short-term progress (Guided Sentence Construction success)
             let statusTag = 'missing';
-            const successMatch = responseWithoutMeta.match(/<success>\s*(true|false)\s*<\/success>/i);
+
+            // Priority 1: Use explicit success flag if the response was a JSON object
+            if (rawResponse?.success !== undefined && rawResponse.success !== null) {
+                statusTag = rawResponse.success ? 'true' : 'false';
+            } else {
+                // Priority 2: Fallback to XML tag regex for legacy sessions or non-JSON responses
+                const successMatch = responseWithoutMeta.match(/<success>\s*(true|false)\s*<\/success>/i);
+                if (successMatch) {
+                    statusTag = successMatch[1].toLowerCase();
+                }
+            }
+            // Clean up tags in either case
             responseWithoutMeta = responseWithoutMeta.replace(/<success>.*?<\/success>/gi, '');
-            if (successMatch) {
-                statusTag = successMatch[1].toLowerCase();
+
+            if (statusTag === 'true' || statusTag === 'false') {
                 if (statusTag === 'true' && effectiveLevel !== 'zero') {
                     console.log('[Progress] AI reported success, calling /api/progress/increment...');
                     api.post('/api/progress/increment')
@@ -850,9 +879,6 @@ export default function Chat() {
                         })
                         .catch(err => console.warn('Failed to increment AI progress:', err));
                 }
-            }
-
-            if (effectiveLevel === 'basic') {
                 setSentenceSuccesses(prev => ({ ...prev, [userMessageIndex]: statusTag }));
             }
 
@@ -1094,7 +1120,17 @@ export default function Chat() {
                     <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                             <span style={{ fontSize: '11px', fontWeight: '700', color: '#7c3aed' }}>
-                                {progress.levelLabel}
+                                {progress.levelLabel}{progress.level === 'zero' && (() => {
+                                    const r = progress.successfulRepeats || 0;
+                                    if (r <= 12) return ' · Stage 1: Greetings';
+                                    if (r <= 25) return ' · Stage 2: Identity';
+                                    if (r <= 40) return ' · Stage 3: Ordering';
+                                    if (r <= 55) return ' · Stage 4: Questions';
+                                    if (r <= 68) return ' · Stage 5: Preferences';
+                                    if (r <= 80) return ' · Stage 6: Routines';
+                                    if (r <= 90) return ' · Stage 7: Navigation';
+                                    return ' · Stage 8: Social';
+                                })()}
                             </span>
                             <span style={{ fontSize: '11px', color: '#94a3b8' }}>
                                 {progress.successfulRepeats}/{progress.needed} → {progress.nextLevelLabel}
