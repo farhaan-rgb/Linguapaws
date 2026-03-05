@@ -43,7 +43,6 @@ export default function Chat() {
     const [recalibrationToast, setRecalibrationToast] = useState(null);
     const [copyToast, setCopyToast] = useState(false);
     const [levelUpToast, setLevelUpToast] = useState(null);
-    const [transliterations, setTransliterations] = useState({});
     const [userTransliterations, setUserTransliterations] = useState({});
     const [matchScores, setMatchScores] = useState({});
     const [sentenceSuccesses, setSentenceSuccesses] = useState({});
@@ -169,14 +168,14 @@ export default function Chat() {
             const msg = msgs[i];
             if (msg.role !== 'assistant') continue;
 
-            // If the message contains a target tag, we are definitely in a tutorial step
-            if (msg.content.includes('<target>')) return true;
+            // If the message contains bold text, we assume it's teaching a phrase
+            if (msg.content.includes('**')) return true;
 
             // Skip generic error messages that don't change the tutorial context
             const isError = msg.content.includes("couldn't quite hear") || msg.content.includes("whiskers got tangled");
             if (isError) continue;
 
-            // If it's a normal assistant message without tags, we are no longer in a tutorial step
+            // If it's a normal assistant message without bold text, we are no longer in a tutorial step
             return false;
         }
         return false;
@@ -239,29 +238,7 @@ export default function Chat() {
         return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').normalize('NFC');
     };
 
-    const buildPronunciationHint = (phrase) => {
-        if (!phrase || !isNativeEnglish()) return '';
-        const isVowel = (ch) => /[aeiou]/i.test(ch);
-        const words = phrase.split(/\s+/).filter(Boolean);
-        const hinted = words.map((word) => {
-            const parts = [];
-            let i = 0;
-            while (i < word.length) {
-                let start = i;
-                while (i < word.length && !isVowel(word[i])) i++;
-                if (i < word.length) {
-                    i++;
-                    while (i < word.length && isVowel(word[i])) i++;
-                    parts.push(word.slice(start, i));
-                } else {
-                    parts.push(word.slice(start));
-                    break;
-                }
-            }
-            return parts.join('-');
-        });
-        return hinted.join(' ');
-    };
+
 
     const isTopicPrompt = (text) => {
         if (!text) return false;
@@ -304,18 +281,12 @@ export default function Chat() {
 
     const extractPromptedPhrase = (text) => {
         if (!text) return null;
-        const targetMatch = text.match(/<target>(.*?)<\/target>/s);
-        if (targetMatch && targetMatch[1]) return targetMatch[1].trim();
+        const boldMatches = text.match(/\*\*(.*?)\*\*/g);
+        if (boldMatches && boldMatches.length > 0) {
+            return boldMatches[boldMatches.length - 1].replace(/\*\*/g, '').trim();
+        }
         return null;
     };
-
-    const buildDisplayRule = (nativeLangName, targetLangName) => (
-        `CRITICAL DISPLAY RULE: Respond in ${nativeLangName}. ` +
-        `Do NOT show ${targetLangName} script in visible text. ` +
-        `Whenever you ask the user to say a ${targetLangName} phrase, include the exact target phrase inside ` +
-        `<target>...</target> (in ${targetLangName} script). ` +
-        `Always explain the meaning of the practice phrase in ${nativeLangName} so the user knows what they are saying.`
-    );
 
     // Load chat messages and progress from database on mount
     useEffect(() => {
@@ -357,13 +328,6 @@ export default function Chat() {
     const renderMessageContent = (content, idx) => {
         let rendered = content.replace(/<shadow>(.*?)<\/shadow>/gs, '$1');
 
-        // Dynamically replace <target> tags with the bold transliterated text.
-        // This makes the transliterated pronunciation appear seamlessly inside the 
-        // assistant's text bubble exactly where the <target> tag was placed.
-        rendered = rendered.replace(/<target>.*?<\/target>/gs, () => {
-            const t = transliterations[idx];
-            return `**${t || '...'}**`;
-        });
         rendered = cleanupDisplayText(stripTargetScript(rendered));
         if (isNativeEnglish()) {
             rendered = stripLatinDiacritics(rendered);
@@ -424,7 +388,6 @@ export default function Chat() {
         // Auto-greet when the call connects
         const nativeLangName = nativeLang?.name || 'English';
         const targetLangName = targetLang?.name || 'English';
-        const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
         let greeting = await aiService.getResponse(
             `[CALL GREETING ONLY — keep it short. Greet warmly and invite practice.]`,
             topicName,
@@ -432,15 +395,14 @@ export default function Chat() {
             nativeLang,
             targetLang,
             false,
-            userLevel,
-            displayRuleNote
+            userLevel
         );
         const storedGreeting = greeting
             .replace(/<word>(.*?)<\/word>/g, '$1')
             .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
             .trim();
         let displayGreeting = cleanupDisplayText(
-            stripTargetScript(storedGreeting.replace(/<target>.*?<\/target>/gs, ''))
+            stripTargetScript(storedGreeting)
         );
         if (isNativeEnglish()) displayGreeting = stripLatinDiacritics(displayGreeting);
         if (isMounted.current) {
@@ -495,7 +457,7 @@ export default function Chat() {
                         .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                         .trim();
                     let displayResponse = cleanupDisplayText(
-                        stripTargetScript(storedResponse.replace(/<target>.*?<\/target>/gs, ''))
+                        stripTargetScript(storedResponse)
                     );
                     if (isNativeEnglish()) displayResponse = stripLatinDiacritics(displayResponse);
                     setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
@@ -550,17 +512,16 @@ export default function Chat() {
             const nativeLangName = nativeLang?.name || 'Hindi';
             const targetLangName = targetLang?.name || 'English';
 
-            const displayRule = buildDisplayRule(nativeLangName, targetLangName);
             let levelNote;
             if (levelId === 'zero') {
-                levelNote = `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. Set up a fun scene (e.g. "Let's order a coffee!") and end with ONE simple practice phrase (3-7 words). Show only its transliterated pronunciation. Include the phrase inside <target>...</target>. Ask them to try saying it.`;
+                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. Set up a fun scene (e.g. "Let's order a coffee!") and end with ONE simple practice phrase (3-7 words). Show only its transliterated pronunciation. Ask them to try saying it.`;
             } else if (levelId === 'basic') {
-                levelNote = `${displayRule} Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}, but sprinkle in 1-2 transliterated ${targetLangName} words with meanings in parentheses. Ask a simple question they can answer with a ${targetLangName} word (e.g., "Do you want coffee?"). DO NOT include a <target> tag and DO NOT ask them to repeat anything. Just start a conversation.`;
+                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}, but sprinkle in 1-2 transliterated ${targetLangName} words with meanings in parentheses. Ask a simple question they can answer with a ${targetLangName} word (e.g., "Do you want coffee?"). DO NOT ask them to repeat anything. Just start a conversation.`;
             } else if (levelId === 'conversational') {
-                levelNote = `${displayRule} Greet the user in mostly transliterated ${targetLangName} with ${nativeLangName} translations in parentheses after new phrases. Introduce yourself as ${activeCharacter?.name || 'Miko'} and ask a casual question about their day or interests. Do NOT ask them to repeat a phrase. Just have a natural conversation.`;
+                levelNote = `Greet the user in mostly transliterated ${targetLangName} with ${nativeLangName} translations in parentheses after new phrases. Introduce yourself as ${activeCharacter?.name || 'Miko'} and ask a casual question about their day or interests. Do NOT ask them to repeat a phrase. Just have a natural conversation.`;
             } else {
                 // fluent
-                levelNote = `${displayRule} Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. No English translations, no parenthetical hints. Speak naturally and casually like a local friend. Introduce yourself as ${activeCharacter?.name || 'Miko'} and start a flowing conversation about something interesting. Do NOT ask the user to repeat a phrase. Do NOT include <target> tags. Just talk naturally.`;
+                levelNote = `Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. No English translations, no parenthetical hints. Speak naturally and casually like a local friend. Introduce yourself as ${activeCharacter?.name || 'Miko'} and start a flowing conversation about something interesting. Do NOT ask the user to repeat a phrase. Just talk naturally.`;
             }
 
             const aiGreeting = await aiService.getResponse(
@@ -577,7 +538,7 @@ export default function Chat() {
                 .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                 .trim();
             let displayGreeting = cleanupDisplayText(
-                stripTargetScript(storedGreeting.replace(/<target>.*?<\/target>/gs, ''))
+                stripTargetScript(storedGreeting)
             );
             if (isNativeEnglish()) displayGreeting = stripLatinDiacritics(displayGreeting);
             setMessages([{ role: 'assistant', content: storedGreeting }]);
@@ -618,35 +579,7 @@ export default function Chat() {
         }
     }, [messages]);
 
-    useEffect(() => {
-        const nativeLangName = nativeLang?.name || 'English';
-        const targetLangName = targetLang?.name || 'English';
-        const pending = [];
-        messages.forEach((msg, idx) => {
-            if (msg.role !== 'assistant') return;
-            const phrase = extractPromptedPhrase(msg.content);
-            if (!phrase) return;
-            if (transliterations[idx]) return;
-            pending.push({ idx, phrase });
-        });
-        if (pending.length === 0) return;
 
-        let cancelled = false;
-        const run = async () => {
-            for (const item of pending) {
-                try {
-                    const data = await aiService.transliterate(item.phrase, targetLangName, nativeLangName);
-                    if (cancelled) return;
-                    if (data?.transliteration) {
-                        const formatted = formatTransliteration(data.transliteration, nativeLang);
-                        setTransliterations(prev => ({ ...prev, [item.idx]: formatted }));
-                    }
-                } catch { /* ignore */ }
-            }
-        };
-        run();
-        return () => { cancelled = true; };
-    }, [messages, userLevel, nativeLang?.name, targetLang?.name]);
 
     useEffect(() => {
         const nativeLangName = nativeLang?.name || 'English';
@@ -764,10 +697,10 @@ export default function Chat() {
             const userMessageIndex = messages.length;
 
             // Find the most recent instruction from Miko
-            // We prioritize messages with <target> tags because they are actively teaching
+            // We prioritize messages with bold phrases because they are actively teaching
             const lastAssistant = [...messages].reverse().find(m =>
                 m.role === 'assistant' &&
-                (m.content.includes('<target>') || (!m.content.includes("couldn't quite hear") && !m.content.includes("whiskers got tangled")))
+                (m.content.includes('**') || (!m.content.includes("couldn't quite hear") && !m.content.includes("whiskers got tangled")))
             );
             const lastWasTopicPrompt = isTopicPrompt(lastAssistant?.content);
             const isTopicAnswer = lastWasTopicPrompt && isTopicReply(text);
@@ -787,65 +720,12 @@ export default function Chat() {
                 bothLatin: isMostlyLatin(actual) && isMostlyLatin(expected),
             });
             let displayPhrase = promptedPhrase;
-            let translit = null;
-            const isNativeEng = (nativeLang?.id || '').toLowerCase() === 'en' ||
-                (nativeLang?.name || '').toLowerCase() === 'english';
 
-            // When the target phrase is in non-Latin script but user typed Latin,
-            // we need to compare against a transliterated version
-            if (promptedPhrase && isMostlyLatin(actual) && !isMostlyLatin(expected)) {
-                const assistantIndex = messages.lastIndexOf(lastAssistant);
-                translit = transliterations[assistantIndex];
-                if (!translit) {
-                    try {
-                        const data = await aiService.transliterate(promptedPhrase, targetLang?.name || 'English', nativeLang?.name || 'English');
-                        translit = formatTransliteration(data?.transliteration || '', nativeLang);
-                        if (translit) {
-                            setTransliterations(prev => ({ ...prev, [assistantIndex]: translit }));
-                        }
-                    } catch { /* ignore */ }
-                }
-                if (translit) {
-                    displayPhrase = translit;
-                    matchRatio = similarityRatioLatin(actual, translit);
-                }
-
-                // Fallback: extract bold Latin text from AI message as alternate match target
-                // e.g. "Say: **Oka coffee ivvandi**" → "Oka coffee ivvandi"
-                if (matchRatio < 0.5 && lastAssistant?.content) {
-                    const boldMatches = lastAssistant.content.match(/\*\*(.*?)\*\*/g);
-                    if (boldMatches) {
-                        for (const bold of boldMatches) {
-                            const boldText = bold.replace(/\*\*/g, '').trim();
-                            if (isMostlyLatin(boldText) && boldText.length > 2) {
-                                const altRatio = similarityRatioLatin(actual, boldText);
-                                if (altRatio > matchRatio) {
-                                    matchRatio = altRatio;
-                                    displayPhrase = boldText;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                console.log('[Match Debug]', { actual, expected, translit, matchRatio: Math.round(matchRatio * 100) + '%' });
-            } else if (promptedPhrase && (!isNativeEng || !isMostlyLatin(promptedPhrase))) {
-                const assistantIndex = messages.lastIndexOf(lastAssistant);
-                translit = transliterations[assistantIndex];
-                if (!translit) {
-                    try {
-                        const data = await aiService.transliterate(promptedPhrase, targetLang?.name || 'English', nativeLang?.name || 'English');
-                        translit = formatTransliteration(data?.transliteration || '', nativeLang);
-                        if (translit) {
-                            setTransliterations(prev => ({ ...prev, [assistantIndex]: translit }));
-                        }
-                    } catch { /* ignore */ }
-                }
-                if (translit) displayPhrase = translit;
-
-                if (isMostlyLatin(text) && translit) {
-                    matchRatio = similarityRatioLatin(actual, translit);
-                }
+            // Matching: promptedPhrase now comes directly from bold text in the prompt (**NAMASKARA**). 
+            // It is already in the transliterated form we expect for both levels and direct repetition.
+            if (promptedPhrase) {
+                matchRatio = similarityRatioLatin(actual, promptedPhrase);
+                console.log('[Match Debug]', { actual, expected: promptedPhrase, matchRatio: Math.round(matchRatio * 100) + '%' });
             }
 
             if (promptedPhrase) {
@@ -989,7 +869,7 @@ export default function Chat() {
                 .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                 .trim();
             let displayResponse = cleanupDisplayText(
-                stripTargetScript(storedResponse.replace(/<target>.*?<\/target>/gs, ''))
+                stripTargetScript(storedResponse)
             );
             if (isNativeEnglish()) displayResponse = stripLatinDiacritics(displayResponse);
             // Strip ALL special tags from TTS so audio doesn't read hidden tags
@@ -1138,12 +1018,6 @@ export default function Chat() {
                                 const label = m.role === 'assistant' ? 'Tutor' : 'Learner';
 
                                 let clean = m.content;
-                                if (m.role === 'assistant') {
-                                    // Inject the transliteration for the copy just like we do for the UI
-                                    clean = clean.replace(/<target>.*?<\/target>/gs, () => {
-                                        return transliterations[idx] || '';
-                                    });
-                                }
 
                                 clean = clean
                                     .replace(/<shadow>.*?<\/shadow>/gs, '')
@@ -1511,8 +1385,7 @@ export default function Chat() {
                             </motion.div>
                         )}
                         {/* The pronunciation box is intentionally removed here. 
-                           The pronunciation is now rendered inline via renderMessageContent
-                           replacing the <target> tag directly. */}
+                           The pronunciation is now rendered as bolded transliterated text. */}
                     </div>
                 ))}
                 {isLoading && (
