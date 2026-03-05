@@ -141,7 +141,7 @@ export default function Login() {
                 </div>
 
                 {/* Google Sign-in Button */}
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', maxWidth: '300px', margin: '0 auto' }}>
                     <GoogleLogin
                         onSuccess={handleSuccess}
                         onError={handleError}
@@ -149,7 +149,7 @@ export default function Login() {
                         size="large"
                         text="signin_with"
                         logo_alignment="left"
-                        width="320"
+                        width="300"
                         disabled={isSigningIn}
                     />
 

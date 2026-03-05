@@ -51,6 +51,7 @@ export default function Chat() {
     const scrollRef = useRef(null);
     const audioRef = useRef(new Audio());
     const hasGreeted = useRef(false);
+    const isInitialLoadComplete = useRef(false);
     const exchangeCount = useRef(0);
     const isMounted = useRef(true);
     const [isCallMode, setIsCallMode] = useState(false);
@@ -291,6 +292,7 @@ export default function Chat() {
     // Load chat messages and progress from database on mount
     useEffect(() => {
         let cancelled = false;
+        isInitialLoadComplete.current = false;
         (async () => {
             try {
                 const [chatData, progressData] = await Promise.all([
@@ -300,9 +302,16 @@ export default function Chat() {
                 if (cancelled) return;
                 if (chatData.messages?.length > 0) {
                     setMessages(chatData.messages);
+                    aiService.setHistory(chatData.messages);
                     hasGreeted.current = true;
                     exchangeCount.current = chatData.messages.filter(m => m.role === 'user').length;
+                } else {
+                    setMessages([]);
+                    aiService.resetHistory();
+                    hasGreeted.current = false;
+                    exchangeCount.current = 0;
                 }
+                isInitialLoadComplete.current = true;
                 setProgress(progressData);
                 setUserLevel(progressData.level || 'zero');
             } catch (err) {
@@ -326,7 +335,8 @@ export default function Chat() {
     // Render assistant messages with safe substitutions (no target script on screen).
     // Also renders **bold** and *italic* markdown into JSX.
     const renderMessageContent = (content, idx) => {
-        let rendered = content.replace(/<shadow>(.*?)<\/shadow>/gs, '$1');
+        let rendered = content.replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
+            .replace(/<phonetic>(.*?)<\/phonetic>/gi, '');
 
         rendered = cleanupDisplayText(stripTargetScript(rendered));
         if (isNativeEnglish()) {
@@ -338,10 +348,10 @@ export default function Chat() {
         if (parts.length <= 1) return rendered;
         return parts.map((part, i) => {
             if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={i}>{part.slice(2, -2)}</strong>;
+                return <strong key={i} style={{ color: 'var(--accent-purple)', fontWeight: '800' }}>{part.slice(2, -2)}</strong>;
             }
             if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
-                return <em key={i}>{part.slice(1, -1)}</em>;
+                return <strong key={i} style={{ color: 'var(--accent-purple)', fontWeight: '800' }}>{part.slice(1, -1)}</strong>;
             }
             return part;
         });
@@ -511,6 +521,13 @@ export default function Chat() {
         isMounted.current = true;
 
         const greet = async () => {
+            // Wait for DB load to finish so we know if we need to greet
+            let attempts = 0;
+            while (!isInitialLoadComplete.current && attempts < 20) {
+                await new Promise(r => setTimeout(r, 100));
+                attempts++;
+            }
+
             if (hasGreeted.current) return;
             hasGreeted.current = true;
 
@@ -1394,6 +1411,42 @@ export default function Chat() {
                                 </motion.button>
                             </div>
                         )}
+                        {/* Phonetic Pronunciation Box */}
+                        {(() => {
+                            const prompted = extractPromptedPhrase(msg.content);
+                            const phoneticMatch = msg.content.match(/<phonetic>(.*?)<\/phonetic>/i);
+                            const phonetic = phoneticMatch ? phoneticMatch[1] : null;
+
+                            if (prompted && msg.role === 'assistant') {
+                                return (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        style={{
+                                            marginTop: '6px',
+                                            padding: '4px 10px',
+                                            background: 'rgba(124, 58, 237, 0.04)',
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(192, 132, 252, 0.3)',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '8px'
+                                        }}
+                                    >
+                                        <span style={{ fontSize: '9px', color: '#7c3aed', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pronunciation:</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span style={{ fontSize: '14px', fontWeight: '800', color: '#4c1d95' }}>{prompted}</span>
+                                            {phonetic && (
+                                                <span style={{ fontSize: '12px', color: '#6d28d9', fontStyle: 'italic', background: 'white', padding: '1px 6px', borderRadius: '4px', border: '1px solid #eee' }}>
+                                                    {phonetic}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                );
+                            }
+                            return null;
+                        })()}
                         {translations[i] && (
                             <motion.div
                                 initial={{ opacity: 0, height: 0 }}
@@ -1493,12 +1546,14 @@ export default function Chat() {
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
                         <div style={{ position: 'relative' }}>
                             <motion.button
-                                animate={isRecording ? { scale: [1, 1.1, 1], boxShadow: ['0 0 0px #ef4444', '0 0 20px #ef4444', '0 0 0px #ef4444'] } : {}}
+                                animate={isRecording ? { scale: [1, 1.15, 1], boxShadow: ['0 0 0px #ef4444', '0 0 40px rgba(239, 68, 68, 0.4)', '0 0 0px #ef4444'] } : {}}
                                 transition={{ repeat: Infinity, duration: 1.5 }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.9 }}
                                 onClick={toggleRecording}
                                 style={{
-                                    width: '90px',
-                                    height: '90px',
+                                    width: '100px',
+                                    height: '100px',
                                     borderRadius: '50%',
                                     background: isRecording ? '#ef4444' : 'var(--primary-gradient)',
                                     border: 'none',
@@ -1507,11 +1562,37 @@ export default function Chat() {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     cursor: 'pointer',
-                                    boxShadow: '0 8px 32px rgba(139, 92, 246, 0.3)'
+                                    boxShadow: '0 8px 32px rgba(139, 92, 246, 0.3)',
+                                    zIndex: 2,
+                                    position: 'relative'
                                 }}
                             >
-                                {isRecording ? <Square size={36} fill="white" /> : <Mic size={40} />}
+                                {isRecording ? <Square size={40} fill="white" /> : <Mic size={44} />}
+                                {isRecording && (
+                                    <motion.div
+                                        animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0, 0.3] }}
+                                        transition={{ repeat: Infinity, duration: 2 }}
+                                        style={{
+                                            position: 'absolute',
+                                            width: '100%',
+                                            height: '100%',
+                                            borderRadius: '50%',
+                                            background: '#ef4444',
+                                            zIndex: -1
+                                        }}
+                                    />
+                                )}
                             </motion.button>
+                            <span style={{
+                                fontSize: '13px',
+                                fontWeight: '700',
+                                color: isRecording ? '#ef4444' : '#64748b',
+                                marginTop: '8px',
+                                textAlign: 'center',
+                                display: 'block'
+                            }}>
+                                {isRecording ? 'Listening... Tap to stop' : 'Tap to speak'}
+                            </span>
                         </div>
 
                         <div style={{ display: 'flex', gap: '16px', width: '100%', justifyContent: 'center' }}>

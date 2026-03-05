@@ -90,6 +90,7 @@ STAGE 8 (repeats 91–100): SOCIAL — Invitations & Wrap-up
 - Introduce EXACTLY ONE phrase or pattern per message. MAXIMUM 4-5 words per phrase.
 - NEVER use brackets or placeholders in the actual practice phrase. Use a real example (e.g., "Nanna hesaru Rahul" not "Nanna hesaru [Name]").
 - ALWAYS put the practice phrase in **bold text** (e.g., **Namaskara**).
+- When teaching a new phrase in bold, also provide a simple phonetic pronunciation hint in a <phonetic> tag immediately after (e.g. **Namaskara** <phonetic>[ Nuh-mus-kah-rah ]</phonetic>). Use phonetic spellings that are easy for ${nativeLangName} speakers to read sounds correctly.
 - Always explain meaning in ${nativeLangName} BEFORE asking them to say it.
 - After 3-4 repetitions of a pattern, switch to a VERIFICATION mode: ask the user to use the pattern WITHOUT showing them the exact phrase. Example: "Now, how would you ask for a tea?" If they get it right, praise them enthusiastically.
 - Be extremely warm, encouraging, and patient. Use cat puns. Celebrate every attempt.
@@ -502,8 +503,12 @@ SHADOW PRACTICE:
                 messages: [
                     {
                         role: 'system',
-                        content: `Extract the difficult or key ${targetLangName} words from the following text and provide their simplified definitions in ${nativeLangName}, parts of speech, and an example sentence in ${targetLangName} for each.
-                        Format the response as a JSON array of objects with keys: "word", "definition", "partOfSpeech", "example".
+                        content: `Extract the difficult or key ${targetLangName} words from the following text and provide their simplified definitions in ${nativeLangName}, parts of speech, an example sentence, and a phonetic pronunciation hint.
+                        
+                        CRITICAL INSTRUCTIONS:
+                        1. The "example" field MUST be in the format: "Transliterated Phrase (English Meaning)".
+                        2. The "phonetic" field should be a simple phonetic spelling to help with pronunciation (e.g., "[ Say-loo-tay-shun ]").
+                        Format the response as a JSON array of objects with keys: "word", "definition", "partOfSpeech", "example", "phonetic".
                         Keep the definitions simple and encouraging, like a friendly cat coach.`,
                     },
                     { role: 'user', content: text },
@@ -558,10 +563,14 @@ SHADOW PRACTICE:
                 messages: [
                     {
                         role: 'system',
-                        content: `You are Miko's assistant. Based on the conversation history, provide 3 short, natural, and helpful ${targetLangName} response suggestions for the user. 
-            - Keep them brief(max 10 words).
-                        - Vary the tone(one curious, one polite, one casual).
-                        - Use simple vocabulary suitable for a learner.
+                        content: `You are Miko's assistant. Based on the conversation history, provide 3 helpful ${targetLangName} response suggestions for the user. 
+                        - Vary the tone significantly:
+                          1. One "Social/Polite" (e.g. enthusiastic agreement or greeting).
+                          2. One "Creative/Conversational" (adds a detail or share an opinion).
+                          3. One "Questioning" (to keep the conversation moving).
+                        - Keep them brief (max 12 words).
+                        - For Beginner/Zero level learners, include the transliterated ${targetLangName} followed by the English translation in parentheses.
+                        - Use simple, common vocabulary.
                         
                         Return a JSON object with a "suggestions" key containing an array of strings.
                         Only return valid JSON.`,
@@ -581,6 +590,10 @@ SHADOW PRACTICE:
 
     resetHistory() {
         this.history = [];
+    }
+
+    setHistory(history) {
+        this.history = [...(history || [])];
     }
 }
 
