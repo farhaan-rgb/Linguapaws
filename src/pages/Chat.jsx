@@ -448,10 +448,7 @@ export default function Chat() {
                     const userWords = transcript.match(/[\p{L}]{2,}/gu);
                     if (userWords) userWords.forEach(w => { wordTracker.addWord(w); });
 
-                    const nativeLangName = nativeLang?.name || 'English';
-                    const targetLangName = targetLang?.name || 'English';
-                    const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
-                    const botResponse = await aiService.getResponse(transcript, topicName, activeCharacter, nativeLang, targetLang, false, userLevel, displayRuleNote);
+                    const botResponse = await aiService.getResponse(transcript, topicName, activeCharacter, nativeLang, targetLang, false, userLevel);
                     const storedResponse = botResponse
                         .replace(/<word>(.*?)<\/word>/g, '$1')
                         .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
@@ -772,12 +769,8 @@ export default function Chat() {
                     ? `The user attempted the phrase but their pronunciation was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`
                     : null;
 
-            const nativeLangName = nativeLang?.name || 'English';
-            const targetLangName = targetLang?.name || 'English';
-            const displayRuleNote = buildDisplayRule(nativeLangName, targetLangName);
-
             // We combine display rules with our hidden note about user performance
-            let baseMetaNote = [displayRuleNote, acceptNote, transitionNote].filter(Boolean).join('\n');
+            let baseMetaNote = [acceptNote, transitionNote].filter(Boolean).join('\n');
             if (effectiveLevel === 'basic') {
                 baseMetaNote += '\n[SYSTEM REMINDER: You MUST evaluate the grammar of the user\'s response. Output <success>true</success> if word order was correct, or <success>false</success> if incorrect/missing. You MUST output one of these tags in this response. This is critical.]';
             }
