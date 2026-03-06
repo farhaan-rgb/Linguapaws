@@ -1411,37 +1411,36 @@ export default function Chat() {
                                 </motion.button>
                             </div>
                         )}
-                        {/* Phonetic Pronunciation Box */}
+                        {/* Pronunciation Card (Refined Style) */}
                         {(() => {
                             const prompted = extractPromptedPhrase(msg.content);
                             const phoneticMatch = msg.content.match(/<phonetic>(.*?)<\/phonetic>/i);
-                            const phonetic = phoneticMatch ? phoneticMatch[1] : null;
+                            let phonetic = phoneticMatch ? phoneticMatch[1] : null;
 
-                            if (prompted && msg.role === 'assistant') {
+                            // Clean phonetic from AI-generated brackets
+                            if (phonetic) phonetic = phonetic.replace(/[\[\]]/g, '').trim();
+
+                            if ((prompted || phonetic) && msg.role === 'assistant') {
                                 return (
                                     <motion.div
-                                        initial={{ opacity: 0, y: 5 }}
-                                        animate={{ opacity: 1, y: 0 }}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
                                         style={{
-                                            marginTop: '6px',
-                                            padding: '4px 10px',
-                                            background: 'rgba(124, 58, 237, 0.04)',
-                                            borderRadius: '8px',
-                                            border: '1px solid rgba(192, 132, 252, 0.3)',
-                                            display: 'inline-flex',
+                                            marginTop: '10px',
+                                            padding: '12px 16px',
+                                            background: '#f1f5fe',
+                                            borderRadius: '16px',
+                                            borderLeft: '4px solid #5c67f2',
+                                            display: 'flex',
                                             alignItems: 'center',
-                                            gap: '8px'
+                                            gap: '8px',
+                                            boxShadow: '0 2px 10px rgba(92, 103, 242, 0.05)'
                                         }}
                                     >
-                                        <span style={{ fontSize: '9px', color: '#7c3aed', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pronunciation:</span>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <span style={{ fontSize: '14px', fontWeight: '800', color: '#4c1d95' }}>{prompted}</span>
-                                            {phonetic && (
-                                                <span style={{ fontSize: '12px', color: '#6d28d9', fontStyle: 'italic', background: 'white', padding: '1px 6px', borderRadius: '4px', border: '1px solid #eee' }}>
-                                                    {phonetic}
-                                                </span>
-                                            )}
-                                        </div>
+                                        <span style={{ fontSize: '14px', color: '#444', fontWeight: '800' }}>Pronunciation:</span>
+                                        <span style={{ fontSize: '14px', color: '#666', fontWeight: '500' }}>
+                                            {phonetic || prompted}
+                                        </span>
                                     </motion.div>
                                 );
                             }
@@ -1583,17 +1582,15 @@ export default function Chat() {
                                     />
                                 )}
                             </motion.button>
-                            <span style={{
-                                fontSize: '13px',
-                                fontWeight: '700',
-                                color: isRecording ? '#ef4444' : '#64748b',
-                                marginTop: '8px',
-                                textAlign: 'center',
-                                display: 'block'
-                            }}>
-                                {isRecording ? 'Listening... Tap to stop' : 'Tap to speak'}
-                            </span>
                         </div>
+                        <span style={{
+                            fontSize: '13px',
+                            fontWeight: '700',
+                            color: isRecording ? '#ef4444' : '#64748b',
+                            textAlign: 'center'
+                        }}>
+                            {isRecording ? 'Listening... Tap to stop' : 'Tap to speak'}
+                        </span>
 
                         <div style={{ display: 'flex', gap: '16px', width: '100%', justifyContent: 'center' }}>
                             <motion.button
