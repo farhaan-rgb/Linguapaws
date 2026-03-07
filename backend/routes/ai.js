@@ -1,5 +1,6 @@
 const express = require('express');
 const OpenAI = require('openai');
+const { createClient } = require('@deepgram/sdk');
 const textToSpeech = require('@google-cloud/text-to-speech');
 const requireAuth = require('../middleware/auth');
 
@@ -10,6 +11,12 @@ let openai;
 const getClient = () => {
     if (!openai) openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     return openai;
+};
+
+let deepgram;
+const getDeepgram = () => {
+    if (!deepgram) deepgram = createClient(process.env.DEEPGRAM_API_KEY);
+    return deepgram;
 };
 
 let googleTtsClient;
@@ -178,7 +185,7 @@ router.post('/speech', async (req, res) => {
 // POST /api/ai/transcribe
 router.post('/transcribe', async (req, res) => {
     try {
-        const { audioBase64, mimeType = 'audio/webm', nativeLang = null, targetLang = null, expectingTargetLang = false } = req.body;
+        const { audioBase64, mimeType = 'audio/webm', nativeLang = null, targetLang = null, expectingTargetLang = false, targetText = null } = req.body;
         if (!audioBase64) return res.status(400).json({ error: 'audioBase64 is required' });
 
         const buffer = Buffer.from(audioBase64, 'base64');
@@ -191,53 +198,81 @@ router.post('/transcribe', async (req, res) => {
         };
         const ext = mimeMap[mimeType.split(';')[0]] || 'webm';
 
-        const file = await OpenAI.toFile(buffer, `audio.${ext}`, { type: mimeType });
-
-        // Language IDs that Whisper's `language` parameter ACTUALLY supports (ISO 639-1).
-        // Verified against OpenAI docs. Languages NOT supported include:
-        // te (Telugu), bn (Bengali), gu (Gujarati), ml (Malayalam), pa (Punjabi), or (Odia)
-        // For unsupported languages, we let Whisper auto-detect + GPT verification corrects.
-        const supportedByWhisper = new Set([
-            'hi', 'mr', 'ta', 'ur', 'kn', 'en',
-            'fr', 'es', 'de', 'it', 'pt', 'ja', 'ko', 'zh',
-            'ne', 'ar', 'ru', 'tr', 'pl', 'nl', 'sv', 'th', 'vi',
-        ]);
-
         const nativeLangId = (nativeLang?.id || '').toLowerCase();
         const targetLangId = (targetLang?.id || '').toLowerCase();
         const nativeLangName = nativeLang?.name || null;
         const targetLangName = targetLang?.name || null;
 
-        // Context-aware Whisper hinting:
-        // - If the bot asked the user to repeat a target-language phrase, hint with target language
-        //   so Whisper doesn't force-interpret Telugu/Hindi/etc. speech as English.
-        // - Otherwise, don't force a single language — let Whisper auto-detect. The GPT
-        //   verification pass will handle any misidentification.
-        let whisperLang;
-        if (expectingTargetLang && supportedByWhisper.has(targetLangId)) {
-            whisperLang = targetLangId;
-        } else if (!expectingTargetLang && supportedByWhisper.has(nativeLangId)) {
-            whisperLang = nativeLangId;
-        } else {
-            whisperLang = undefined; // auto-detect
+        let rawText = null;
+        let usedEngine = 'none';
+
+        // --- PHASE 1: Try Deepgram (Primary) ---
+        if (process.env.DEEPGRAM_API_KEY) {
+            try {
+                const deepgramClient = getDeepgram();
+                const { result, error } = await deepgramClient.listen.prerecorded.transcribeFile(
+                    buffer,
+                    {
+                        model: 'nova-2',
+                        language: expectingTargetLang ? (targetLangId || 'hi') : (nativeLangId || 'en'),
+                        smart_format: true,
+                        punctuate: true,
+                        // Search for the specific phrase if provided (high accuracy boost)
+                        ...(targetText ? { search: [targetText.toLowerCase()] } : {}),
+                        // If we're expecting target language, boost common phonetic patterns
+                        ...(expectingTargetLang ? { filler_words: false } : {})
+                    }
+                );
+
+                if (error) throw error;
+
+                rawText = result?.results?.channels[0]?.alternatives[0]?.transcript;
+                if (rawText) usedEngine = 'deepgram';
+            } catch (dgErr) {
+                console.warn('Deepgram transcription failed or credits exhausted. Falling back to Whisper:', dgErr.message);
+            }
         }
 
-        // Use initial_prompt to guide Whisper towards the correct script/vocab
-        let prompt;
-        if (expectingTargetLang && targetLangName) {
-            prompt = `The user is speaking ${targetLangName}. Possibly about: ${targetLangName} phrases, greetings, or common sentences. Example words might include native scripts if needed.`;
-        } else if (nativeLangName) {
-            prompt = `The user is speaking ${nativeLangName} or English.`;
+        // --- PHASE 2: Fallback to OpenAI Whisper ---
+        if (!rawText) {
+            try {
+                const file = await OpenAI.toFile(buffer, `audio.${ext}`, { type: mimeType });
+
+                // Language IDs that Whisper supports
+                const supportedByWhisper = new Set([
+                    'hi', 'mr', 'ta', 'ur', 'kn', 'en',
+                    'fr', 'es', 'de', 'it', 'pt', 'ja', 'ko', 'zh',
+                    'ne', 'ar', 'ru', 'tr', 'pl', 'nl', 'sv', 'th', 'vi',
+                ]);
+
+                let whisperLang;
+                if (expectingTargetLang && supportedByWhisper.has(targetLangId)) {
+                    whisperLang = targetLangId;
+                } else if (!expectingTargetLang && supportedByWhisper.has(nativeLangId)) {
+                    whisperLang = nativeLangId;
+                }
+
+                let prompt;
+                if (expectingTargetLang && targetLangName) {
+                    prompt = `The user is speaking ${targetLangName}. Focus on target language accuracy. ${targetText ? `The expected phrase is: ${targetText}` : ''}`;
+                } else if (nativeLangName) {
+                    prompt = `The user is speaking ${nativeLangName} or English.`;
+                }
+
+                const transcription = await getClient().audio.transcriptions.create({
+                    file,
+                    model: 'whisper-1',
+                    ...(whisperLang ? { language: whisperLang } : {}),
+                    ...(prompt ? { prompt } : {}),
+                });
+
+                rawText = (transcription.text || '').trim();
+                if (rawText) usedEngine = 'whisper';
+            } catch (wErr) {
+                console.error('Whisper fallback also failed:', wErr.message);
+            }
         }
 
-        const transcription = await getClient().audio.transcriptions.create({
-            file,
-            model: 'whisper-1',
-            ...(whisperLang ? { language: whisperLang } : {}),
-            ...(prompt ? { prompt } : {}),
-        });
-
-        let rawText = (transcription.text || '').trim();
         if (!rawText) return res.json({ text: null });
 
         // If we have both language contexts, use a quick GPT pass to verify/correct

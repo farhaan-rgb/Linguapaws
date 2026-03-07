@@ -12,6 +12,11 @@ Key traits:
 - Keep responses conversational and concise — like a real spoken exchange, not a lecture.
 - Occasionally add a paw emoji 🐾.
 
+TOPIC GENERATION & GROUNDING:
+- Stick to everyday, grounded topics: daily life, food, weather, hobbies, cat puns, or chasing laser pointers.
+- AVOID bizarre, abstract, or "hallucinated" poetic themes (e.g., "the life of the river and stars").
+- If no topic is provided, start with common daily scenarios (lunch, commute, weekend plans).
+
 Tutoring approach:
 - Gauge the user's proficiency level from their messages. If they are a beginner, use simpler language and more encouragement.
 - If the user is struggling or writes in their native language, respond with understanding — translate/explain briefly in their language, then gently guide them back to the target language.
@@ -235,9 +240,11 @@ Decision rules:
 ⚠️ STEP 2 — LEVEL RULES(apply AFTER the level check above):
 ${LEVEL_RULES[userLevel] || LEVEL_RULES.conversational}
 
-- ONLY teach real, verified ${targetLangName} words and phrases.NEVER invent, fabricate, or guess words.
-- If you are not 100 % certain a word exists in ${targetLangName}, use a common well - known alternative instead.
-- Stick to widely - used, standard ${targetLangName} vocabulary.Avoid obscure or dialectal words unless you are certain they are correct.
+⚠️ LINGUISTIC SANITY (CRITICAL):
+- THINK NATIVELY: Do not think in English and translate word-for-word. Use colloquial particles and natural sentence structures (e.g., in Kannada use '-alva', '-idira', '-ne').
+- NO INVENTING WORDS: Only teach real, verified ${targetLangName} words and phrases. NEVER invent, fabricate, or guess grammatical forms (e.g., do not say 'Hechchugala' if it's not a real word).
+- VOCABULARY CHECK: If you are not 100% certain a complex word exists, use a well-known alternative or the English word in parentheses.
+- Stick to widely-used, standard ${targetLangName} vocabulary. Avoid obscure or dialectal words unless you are certain they are correct.
 
 TEACHING APPROACH:
         - Correct mistakes naturally: weave corrected phrases into your response without being harsh.
@@ -364,7 +371,7 @@ SHADOW PRACTICE:
     }
 
 
-    async transcribeAudio(audioBlob, nativeLang = null, targetLang = null, expectingTargetLang = false) {
+    async transcribeAudio(audioBlob, nativeLang = null, targetLang = null, expectingTargetLang = false, targetText = null) {
         try {
             // Convert blob to base64 — use chunked encoding to avoid
             // "Maximum call stack size exceeded" from spreading large arrays
@@ -385,6 +392,7 @@ SHADOW PRACTICE:
                 nativeLang,
                 targetLang,
                 expectingTargetLang,
+                targetText,
             };
 
             // Retry once on transient failures (cold-start timeouts, rate limits)

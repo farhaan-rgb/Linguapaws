@@ -28,7 +28,7 @@ export default function Chat() {
 
     const [isLoading, setIsLoading] = useState(false);
     const [inputText, setInputText] = useState('');
-    const [inputMode, setInputMode] = useState(localStorage.getItem('linguapaws_input_mode') || 'voice');
+    const [inputMode, setInputMode] = useState(localStorage.getItem('linguapaws_input_mode') || 'text');
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [translations, setTranslations] = useState({});
@@ -540,14 +540,14 @@ export default function Chat() {
             let levelNote;
             const currentRepeats = progress?.successfulRepeats || 0;
             if (levelId === 'zero') {
-                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The user has ${currentRepeats} successfulRepeats out of 100. Check the 8-STAGE CURRICULUM to determine which stage they are on, then set up a fun scene relevant to that stage and end with ONE simple practice phrase from that stage's vocabulary. Show only its transliterated pronunciation in bold. Ask them to try saying it.`;
+                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The user has ${currentRepeats} successfulRepeats out of 100. Check the 8-STAGE CURRICULUM to determine which stage they are on, then set up a grounded daily scene (e.g. coffee shop, home, work) and end with ONE simple practice phrase from that stage's vocabulary. Show only its transliterated pronunciation in bold. Ask them to try saying it.`;
             } else if (levelId === 'basic') {
-                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}, but sprinkle in 1-2 transliterated ${targetLangName} words with meanings in parentheses. Ask a simple question they can answer with a ${targetLangName} word (e.g., "Do you want coffee?"). DO NOT ask them to repeat anything. Just start a conversation.`;
+                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}, but sprinkle in 1-2 transliterated ${targetLangName} words with meanings in parentheses. Ask a simple question about a daily topic like food, weather, or work that they can answer with a ${targetLangName} word (e.g., "Do you want coffee?"). DO NOT ask them to repeat anything. Just start a conversation.`;
             } else if (levelId === 'conversational') {
-                levelNote = `Greet the user in mostly transliterated ${targetLangName} with ${nativeLangName} translations in parentheses after new phrases. Introduce yourself as ${activeCharacter?.name || 'Miko'} and ask a casual question about their day or interests. Do NOT ask them to repeat a phrase. Just have a natural conversation.`;
+                levelNote = `Greet the user in mostly transliterated ${targetLangName} with ${nativeLangName} translations in parentheses after new phrases. Introduce yourself as ${activeCharacter?.name || 'Miko'} and ask a casual question about their day, work, or hobbies. Stick to everyday reality—avoid abstract poetic themes. Do NOT ask them to repeat a phrase. Just have a natural conversation.`;
             } else {
                 // fluent
-                levelNote = `Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. No English translations, no parenthetical hints. Speak naturally and casually like a local friend. Introduce yourself as ${activeCharacter?.name || 'Miko'} and start a flowing conversation about something interesting. Do NOT ask the user to repeat a phrase. Just talk naturally.`;
+                levelNote = `Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. No English translations, no parenthetical hints. Speak naturally and casually like a local friend. Introduce yourself as ${activeCharacter?.name || 'Miko'} and start a flowing conversation about a grounded, interesting daily topic (news, hobbies, plans). Strictly avoid abstract poetic hallucinations. Do NOT ask the user to repeat a phrase. Just talk naturally.`;
             }
 
             const rawGreeting = await aiService.getResponse(
@@ -944,7 +944,9 @@ export default function Chat() {
                 // Check if the bot asked the user to repeat a target-language phrase
                 // We look back past error messages to find the real context
                 const expectingTarget = isAssistantExpectingTarget(messages);
-                const result = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang, expectingTarget);
+                const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
+                const targetText = lastAssistantMsg ? extractPromptedPhrase(lastAssistantMsg.content) : null;
+                const result = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang, expectingTarget, targetText);
                 if (result?.text) {
                     handleSend(result.text);
                 } else {
@@ -1539,106 +1541,116 @@ export default function Chat() {
             )}
 
             {/* Persistent Input Mode Controller */}
-            <div style={{ padding: '24px', background: 'white', borderTop: '1px solid #eee', position: 'relative' }}>
+            <div style={{ padding: '12px 20px', background: 'white', borderTop: '1px solid #eee', position: 'relative' }}>
                 {inputMode === 'voice' ? (
-                    /* Voice-First Layout */
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-                        <div style={{ position: 'relative' }}>
+                    /* Voice-First Layout - Optimized for space */
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+                        {/* Left: Action Buttons (Stacked vertically to save height) */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             <motion.button
-                                animate={isRecording ? { scale: [1, 1.15, 1], boxShadow: ['0 0 0px #ef4444', '0 0 40px rgba(239, 68, 68, 0.4)', '0 0 0px #ef4444'] } : {}}
-                                transition={{ repeat: Infinity, duration: 1.5 }}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={toggleRecording}
-                                style={{
-                                    width: '100px',
-                                    height: '100px',
-                                    borderRadius: '50%',
-                                    background: isRecording ? '#ef4444' : 'var(--primary-gradient)',
-                                    border: 'none',
-                                    color: 'white',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    cursor: 'pointer',
-                                    boxShadow: '0 8px 32px rgba(139, 92, 246, 0.3)',
-                                    zIndex: 2,
-                                    position: 'relative'
-                                }}
-                            >
-                                {isRecording ? <Square size={40} fill="white" /> : <Mic size={44} />}
-                                {isRecording && (
-                                    <motion.div
-                                        animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0, 0.3] }}
-                                        transition={{ repeat: Infinity, duration: 2 }}
-                                        style={{
-                                            position: 'absolute',
-                                            width: '100%',
-                                            height: '100%',
-                                            borderRadius: '50%',
-                                            background: '#ef4444',
-                                            zIndex: -1
-                                        }}
-                                    />
-                                )}
-                            </motion.button>
-                        </div>
-                        <span style={{
-                            fontSize: '13px',
-                            fontWeight: '700',
-                            color: isRecording ? '#ef4444' : '#64748b',
-                            textAlign: 'center'
-                        }}>
-                            {isRecording ? 'Listening... Tap to stop' : 'Tap to speak'}
-                        </span>
-
-                        <div style={{ display: 'flex', gap: '16px', width: '100%', justifyContent: 'center' }}>
-                            <motion.button
-                                whileTap={{ scale: 0.95 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={toggleInputMode}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '10px 20px',
-                                    borderRadius: '20px',
+                                    gap: '6px',
+                                    padding: '8px 16px',
+                                    borderRadius: '16px',
                                     background: '#f1f5f9',
                                     border: 'none',
                                     color: '#475569',
-                                    fontSize: '13px',
+                                    fontSize: '12px',
                                     fontWeight: '700',
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                                 }}
                             >
-                                <Keyboard size={16} />
+                                <Keyboard size={14} />
                                 {t.switch_to_typing}
                             </motion.button>
 
                             <motion.button
-                                whileTap={{ scale: 0.95 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={fetchSuggestions}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '8px',
-                                    padding: '10px 20px',
-                                    borderRadius: '20px',
+                                    gap: '6px',
+                                    padding: '8px 14px',
+                                    borderRadius: '16px',
                                     background: '#f5f3ff',
                                     border: '1px solid #ddd6fe',
                                     color: '#7c3aed',
-                                    fontSize: '13px',
+                                    fontSize: '12px',
                                     fontWeight: '700',
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                                 }}
                             >
-                                <Sparkles size={16} />
+                                <Sparkles size={14} />
                                 {t.help_me_answer}
                             </motion.button>
+                        </div>
+
+                        {/* Right: Compact Mic Button */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ position: 'relative' }}>
+                                <motion.button
+                                    animate={isRecording ? {
+                                        scale: [1, 1.1, 1],
+                                        boxShadow: ['0 0 0px #ef4444', '0 0 20px rgba(239, 68, 68, 0.4)', '0 0 0px #ef4444']
+                                    } : {}}
+                                    transition={{ repeat: Infinity, duration: 1.5 }}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={toggleRecording}
+                                    style={{
+                                        width: '64px',
+                                        height: '64px',
+                                        borderRadius: '50%',
+                                        background: isRecording ? '#ef4444' : 'var(--primary-gradient)',
+                                        border: 'none',
+                                        color: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                                        zIndex: 2,
+                                        position: 'relative'
+                                    }}
+                                >
+                                    {isRecording ? <Square size={24} fill="white" /> : <Mic size={28} />}
+                                    {isRecording && (
+                                        <motion.div
+                                            animate={{ scale: [1, 1.8, 1], opacity: [0.3, 0, 0.3] }}
+                                            transition={{ repeat: Infinity, duration: 2 }}
+                                            style={{
+                                                position: 'absolute',
+                                                width: '100%',
+                                                height: '100%',
+                                                borderRadius: '50%',
+                                                background: '#ef4444',
+                                                zIndex: -1
+                                            }}
+                                        />
+                                    )}
+                                </motion.button>
+                            </div>
+                            <span style={{
+                                fontSize: '11px',
+                                fontWeight: '800',
+                                color: isRecording ? '#ef4444' : '#94a3b8',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                            }}>
+                                {isRecording ? 'Stop' : 'Speak'}
+                            </span>
                         </div>
                     </div>
                 ) : (
                     /* Text Mode Layout */
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div style={{
                             display: 'flex',
                             alignItems: 'flex-end',
