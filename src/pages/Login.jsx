@@ -16,30 +16,21 @@ export default function Login() {
         fetch(`${baseUrl}/health`).catch(() => { });
     }, []);
 
-    const signInWithRetry = async (credentialResponse, retries = 2) => {
-        try {
-            return await signIn(credentialResponse);
-        } catch (err) {
-            if (retries <= 0) throw err;
-            await new Promise(r => setTimeout(r, 600 * (3 - retries)));
-            return signInWithRetry(credentialResponse, retries - 1);
-        }
-    };
-
     const handleSuccess = async (credentialResponse) => {
         try {
             setIsSigningIn(true);
             setError(null);
+
             if (!credentialResponse?.credential) {
                 throw new Error('Missing Google credential.');
             }
-            const signInPromise = signInWithRetry(credentialResponse);
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('Sign-in timed out. Please try again.')), 15000);
-            });
-            await Promise.race([signInPromise, timeoutPromise]);
+
+            // Perform a single, solid sign-in attempt. 
+            // The central api.js 'fetchWithTimeout' (60s) will handle network hang-ups.
+            await signIn(credentialResponse);
             navigate('/');
         } catch (err) {
+            console.error('Login component error:', err);
             setError(err?.message || 'Sign-in failed. Please try again.');
         } finally {
             setIsSigningIn(false);

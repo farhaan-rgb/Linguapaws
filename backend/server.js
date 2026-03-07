@@ -40,7 +40,11 @@ app.use((err, _req, res, _next) => {
 const PORT = process.env.PORT || 5000;
 
 mongoose
-    .connect(process.env.MONGODB_URI)
+    .connect(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000, // Keep it short to fail fast
+        socketTimeoutMS: 45000,
+        family: 4 // Use IPv4 for stability in some environments
+    })
     .then(() => {
         console.log('✅  MongoDB connected');
         app.listen(PORT, () => console.log(`🚀  Server running on http://localhost:${PORT}`));
