@@ -239,6 +239,45 @@ export default function Chat() {
         return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').normalize('NFC');
     };
 
+    /**
+     * Build clean text for TTS from a raw AI response.
+     * Phase 1: Strips <phonetic> tags (prevents reading pronunciation guide aloud).
+     * Phase 2: Extracts <tts> native script and replaces the transliterated bold phrase
+     *          so Google TTS reads authentic pronunciation (e.g., Odia script for or-IN voice).
+     */
+    const buildSpeechText = (rawContent) => {
+        if (!rawContent) return '';
+
+        // Phase 2: Extract native script from <tts> tag before stripping
+        const ttsMatch = rawContent.match(/<tts>(.*?)<\/tts>/i);
+        const nativeScript = ttsMatch ? ttsMatch[1].trim() : null;
+
+        // Extract the last bold phrase (the practice phrase) for replacement mapping
+        const boldMatches = rawContent.match(/\*\*(.*?)\*\*/g);
+        const lastBold = boldMatches ? boldMatches[boldMatches.length - 1].replace(/\*\*/g, '').trim() : null;
+
+        // Strip all special tags
+        let text = rawContent
+            .replace(/<phonetic>(.*?)<\/phonetic>/gi, '')   // Phase 1: Remove phonetic guides
+            .replace(/<tts>(.*?)<\/tts>/gi, '')              // Phase 2: Remove tts tags
+            .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
+            .replace(/<word>(.*?)<\/word>/g, '$1')
+            .replace(/<recalibrate>.*?<\/recalibrate>/g, '')
+            .replace(/<level_up>.*?<\/level_up>/g, '')
+            .replace(/<success>.*?<\/success>/gi, '')
+            .replace(/<[^>]+>/g, '');                         // Strip any remaining tags
+
+        text = cleanupDisplayText(stripTargetScript(text));
+        if (isNativeEnglish()) text = stripLatinDiacritics(text);
+
+        // Phase 2: Replace transliterated phrase with native script for authentic TTS
+        if (nativeScript && lastBold && text.includes(lastBold)) {
+            text = text.replace(lastBold, nativeScript);
+        }
+
+        return text;
+    };
+
 
 
     const isTopicPrompt = (text) => {
@@ -361,7 +400,8 @@ export default function Chat() {
     // Also renders **bold** and *italic* markdown into JSX.
     const renderMessageContent = (content, idx) => {
         let rendered = content.replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
-            .replace(/<phonetic>(.*?)<\/phonetic>/gi, '');
+            .replace(/<phonetic>(.*?)<\/phonetic>/gi, '')
+            .replace(/<tts>(.*?)<\/tts>/gi, '');  // Strip native script TTS tags from display
 
         rendered = cleanupDisplayText(stripTargetScript(rendered));
         if (isNativeEnglish()) {
@@ -437,12 +477,9 @@ export default function Chat() {
             .replace(/<word>(.*?)<\/word>/g, '$1')
             .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
             .trim();
-        let displayGreeting = cleanupDisplayText(
-            stripTargetScript(storedGreeting)
-        );
-        if (isNativeEnglish()) displayGreeting = stripLatinDiacritics(displayGreeting);
+        const callGreetingSpeech = buildSpeechText(greeting);
         if (isMounted.current) {
-            const audioUrl = await aiService.generateSpeech(displayGreeting, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+            const audioUrl = await aiService.generateSpeech(callGreetingSpeech, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
             if (audioUrl && isMounted.current && isCallMode) {
                 audioRef.current.src = audioUrl;
                 audioRef.current.onended = () => setCallStatus('idle');
@@ -485,14 +522,12 @@ export default function Chat() {
                     if (userWords) userWords.forEach(w => { wordTracker.addWord(w); });
 
                     const rawResponse = await aiService.getResponse(transcript, topicName, activeCharacter, nativeLang, targetLang, false, userLevel);
-                    const storedResponse = (rawResponse?.content || rawResponse)
+                    const rawContent = rawResponse?.content || rawResponse;
+                    const storedResponse = rawContent
                         .replace(/<word>(.*?)<\/word>/g, '$1')
                         .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                         .trim();
-                    let displayResponse = cleanupDisplayText(
-                        stripTargetScript(storedResponse)
-                    );
-                    if (isNativeEnglish()) displayResponse = stripLatinDiacritics(displayResponse);
+                    const callSpeechText = buildSpeechText(rawContent);
                     setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
 
                     // Handle success status if present (Guided Sentence Construction)
@@ -507,7 +542,7 @@ export default function Chat() {
 
                     setCallStatus('speaking');
                     if (isMounted.current) {
-                        const audioUrl = await aiService.generateSpeech(displayResponse, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+                        const audioUrl = await aiService.generateSpeech(callSpeechText, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
                         if (audioUrl && isMounted.current) {
                             audioRef.current.src = audioUrl;
                             audioRef.current.onended = () => setCallStatus('idle');
@@ -589,15 +624,12 @@ export default function Chat() {
                 .replace(/<word>(.*?)<\/word>/g, '$1')
                 .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                 .trim();
-            let displayGreeting = cleanupDisplayText(
-                stripTargetScript(storedGreeting)
-            );
-            if (isNativeEnglish()) displayGreeting = stripLatinDiacritics(displayGreeting);
+            const greetingSpeechText = buildSpeechText(aiGreeting);
             setMessages([{ role: 'assistant', content: storedGreeting }]);
 
             // Speak the greeting
             if (!isMuted && isMounted.current) {
-                const audioUrl = await aiService.generateSpeech(displayGreeting, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+                const audioUrl = await aiService.generateSpeech(greetingSpeechText, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
                 if (audioUrl && isMounted.current) {
                     audioRef.current.src = audioUrl;
                     audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
@@ -929,12 +961,9 @@ export default function Chat() {
                 .replace(/<word>(.*?)<\/word>/g, '$1')
                 .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                 .trim();
-            let displayResponse = cleanupDisplayText(
-                stripTargetScript(storedResponse)
-            );
-            if (isNativeEnglish()) displayResponse = stripLatinDiacritics(displayResponse);
-            // Strip ALL special tags from TTS so audio doesn't read hidden tags
-            const speechText = stripTargetScript(displayResponse);
+            // Build TTS text: strips <phonetic> (no double-reading) and substitutes
+            // native script from <tts> tags for authentic pronunciation
+            const speechText = buildSpeechText(responseWithoutMeta);
 
             if (!storedResponse || !speechText) {
                 throw new Error("Empty AI response generated; falling back to error message.");
@@ -1000,10 +1029,7 @@ export default function Chat() {
     const handleReadAloud = async (text) => {
         if (isMuted) return; // Don't play if muted even on manual click, or alert user?
         setIsLoading(true);
-        const speechText = text
-            .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
-            .replace(/<word>(.*?)<\/word>/g, '$1')
-            .replace(/<[^>]+>/g, '');
+        const speechText = buildSpeechText(text);
         const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
         if (audioUrl) {
             audioRef.current.src = audioUrl;
