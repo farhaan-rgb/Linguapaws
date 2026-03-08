@@ -75,7 +75,7 @@ export default function Chat() {
             .toLowerCase()
             .normalize('NFD')
             .replace(/\p{Diacritic}/gu, '')
-            .replace(/[^a-z0-9]+/g, ' ')
+            .replace(/[^a-z0-9\[\]\(\)]+/g, ' ') // Preserve brackets/parens for wildcards
             .replace(/\s+/g, ' ')
             .trim();
     };
@@ -281,9 +281,11 @@ export default function Chat() {
         // we check if the structure matches and treat the placeholder as 100% correct.
         if (nb.includes('[') || nb.includes('(')) {
             // Create a regex that allows any word(s) in place of the bracketed content
+            // We escape the brackets in the regex but keep them in the logic
             const structuralRegex = nb
-                .replace(/\[.*?\]/g, '.+')
-                .replace(/\(.*?\)/g, '.+');
+                .replace(/[\[\]\(\)]/g, '\\$&')
+                .replace(/\\\[.*?\\\]/g, '.+')
+                .replace(/\\\(.*?\\\)/g, '.+');
             const regex = new RegExp(`^${structuralRegex}$`, 'i');
             if (regex.test(na)) return 1.0;
         }
