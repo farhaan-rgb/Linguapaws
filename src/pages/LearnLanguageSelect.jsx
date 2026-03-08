@@ -14,11 +14,11 @@ const NATIVE_LANGUAGES = [
     { id: 'ta', name: 'Tamil', native: 'தமிழ்', landmark: '🛕', landmarkName: 'Meenakshi Temple, Madurai' },
     { id: 'ur', name: 'Urdu', native: 'اردو', landmark: '🕌', landmarkName: 'Badshahi Mosque, Lahore' },
     { id: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', landmark: '🏰', landmarkName: 'Mysore Palace, Mysore' },
-    { id: 'gu', name: 'Gujarati', native: 'ગુજરાતી', landmark: '🌊', landmarkName: 'Rann of Kutch, Gujarat' },
+    { id: 'or', name: 'Odiya', native: 'ଓଡ଼ିଆ', landmark: '🛕', landmarkName: 'Sun Temple, Konark' },
     { id: 'ml', name: 'Malayalam', native: 'മലയാളം', landmark: '⛵', landmarkName: 'Kerala Backwaters' },
 ];
 
-const PUNJABI = { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🛕', landmarkName: 'Golden Temple, Amritsar' };
+const PUNJABI = { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🏢', landmarkName: 'Golden Temple, Amritsar' };
 
 export default function LearnLanguageSelect() {
     const navigate = useNavigate();

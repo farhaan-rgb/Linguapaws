@@ -14,7 +14,7 @@ const LANGUAGES = [
     { id: 'ta', name: 'Tamil', native: 'தமிழ்', landmark: '🛕', landmarkName: 'Meenakshi Temple, Madurai' },
     { id: 'ur', name: 'Urdu', native: 'اردو', landmark: '🕌', landmarkName: 'Badshahi Mosque, Lahore' },
     { id: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ', landmark: '🏰', landmarkName: 'Mysore Palace, Mysore' },
-    { id: 'gu', name: 'Gujarati', native: 'ગુજરાતી', landmark: '🌊', landmarkName: 'Rann of Kutch, Gujarat' },
+    { id: 'or', name: 'Odiya', native: 'ଓଡ଼ିଆ', landmark: '🛕', landmarkName: 'Sun Temple, Konark' },
     { id: 'ml', name: 'Malayalam', native: 'മലയാളം', landmark: '⛵', landmarkName: 'Kerala Backwaters' },
 ];
 
@@ -57,7 +57,7 @@ export default function Settings() {
                 if (savedLevel) setSelectedLevel(JSON.parse(savedLevel));
             }
             if (data.targetLang?.id) {
-                const matched = [...LANGUAGES, { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🛕', landmarkName: 'Golden Temple, Amritsar' }]
+                const matched = [...LANGUAGES, { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🏢', landmarkName: 'Golden Temple, Amritsar' }]
                     .find(l => l.id === data.targetLang.id) || data.targetLang;
                 setSelectedTargetLang(matched);
                 localStorage.setItem('linguapaws_target_lang', JSON.stringify(data.targetLang));
@@ -315,7 +315,7 @@ export default function Settings() {
                                     style={{ overflow: 'hidden' }}
                                 >
                                     <div style={{ borderTop: '1px solid #f1f5f9', marginTop: '16px', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {[...LANGUAGES.filter(l => l.id !== selectedLang?.id), { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🛕', landmarkName: 'Golden Temple, Amritsar' }].map((lang) => (
+                                        {[...LANGUAGES.filter(l => l.id !== selectedLang?.id), { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🏢', landmarkName: 'Golden Temple, Amritsar' }].map((lang) => (
                                             <motion.button
                                                 key={lang.id}
                                                 whileTap={{ scale: 0.99 }}

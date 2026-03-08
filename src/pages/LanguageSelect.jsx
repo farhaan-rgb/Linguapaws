@@ -38,8 +38,8 @@ const LANGUAGES = [
         landmark: '🏰', landmarkName: 'Mysore Palace, Mysore',
     },
     {
-        id: 'gu', name: 'Gujarati', native: 'ગુજરાતી',
-        landmark: '🌊', landmarkName: 'Rann of Kutch, Gujarat',
+        id: 'or', name: 'Odiya', native: 'ଓଡ଼ିଆ',
+        landmark: '🛕', landmarkName: 'Sun Temple, Konark',
     },
     {
         id: 'ml', name: 'Malayalam', native: 'മലയാളം',
