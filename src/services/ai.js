@@ -25,7 +25,7 @@ Tutoring approach:
 
 Context:
 You are chatting with a user who wants to practice and LEARN a target language. The target language is provided in context. They might select a specific topic. Adjust accordingly.
-CRITICAL DISPLAY RULE: All visible text must be in the user's native language. Never show the target language script in visible text. Use a pronunciation guide in the user's native language (native script, or Latin if the native language is English). Always explain what the practice phrase means in the user's native language.`;
+CRITICAL DISPLAY RULE: All visible text must be in the user's native language. Never show the target language script in visible text. Always explain what the practice phrase means in the user's native language.`;
 
 class AIService {
     constructor() {
@@ -86,13 +86,13 @@ STAGE 8 (repeats 91–100): SOCIAL — Invitations & Wrap-up
 - Introduce EXACTLY ONE phrase or pattern per message. MAXIMUM 4-5 words per phrase.
 - NEVER use brackets or placeholders in the actual practice phrase. Use a real example (e.g., "Nanna hesaru Rahul" not "Nanna hesaru [Name]").
 - ALWAYS put the practice phrase in **bold text** (e.g., **Namaskara**).
-- When teaching a new phrase in bold, you MUST provide an Anglicized Phonetic sound-guide wrapped in a <phonetic> tag immediately after.
+- When teaching a new phrase in bold, you MUST provide the Anglicized Phonetic sound-guide found in the GLOSSARY, wrapped in a <phonetic> tag immediately after.
   - STYLE GUIDE: Use 'uh' for short 'a' sounds, 'ah' for long 'a', 'ee' for 'i', 'keh/beh' for 'e', and 'oo' for 'u'. Break it into hyphenated sounds.
   - EXAMPLE: **Apana kemiti achhanti?** <phonetic>ah-puh-nah keh-mee-tee uh-chhun-tee</phonetic> (NOT A-pa-na).
 - Always explain meaning in ${nativeLangName} BEFORE asking them to say it.
 - After 3-4 repetitions of a pattern, switch to a VERIFICATION mode: ask the user to use the pattern WITHOUT showing them the exact phrase. Example: "Now, how would you ask for a tea?" If they get it right, praise them enthusiastically.
 - Be extremely warm, encouraging, and patient. Use cat puns. Celebrate every attempt.
-- NEVER use the ${targetLangName} native script in visible text. Always transliterate to Latin/Roman script.
+- NEVER use the ${targetLangName} native script in visible text. Always transliterate.
 - Keep the conversation flowing WITHIN the current stage's theme. Do NOT jump between stages randomly.
 
 PROGRESSION: Do NOT include any <level_up> tag. Level progression is managed by the app based on successfulRepeats count.`,
@@ -188,7 +188,7 @@ AI BEHAVIOR:
             Tamil: 'Vanakkam = Hello\nOru coffee kudunga = One coffee please\nNandri = Thank you\nEppadi irukkireerkal = How are you?\nEn peyar [Name] = My name is [Name]\nAam = Yes\nIllai = No\nMannikkavum = Sorry\nMenu kudunga = Can I have the menu?\nInnoru coffee kudunga = Give another coffee\nIrukka? = Do you have it?',
             Bengali: 'Namaskar = Hello\nEktu coffee din = One coffee please\nDhanyabad = Thank you\nApni kemon achen = How are you?\nAmar naam [Name] = My name is [Name]\nHaan = Yes\nNa = No\nDukkhito = Sorry\nMenu din = Can I have the menu?\nAr ekta coffee din = Give another coffee\nAche? = Do you have it?',
             Marathi: 'Namaskar = Hello\nEk coffee dya = One coffee please\nDhanyavaad = Thank you\nTumi kasa aahat = How are you?\nMazhe naav [Name] aahe = My name is [Name]\nHo = Yes\nNahi = No\nMaaf kara = Sorry\nMenu dya = Can I have the menu?\nAjun ek coffee dya = Give another coffee\nAahe ka? = Do you have it?',
-            Odiya: 'Namaskara = Hello\nGote coffee diyantu = One coffee please\nDhanyabada = Thank you\nApana kemiti achhanti? = How are you?\nMora nama [Name] = My name is [Name]\nHan = Yes\nNa = No\nKhyama karantu = Sorry\nMenu milipariba ki? = Can I have the menu?\nAu gote coffee diyantu = Give another coffee\nAchhi ki? = Do you have it?',
+            Odiya: 'Namaskara (nuh-muh-skuh-ruh) = Hello\nGote coffee diyantu (go-teh ko-fee dee-yun-too) = One coffee please\nDhanyabada (dhun-yuh-bah-duh) = Thank you\nApana kemiti achhanti? (ah-puh-nah keh-mee-tee uh-chhun-tee) = How are you?\nMora nama [Name] (mo-ruh nah-muh [Name]) = My name is [Name]\nHan (hun) = Yes\nNa (nah) = No\nKhyama karantu (khyuh-muh kuh-run-too) = Sorry\nMenu milipariba ki? (me-noo mee-lee-pah-ree-bah kee) = Can I have the menu?\nAu gote coffee diyantu (ow go-teh ko-fee dee-yun-too) = Give another coffee\nAchhi ki? (uh-chhee kee) = Do you have it?',
             Malayalam: 'Namaskkaram = Hello\nOru coffee tharu = One coffee please\nNandi = Thank you\nSugamaano = How are you?\nEnte peru [Name] ennanu = My name is [Name]\nAthe = Yes\nAlla = No\nKshamikkuka = Sorry\nMenu tharu = Can I have the menu?\nOru coffee koodi tharu = Give another coffee\nUndo? = Do you have it?',
             Urdu: 'Assalamu Alaikum = Hello\nEk coffee dijiye = One coffee please\nShukriya = Thank you\nAap kaise hain = How are you?\nMera naam [Name] hai = My name is [Name]\nHaan = Yes\nNahin = No\nMaaf kijiye = Sorry\nMenu dijiye = Can I have the menu?\nEk aur coffee dijiye = Give another coffee\nKya yeh hai? = Do you have it?',
             Punjabi: 'Sat Sri Akaal = Hello\nIkk coffee deo ji = One coffee please\nDhannvaad = Thank you\nTusi ki haal ho = How are you?\nMera naam [Name] hai = My name is [Name]\nHaanji = Yes\nNahin = No\nMaafi = Sorry\nMenu deo ji = Can I have the menu?\nIkk hor coffee deo ji = Give another coffee\nHege? = Do you have it?',
@@ -205,6 +205,12 @@ Here are verified ${targetLangName} phrases you can use as reference (Target Phr
 ${phrasebook}
 You MUST pick an exact pair from the glossary above.Use only the Spoken / Colloquial forms. 
 Never mix the meaning of one phrase with the target script of another.Never use literal translations if they sound robotic.
+
+[MANDATORY OUTPUT TEMPLATE for Beginners]:
+Whenever you introduce a new phrase in bold text, you MUST follow this exact pattern:
+**PHRASE**
+<phonetic>SOUND-GUIDE_FROM_GLOSSARY</phonetic>
+Meaning: MEANING
 
 ⚠️ CRITICAL DISPLAY RULE — SPOKEN - ONLY APP:
 This is a SPOKEN language learning app.The user is learning to SPEAK ${targetLangName}, NOT to read or write it.

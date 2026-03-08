@@ -827,7 +827,7 @@ export default function Chat() {
             // We combine display rules with our hidden note about user performance
             let baseMetaNote = [acceptNote, transitionNote].filter(Boolean).join('\n');
             if (isBeginner) {
-                baseMetaNote += `\n[SYSTEM: The user's current successfulRepeats count is ${currentRepeats} out of 100. Use this to determine which STAGE of the curriculum to focus on. Stay within that stage's theme and patterns.]`;
+                baseMetaNote += `\n[SYSTEM: The user's current successfulRepeats count is ${currentRepeats} out of 100. Use this to determine which STAGE of the curriculum to focus on. Stay within that stage's theme and patterns. MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded phrase.]`;
             }
             if (effectiveLevel === 'basic') {
                 baseMetaNote += '\n[SYSTEM REMINDER: You MUST evaluate the grammar of the user\'s response. Output the result in the JSON "success" field. Set "success": true if word order was correct, or "success": false if incorrect/missing. This is critical.]';
