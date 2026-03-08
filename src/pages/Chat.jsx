@@ -272,12 +272,35 @@ export default function Chat() {
         return 1 - dist / Math.max(splitGraphemes(na).length, splitGraphemes(nb).length, 1);
     };
 
-    const similarityRatioLatin = (a, b) => {
-        const na = normalizeLatin(a);
-        const nb = normalizeLatin(b);
+    const similarityRatioLatin = (actual, expected) => {
+        let na = normalizeLatin(actual);
+        let nb = normalizeLatin(expected);
         if (!na || !nb) return 0;
+
+        // Structured Placeholder Support: If expected contains [Place] or (name), 
+        // we check if the structure matches and treat the placeholder as 100% correct.
+        if (nb.includes('[') || nb.includes('(')) {
+            // Create a regex that allows any word(s) in place of the bracketed content
+            const structuralRegex = nb
+                .replace(/\[.*?\]/g, '.+')
+                .replace(/\(.*?\)/g, '.+');
+            const regex = new RegExp(`^${structuralRegex}$`, 'i');
+            if (regex.test(na)) return 1.0;
+        }
+
         const dist = levenshtein(na, nb);
-        return 1 - dist / Math.max(splitGraphemes(na).length, splitGraphemes(nb).length, 1);
+        const len = Math.max(splitGraphemes(na).length, splitGraphemes(nb).length, 1);
+        const score = 1 - dist / len;
+
+        // Soften "Almost Right" matches: if it's > 85%, and the difference is 
+        // just single vowels vs double vowels (ai vs ay), bump it up.
+        if (score > 0.8 && score < 1.0) {
+            const simplifiedA = na.replace(/[aeiouy]/g, 'v');
+            const simplifiedB = nb.replace(/[aeiouy]/g, 'v');
+            if (simplifiedA === simplifiedB) return 1.0;
+        }
+
+        return score;
     };
 
     const extractPromptedPhrase = (text) => {
@@ -1057,7 +1080,7 @@ export default function Chat() {
 
                                 let clean = m.content;
 
-                                clean = clean
+                                clean = stripTargetScript(clean) // Crucial: Remove native script before copying
                                     .replace(/<shadow>.*?<\/shadow>/gs, '')
                                     .replace(/<recalibrate>.*?<\/recalibrate>/gs, '')
                                     .replace(/<level_up>.*?<\/level_up>/gs, '')
