@@ -14,11 +14,6 @@ export default function Login() {
         // Warm up backend to reduce cold-start login failures
         const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         fetch(`${baseUrl}/health`).catch(() => { });
-
-        // Restore "signing in" state if we just returned from a Google redirect
-        if (sessionStorage.getItem('linguapaws_signing_in')) {
-            setIsSigningIn(true);
-        }
     }, []);
 
     const handleSuccess = async (credentialResponse) => {
@@ -45,7 +40,6 @@ export default function Login() {
             setError(err?.message || 'Sign-in failed. Please try again.');
         } finally {
             setIsSigningIn(false);
-            sessionStorage.removeItem('linguapaws_signing_in');
         }
     };
 
@@ -143,13 +137,12 @@ export default function Login() {
                     </p>
                 </div>
 
-                {/* Google Sign-in Button */}
                 <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', maxWidth: '300px', margin: '0 auto' }}>
                     <GoogleLogin
                         onSuccess={handleSuccess}
                         onError={handleError}
-                        useOneTap
-                        ux_mode="redirect"
+                        ux_mode="popup"
+                        useOneTap={false} // Prevents automatic One Tap which often defaults to form_post (405 error on Vercel)
                         shape="pill"
                         size="large"
                         text="signin_with"
