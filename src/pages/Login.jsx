@@ -14,6 +14,11 @@ export default function Login() {
         // Warm up backend to reduce cold-start login failures
         const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         fetch(`${baseUrl}/health`).catch(() => { });
+
+        // Restore "signing in" state if we just returned from a Google redirect
+        if (sessionStorage.getItem('linguapaws_signing_in')) {
+            setIsSigningIn(true);
+        }
     }, []);
 
     const handleSuccess = async (credentialResponse) => {
@@ -31,9 +36,16 @@ export default function Login() {
             navigate('/');
         } catch (err) {
             console.error('Login component error:', err);
+            // Don't show technical "Signal aborted" error to the user.
+            // It often happens when browsers suspend the tab during the Google overlay.
+            if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
+                console.warn('Login attempt was aborted by the browser.');
+                return;
+            }
             setError(err?.message || 'Sign-in failed. Please try again.');
         } finally {
             setIsSigningIn(false);
+            sessionStorage.removeItem('linguapaws_signing_in');
         }
     };
 
@@ -136,6 +148,8 @@ export default function Login() {
                     <GoogleLogin
                         onSuccess={handleSuccess}
                         onError={handleError}
+                        useOneTap
+                        ux_mode="redirect"
                         shape="pill"
                         size="large"
                         text="signin_with"
