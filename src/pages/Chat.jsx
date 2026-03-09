@@ -721,7 +721,7 @@ export default function Chat() {
         setIsLoading(false);
     };
 
-    const handleSend = async (text) => {
+    const handleSend = async (text, isVoice = false) => {
         if (!text) return;
 
         setMessages(prev => [...prev, { role: 'user', content: text }]);
@@ -850,10 +850,11 @@ export default function Chat() {
 
             const isBeginner = effectiveLevel === 'zero';
             const currentRepeats = progress?.successfulRepeats || 0;
+            const feedbackNoun = isVoice ? 'pronunciation' : 'spelling';
             const acceptNote = (promptedPhrase && matchRatio >= threshold)
-                ? `The user's pronunciation was PERFECT. You MUST enthusiastically praise them. Do NOT correct them. Do NOT tell them they were 'almost right'. Do NOT provide alternative variations. Congratulate them briefly. ${isBeginner ? 'Then immediately continue with the CURRENT STAGE curriculum — either teach the next phrase in the same pattern, or if they have practiced 3-4 phrases in this pattern, try a VERIFICATION challenge (ask them to use the pattern without showing the exact phrase).' : 'Then move the conversation forward naturally by asking a simple question. DO NOT ask them to repeat anything.'} DO NOT ask them what they want to talk about.`
+                ? `The user's ${feedbackNoun} was PERFECT. You MUST enthusiastically praise them. Do NOT correct them. Do NOT tell them they were 'almost right'. Do NOT provide alternative variations. Congratulate them briefly. ${isBeginner ? 'Then immediately continue with the CURRENT STAGE curriculum — either teach the next phrase in the same pattern, or if they have practiced 3-4 phrases in this pattern, try a VERIFICATION challenge (ask them to use the pattern without showing the exact phrase).' : 'Then move the conversation forward naturally by asking a simple question. DO NOT ask them to repeat anything.'} DO NOT ask them what they want to talk about.`
                 : (promptedPhrase && matchRatio < threshold)
-                    ? `The user attempted the phrase but their pronunciation was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`
+                    ? `The user attempted the phrase but their ${feedbackNoun} was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`
                     : null;
 
             // We combine display rules with our hidden note about user performance
@@ -1000,9 +1001,11 @@ export default function Chat() {
                 const expectingTarget = isAssistantExpectingTarget(messages);
                 const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
                 const targetText = lastAssistantMsg ? extractPromptedPhrase(lastAssistantMsg.content) : null;
-                const result = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang, expectingTarget, targetText);
-                if (result?.text) {
-                    handleSend(result.text);
+                const contextPrompt = lastAssistantMsg ? lastAssistantMsg.content : null;
+                const result = await aiService.transcribeAudio(audioBlob, nativeLang, targetLang, expectingTarget, targetText, contextPrompt) || {};
+                const text = result.text;
+                if (text) {
+                    handleSend(text, true);
                 } else {
                     const detail = result?.error || "I couldn't quite catch that.";
                     const prefix = activeCharacter?.id === 'miko' ? "Meow... " : "";
@@ -1568,7 +1571,7 @@ export default function Chat() {
                                 whileHover={{ scale: 1.02, backgroundColor: '#f5f3ff' }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => {
-                                    handleSend(sug);
+                                    handleSend(sug, false);
                                     setInputText('');
                                     setShowSuggestions(false);
                                 }}
@@ -1730,7 +1733,7 @@ export default function Chat() {
                                     if (e.key === 'Enter' && !e.shiftKey) {
                                         e.preventDefault();
                                         if (inputText.trim()) {
-                                            handleSend(inputText.trim());
+                                            handleSend(inputText.trim(), false);
                                             setInputText('');
                                         }
                                     }
@@ -1740,7 +1743,7 @@ export default function Chat() {
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => {
                                     if (inputText.trim()) {
-                                        handleSend(inputText.trim());
+                                        handleSend(inputText.trim(), false);
                                         setInputText('');
                                     }
                                 }}

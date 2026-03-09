@@ -185,7 +185,7 @@ router.post('/speech', async (req, res) => {
 // POST /api/ai/transcribe
 router.post('/transcribe', async (req, res) => {
     try {
-        const { audioBase64, mimeType = 'audio/webm', nativeLang = null, targetLang = null, expectingTargetLang = false, targetText = null } = req.body;
+        const { audioBase64, mimeType = 'audio/webm', nativeLang = null, targetLang = null, expectingTargetLang = false, targetText = null, contextPrompt = null } = req.body;
         if (!audioBase64) return res.status(400).json({ error: 'audioBase64 is required' });
 
         const buffer = Buffer.from(audioBase64, 'base64');
@@ -295,9 +295,11 @@ ${expectingTargetLang
 A speech-to-text engine produced the following transcript. Your job:
 1. If the transcript is romanized ${targetLangName} (e.g. transliterated into Latin script), that is VALID — return it as-is. Do NOT convert it to ${nativeLangName}.
 2. CRITICAL: If the transcript is in ${nativeLangName} but the user was expected to speak in ${targetLangName}, check if the transcript looks like a translation or a phonetic mishearing of an likely ${targetLangName} phrase. If so, return the likely ${targetLangName} phrase instead (in native script if possible, or transliterated if that's what was produced).
-3. If the transcript is clearly valid ${nativeLangName} or ${targetLangName}, return it as-is.
-4. If the transcript appears to be in a DIFFERENT language (neither ${nativeLangName} nor ${targetLangName}), try to figure out what the user actually said in ${targetLangName} or ${nativeLangName} based on phonetic similarity.
-5. Keep your response EXTREMELY short — return ONLY the text, nothing else.`
+3. If the user was specifically asked to say '${targetText}', and the transcript sounds phonetically similar to '${targetText}', return exactly '${targetText}'.
+4. The user is responding to this context from the tutor: "${contextPrompt}". Use this context to resolve ambiguities. For example, if the transcript sounds like a plausible answer to the tutor's prompt but is phonetically messy, favor the logical ${targetLangName} response.
+5. If the transcript is clearly valid ${nativeLangName} or ${targetLangName}, return it as-is.
+6. If the transcript appears to be in a DIFFERENT language (neither ${nativeLangName} nor ${targetLangName}), try to figure out what the user actually said in ${targetLangName} or ${nativeLangName} based on phonetic similarity.
+7. Keep your response EXTREMELY short — return ONLY the text, nothing else.`
                     },
                     { role: 'user', content: rawText }
                 ], {
