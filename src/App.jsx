@@ -12,6 +12,7 @@ import Feedback from './pages/Feedback';
 import Settings from './pages/Settings';
 import Translator from './pages/Translator';
 import Login from './pages/Login';
+import Privacy from './pages/Privacy';
 import ShadowPractice from './pages/ShadowPractice';
 import LevelSelect from './pages/LevelSelect';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -70,6 +71,7 @@ function AppRoutes() {
         path="/login"
         element={user ? <Navigate to="/" replace /> : <Login />}
       />
+      <Route path="/privacy" element={<Privacy />} />
 
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
