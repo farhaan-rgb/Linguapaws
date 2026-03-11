@@ -95,9 +95,10 @@ STAGE 8 (repeats 91–100): SOCIAL — Invitations & Wrap-up
 - After 3-4 repetitions of a pattern, switch to a VERIFICATION mode: ask the user to use the pattern WITHOUT showing them the exact phrase. Example: "Now, how would you ask for a tea?" If they get it right, praise them enthusiastically.
 - Be extremely warm, encouraging, and patient. Use cat puns. Celebrate every attempt.
 - NEVER use the ${targetLangName} native script in visible text. Always transliterate.
-- Keep the conversation flowing WITHIN the current stage's theme. Do NOT jump between stages randomly.
 - SEMANTIC ALIGNMENT: Your introductory sentence (setup) MUST 100% match the phrase you are about to teach. If you say "Let's practice where you are from", you MUST teach a phrase about location, not identity.
 - NATURAL PHRASING: Always teach the most common, natural spoken version of a phrase used by native speakers. Avoid stiff, clunky, or literal dictionary translations.
+- STAGE ANCHORING: You MUST stay within the current stage for at least 3-5 exchanges. Do NOT rush to the next stage until the user has correctly used the current stage's phrases multiple times.
+- VERIFICATION OVER MIMICRY: After your very first introduction of a phrase, stop asking the user to "repeat." Instead, ask them "How would you say [English Phrase]?" to test their memory.
 
 PROGRESSION: Do NOT include any <level_up> tag. Level progression is managed by the app based on successfulRepeats count.`,
 
@@ -187,7 +188,7 @@ AI BEHAVIOR:
         // Language-specific phrasebooks to anchor AI to the CORRECT language
         const PHRASEBOOKS = {
             Kannada: 'Namaskara = Hello\nOndu coffee kodi = One coffee please\nDhanyavadagalu = Thank you\nHegiddira = How are you?\nNanna hesaru [Name] = My name is [Name]\nShubha dina = Good day\nNeevu hegiddira = How are you (formal)?\nHaudhu = Yes\nIlla = No\nKshamisi = Sorry/Excuse me\nMenu kodi = Can I have the menu?\nInnondu coffee kodi = Give another coffee\nIdeya? = Do you have it?',
-            Telugu: 'Namaskaram = Hello\nOka coffee ivvandi = One coffee please\nDhanyavaadalu = Thank you\nEla unnaru = How are you?\nNenu [Name] = I am [Name]\nSubhodayam = Good morning\nAvunu = Yes\nLedu = No\nKshaminchhandi = Sorry\nMenu ivvandi = Can I have the menu?\nInko coffee ivvandi = Give another coffee\nUndha? = Do you have it?',
+            Telugu: 'Namaskaram = Hello\nOka coffee ivvandi = One coffee please\nDhanyavaadalu = Thank you\nEla unnaru = How are you?\nNenu [Name] = I am [Name]\nMee peru emiti? = What is your name?\nMeeru [place] nunchaa? = Are you from [place]?\nSubhodayam = Good morning\nAvunu = Yes\nLedu = No',
             Hindi: 'Namaste = Hello\nEk coffee dijiye = One coffee please\nDhanyavaad = Thank you\nAap kaise hain = How are you?\nMain [Name] hoon = I am [Name]\nShubh din = Good day\nHaan = Yes\nNahin = No\nMaaf kijiye = Sorry\nMenu dijiye = Can I have the menu?\nEk aur coffee dijiye = Give another coffee\nKya yeh hai? = Do you have it?',
             Tamil: 'Vanakkam = Hello\nOru coffee kudunga = One coffee please\nNandri = Thank you\nEppadi irukkireerkal = How are you?\nEn peyar [Name] = My name is [Name]\nAam = Yes\nIllai = No\nMannikkavum = Sorry\nMenu kudunga = Can I have the menu?\nInnoru coffee kudunga = Give another coffee\nIrukka? = Do you have it?',
             Bengali: 'Namaskar = Hello\nEktu coffee din = One coffee please\nDhanyabad = Thank you\nApni kemon achen = How are you?\nAmar naam [Name] = My name is [Name]\nHaan = Yes\nNa = No\nDukkhito = Sorry\nMenu din = Can I have the menu?\nAr ekta coffee din = Give another coffee\nAche? = Do you have it?',
@@ -276,7 +277,12 @@ SHADOW PRACTICE:
         try {
             const data = await api.post('/api/ai/chat', {
                 messages,
-                options: (userLevel === 'basic' || userLevel === 'conversational') ? { response_format: { type: 'json_object' } } : {}
+                options: {
+                    userLevel,
+                    targetLang: targetLangName,
+                    nativeLang: nativeLangName,
+                    response_format: (userLevel === 'basic' || userLevel === 'conversational') ? { type: 'json_object' } : undefined
+                }
             });
             const reply = data.content;
 

@@ -140,13 +140,71 @@ const generateWithFallback = async (messages, options = {}) => {
     return (response.choices[0].message.content || '').trim();
 };
 
+/**
+ * Reflection Loop: A 'Linguistic Critic' checks the first draft for correctness 
+ * and naturalness in the target language.
+ */
+const reflectAndCorrect = async (messages, initialDraft, options) => {
+    const { targetLang = 'Telugu', nativeLang = 'English', userLevel = 'zero' } = options;
+
+    // Only reflect on beginner levels where grammar accuracy is most critical
+    if (userLevel !== 'zero' && userLevel !== 'basic') return initialDraft;
+
+    const criticPrompt = `You are a LINGUISTIC CRITIC. A language tutor produced this draft response:
+"${initialDraft}"
+
+The target language is: ${targetLang}
+The native language is: ${nativeLang}
+
+YOUR MISSION:
+1. Check if the ${targetLang} phrases in bold are grammatically PERFECT and NATURAL (how a local human actually speaks).
+2. Check if the meaning in ${nativeLang} correctly matches the ${targetLang} phrase.
+3. Check if the phonetic guide matches the sounds of the corrected phrase.
+
+IF ANYTHING IS WRONG (e.g., robotic phrasing like "Meeru nunchi vaallu" instead of natural forms, or mismatching meanings), provide a specific fix. 
+IF EVERYTHING IS PERFECT, just respond: "PERFECT".
+
+If not perfect, return a JSON object: {"isError": true, "critique": "EXPLAIN THE ERROR BRIEFLY", "betterVersion": "COMPLETE CORRECTED PHRASE IN BOLD WITH PHONETIC AND MEANING"}`;
+
+    try {
+        const criticOutput = await generateWithFallback([
+            { role: 'system', content: criticPrompt }
+        ], { temperature: 0.1, response_format: { type: 'json_object' } });
+
+        if (criticOutput.toLowerCase().includes('perfect') && !criticOutput.includes('{')) {
+            return initialDraft;
+        }
+
+        const feedback = JSON.parse(criticOutput);
+        if (!feedback.isError) return initialDraft;
+
+        // Second pass: Tell Miko to integrate the critic's feedback
+        const finalPrompt = `Your previous draft was: "${initialDraft}"
+A linguistic critic pointed out an error: "${feedback.critique}"
+They suggested this better version for your lesson phrase: "${feedback.betterVersion}"
+
+RE-GENERATE your entire response now, keeping your friendly cat persona, but correctly integrating the critic's fix. Ensure ALL formatting (bold, phonetic, tts) is preserved.`;
+
+        return await generateWithFallback([
+            ...messages,
+            { role: 'assistant', content: initialDraft },
+            { role: 'user', content: finalPrompt }
+        ], { ...options, temperature: 0.5 });
+
+    } catch (err) {
+        console.warn('Reflection loop failed, returning initial draft:', err.message);
+        return initialDraft;
+    }
+};
+
 // POST /api/ai/chat
 router.post('/chat', async (req, res) => {
     const { messages, options = {} } = req.body;
     if (!messages?.length) return res.status(400).json({ error: 'messages are required' });
     try {
-        const content = await generateWithFallback(messages, options);
-        return res.json({ content });
+        const initialDraft = await generateWithFallback(messages, options);
+        const finalizedContent = await reflectAndCorrect(messages, initialDraft, options);
+        return res.json({ content: finalizedContent });
     } catch (err) {
         return res.status(502).json({ error: err.message || 'AI request failed' });
     }
