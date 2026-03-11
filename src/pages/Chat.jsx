@@ -267,7 +267,8 @@ export default function Chat() {
             .replace(/<success>.*?<\/success>/gi, '')
             .replace(/<[^>]+>/g, '')                         // Strip any remaining tags
             .replace(/\*\*/g, '')                            // Strip double asterisks (bold)
-            .replace(/\*/g, '');                             // Strip single asterisks (italic)
+            .replace(/\*/g, '')                             // Strip single asterisks (italic)
+            .replace(/[\p{Extended_Pictographic}\p{Emoji_Component}]/gu, ''); // Strip emojis (e.g. 🎉, 🐾)
 
         text = cleanupDisplayText(stripTargetScript(text));
         if (isNativeEnglish()) text = stripLatinDiacritics(text);
