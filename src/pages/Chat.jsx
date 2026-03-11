@@ -265,7 +265,9 @@ export default function Chat() {
             .replace(/<recalibrate>.*?<\/recalibrate>/g, '')
             .replace(/<level_up>.*?<\/level_up>/g, '')
             .replace(/<success>.*?<\/success>/gi, '')
-            .replace(/<[^>]+>/g, '');                         // Strip any remaining tags
+            .replace(/<[^>]+>/g, '')                         // Strip any remaining tags
+            .replace(/\*\*/g, '')                            // Strip double asterisks (bold)
+            .replace(/\*/g, '');                             // Strip single asterisks (italic)
 
         text = cleanupDisplayText(stripTargetScript(text));
         if (isNativeEnglish()) text = stripLatinDiacritics(text);
@@ -625,15 +627,19 @@ export default function Chat() {
                 .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                 .trim();
             const greetingSpeechText = buildSpeechText(aiGreeting);
+
+            // Pre-fetch audio to sync with text rendering
+            let audioUrl = null;
+            if (!isMuted && isMounted.current) {
+                audioUrl = await aiService.generateSpeech(greetingSpeechText, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+            }
+
             setMessages([{ role: 'assistant', content: storedGreeting }]);
 
-            // Speak the greeting
-            if (!isMuted && isMounted.current) {
-                const audioUrl = await aiService.generateSpeech(greetingSpeechText, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
-                if (audioUrl && isMounted.current) {
-                    audioRef.current.src = audioUrl;
-                    audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
-                }
+            // Play voice immediately now that text is visible
+            if (audioUrl && isMounted.current) {
+                audioRef.current.src = audioUrl;
+                audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
             }
 
             setIsLoading(false);
@@ -970,16 +976,19 @@ export default function Chat() {
                 throw new Error("Empty AI response generated; falling back to error message.");
             }
 
-            setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
-            setIsLoading(false); // unblock UI before TTS — audio loading must not block chat
-
-            // Play voice (non-blocking — after UI is already updated)
+            // Pre-fetch audio so it plays instantly when text appears
+            let audioUrl = null;
             if (!isMuted && isMounted.current) {
-                const audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
-                if (audioUrl && isMounted.current) {
-                    audioRef.current.src = audioUrl;
-                    audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
-                }
+                audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
+            }
+
+            setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
+            setIsLoading(false); // Unblock UI now that audio is ready
+
+            // Play voice immediately (syncs perfectly with message appearing)
+            if (audioUrl && isMounted.current) {
+                audioRef.current.src = audioUrl;
+                audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
             }
         } catch (err) {
             console.error('Chat send failed:', err);
