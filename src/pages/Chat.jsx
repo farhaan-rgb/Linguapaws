@@ -981,9 +981,9 @@ export default function Chat() {
             // SPEED OPTIMIZATION: Use pre-fetched audio from backend if available
             let audioUrl = null;
             if (!isMuted && isMounted.current) {
-                if (aiResult.audioContent) {
+                if (rawResponse.audioContent) {
                     // Convert base64 to Blob URL for instant playback
-                    const byteCharacters = atob(aiResult.audioContent);
+                    const byteCharacters = atob(rawResponse.audioContent);
                     const byteNumbers = new Array(byteCharacters.length);
                     for (let i = 0; i < byteCharacters.length; i++) {
                         byteNumbers[i] = byteCharacters.charCodeAt(i);

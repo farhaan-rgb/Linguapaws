@@ -222,7 +222,6 @@ router.post('/chat', async (req, res) => {
 
                 const googleClient = getGoogleTtsClient();
                 if (googleClient) {
-                    const languageCode = resolveLanguageCode(options.targetLanguage); // Fix: use targetLanguage or targetLang
                     const targetLangToUse = options.targetLang || options.targetLanguage;
                     const resolvedCode = resolveLanguageCode(targetLangToUse);
 
