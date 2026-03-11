@@ -159,7 +159,7 @@ The native language is: ${nativeLang}
 YOUR MISSION:
 1. Check if the ${targetLang} phrases in bold are grammatically PERFECT and NATURAL (how a local human actually speaks).
 2. SENSITIVITY CHECK: Ensure it's not using Hindi words (like "Namaste") for ${targetLang}. 
-3. FORMALITY CHECK: In ${targetLang}, differentiate between casual (e.g. Nuvvu) and formal (Meeru). Avoid robotic/archaic forms (like Neevu) unless specifically intended.
+3. FORMALITY CHECK: In ${targetLang}, prioritize standard polite/formal forms for beginners (e.g. Meeru over Nuvvu in Telugu). Avoid robotic/archaic forms (like Neevu) completely.
 4. Check if the meaning in ${nativeLang} correctly matches the ${targetLang} phrase.
 5. Check if the phonetic guide matches the sounds of the corrected phrase.
 
