@@ -204,21 +204,33 @@ router.post('/chat', async (req, res) => {
     const { messages, options = {} } = req.body;
     if (!messages?.length) return res.status(400).json({ error: 'messages are required' });
     try {
-        const initialDraft = await generateWithFallback(messages, options);
-        let finalizedContent = await reflectAndCorrect(messages, initialDraft, options);
+        // Latency Fix: Disable reflectAndCorrect (double-pass). Let main LLM handle strict rules.
+        const finalizedContent = await generateWithFallback(messages, options);
 
         // SPEED OPTIMIZATION: Generate audio on backend to save 1 round-trip
         let audioContent = null;
         if (options.generateAudio) {
             try {
-                // Extract TTS text (strip tags and markdown)
+                // Extract TTS text preserving English context, replacing target with Native Script
                 const ttsMatch = finalizedContent.match(/<tts>(.*?)<\/tts>/i);
-                let ttsText = ttsMatch ? ttsMatch[1] : finalizedContent
-                    .replace(/<[^>]+>/g, '')
+                const nativeScript = ttsMatch ? ttsMatch[1].trim() : null;
+                const boldMatches = finalizedContent.match(/\*\*(.*?)\*\*/g);
+                const lastBold = boldMatches ? boldMatches[boldMatches.length - 1].replace(/\*\*/g, '').trim() : null;
+
+                let ttsText = finalizedContent
+                    .replace(/<phonetic>.*?<\/phonetic>/gi, '') // Don't read phonetics
+                    .replace(/<tts>.*?<\/tts>/gi, '') // Remove tag body
+                    .replace(/<[^>]+>/g, '') // Remove metadata tags
+                    .replace(/\\\*/g, '') // Strip escapes like \*
                     .replace(/\*\*/g, '')
                     .replace(/\*/g, '')
-                    .replace(/\\/g, '') // Strip escapes like \*
+                    .replace(/[\p{Extended_Pictographic}\p{Emoji_Component}]/gu, '') // Strip emojis
                     .trim();
+
+                // Swap the transliterated bold word with its native script so TTS reads it authentically
+                if (nativeScript && lastBold && ttsText.includes(lastBold)) {
+                    ttsText = ttsText.replace(lastBold, nativeScript);
+                }
 
                 const googleClient = getGoogleTtsClient();
                 if (googleClient) {
