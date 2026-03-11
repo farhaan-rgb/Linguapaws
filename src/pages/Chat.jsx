@@ -1111,11 +1111,13 @@ export default function Chat() {
 
                                 let clean = m.content;
 
-                                clean = stripTargetScript(clean) // Crucial: Remove native script before copying
+                                clean = stripTargetScript(clean)
+                                    .replace(/<phonetic>.*?<\/phonetic>/gi, '')
+                                    .replace(/<tts>.*?<\/tts>/gi, '')
                                     .replace(/<shadow>.*?<\/shadow>/gs, '')
                                     .replace(/<recalibrate>.*?<\/recalibrate>/gs, '')
                                     .replace(/<level_up>.*?<\/level_up>/gs, '')
-                                    .replace(/<[^>]+>/g, '') // remove any other remaining tags
+                                    .replace(/<[^>]+>/g, '')
                                     .replace(/\*\*(.*?)\*\*/g, '$1')
                                     .replace(/\*(.*?)\*/g, '$1')
                                     .trim();
