@@ -281,10 +281,12 @@ SHADOW PRACTICE:
                     userLevel,
                     targetLang: targetLangName,
                     nativeLang: nativeLangName,
+                    generateAudio: true, // Optimized: Get audio with chat response
+                    voice: character?.voice || 'alloy',
                     response_format: (userLevel === 'basic' || userLevel === 'conversational') ? { type: 'json_object' } : undefined
                 }
             });
-            const reply = data.content;
+            const { content: reply, audioContent } = data;
 
             let parsedReply = null;
             try {
@@ -294,10 +296,10 @@ SHADOW PRACTICE:
                 if (typeof parsed.success === 'string') {
                     parsed.success = parsed.success.toLowerCase() === 'true';
                 }
-                parsedReply = parsed;
+                parsedReply = { ...parsed, audioContent };
             } catch (e) {
                 // Fallback for non-JSON responses (Zero level or legacy)
-                parsedReply = { content: reply, success: null };
+                parsedReply = { content: reply, success: null, audioContent };
             }
 
             this.history.push({ role: 'user', content: message });

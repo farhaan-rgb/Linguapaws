@@ -158,10 +158,12 @@ The native language is: ${nativeLang}
 
 YOUR MISSION:
 1. Check if the ${targetLang} phrases in bold are grammatically PERFECT and NATURAL (how a local human actually speaks).
-2. Check if the meaning in ${nativeLang} correctly matches the ${targetLang} phrase.
-3. Check if the phonetic guide matches the sounds of the corrected phrase.
+2. SENSITIVITY CHECK: Ensure it's not using Hindi words (like "Namaste") for ${targetLang}. 
+3. FORMALITY CHECK: In ${targetLang}, differentiate between casual (e.g. Nuvvu) and formal (Meeru). Avoid robotic/archaic forms (like Neevu) unless specifically intended.
+4. Check if the meaning in ${nativeLang} correctly matches the ${targetLang} phrase.
+5. Check if the phonetic guide matches the sounds of the corrected phrase.
 
-IF ANYTHING IS WRONG (e.g., robotic phrasing like "Meeru nunchi vaallu" instead of natural forms, or mismatching meanings), provide a specific fix. 
+IF ANYTHING IS WRONG (e.g., Hindi default, robotic phrasing, or incorrect meaning), provide a specific fix. 
 IF EVERYTHING IS PERFECT, just respond: "PERFECT".
 
 If not perfect, return a JSON object: {"isError": true, "critique": "EXPLAIN THE ERROR BRIEFLY", "betterVersion": "COMPLETE CORRECTED PHRASE IN BOLD WITH PHONETIC AND MEANING"}`;
@@ -176,7 +178,7 @@ If not perfect, return a JSON object: {"isError": true, "critique": "EXPLAIN THE
         }
 
         const feedback = JSON.parse(criticOutput);
-        if (!feedback.isError) return initialDraft;
+        if (!feedback || !feedback.isError) return initialDraft;
 
         // Second pass: Tell Miko to integrate the critic's feedback
         const finalPrompt = `Your previous draft was: "${initialDraft}"
@@ -203,8 +205,49 @@ router.post('/chat', async (req, res) => {
     if (!messages?.length) return res.status(400).json({ error: 'messages are required' });
     try {
         const initialDraft = await generateWithFallback(messages, options);
-        const finalizedContent = await reflectAndCorrect(messages, initialDraft, options);
-        return res.json({ content: finalizedContent });
+        let finalizedContent = await reflectAndCorrect(messages, initialDraft, options);
+
+        // SPEED OPTIMIZATION: Generate audio on backend to save 1 round-trip
+        let audioContent = null;
+        if (options.generateAudio) {
+            try {
+                // Extract TTS text (strip tags and markdown)
+                const ttsMatch = finalizedContent.match(/<tts>(.*?)<\/tts>/i);
+                let ttsText = ttsMatch ? ttsMatch[1] : finalizedContent
+                    .replace(/<[^>]+>/g, '')
+                    .replace(/\*\*/g, '')
+                    .replace(/\*/g, '')
+                    .replace(/\\/g, '') // Strip escapes like \*
+                    .trim();
+
+                const googleClient = getGoogleTtsClient();
+                if (googleClient) {
+                    const languageCode = resolveLanguageCode(options.targetLanguage); // Fix: use targetLanguage or targetLang
+                    const targetLangToUse = options.targetLang || options.targetLanguage;
+                    const resolvedCode = resolveLanguageCode(targetLangToUse);
+
+                    const [ttsResponse] = await googleClient.synthesizeSpeech({
+                        input: { text: ttsText },
+                        voice: { languageCode: resolvedCode, ssmlGender: 'NEUTRAL' },
+                        audioConfig: { audioEncoding: 'MP3' }
+                    });
+                    audioContent = Buffer.from(ttsResponse.audioContent).toString('base64');
+                } else {
+                    const targetLangToUse = options.targetLang || options.targetLanguage;
+                    const nonEnglish = targetLangToUse && targetLangToUse.toLowerCase() !== 'english';
+                    const mp3 = await getClient().audio.speech.create({
+                        model: nonEnglish ? 'tts-1-hd' : 'tts-1',
+                        voice: options.voice || 'alloy',
+                        input: ttsText
+                    });
+                    audioContent = Buffer.from(await mp3.arrayBuffer()).toString('base64');
+                }
+            } catch (ttsErr) {
+                console.warn('Backend TTS optimization failed:', ttsErr.message);
+            }
+        }
+
+        return res.json({ content: finalizedContent, audioContent });
     } catch (err) {
         return res.status(502).json({ error: err.message || 'AI request failed' });
     }

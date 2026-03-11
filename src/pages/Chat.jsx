@@ -266,6 +266,7 @@ export default function Chat() {
             .replace(/<level_up>.*?<\/level_up>/g, '')
             .replace(/<success>.*?<\/success>/gi, '')
             .replace(/<[^>]+>/g, '')                         // Strip any remaining tags
+            .replace(/\\\*/g, '')                            // Strip escaped asterisks \*
             .replace(/\*\*/g, '')                            // Strip double asterisks (bold)
             .replace(/\*/g, '')                             // Strip single asterisks (italic)
             .replace(/[\p{Extended_Pictographic}\p{Emoji_Component}]/gu, ''); // Strip emojis (e.g. 🎉, 🐾)
@@ -977,16 +978,29 @@ export default function Chat() {
                 throw new Error("Empty AI response generated; falling back to error message.");
             }
 
-            // Pre-fetch audio so it plays instantly when text appears
+            // SPEED OPTIMIZATION: Use pre-fetched audio from backend if available
             let audioUrl = null;
             if (!isMuted && isMounted.current) {
-                audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
+                if (aiResult.audioContent) {
+                    // Convert base64 to Blob URL for instant playback
+                    const byteCharacters = atob(aiResult.audioContent);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: 'audio/mpeg' });
+                    audioUrl = URL.createObjectURL(blob);
+                } else {
+                    // Fallback to separate fetch if backend TTS failed/skipped
+                    audioUrl = await aiService.generateSpeech(speechText, activeCharacter?.voice || 'alloy', targetLang?.name || null);
+                }
             }
 
             setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
-            setIsLoading(false); // Unblock UI now that audio is ready
+            setIsLoading(false); // Unblock UI
 
-            // Play voice immediately (syncs perfectly with message appearing)
+            // Play voice immediately
             if (audioUrl && isMounted.current) {
                 audioRef.current.src = audioUrl;
                 audioRef.current.play().catch(e => console.warn("Audio play blocked:", e));
