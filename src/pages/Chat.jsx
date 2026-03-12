@@ -1500,7 +1500,7 @@ export default function Chat() {
                             // Clean phonetic from AI-generated brackets
                             if (phonetic) phonetic = phonetic.replace(/[\[\]]/g, '').trim();
 
-                            if ((prompted || phonetic) && msg.role === 'assistant') {
+                            if (phonetic && msg.role === 'assistant') {
                                 return (
                                     <motion.div
                                         initial={{ opacity: 0, scale: 0.95 }}
@@ -1519,7 +1519,7 @@ export default function Chat() {
                                     >
                                         <span style={{ fontSize: '14px', color: '#444', fontWeight: '800' }}>Pronunciation:</span>
                                         <span style={{ fontSize: '14px', color: '#666', fontWeight: '500' }}>
-                                            {phonetic || prompted}
+                                            {phonetic}
                                         </span>
                                     </motion.div>
                                 );
