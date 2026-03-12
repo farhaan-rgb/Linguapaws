@@ -47,7 +47,7 @@ export default function Chat() {
     const [matchScores, setMatchScores] = useState({});
     const [sentenceSuccesses, setSentenceSuccesses] = useState({});
     // Progress bar state (loaded from DB)
-    const [progress, setProgress] = useState({ level: 'zero', levelLabel: 'Beginner', successfulRepeats: 0, needed: 100, nextLevelLabel: 'Basic' });
+    const [progress, setProgress] = useState({ level: 'zero', levelLabel: 'Beginner', successfulRepeats: 0, needed: 20, nextLevelLabel: 'Basic' });
     const scrollRef = useRef(null);
     const audioRef = useRef(new Audio());
     const hasGreeted = useRef(false);
@@ -604,7 +604,7 @@ export default function Chat() {
             let levelNote;
             const currentRepeats = progress?.successfulRepeats || 0;
             if (levelId === 'zero') {
-                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The user has ${currentRepeats} successfulRepeats out of 100. Check the 8-STAGE CURRICULUM to determine which stage they are on, then set up a grounded daily scene (e.g. coffee shop, home, work) and end with ONE simple practice phrase from that stage's vocabulary. Show only its transliterated pronunciation in bold. Ask them to try saying it.`;
+                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The user has ${currentRepeats} successfulRepeats out of 20. Check the 6-STAGE CURRICULUM to determine which stage they are on, then set up a grounded daily scene (e.g. coffee shop, home, work) and end with ONE simple practice phrase from that stage's vocabulary. Show only its transliterated pronunciation in bold. Ask them to try saying it.`;
             } else if (levelId === 'basic') {
                 levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}, but sprinkle in 1-2 transliterated ${targetLangName} words with meanings in parentheses. Ask a simple question about a daily topic like food, weather, or work that they can answer with a ${targetLangName} word (e.g., "Do you want coffee?"). DO NOT ask them to repeat anything. Just start a conversation.`;
             } else if (levelId === 'conversational') {
@@ -868,7 +868,7 @@ export default function Chat() {
             // We combine display rules with our hidden note about user performance
             let baseMetaNote = [acceptNote, transitionNote].filter(Boolean).join('\n');
             if (isBeginner) {
-                baseMetaNote += `\n[SYSTEM: The user's current successfulRepeats count is ${currentRepeats} out of 100. Use this to determine which STAGE of the curriculum to focus on. Stay within that stage's theme and patterns. MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded phrase.]`;
+                baseMetaNote += `\n[SYSTEM: The user's current successfulRepeats count is ${currentRepeats} out of 20. Use this to determine which STAGE of the curriculum to focus on. Stay within that stage's theme and patterns. MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded phrase.]`;
             }
             if (effectiveLevel === 'basic') {
                 baseMetaNote += '\n[SYSTEM REMINDER: You MUST evaluate the grammar of the user\'s response. Output the result in the JSON "success" field. Set "success": true if word order was correct, or "success": false if incorrect/missing. This is critical.]';
@@ -1221,14 +1221,12 @@ export default function Chat() {
                             <span style={{ fontSize: '11px', fontWeight: '700', color: '#7c3aed' }}>
                                 {progress.levelLabel}{progress.level === 'zero' && (() => {
                                     const r = progress.successfulRepeats || 0;
-                                    if (r <= 12) return ' · Stage 1: Greetings';
-                                    if (r <= 25) return ' · Stage 2: Identity';
-                                    if (r <= 40) return ' · Stage 3: Ordering';
-                                    if (r <= 55) return ' · Stage 4: Questions';
-                                    if (r <= 68) return ' · Stage 5: Preferences';
-                                    if (r <= 80) return ' · Stage 6: Routines';
-                                    if (r <= 90) return ' · Stage 7: Navigation';
-                                    return ' · Stage 8: Social';
+                                    if (r <= 3) return ' · Stage 1: Survival';
+                                    if (r <= 6) return ' · Stage 2: Identity';
+                                    if (r <= 9) return ' · Stage 3: Needs';
+                                    if (r <= 12) return ' · Stage 4: Questions';
+                                    if (r <= 15) return ' · Stage 5: Preferences';
+                                    return ' · Stage 6: Routines';
                                 })()}
                             </span>
                             <span style={{ fontSize: '11px', color: '#94a3b8' }}>
