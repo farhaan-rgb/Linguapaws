@@ -5,7 +5,7 @@ const requireAuth = require('../middleware/auth');
 const router = express.Router();
 router.use(requireAuth);
 
-const PROGRESSION_THRESHOLDS = { zero: 20, basic: 20, conversational: 20 };
+const PROGRESSION_THRESHOLDS = { zero: 100, basic: 100, conversational: 100 };
 const NEXT_LEVEL = { zero: 'basic', basic: 'conversational', conversational: 'fluent' };
 const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
 

@@ -47,7 +47,7 @@ export default function Chat() {
     const [matchScores, setMatchScores] = useState({});
     const [sentenceSuccesses, setSentenceSuccesses] = useState({});
     // Progress bar state (loaded from DB)
-    const [progress, setProgress] = useState({ level: 'zero', levelLabel: 'Beginner', successfulRepeats: 0, needed: 20, nextLevelLabel: 'Basic' });
+    const [progress, setProgress] = useState({ level: 'zero', levelLabel: 'Beginner', successfulRepeats: 0, needed: 100, nextLevelLabel: 'Basic' });
     const scrollRef = useRef(null);
     const audioRef = useRef(new Audio());
     const hasGreeted = useRef(false);
@@ -603,15 +603,29 @@ export default function Chat() {
 
             let levelNote;
             const currentRepeats = progress?.successfulRepeats || 0;
+            const SCENARIOS = [
+                "Greetings & Identity",
+                "Ordering Food & Drinks",
+                "Shopping & Prices",
+                "Asking for Directions",
+                "Transportation & Travel",
+                "Time & Schedules",
+                "Hobbies & Preferences",
+                "Weather & Environment",
+                "Health & Body",
+                "Social Gatherings & Events"
+            ];
+            const activeScenario = SCENARIOS[Math.min(Math.floor(currentRepeats / 10), 9)];
+
             if (levelId === 'zero') {
-                levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. You are a native speaker in a grounded daily scene (e.g. coffee shop, home). Teach ONE simple practice phrase from your deep ${targetLangName} knowledge. Show its transliterated pronunciation in bold. Do not mention stages or curriculum. Just act like a helpful local.`;
+                levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The active scenario is: '${activeScenario}'. Teach exactly ONE simple new target language WORD (noun, verb, or adjective) related to this scenario. Show its transliterated pronunciation in bold. Do not teach full sentences in this first message.`;
             } else if (levelId === 'basic') {
-                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}, but sprinkle in 1-2 transliterated ${targetLangName} words with meanings in parentheses. Ask a simple question about a daily topic like food, weather, or work that they can answer with a ${targetLangName} word (e.g., "Do you want coffee?"). DO NOT ask them to repeat anything. Just start a conversation.`;
+                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}. The active scenario is: '${activeScenario}'. Ask a simple question related to this scenario that forces them to construct a short phrase using ${targetLangName} words they learned. DO NOT ask them to repeat anything.`;
             } else if (levelId === 'conversational') {
-                levelNote = `Greet the user in mostly transliterated ${targetLangName} with ${nativeLangName} translations in parentheses after new phrases. Introduce yourself as ${activeCharacter?.name || 'Miko'} and ask a casual question about their day, work, or hobbies. Stick to everyday reality—avoid abstract poetic themes. Do NOT ask them to repeat a phrase. Just have a natural conversation.`;
+                levelNote = `Greet the user mostly in transliterated ${targetLangName} with ${nativeLangName} translations in parentheses. Introduce yourself as ${activeCharacter?.name || 'Miko'}. The active scenario is: '${activeScenario}'. Ask a conversational question related to this scenario to engage them in a back-and-forth roleplay.`;
             } else {
                 // fluent
-                levelNote = `Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. No English translations, no parenthetical hints. Speak naturally and casually like a local friend. Introduce yourself as ${activeCharacter?.name || 'Miko'} and start a flowing conversation about a grounded, interesting daily topic (news, hobbies, plans). Strictly avoid abstract poetic hallucinations. Do NOT ask the user to repeat a phrase. Just talk naturally.`;
+                levelNote = `Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. The active scenario is: '${activeScenario}'. Speak naturally and casually like a local friend starting a conversation about this scenario.`;
             }
 
             const rawGreeting = await aiService.getResponse(
@@ -866,9 +880,25 @@ export default function Chat() {
                     : null;
 
             // We combine display rules with our hidden note about user performance
+            const SCENARIOS = [
+                "Greetings & Identity",
+                "Ordering Food & Drinks",
+                "Shopping & Prices",
+                "Asking for Directions",
+                "Transportation & Travel",
+                "Time & Schedules",
+                "Hobbies & Preferences",
+                "Weather & Environment",
+                "Health & Body",
+                "Social Gatherings & Events"
+            ];
+            const activeScenarioIdx = Math.min(Math.floor(currentRepeats / 10), 9);
+            const activeScenario = SCENARIOS[activeScenarioIdx];
+
             let baseMetaNote = [acceptNote, transitionNote].filter(Boolean).join('\n');
+            baseMetaNote += `\n[SYSTEM: The current scenario is '${activeScenario}'. You MUST stay strictly anchored to this scenario.]`;
             if (isBeginner) {
-                baseMetaNote += `\n[SYSTEM: You are in Beginner mode. Keep your grammar patterns EXTREMELY basic (2-3 words). MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded phrase.]`;
+                baseMetaNote += `\n[SYSTEM REMINDER: Only teach NEW isolated vocabulary words related to '${activeScenario}'. Do NOT teach full sentences. MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded word.]`;
             }
             if (effectiveLevel === 'basic') {
                 baseMetaNote += '\n[SYSTEM REMINDER: You MUST evaluate the grammar of the user\'s response. Output the result in the JSON "success" field. Set "success": true if word order was correct, or "success": false if incorrect/missing. This is critical.]';
@@ -1221,12 +1251,20 @@ export default function Chat() {
                             <span style={{ fontSize: '11px', fontWeight: '700', color: '#7c3aed' }}>
                                 {progress.levelLabel}{progress.level === 'zero' && (() => {
                                     const r = progress.successfulRepeats || 0;
-                                    if (r <= 3) return ' · Stage 1: Survival';
-                                    if (r <= 6) return ' · Stage 2: Identity';
-                                    if (r <= 9) return ' · Stage 3: Needs';
-                                    if (r <= 12) return ' · Stage 4: Questions';
-                                    if (r <= 15) return ' · Stage 5: Preferences';
-                                    return ' · Stage 6: Routines';
+                                    const stageNum = Math.min(Math.floor(r / 10) + 1, 10);
+                                    const scenarios = [
+                                        "Greetings & Identity",
+                                        "Ordering Food & Drinks",
+                                        "Shopping & Prices",
+                                        "Asking for Directions",
+                                        "Transportation & Travel",
+                                        "Time & Schedules",
+                                        "Hobbies & Preferences",
+                                        "Weather & Environment",
+                                        "Health & Body",
+                                        "Social Gatherings & Events"
+                                    ];
+                                    return ` · Scenario ${stageNum}: ${scenarios[stageNum - 1]}`;
                                 })()}
                             </span>
                             <span style={{ fontSize: '11px', color: '#94a3b8' }}>
