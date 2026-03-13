@@ -604,7 +604,7 @@ export default function Chat() {
             let levelNote;
             const currentRepeats = progress?.successfulRepeats || 0;
             if (levelId === 'zero') {
-                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The user has ${currentRepeats} successfulRepeats out of 20. Check the 6-STAGE CURRICULUM to determine which stage they are on, then set up a grounded daily scene (e.g. coffee shop, home, work) and end with ONE simple practice phrase from that stage's vocabulary. Show only its transliterated pronunciation in bold. Ask them to try saying it.`;
+                levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. You are a native speaker in a grounded daily scene (e.g. coffee shop, home). Teach ONE simple practice phrase from your deep ${targetLangName} knowledge. Show its transliterated pronunciation in bold. Do not mention stages or curriculum. Just act like a helpful local.`;
             } else if (levelId === 'basic') {
                 levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}, but sprinkle in 1-2 transliterated ${targetLangName} words with meanings in parentheses. Ask a simple question about a daily topic like food, weather, or work that they can answer with a ${targetLangName} word (e.g., "Do you want coffee?"). DO NOT ask them to repeat anything. Just start a conversation.`;
             } else if (levelId === 'conversational') {
@@ -860,7 +860,7 @@ export default function Chat() {
             const currentRepeats = progress?.successfulRepeats || 0;
             const feedbackNoun = isVoice ? 'pronunciation' : 'spelling';
             const acceptNote = (promptedPhrase && matchRatio >= threshold)
-                ? `The user's ${feedbackNoun} was PERFECT. You MUST enthusiastically praise them. Do NOT correct them. Do NOT tell them they were 'almost right'. Do NOT provide alternative variations. Congratulate them briefly. ${isBeginner ? 'Then immediately continue with the CURRENT STAGE curriculum — either teach the next phrase in the same pattern, or if they have practiced 3-4 phrases in this pattern, try a VERIFICATION challenge (ask them to use the pattern without showing the exact phrase).' : 'Then move the conversation forward naturally by asking a simple question. DO NOT ask them to repeat anything.'} DO NOT ask them what they want to talk about.`
+                ? `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isBeginner ? 'Then immediately continue your roleplay by teaching ONE new relevant native phrase in the current scenario.' : 'Then move the conversation forward naturally by asking a simple question without bolding any target phrase.'} DO NOT ask them what they want to talk about.`
                 : (promptedPhrase && matchRatio < threshold)
                     ? `The user attempted the phrase but their ${feedbackNoun} was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`
                     : null;
@@ -868,7 +868,7 @@ export default function Chat() {
             // We combine display rules with our hidden note about user performance
             let baseMetaNote = [acceptNote, transitionNote].filter(Boolean).join('\n');
             if (isBeginner) {
-                baseMetaNote += `\n[SYSTEM: The user's current successfulRepeats count is ${currentRepeats} out of 20. Use this to determine which STAGE of the curriculum to focus on. Stay within that stage's theme and patterns. MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded phrase.]`;
+                baseMetaNote += `\n[SYSTEM: You are in Beginner mode. Keep your grammar patterns EXTREMELY basic (2-3 words). MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded phrase.]`;
             }
             if (effectiveLevel === 'basic') {
                 baseMetaNote += '\n[SYSTEM REMINDER: You MUST evaluate the grammar of the user\'s response. Output the result in the JSON "success" field. Set "success": true if word order was correct, or "success": false if incorrect/missing. This is critical.]';
