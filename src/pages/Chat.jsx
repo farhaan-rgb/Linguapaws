@@ -597,12 +597,15 @@ export default function Chat() {
 
             setIsLoading(true);
             let greeting = "";
-            const levelId = userLevel || 'conversational';
-            const nativeLangName = nativeLang?.name || 'Hindi';
-            const targetLangName = targetLang?.name || 'English';
-
-            let levelNote;
             const currentRepeats = progress?.successfulRepeats || 0;
+            let levelId = userLevel || 'conversational';
+            if (currentRepeats < 300) {
+                const subLevelIdx = Math.floor((currentRepeats % 30) / 10);
+                levelId = subLevelIdx === 0 ? 'zero' : subLevelIdx === 1 ? 'basic' : 'conversational';
+            } else {
+                levelId = 'fluent';
+            }
+
             const SCENARIOS = [
                 "Greetings & Identity",
                 "Ordering Food & Drinks",
@@ -615,7 +618,8 @@ export default function Chat() {
                 "Health & Body",
                 "Social Gatherings & Events"
             ];
-            const activeScenario = SCENARIOS[Math.min(Math.floor(currentRepeats / 10), 9)];
+            const activeScenarioIdx = Math.min(Math.floor(currentRepeats / 30), 9);
+            const activeScenario = SCENARIOS[activeScenarioIdx];
 
             if (levelId === 'zero') {
                 levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The active scenario is: '${activeScenario}'. Teach exactly ONE simple new target language WORD (noun, verb, or adjective) related to this scenario. Show its transliterated pronunciation in bold. Do not teach full sentences in this first message.`;
@@ -759,42 +763,15 @@ export default function Chat() {
         setIsLoading(true);
 
         try {
-            // ── CLIENT-SIDE RECALIBRATION (first message only) ────────────────────
-            // Deterministically detect obvious level mismatches before calling AI.
-            // React state updates are async so we track the effective level locally.
+            // ── LEVEL DETERMINATION ────────────────────
+            const currentRepeats = progress?.successfulRepeats || 0;
             let effectiveLevel = userLevel;
-            const isFirstMessage = exchangeCount.current === 0;
-            const allowRecalibration = (targetLang?.id || '').toLowerCase() === 'en';
-            if (isFirstMessage && allowRecalibration) {
-                const latinChars = (text.match(/[a-zA-Z]/g) || []).length;
-                const latinRatio = latinChars / Math.max(text.replace(/\s/g, '').length, 1);
-                const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
-                const charName = activeCharacter?.name || 'Miko';
-
-                const applyRecalibration = (newLevelId) => {
-                    effectiveLevel = newLevelId;
-                    setUserLevel(newLevelId);
-                    const newLevel = { id: newLevelId, label: LEVEL_LABELS[newLevelId], appDetected: true };
-                    localStorage.setItem('linguapaws_level', JSON.stringify(newLevel));
-                    api.put('/api/settings', { englishLevel: newLevel }).catch(() => { });
-                    setRecalibrationToast(`${charName} adjusted to your level: ${LEVEL_LABELS[newLevelId]} 🎯`);
-                    setTimeout(() => setRecalibrationToast(null), 4000);
-                };
-
-                // Non-target-language message + high stated level → recalibrate down
-                if (latinRatio < 0.15 && (userLevel === 'fluent' || userLevel === 'conversational')) {
-                    applyRecalibration('zero');
-                }
-                // Very basic target-language + high stated level → recalibrate to basic
-                else if (latinRatio > 0.5 && latinRatio < 0.85 && text.trim().split(/\s+/).length <= 4 && userLevel === 'fluent') {
-                    applyRecalibration('basic');
-                }
-                // Fluent target-language paragraphs + stated zero → recalibrate up  
-                else if (latinRatio > 0.85 && text.trim().split(/\s+/).length > 6 && (userLevel === 'zero' || userLevel === 'basic')) {
-                    applyRecalibration('fluent');
-                }
+            if (currentRepeats < 300) {
+                const subLevelIdx = Math.floor((currentRepeats % 30) / 10);
+                effectiveLevel = subLevelIdx === 0 ? 'zero' : subLevelIdx === 1 ? 'basic' : 'conversational';
+            } else {
+                effectiveLevel = 'fluent';
             }
-            // ── END CLIENT-SIDE RECALIBRATION ─────────────────────────────────────
 
             // Increment exchange count and determine if this is a scheduled shadow round
             exchangeCount.current += 1;
@@ -840,38 +817,18 @@ export default function Chat() {
             }
             const threshold = 0.5;
 
-            let transitionNote = '';
             // Server-side level progression via DB
             if (promptedPhrase && matchRatio >= threshold) {
                 console.log('[Progress] Match >= 50%, calling /api/progress/increment...');
                 try {
                     const progressResult = await api.post('/api/progress/increment');
-                    console.log('[Progress] API result:', JSON.stringify(progressResult));
                     setProgress(progressResult);
-                    if (progressResult.leveledUp) {
-                        setUserLevel(progressResult.level);
-                        effectiveLevel = progressResult.level;
-                        transitionNote = `[SYSTEM: USER HAS ADVANCED TO LEVEL ${progressResult.level.toUpperCase()}. Stop using the previous level's pattern. Adapt your style IMMEDIATELY to the new level.]`;
-                        localStorage.setItem('linguapaws_level', JSON.stringify({
-                            id: progressResult.level,
-                            label: progressResult.levelLabel,
-                            appDetected: true,
-                        }));
-                        const LEVEL_UP_MESSAGES = {
-                            basic: "🌿 You've graduated from mimicry! Time to start making choices.",
-                            conversational: "🌳 Amazing progress! Let's start having real conversations.",
-                            fluent: "⭐ You're ready for full immersion! No more training wheels.",
-                        };
-                        setLevelUpToast(LEVEL_UP_MESSAGES[progressResult.level] || `🎉 Level up: ${progressResult.levelLabel}!`);
-                        setTimeout(() => setLevelUpToast(null), 6000);
-                    }
                 } catch (err) {
                     console.warn('Failed to increment progress:', err);
                 }
             }
 
             const isBeginner = effectiveLevel === 'zero';
-            const currentRepeats = progress?.successfulRepeats || 0;
             const feedbackNoun = isVoice ? 'pronunciation' : 'spelling';
             const acceptNote = (promptedPhrase && matchRatio >= threshold)
                 ? `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isBeginner ? 'Then immediately continue your roleplay by teaching ONE new relevant native phrase in the current scenario.' : 'Then move the conversation forward naturally by asking a simple question without bolding any target phrase.'} DO NOT ask them what they want to talk about.`
@@ -892,10 +849,10 @@ export default function Chat() {
                 "Health & Body",
                 "Social Gatherings & Events"
             ];
-            const activeScenarioIdx = Math.min(Math.floor(currentRepeats / 10), 9);
+            const activeScenarioIdx = Math.min(Math.floor(currentRepeats / 30), 9);
             const activeScenario = SCENARIOS[activeScenarioIdx];
 
-            let baseMetaNote = [acceptNote, transitionNote].filter(Boolean).join('\n');
+            let baseMetaNote = acceptNote;
             baseMetaNote += `\n[SYSTEM: The current scenario is '${activeScenario}'. You MUST stay strictly anchored to this scenario.]`;
             if (isBeginner) {
                 baseMetaNote += `\n[SYSTEM REMINDER: Only teach NEW isolated vocabulary words related to '${activeScenario}'. Do NOT teach full sentences. MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded word.]`;
@@ -1234,7 +1191,7 @@ export default function Chat() {
             </div>
 
             {/* Progress bar */}
-            {progress.needed && (
+            {progress && (
                 <div style={{
                     padding: '8px 20px',
                     background: 'linear-gradient(135deg, #faf5ff, #eff6ff)',
@@ -1244,14 +1201,18 @@ export default function Chat() {
                     gap: '10px',
                 }}>
                     <span style={{ fontSize: '14px' }}>
-                        {progress.level === 'zero' ? '🌱' : progress.level === 'basic' ? '🌿' : progress.level === 'conversational' ? '🌳' : '⭐'}
+                        {(() => {
+                            const r = progress.successfulRepeats || 0;
+                            const sub = r < 300 ? Math.floor((r % 30) / 10) : 3;
+                            return sub === 0 ? '🌱' : sub === 1 ? '🌿' : sub === 2 ? '🌳' : '⭐';
+                        })()}
                     </span>
                     <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                             <span style={{ fontSize: '11px', fontWeight: '700', color: '#7c3aed' }}>
-                                {progress.levelLabel}{progress.level === 'zero' && (() => {
+                                {(() => {
                                     const r = progress.successfulRepeats || 0;
-                                    const stageNum = Math.min(Math.floor(r / 10) + 1, 10);
+                                    const stageNum = Math.min(Math.floor(r / 30) + 1, 10);
                                     const scenarios = [
                                         "Greetings & Identity",
                                         "Ordering Food & Drinks",
@@ -1264,11 +1225,19 @@ export default function Chat() {
                                         "Health & Body",
                                         "Social Gatherings & Events"
                                     ];
-                                    return ` · Scenario ${stageNum}: ${scenarios[stageNum - 1]}`;
+                                    return `Scenario ${stageNum}: ${scenarios[Math.min(stageNum - 1, 9)]}`;
                                 })()}
                             </span>
                             <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                                {progress.successfulRepeats}/{progress.needed} → {progress.nextLevelLabel}
+                                {(() => {
+                                    const r = progress.successfulRepeats || 0;
+                                    if (r >= 300) return 'Fluent Mode';
+                                    const sub = Math.floor((r % 30) / 10);
+                                    let subLabel = sub === 0 ? 'Beginner' : sub === 1 ? 'Basic' : 'Conversational';
+                                    let nextLabel = sub === 0 ? 'Basic' : sub === 1 ? 'Conversational' : 'Next Scenario';
+                                    const pts = r % 10;
+                                    return `${subLabel} · ${pts}/10 → ${nextLabel}`;
+                                })()}
                             </span>
                         </div>
                         <div style={{
@@ -1279,7 +1248,7 @@ export default function Chat() {
                         }}>
                             <motion.div
                                 initial={{ width: 0 }}
-                                animate={{ width: `${Math.min((progress.successfulRepeats / progress.needed) * 100, 100)}%` }}
+                                animate={{ width: `${Math.min(((progress.successfulRepeats || 0) % 10) * 10, 100)}%` }}
                                 transition={{ duration: 0.5, ease: 'easeOut' }}
                                 style={{
                                     height: '100%',
