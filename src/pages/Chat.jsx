@@ -596,6 +596,10 @@ export default function Chat() {
             hasGreeted.current = true;
 
             setIsLoading(true);
+            const nativeLangName = nativeLang?.name || 'Hindi';
+            const targetLangName = targetLang?.name || 'English';
+
+            let levelNote;
             let greeting = "";
             const currentRepeats = progress?.successfulRepeats || 0;
             let levelId = userLevel || 'conversational';
