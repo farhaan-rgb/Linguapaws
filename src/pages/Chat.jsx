@@ -626,11 +626,11 @@ export default function Chat() {
             const activeScenario = SCENARIOS[activeScenarioIdx];
 
             if (levelId === 'zero') {
-                levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The active scenario is: '${activeScenario}'. Teach exactly ONE simple new target language WORD (noun, verb, or adjective) related to this scenario. Show its transliterated pronunciation in bold. Do not teach full sentences in this first message.`;
+                levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The active scenario is: '${activeScenario}'. Teach exactly ONE simple new target language WORD (concrete noun or verb, NO pronouns, NO names) related to this scenario. Show its transliterated pronunciation in bold. Do not teach full sentences in this first message.`;
             } else if (levelId === 'basic') {
-                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}. The active scenario is: '${activeScenario}'. Ask a simple question related to this scenario that forces them to construct a short phrase using ${targetLangName} words they learned. DO NOT ask them to repeat anything.`;
+                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}. The active scenario is: '${activeScenario}'. Speak in character and ask a simple question related to this scenario that forces them to construct a short phrase using ${targetLangName} words they learned. DO NOT ask them to repeat anything.`;
             } else if (levelId === 'conversational') {
-                levelNote = `Greet the user mostly in transliterated ${targetLangName} with ${nativeLangName} translations in parentheses. Introduce yourself as ${activeCharacter?.name || 'Miko'}. The active scenario is: '${activeScenario}'. Ask a conversational question related to this scenario to engage them in a back-and-forth roleplay.`;
+                levelNote = `Greet the user mostly in transliterated ${targetLangName} with ${nativeLangName} translations in parentheses. Introduce yourself as ${activeCharacter?.name || 'Miko'}. The active scenario is: '${activeScenario}'. Speak in character as a true roleplay partner and ask exactly ONE conversational question related to this scenario to engage them in a back-and-forth roleplay.`;
             } else {
                 // fluent
                 levelNote = `Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. The active scenario is: '${activeScenario}'. Speak naturally and casually like a local friend starting a conversation about this scenario.`;
@@ -835,7 +835,7 @@ export default function Chat() {
             const isBeginner = effectiveLevel === 'zero';
             const feedbackNoun = isVoice ? 'pronunciation' : 'spelling';
             const acceptNote = (promptedPhrase && matchRatio >= threshold)
-                ? `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isBeginner ? 'Then immediately continue your roleplay by teaching ONE new relevant native phrase in the current scenario.' : 'Then move the conversation forward naturally by asking a simple question without bolding any target phrase.'} DO NOT ask them what they want to talk about.`
+                ? `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isBeginner ? 'Then immediately continue your roleplay by teaching ONE new relevant native phrase in the current scenario.' : 'Then move the conversation forward naturally by ALWAYS answering their questions in character before asking your next simple question. Do not bold any target phrase.'} DO NOT ask them what they want to talk about.`
                 : (promptedPhrase && matchRatio < threshold)
                     ? `The user attempted the phrase but their ${feedbackNoun} was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`
                     : null;
@@ -856,13 +856,16 @@ export default function Chat() {
             const activeScenarioIdx = Math.min(Math.floor(currentRepeats / 30), 9);
             const activeScenario = SCENARIOS[activeScenarioIdx];
 
-            let baseMetaNote = acceptNote;
+            let baseMetaNote = acceptNote || '';
             baseMetaNote += `\n[SYSTEM: The current scenario is '${activeScenario}'. You MUST stay strictly anchored to this scenario.]`;
             if (isBeginner) {
-                baseMetaNote += `\n[SYSTEM REMINDER: Only teach NEW isolated vocabulary words related to '${activeScenario}'. Do NOT teach full sentences. MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded word.]`;
+                baseMetaNote += `\n[SYSTEM REMINDER: Only teach NEW isolated vocabulary words related to '${activeScenario}'. Do NOT teach full sentences. DO NOT teach pronouns or names. MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded word.]`;
             }
             if (effectiveLevel === 'basic') {
-                baseMetaNote += '\n[SYSTEM REMINDER: You MUST evaluate the grammar of the user\'s response. Output the result in the JSON "success" field. Set "success": true if word order was correct, or "success": false if incorrect/missing. This is critical.]';
+                baseMetaNote += '\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. Answer their question FIRST if they asked one. You MUST evaluate the grammar of the user\'s response. Output the result in the JSON "success" field. Set "success": true if word order was correct, or "success": false if incorrect/missing. Do not hallucinate bizarre grammar prefixes.]';
+            }
+            if (effectiveLevel === 'conversational') {
+                baseMetaNote += '\n[SYSTEM REMINDER: Act as a true ROLEPLAY PARTNER. Limit yourself to asking EXACTLY ONE question. Do not act like an interviewer.]';
             }
             const metaNote = baseMetaNote;
 
