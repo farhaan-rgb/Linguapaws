@@ -830,20 +830,23 @@ export default function Chat() {
             const threshold = 0.5;
 
             // Server-side level progression via DB
+            let nextRepeats = currentRepeats; // Track locally for anti-stale word selection
             if (promptedPhrase && matchRatio >= threshold) {
                 console.log('[Progress] Match >= 50%, calling /api/progress/increment...');
                 try {
                     const progressResult = await api.post('/api/progress/increment');
                     setProgress(progressResult);
+                    nextRepeats = progressResult?.successfulRepeats || (currentRepeats + 1);
                 } catch (err) {
                     console.warn('Failed to increment progress:', err);
+                    nextRepeats = currentRepeats + 1; // Assume increment succeeded
                 }
             }
 
-            const isBeginner = effectiveLevel === 'zero';
+            const isCurrentlyBeginner = effectiveLevel === 'zero';
             const feedbackNoun = isVoice ? 'pronunciation' : 'spelling';
             const acceptNote = (promptedPhrase && matchRatio >= threshold)
-                ? `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isBeginner ? 'Then immediately continue your roleplay by teaching ONE new relevant native phrase in the current scenario.' : 'Then move the conversation forward naturally by ALWAYS answering their questions in character before asking your next simple question. Do not bold any target phrase.'} DO NOT ask them what they want to talk about.`
+                ? `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isCurrentlyBeginner ? 'Then immediately continue your roleplay by teaching ONE new relevant native phrase in the current scenario.' : 'Then move the conversation forward naturally by ALWAYS answering their questions in character before asking your next simple question. Do not bold any target phrase.'} DO NOT ask them what they want to talk about.`
                 : (promptedPhrase && matchRatio < threshold)
                     ? `The user attempted the phrase but their ${feedbackNoun} was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`
                     : null;
@@ -861,25 +864,34 @@ export default function Chat() {
                 "Health & Body",
                 "Social Gatherings & Events"
             ];
-            const activeScenarioIdx = Math.min(Math.floor(currentRepeats / 30), 9);
+            const activeScenarioIdx = Math.min(Math.floor(nextRepeats / 30), 9);
             const activeScenario = SCENARIOS[activeScenarioIdx];
 
             const safeLang = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Hindi';
             const scenarioData = (CURRICULUM[safeLang] && CURRICULUM[safeLang][activeScenarioIdx]) || { vocabulary: [] };
-            const vocabIndex = Math.floor(currentRepeats % 10);
+            const vocabIndex = Math.floor(nextRepeats % 10);
             const targetWordObj = scenarioData.vocabulary[vocabIndex] || { word: 'Word', meaning: 'Meaning' };
             const taughtVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
 
+            // Determine effective level AFTER increment for the NEXT prompt
+            let nextEffectiveLevel = effectiveLevel;
+            if (nextRepeats < 300) {
+                const nextSubLevelIdx = Math.floor((nextRepeats % 30) / 10);
+                nextEffectiveLevel = nextSubLevelIdx === 0 ? 'zero' : nextSubLevelIdx === 1 ? 'basic' : 'conversational';
+            } else {
+                nextEffectiveLevel = 'fluent';
+            }
+            const isBeginner = nextEffectiveLevel === 'zero';
             let baseMetaNote = acceptNote || '';
             baseMetaNote += `\n[SYSTEM: The current scenario is '${activeScenario}'. You MUST stay strictly anchored to this scenario.]`;
             if (isBeginner) {
-                baseMetaNote += `\n[SYSTEM REMINDER: YOU MUST TEACH EXACTLY THIS WORD AND ONLY THIS WORD: **${targetWordObj.word}** (Meaning: ${targetWordObj.meaning}). Do not choose any other word. MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded word.]`;
+                baseMetaNote += `\n[SYSTEM REMINDER: YOU MUST TEACH EXACTLY THIS WORD AND ONLY THIS WORD: **${targetWordObj.word}** (Meaning: ${targetWordObj.meaning}). Set a 1-sentence scene, then present the word in bold with <phonetic> and <tts> tags. Do not choose any other word.]`;
             }
-            if (effectiveLevel === 'basic') {
-                baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. Answer their question FIRST if they asked one. The user ONLY knows these target words: [${taughtVocab}]. Limit your prompt so they can answer combining ONLY these words. Output the result in the JSON "success" field.]`;
+            if (nextEffectiveLevel === 'basic') {
+                baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. Answer their question FIRST if they asked one. The user ONLY knows these target words: [${taughtVocab}]. Limit your prompt so they can answer combining ONLY these words. You MUST respond in valid JSON format: {"content": "...", "success": true/false/null}.]`;
             }
-            if (effectiveLevel === 'conversational') {
-                baseMetaNote += `\n[SYSTEM REMINDER: Act as a true ROLEPLAY PARTNER. Limit yourself to asking EXACTLY ONE question. The user ONLY knows these words: [${taughtVocab}]. Keep your language extremely restricted.]`;
+            if (nextEffectiveLevel === 'conversational') {
+                baseMetaNote += `\n[SYSTEM REMINDER: Act as a true ROLEPLAY PARTNER. Limit yourself to asking EXACTLY ONE question. The user ONLY knows these words: [${taughtVocab}]. Keep your language extremely restricted. You MUST respond in valid JSON format: {"content": "...", "success": true/false/null}.]`;
             }
             const metaNote = baseMetaNote;
 
