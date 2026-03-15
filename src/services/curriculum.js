@@ -12,7 +12,7 @@ export const CURRICULUM = {
                 { word: "Nundi", meaning: "From", phonetic: "noon-dee" },
                 { word: "Avunu", meaning: "Yes", phonetic: "ah-voo-noo" },
                 { word: "Ledu", meaning: "No", phonetic: "leh-doo" },
-                { word: "Bagunna", meaning: "Fine/Good", phonetic: "bah-goon-nah" }
+                { word: "Bagunna", meaning: "I am fine", phonetic: "bah-goon-nah" }
             ]
         },
         {

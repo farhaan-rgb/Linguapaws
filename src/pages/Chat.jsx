@@ -603,13 +603,19 @@ export default function Chat() {
             let levelNote;
             let greeting = "";
             const currentRepeats = progress?.successfulRepeats || 0;
+            // New split: 0-9 teach, 10-12 review, 13-22 basic, 23-29 conversational
             let levelId = userLevel || 'conversational';
             if (currentRepeats < 300) {
-                const subLevelIdx = Math.floor((currentRepeats % 30) / 10);
-                levelId = subLevelIdx === 0 ? 'zero' : subLevelIdx === 1 ? 'basic' : 'conversational';
+                const inScenario = currentRepeats % 30;
+                if (inScenario < 10) levelId = 'zero';
+                else if (inScenario < 13) levelId = 'zero'; // review (still beginner UI)
+                else if (inScenario < 23) levelId = 'basic';
+                else levelId = 'conversational';
             } else {
                 levelId = 'fluent';
             }
+            const inScenario = currentRepeats % 30;
+            const isReviewMode = inScenario >= 10 && inScenario < 13;
 
             const SCENARIOS = [
                 "Greetings & Identity",
@@ -627,19 +633,21 @@ export default function Chat() {
             const activeScenario = SCENARIOS[activeScenarioIdx];
 
             // Safely fetch curriculum slice based on current progress
-            const safeLang = CURRICULUM[targetLangName] ? targetLangName : 'Hindi'; // Optional fallback mapping if needed
+            const safeLang = CURRICULUM[targetLangName] ? targetLangName : 'Hindi';
             const scenarioData = (CURRICULUM[safeLang] && CURRICULUM[safeLang][activeScenarioIdx]) || { vocabulary: [] };
-            const vocabIndex = Math.floor(currentRepeats % 10);
-            const targetWordObj = scenarioData.vocabulary[vocabIndex] || { word: 'Word', meaning: 'Meaning' };
+            const vocabIndex = Math.floor(inScenario % 10);
+            const targetWordObj = scenarioData.vocabulary[vocabIndex] || { word: 'Word', meaning: 'Meaning', phonetic: '' };
             const taughtVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
 
-            if (levelId === 'zero') {
+            if (levelId === 'zero' && !isReviewMode) {
                 const phonTag = targetWordObj.phonetic ? ` <phonetic>${targetWordObj.phonetic}</phonetic>` : '';
-                levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The active scenario is: '${activeScenario}'. YOU MUST TEACH EXACTLY THIS WORD: **${targetWordObj.word}**${phonTag} (Meaning: ${targetWordObj.meaning}). Do not teach any other concept. Do not teach full sentences in this first message.`;
+                levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The active scenario is: '${activeScenario}'. YOU MUST TEACH EXACTLY THIS WORD: **${targetWordObj.word}**${phonTag} (Meaning: ${targetWordObj.meaning}). Use a bridging phrase like "To say [meaning], say **Word**". Do not teach any other concept. Do not teach full sentences in this first message.`;
+            } else if (levelId === 'zero' && isReviewMode) {
+                levelNote = `Greet the user briefly as ${activeCharacter?.name || 'Miko'}. The active scenario is: '${activeScenario}'. The user has learned these words: [${taughtVocab}]. Start a fun, low-pressure review quiz! Ask them: "What's the ${targetLangName} word for [pick a random meaning from the list]?" Do NOT teach new words. Do NOT use bold text. Keep it playful and encouraging.`;
             } else if (levelId === 'basic') {
-                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}. The active scenario is: '${activeScenario}'. The user currently ONLY knows these target words: [${taughtVocab}]. Speak in character and ask a simple English/native question related to this scenario that forces them to construct a short phrase using ONLY those known words. DO NOT ask them to repeat anything.`;
+                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}. The active scenario is: '${activeScenario}'. The user currently ONLY knows these target words: [${taughtVocab}]. Ask them to combine SPECIFIC words by naming the exact words they should use. Give a word order hint.`;
             } else if (levelId === 'conversational') {
-                levelNote = `Greet the user mostly in transliterated ${targetLangName} with ${nativeLangName} translations in parentheses. Introduce yourself as ${activeCharacter?.name || 'Miko'}. The active scenario is: '${activeScenario}'. The user currently ONLY knows these target words: [${taughtVocab}]. Speak in character as a true roleplay partner and ask exactly ONE conversational question related to this scenario to engage them in a back-and-forth roleplay. Restrict your vocabulary to be extremely simple.`;
+                levelNote = `Greet the user mostly in transliterated ${targetLangName} with ${nativeLangName} translations in parentheses. Introduce yourself as ${activeCharacter?.name || 'Miko'}. The active scenario is: '${activeScenario}'. The user currently ONLY knows these target words: [${taughtVocab}]. Speak in character as a true roleplay partner and ask exactly ONE conversational question related to this scenario.`;
             } else {
                 // fluent
                 levelNote = `Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. The active scenario is: '${activeScenario}'. Speak naturally and casually like a local friend starting a conversation about this scenario.`;
@@ -776,12 +784,14 @@ export default function Chat() {
         setIsLoading(true);
 
         try {
-            // ── LEVEL DETERMINATION ────────────────────
+            // ── LEVEL DETERMINATION (13/10/7 split) ────────────────────
             const currentRepeats = progress?.successfulRepeats || 0;
             let effectiveLevel = userLevel;
             if (currentRepeats < 300) {
-                const subLevelIdx = Math.floor((currentRepeats % 30) / 10);
-                effectiveLevel = subLevelIdx === 0 ? 'zero' : subLevelIdx === 1 ? 'basic' : 'conversational';
+                const inScenario = currentRepeats % 30;
+                if (inScenario < 13) effectiveLevel = 'zero';       // 0-9 teach + 10-12 review
+                else if (inScenario < 23) effectiveLevel = 'basic'; // 13-22
+                else effectiveLevel = 'conversational';              // 23-29
             } else {
                 effectiveLevel = 'fluent';
             }
@@ -830,6 +840,23 @@ export default function Chat() {
             }
             const threshold = 0.5;
 
+            const isCurrentlyBeginner = effectiveLevel === 'zero';
+            const currentInScenario = currentRepeats % 30;
+            const isCurrentlyInReview = currentInScenario >= 10 && currentInScenario < 13;
+            const isCurrentlyTeaching = currentInScenario < 10;
+            const SCENARIOS_LIST = [
+                "Greetings & Identity",
+                "Ordering Food & Drinks",
+                "Shopping & Prices",
+                "Asking for Directions",
+                "Transportation & Travel",
+                "Time & Schedules",
+                "Hobbies & Preferences",
+                "Weather & Environment",
+                "Health & Body",
+                "Social Gatherings & Events"
+            ];
+
             // Server-side level progression via DB
             let nextRepeats = currentRepeats; // Track locally for anti-stale word selection
             if (promptedPhrase && matchRatio >= threshold) {
@@ -839,13 +866,13 @@ export default function Chat() {
                     setProgress(progressResult);
                     nextRepeats = progressResult?.successfulRepeats || (currentRepeats + 1);
 
-                    // Fix #1: Store the learned word in DB for cumulative vocabulary tracking
-                    if (isCurrentlyBeginner && promptedPhrase) {
+                    // Store the learned word in DB for cumulative vocabulary tracking
+                    if (isCurrentlyBeginner && isCurrentlyTeaching && promptedPhrase) {
                         const currentScenarioIdx = Math.min(Math.floor(currentRepeats / 30), 9);
                         const currentScenario = SCENARIOS_LIST[currentScenarioIdx];
                         const safeLangForLearn = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Hindi';
                         const currentScenarioData = (CURRICULUM[safeLangForLearn] && CURRICULUM[safeLangForLearn][currentScenarioIdx]) || { vocabulary: [] };
-                        const currentVocabIdx = Math.floor(currentRepeats % 10);
+                        const currentVocabIdx = Math.floor(currentInScenario % 10);
                         const learnedWordObj = currentScenarioData.vocabulary[currentVocabIdx];
                         if (learnedWordObj) {
                             api.post('/api/progress/learn-word', {
@@ -860,29 +887,30 @@ export default function Chat() {
                     nextRepeats = currentRepeats + 1;
                 }
             }
-
-            const isCurrentlyBeginner = effectiveLevel === 'zero';
-            const SCENARIOS_LIST = [
-                "Greetings & Identity",
-                "Ordering Food & Drinks",
-                "Shopping & Prices",
-                "Asking for Directions",
-                "Transportation & Travel",
-                "Time & Schedules",
-                "Hobbies & Preferences",
-                "Weather & Environment",
-                "Health & Body",
-                "Social Gatherings & Events"
-            ];
             const feedbackNoun = isVoice ? 'pronunciation' : 'spelling';
 
-            // Fix #4: Detect last-word transition (word index 9 → Basic)
-            const isLastBeginnerWord = isCurrentlyBeginner && (currentRepeats % 10 === 9) && promptedPhrase && matchRatio >= threshold;
+            // Detect last teaching word (word index 9 → transition to review)
+            const isLastBeginnerWord = isCurrentlyBeginner && isCurrentlyTeaching && (currentInScenario === 9) && promptedPhrase && matchRatio >= threshold;
+
+            // Review mode: auto-increment progress regardless of answer (no-stakes review)
+            if (isCurrentlyInReview && !promptedPhrase) {
+                console.log('[Progress] Review mode auto-increment...');
+                try {
+                    const progressResult = await api.post('/api/progress/increment');
+                    setProgress(progressResult);
+                    nextRepeats = progressResult?.successfulRepeats || (currentRepeats + 1);
+                } catch (err) {
+                    console.warn('Failed to auto-increment in review:', err);
+                    nextRepeats = currentRepeats + 1;
+                }
+            }
+
             let acceptNote;
             if (isLastBeginnerWord) {
-                acceptNote = `The user's ${feedbackNoun} was PERFECT. Congratulate them warmly — they have completed all vocabulary for this scenario! Tell them: "Purr-fect! 🐾 You've learned all the words for this scenario! Now let's practice putting them together." Do NOT teach any new words.`;
+                // Transition isolation: ONLY congratulate, do NOT start basic prompts
+                acceptNote = `The user's ${feedbackNoun} was PERFECT. Congratulate them warmly — they have completed all vocabulary for this scenario! Tell them: "Purr-fect! 🐾 You've learned all the words! Let me quiz you quickly before we move on." Then ask them ONE recall question: "What's the word for [pick a random meaning from the words taught]?" Do NOT teach any new words. Do NOT start phrase building yet.`;
             } else if (promptedPhrase && matchRatio >= threshold) {
-                acceptNote = `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isCurrentlyBeginner ? 'Then immediately set the next scene and teach the next word.' : 'Then move the conversation forward naturally by ALWAYS answering their questions in character before asking your next simple question. Do not bold any target phrase.'} DO NOT ask them what they want to talk about.`;
+                acceptNote = `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isCurrentlyBeginner && isCurrentlyTeaching ? 'Then immediately set the next scene and teach the next word.' : 'Then move the conversation forward naturally.'} DO NOT ask them what they want to talk about.`;
             } else if (promptedPhrase && matchRatio < threshold) {
                 acceptNote = `The user attempted the phrase but their ${feedbackNoun} was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`;
             } else {
@@ -894,36 +922,43 @@ export default function Chat() {
 
             const safeLang = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Hindi';
             const scenarioData = (CURRICULUM[safeLang] && CURRICULUM[safeLang][activeScenarioIdx]) || { vocabulary: [] };
-            const vocabIndex = Math.floor(nextRepeats % 10);
+            const nextInScenario = nextRepeats % 30;
+            const vocabIndex = Math.floor(nextInScenario % 10);
             const targetWordObj = scenarioData.vocabulary[vocabIndex] || { word: 'Word', meaning: 'Meaning', phonetic: '' };
 
-            // Fix #1: Build cumulative vocabulary from all completed scenarios + current
+            // Build cumulative vocabulary from DB + current scenario fallback
             const learnedFromDB = progress?.learnedWords || [];
             const learnedWordsList = learnedFromDB.map(w => `${w.word} (${w.meaning})`).join(', ');
-            // Also include current scenario vocab as fallback
             const currentScenarioVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
             const taughtVocab = learnedWordsList || currentScenarioVocab;
 
-            // Determine effective level AFTER increment for the NEXT prompt
+            // Determine effective level AFTER increment (13/10/7 split)
             let nextEffectiveLevel = effectiveLevel;
             if (nextRepeats < 300) {
-                const nextSubLevelIdx = Math.floor((nextRepeats % 30) / 10);
-                nextEffectiveLevel = nextSubLevelIdx === 0 ? 'zero' : nextSubLevelIdx === 1 ? 'basic' : 'conversational';
+                if (nextInScenario < 13) nextEffectiveLevel = 'zero';
+                else if (nextInScenario < 23) nextEffectiveLevel = 'basic';
+                else nextEffectiveLevel = 'conversational';
             } else {
                 nextEffectiveLevel = 'fluent';
             }
+            const nextIsReview = nextInScenario >= 10 && nextInScenario < 13;
+            const nextIsTeaching = nextInScenario < 10;
+
             const isBeginner = nextEffectiveLevel === 'zero';
             let baseMetaNote = acceptNote || '';
             baseMetaNote += `\n[SYSTEM: The current scenario is '${activeScenario}'. You MUST stay strictly anchored to this scenario.]`;
-            if (isBeginner) {
+
+            if (isBeginner && nextIsTeaching) {
+                // Teaching mode: inject the next word
                 const phonTag = targetWordObj.phonetic ? ` <phonetic>${targetWordObj.phonetic}</phonetic>` : '';
-                baseMetaNote += `\n[SYSTEM REMINDER: YOU MUST TEACH EXACTLY THIS WORD AND ONLY THIS WORD: **${targetWordObj.word}**${phonTag} (Meaning: ${targetWordObj.meaning}). Set a 1-sentence scene, then present the word in bold. Do not choose any other word.]`;
-            }
-            if (nextEffectiveLevel === 'basic') {
-                baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask them to COMBINE 2-3 of these words to form a phrase. Give them a specific prompt like "How would you say you want water?" Do NOT teach new words or phrases. Do NOT use any target language words yourself. You MUST respond in valid JSON format: {"content": "...", "success": true/false/null}.]`;
-            }
-            if (nextEffectiveLevel === 'conversational') {
-                baseMetaNote += `\n[SYSTEM REMINDER: Act as a true ROLEPLAY PARTNER. Limit yourself to asking EXACTLY ONE question. The user ONLY knows these words: [${taughtVocab}]. Keep your language extremely restricted. You MUST respond in valid JSON format: {"content": "...", "success": true/false/null}.]`;
+                baseMetaNote += `\n[SYSTEM REMINDER: YOU MUST TEACH EXACTLY THIS WORD AND ONLY THIS WORD: **${targetWordObj.word}**${phonTag} (Meaning: ${targetWordObj.meaning}). Set a 1-sentence scene, use a bridging phrase "To say [meaning], say **Word**". Do not choose any other word.]`;
+            } else if (isBeginner && nextIsReview) {
+                // Review mode: quiz on already-learned words
+                baseMetaNote += `\n[SYSTEM REMINDER: REVIEW MODE. The user has learned all 10 words for this scenario: [${currentScenarioVocab}]. Ask them a recall question: "What's the [target language] word for [pick a random meaning]?" Do NOT teach new words. Do NOT use bold text. If they get it right, praise them and ask another. If wrong, gently tell them the answer and move on. Keep it fun and low-pressure. 🐾]`;
+            } else if (nextEffectiveLevel === 'basic') {
+                baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask them to COMBINE 2-3 SPECIFIC words by naming the exact words. Give a word order hint. Do NOT use any target language words outside their known list. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+            } else if (nextEffectiveLevel === 'conversational') {
+                baseMetaNote += `\n[SYSTEM REMINDER: Act as a true ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask EXACTLY ONE question. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
             }
             const metaNote = baseMetaNote;
 
@@ -1311,11 +1346,13 @@ export default function Chat() {
                                 {(() => {
                                     const r = progress.successfulRepeats || 0;
                                     if (r >= 300) return 'Fluent Mode';
-                                    const sub = Math.floor((r % 30) / 10);
-                                    let subLabel = sub === 0 ? 'Beginner' : sub === 1 ? 'Basic' : 'Conversational';
-                                    let nextLabel = sub === 0 ? 'Basic' : sub === 1 ? 'Conversational' : 'Next Scenario';
-                                    const pts = r % 10;
-                                    return `${subLabel} · ${pts}/10 → ${nextLabel}`;
+                                    const inS = r % 30;
+                                    let subLabel, nextLabel, pts, total;
+                                    if (inS < 10) { subLabel = 'Beginner'; nextLabel = 'Review'; pts = inS; total = 10; }
+                                    else if (inS < 13) { subLabel = 'Review'; nextLabel = 'Basic'; pts = inS - 10; total = 3; }
+                                    else if (inS < 23) { subLabel = 'Basic'; nextLabel = 'Conversational'; pts = inS - 13; total = 10; }
+                                    else { subLabel = 'Conversational'; nextLabel = 'Next Scenario'; pts = inS - 23; total = 7; }
+                                    return `${subLabel} · ${pts}/${total} → ${nextLabel}`;
                                 })()}
                             </span>
                         </div>
@@ -1327,7 +1364,15 @@ export default function Chat() {
                         }}>
                             <motion.div
                                 initial={{ width: 0 }}
-                                animate={{ width: `${Math.min(((progress.successfulRepeats || 0) % 10) * 10, 100)}%` }}
+                                animate={{
+                                    width: `${(() => {
+                                        const r = (progress.successfulRepeats || 0) % 30;
+                                        if (r < 10) return (r / 10) * 100;
+                                        if (r < 13) return ((r - 10) / 3) * 100;
+                                        if (r < 23) return ((r - 13) / 10) * 100;
+                                        return ((r - 23) / 7) * 100;
+                                    })()}%`
+                                }}
                                 transition={{ duration: 0.5, ease: 'easeOut' }}
                                 style={{
                                     height: '100%',
