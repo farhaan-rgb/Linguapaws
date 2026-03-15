@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema(
             native: String,
         },
         successfulRepeats: { type: Number, default: 0 },
+        learnedWords: [{ word: String, meaning: String, scenario: String }],
     },
     { timestamps: true }
 );

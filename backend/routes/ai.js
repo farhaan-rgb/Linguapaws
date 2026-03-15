@@ -211,13 +211,28 @@ router.post('/chat', async (req, res) => {
         let audioContent = null;
         if (options.generateAudio) {
             try {
+                // FIX #5: If AI returned JSON (Basic/Conversational), extract only the "content" field for TTS
+                let ttsSource = finalizedContent;
+                try {
+                    let cleanJson = finalizedContent;
+                    const jsonStart = finalizedContent.indexOf('{');
+                    const jsonEnd = finalizedContent.lastIndexOf('}');
+                    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+                        cleanJson = finalizedContent.substring(jsonStart, jsonEnd + 1);
+                    }
+                    const parsed = JSON.parse(cleanJson);
+                    if (parsed.content) {
+                        ttsSource = parsed.content;
+                    }
+                } catch (_) { /* Not JSON, use raw */ }
+
                 // Extract TTS text preserving English context, replacing target with Native Script
-                const ttsMatch = finalizedContent.match(/<tts>(.*?)<\/tts>/i);
+                const ttsMatch = ttsSource.match(/<tts>(.*?)<\/tts>/i);
                 const nativeScript = ttsMatch ? ttsMatch[1].trim() : null;
-                const boldMatches = finalizedContent.match(/\*\*(.*?)\*\*/g);
+                const boldMatches = ttsSource.match(/\*\*(.*?)\*\*/g);
                 const lastBold = boldMatches ? boldMatches[boldMatches.length - 1].replace(/\*\*/g, '').trim() : null;
 
-                let ttsText = finalizedContent
+                let ttsText = ttsSource
                     .replace(/<phonetic>.*?<\/phonetic>/gi, '') // Don't read phonetics
                     .replace(/<tts>.*?<\/tts>/gi, '') // Remove tag body
                     .replace(/<[^>]+>/g, '') // Remove metadata tags

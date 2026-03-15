@@ -634,7 +634,8 @@ export default function Chat() {
             const taughtVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
 
             if (levelId === 'zero') {
-                levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The active scenario is: '${activeScenario}'. YOU MUST TEACH EXACTLY THIS WORD: **${targetWordObj.word}** (Meaning: ${targetWordObj.meaning}). Do not teach any other concept. Show its transliterated pronunciation in bold. Do not teach full sentences in this first message.`;
+                const phonTag = targetWordObj.phonetic ? ` <phonetic>${targetWordObj.phonetic}</phonetic>` : '';
+                levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The active scenario is: '${activeScenario}'. YOU MUST TEACH EXACTLY THIS WORD: **${targetWordObj.word}**${phonTag} (Meaning: ${targetWordObj.meaning}). Do not teach any other concept. Do not teach full sentences in this first message.`;
             } else if (levelId === 'basic') {
                 levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}. The active scenario is: '${activeScenario}'. The user currently ONLY knows these target words: [${taughtVocab}]. Speak in character and ask a simple English/native question related to this scenario that forces them to construct a short phrase using ONLY those known words. DO NOT ask them to repeat anything.`;
             } else if (levelId === 'conversational') {
@@ -837,22 +838,31 @@ export default function Chat() {
                     const progressResult = await api.post('/api/progress/increment');
                     setProgress(progressResult);
                     nextRepeats = progressResult?.successfulRepeats || (currentRepeats + 1);
+
+                    // Fix #1: Store the learned word in DB for cumulative vocabulary tracking
+                    if (isCurrentlyBeginner && promptedPhrase) {
+                        const currentScenarioIdx = Math.min(Math.floor(currentRepeats / 30), 9);
+                        const currentScenario = SCENARIOS_LIST[currentScenarioIdx];
+                        const safeLangForLearn = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Hindi';
+                        const currentScenarioData = (CURRICULUM[safeLangForLearn] && CURRICULUM[safeLangForLearn][currentScenarioIdx]) || { vocabulary: [] };
+                        const currentVocabIdx = Math.floor(currentRepeats % 10);
+                        const learnedWordObj = currentScenarioData.vocabulary[currentVocabIdx];
+                        if (learnedWordObj) {
+                            api.post('/api/progress/learn-word', {
+                                word: learnedWordObj.word,
+                                meaning: learnedWordObj.meaning,
+                                scenario: currentScenario
+                            }).catch(err => console.warn('Failed to store learned word:', err));
+                        }
+                    }
                 } catch (err) {
                     console.warn('Failed to increment progress:', err);
-                    nextRepeats = currentRepeats + 1; // Assume increment succeeded
+                    nextRepeats = currentRepeats + 1;
                 }
             }
 
             const isCurrentlyBeginner = effectiveLevel === 'zero';
-            const feedbackNoun = isVoice ? 'pronunciation' : 'spelling';
-            const acceptNote = (promptedPhrase && matchRatio >= threshold)
-                ? `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isCurrentlyBeginner ? 'Then immediately continue your roleplay by teaching ONE new relevant native phrase in the current scenario.' : 'Then move the conversation forward naturally by ALWAYS answering their questions in character before asking your next simple question. Do not bold any target phrase.'} DO NOT ask them what they want to talk about.`
-                : (promptedPhrase && matchRatio < threshold)
-                    ? `The user attempted the phrase but their ${feedbackNoun} was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`
-                    : null;
-
-            // We combine display rules with our hidden note about user performance
-            const SCENARIOS = [
+            const SCENARIOS_LIST = [
                 "Greetings & Identity",
                 "Ordering Food & Drinks",
                 "Shopping & Prices",
@@ -864,14 +874,35 @@ export default function Chat() {
                 "Health & Body",
                 "Social Gatherings & Events"
             ];
+            const feedbackNoun = isVoice ? 'pronunciation' : 'spelling';
+
+            // Fix #4: Detect last-word transition (word index 9 → Basic)
+            const isLastBeginnerWord = isCurrentlyBeginner && (currentRepeats % 10 === 9) && promptedPhrase && matchRatio >= threshold;
+            let acceptNote;
+            if (isLastBeginnerWord) {
+                acceptNote = `The user's ${feedbackNoun} was PERFECT. Congratulate them warmly — they have completed all vocabulary for this scenario! Tell them: "Purr-fect! 🐾 You've learned all the words for this scenario! Now let's practice putting them together." Do NOT teach any new words.`;
+            } else if (promptedPhrase && matchRatio >= threshold) {
+                acceptNote = `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isCurrentlyBeginner ? 'Then immediately set the next scene and teach the next word.' : 'Then move the conversation forward naturally by ALWAYS answering their questions in character before asking your next simple question. Do not bold any target phrase.'} DO NOT ask them what they want to talk about.`;
+            } else if (promptedPhrase && matchRatio < threshold) {
+                acceptNote = `The user attempted the phrase but their ${feedbackNoun} was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`;
+            } else {
+                acceptNote = null;
+            }
+
             const activeScenarioIdx = Math.min(Math.floor(nextRepeats / 30), 9);
-            const activeScenario = SCENARIOS[activeScenarioIdx];
+            const activeScenario = SCENARIOS_LIST[activeScenarioIdx];
 
             const safeLang = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Hindi';
             const scenarioData = (CURRICULUM[safeLang] && CURRICULUM[safeLang][activeScenarioIdx]) || { vocabulary: [] };
             const vocabIndex = Math.floor(nextRepeats % 10);
-            const targetWordObj = scenarioData.vocabulary[vocabIndex] || { word: 'Word', meaning: 'Meaning' };
-            const taughtVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
+            const targetWordObj = scenarioData.vocabulary[vocabIndex] || { word: 'Word', meaning: 'Meaning', phonetic: '' };
+
+            // Fix #1: Build cumulative vocabulary from all completed scenarios + current
+            const learnedFromDB = progress?.learnedWords || [];
+            const learnedWordsList = learnedFromDB.map(w => `${w.word} (${w.meaning})`).join(', ');
+            // Also include current scenario vocab as fallback
+            const currentScenarioVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
+            const taughtVocab = learnedWordsList || currentScenarioVocab;
 
             // Determine effective level AFTER increment for the NEXT prompt
             let nextEffectiveLevel = effectiveLevel;
@@ -885,10 +916,11 @@ export default function Chat() {
             let baseMetaNote = acceptNote || '';
             baseMetaNote += `\n[SYSTEM: The current scenario is '${activeScenario}'. You MUST stay strictly anchored to this scenario.]`;
             if (isBeginner) {
-                baseMetaNote += `\n[SYSTEM REMINDER: YOU MUST TEACH EXACTLY THIS WORD AND ONLY THIS WORD: **${targetWordObj.word}** (Meaning: ${targetWordObj.meaning}). Set a 1-sentence scene, then present the word in bold with <phonetic> and <tts> tags. Do not choose any other word.]`;
+                const phonTag = targetWordObj.phonetic ? ` <phonetic>${targetWordObj.phonetic}</phonetic>` : '';
+                baseMetaNote += `\n[SYSTEM REMINDER: YOU MUST TEACH EXACTLY THIS WORD AND ONLY THIS WORD: **${targetWordObj.word}**${phonTag} (Meaning: ${targetWordObj.meaning}). Set a 1-sentence scene, then present the word in bold. Do not choose any other word.]`;
             }
             if (nextEffectiveLevel === 'basic') {
-                baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. Answer their question FIRST if they asked one. The user ONLY knows these target words: [${taughtVocab}]. Limit your prompt so they can answer combining ONLY these words. You MUST respond in valid JSON format: {"content": "...", "success": true/false/null}.]`;
+                baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask them to COMBINE 2-3 of these words to form a phrase. Give them a specific prompt like "How would you say you want water?" Do NOT teach new words or phrases. Do NOT use any target language words yourself. You MUST respond in valid JSON format: {"content": "...", "success": true/false/null}.]`;
             }
             if (nextEffectiveLevel === 'conversational') {
                 baseMetaNote += `\n[SYSTEM REMINDER: Act as a true ROLEPLAY PARTNER. Limit yourself to asking EXACTLY ONE question. The user ONLY knows these words: [${taughtVocab}]. Keep your language extremely restricted. You MUST respond in valid JSON format: {"content": "...", "success": true/false/null}.]`;
@@ -911,6 +943,20 @@ export default function Chat() {
 
             let botResponse = rawResponse?.content || rawResponse;
             if (typeof botResponse !== 'string') botResponse = '';
+
+            // Fix #6: In Basic/Conversational modes, progress based on AI's success field
+            if (!isCurrentlyBeginner && rawResponse?.success === true) {
+                console.log('[Progress] AI reports success:true in Basic/Conversational, incrementing...');
+                try {
+                    const progressResult = await api.post('/api/progress/increment');
+                    setProgress(progressResult);
+                } catch (err) {
+                    console.warn('Failed to increment progress for success:', err);
+                }
+                setSentenceSuccesses(prev => ({ ...prev, [messages.length]: true }));
+            } else if (!isCurrentlyBeginner && rawResponse?.success === false) {
+                setSentenceSuccesses(prev => ({ ...prev, [messages.length]: false }));
+            }
 
             // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
             const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
