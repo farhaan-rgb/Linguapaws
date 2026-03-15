@@ -9,6 +9,7 @@ import { wordTracker } from '../services/wordTracker';
 import { characters as defaultCharacters } from '../data/characters';
 import { useTranslation } from '../hooks/useTranslation';
 import { getStoredJSON, setStoredJSON } from '../utils/storage';
+import { CURRICULUM } from '../services/curriculum';
 
 export default function Chat() {
     const navigate = useNavigate();
@@ -625,12 +626,19 @@ export default function Chat() {
             const activeScenarioIdx = Math.min(Math.floor(currentRepeats / 30), 9);
             const activeScenario = SCENARIOS[activeScenarioIdx];
 
+            // Safely fetch curriculum slice based on current progress
+            const safeLang = CURRICULUM[targetLangName] ? targetLangName : 'Hindi'; // Optional fallback mapping if needed
+            const scenarioData = (CURRICULUM[safeLang] && CURRICULUM[safeLang][activeScenarioIdx]) || { vocabulary: [] };
+            const vocabIndex = Math.floor(currentRepeats % 10);
+            const targetWordObj = scenarioData.vocabulary[vocabIndex] || { word: 'Word', meaning: 'Meaning' };
+            const taughtVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
+
             if (levelId === 'zero') {
-                levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The active scenario is: '${activeScenario}'. Teach exactly ONE simple new target language WORD (concrete noun or verb, NO pronouns, NO names) related to this scenario. Show its transliterated pronunciation in bold. Do not teach full sentences in this first message.`;
+                levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The active scenario is: '${activeScenario}'. YOU MUST TEACH EXACTLY THIS WORD: **${targetWordObj.word}** (Meaning: ${targetWordObj.meaning}). Do not teach any other concept. Show its transliterated pronunciation in bold. Do not teach full sentences in this first message.`;
             } else if (levelId === 'basic') {
-                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}. The active scenario is: '${activeScenario}'. Speak in character and ask a simple question related to this scenario that forces them to construct a short phrase using ${targetLangName} words they learned. DO NOT ask them to repeat anything.`;
+                levelNote = `Greet the user briefly (2 sentences max) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use mostly ${nativeLangName}. The active scenario is: '${activeScenario}'. The user currently ONLY knows these target words: [${taughtVocab}]. Speak in character and ask a simple English/native question related to this scenario that forces them to construct a short phrase using ONLY those known words. DO NOT ask them to repeat anything.`;
             } else if (levelId === 'conversational') {
-                levelNote = `Greet the user mostly in transliterated ${targetLangName} with ${nativeLangName} translations in parentheses. Introduce yourself as ${activeCharacter?.name || 'Miko'}. The active scenario is: '${activeScenario}'. Speak in character as a true roleplay partner and ask exactly ONE conversational question related to this scenario to engage them in a back-and-forth roleplay.`;
+                levelNote = `Greet the user mostly in transliterated ${targetLangName} with ${nativeLangName} translations in parentheses. Introduce yourself as ${activeCharacter?.name || 'Miko'}. The active scenario is: '${activeScenario}'. The user currently ONLY knows these target words: [${taughtVocab}]. Speak in character as a true roleplay partner and ask exactly ONE conversational question related to this scenario to engage them in a back-and-forth roleplay. Restrict your vocabulary to be extremely simple.`;
             } else {
                 // fluent
                 levelNote = `Greet the user ENTIRELY in transliterated ${targetLangName}. No ${nativeLangName} at all. The active scenario is: '${activeScenario}'. Speak naturally and casually like a local friend starting a conversation about this scenario.`;
@@ -856,16 +864,22 @@ export default function Chat() {
             const activeScenarioIdx = Math.min(Math.floor(currentRepeats / 30), 9);
             const activeScenario = SCENARIOS[activeScenarioIdx];
 
+            const safeLang = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Hindi';
+            const scenarioData = (CURRICULUM[safeLang] && CURRICULUM[safeLang][activeScenarioIdx]) || { vocabulary: [] };
+            const vocabIndex = Math.floor(currentRepeats % 10);
+            const targetWordObj = scenarioData.vocabulary[vocabIndex] || { word: 'Word', meaning: 'Meaning' };
+            const taughtVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
+
             let baseMetaNote = acceptNote || '';
             baseMetaNote += `\n[SYSTEM: The current scenario is '${activeScenario}'. You MUST stay strictly anchored to this scenario.]`;
             if (isBeginner) {
-                baseMetaNote += `\n[SYSTEM REMINDER: Only teach NEW isolated vocabulary words related to '${activeScenario}'. Do NOT teach full sentences. DO NOT teach pronouns or names. MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded word.]`;
+                baseMetaNote += `\n[SYSTEM REMINDER: YOU MUST TEACH EXACTLY THIS WORD AND ONLY THIS WORD: **${targetWordObj.word}** (Meaning: ${targetWordObj.meaning}). Do not choose any other word. MANDATORY: You MUST provide the <phonetic> tag from the glossary for the bolded word.]`;
             }
             if (effectiveLevel === 'basic') {
-                baseMetaNote += '\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. Answer their question FIRST if they asked one. You MUST evaluate the grammar of the user\'s response. Output the result in the JSON "success" field. Set "success": true if word order was correct, or "success": false if incorrect/missing. Do not hallucinate bizarre grammar prefixes.]';
+                baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. Answer their question FIRST if they asked one. The user ONLY knows these target words: [${taughtVocab}]. Limit your prompt so they can answer combining ONLY these words. Output the result in the JSON "success" field.]`;
             }
             if (effectiveLevel === 'conversational') {
-                baseMetaNote += '\n[SYSTEM REMINDER: Act as a true ROLEPLAY PARTNER. Limit yourself to asking EXACTLY ONE question. Do not act like an interviewer.]';
+                baseMetaNote += `\n[SYSTEM REMINDER: Act as a true ROLEPLAY PARTNER. Limit yourself to asking EXACTLY ONE question. The user ONLY knows these words: [${taughtVocab}]. Keep your language extremely restricted.]`;
             }
             const metaNote = baseMetaNote;
 
