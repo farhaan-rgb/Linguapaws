@@ -200,6 +200,8 @@ SHADOW PRACTICE:
         ];
 
         try {
+            // Request JSON format if level requires it OR if metaNote demands JSON output
+            const needsJson = (userLevel === 'basic' || userLevel === 'conversational') || (metaNote && metaNote.includes('respond in valid JSON'));
             const data = await api.post('/api/ai/chat', {
                 messages,
                 options: {
@@ -208,7 +210,7 @@ SHADOW PRACTICE:
                     nativeLang: nativeLangName,
                     generateAudio: true, // Optimized: Get audio with chat response
                     voice: character?.voice || 'alloy',
-                    response_format: (userLevel === 'basic' || userLevel === 'conversational') ? { type: 'json_object' } : undefined
+                    response_format: needsJson ? { type: 'json_object' } : undefined
                 }
             });
             const { content: reply, audioContent } = data;

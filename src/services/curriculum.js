@@ -13,6 +13,68 @@ export const CURRICULUM = {
                 { word: "Avunu", meaning: "Yes", phonetic: "ah-voo-noo" },
                 { word: "Ledu", meaning: "No", phonetic: "leh-doo" },
                 { word: "Bagunna", meaning: "I am fine", phonetic: "bah-goon-nah" }
+            ],
+            phrases: [
+                {
+                    prompt: "How do you say 'I am fine'?",
+                    correct: "Nenu bagunna",
+                    meaning: "I am fine",
+                    hint: "Combine: I + am fine → Nenu + bagunna"
+                },
+                {
+                    prompt: "Ask someone 'What is your name?'",
+                    correct: "Mee peru emiti?",
+                    meaning: "What is your name?",
+                    hint: "Your + name + what? → Mee + peru + emiti? Grammar: 'Mee' is the possessive form of 'Meeru' (you → your)"
+                },
+                {
+                    prompt: "Say 'I am from Hyderabad'",
+                    correct: "Nenu Hyderabad nundi",
+                    meaning: "I am from Hyderabad",
+                    hint: "I + [place] + from → Nenu + Hyderabad + nundi. Grammar: 'nundi' is a postposition — it comes AFTER the place name, not before"
+                },
+                {
+                    prompt: "Ask someone 'Where are you from?'",
+                    correct: "Meeru ekkada nundi?",
+                    meaning: "Where are you from?",
+                    hint: "You + where + from? → Meeru + ekkada + nundi?"
+                },
+                {
+                    prompt: "Say 'Yes, I am fine'",
+                    correct: "Avunu, nenu bagunna",
+                    meaning: "Yes, I am fine",
+                    hint: "Yes + I + am fine → Avunu + nenu + bagunna"
+                },
+                {
+                    prompt: "Greet someone and ask their name",
+                    correct: "Namaskaram, mee peru emiti?",
+                    meaning: "Hello, what is your name?",
+                    hint: "Hello + your + name + what? → Namaskaram + mee + peru + emiti?"
+                },
+                {
+                    prompt: "Say 'I am fine, and you?'",
+                    correct: "Nenu bagunna, meeru?",
+                    meaning: "I am fine, and you?",
+                    hint: "I + am fine + you? → Nenu + bagunna + meeru?"
+                },
+                {
+                    prompt: "Say 'No, I am from Hyderabad'",
+                    correct: "Ledu, nenu Hyderabad nundi",
+                    meaning: "No, I am from Hyderabad",
+                    hint: "No + I + [place] + from → Ledu + nenu + Hyderabad + nundi"
+                },
+                {
+                    prompt: "Say 'Hello, I am fine'",
+                    correct: "Namaskaram, nenu bagunna",
+                    meaning: "Hello, I am fine",
+                    hint: "Hello + I + am fine → Namaskaram + nenu + bagunna"
+                },
+                {
+                    prompt: "Full introduction: 'Hello, I am from Hyderabad'",
+                    correct: "Namaskaram, nenu Hyderabad nundi",
+                    meaning: "Hello, I am from Hyderabad",
+                    hint: "Hello + I + [place] + from → Namaskaram + nenu + Hyderabad + nundi"
+                }
             ]
         },
         {
@@ -26,8 +88,70 @@ export const CURRICULUM = {
                 { word: "Thinu", meaning: "Eat", phonetic: "thee-noo" },
                 { word: "Thaagu", meaning: "Drink", phonetic: "thah-goo" },
                 { word: "Ruchi", meaning: "Taste", phonetic: "roo-chee" },
-                { word: "Ivvandi", meaning: "Give", phonetic: "iv-van-dee" },
+                { word: "Ivvandi", meaning: "Give (please)", phonetic: "iv-van-dee" },
                 { word: "Bill", meaning: "Bill", phonetic: "bill" }
+            ],
+            phrases: [
+                {
+                    prompt: "Say 'I want water'",
+                    correct: "Neeru kavali",
+                    meaning: "I want water",
+                    hint: "Water + want → Neeru + kavali. Grammar: Object comes before verb"
+                },
+                {
+                    prompt: "Say 'I want coffee'",
+                    correct: "Coffee kavali",
+                    meaning: "I want coffee",
+                    hint: "Coffee + want → Coffee + kavali"
+                },
+                {
+                    prompt: "Say 'I don't want coffee'",
+                    correct: "Coffee oddhu",
+                    meaning: "I don't want coffee",
+                    hint: "Coffee + don't want → Coffee + oddhu"
+                },
+                {
+                    prompt: "Say 'Please give water'",
+                    correct: "Neeru ivvandi",
+                    meaning: "Please give water",
+                    hint: "Water + give → Neeru + ivvandi"
+                },
+                {
+                    prompt: "Say 'I want food'",
+                    correct: "Annam kavali",
+                    meaning: "I want food/rice",
+                    hint: "Food + want → Annam + kavali"
+                },
+                {
+                    prompt: "Say 'Please give the bill'",
+                    correct: "Bill ivvandi",
+                    meaning: "Please give the bill",
+                    hint: "Bill + give → Bill + ivvandi"
+                },
+                {
+                    prompt: "Say 'I want coffee, I don't want water'",
+                    correct: "Coffee kavali, neeru oddhu",
+                    meaning: "I want coffee, I don't want water",
+                    hint: "Coffee + want + water + don't want → Coffee kavali, neeru oddhu"
+                },
+                {
+                    prompt: "Say 'Yes, I want coffee'",
+                    correct: "Avunu, coffee kavali",
+                    meaning: "Yes, I want coffee",
+                    hint: "Yes + coffee + want → Avunu + coffee + kavali"
+                },
+                {
+                    prompt: "Say 'No, I don't want food'",
+                    correct: "Ledu, annam oddhu",
+                    meaning: "No, I don't want food",
+                    hint: "No + food + don't want → Ledu + annam + oddhu"
+                },
+                {
+                    prompt: "Say 'I want food, please give water'",
+                    correct: "Annam kavali, neeru ivvandi",
+                    meaning: "I want food, please give water",
+                    hint: "Food + want + water + give → Annam kavali, neeru ivvandi"
+                }
             ]
         },
         {

@@ -892,23 +892,13 @@ export default function Chat() {
             // Detect last teaching word (word index 9 → transition to review)
             const isLastBeginnerWord = isCurrentlyBeginner && isCurrentlyTeaching && (currentInScenario === 9) && promptedPhrase && matchRatio >= threshold;
 
-            // Review mode: auto-increment progress regardless of answer (no-stakes review)
-            if (isCurrentlyInReview && !promptedPhrase) {
-                console.log('[Progress] Review mode auto-increment...');
-                try {
-                    const progressResult = await api.post('/api/progress/increment');
-                    setProgress(progressResult);
-                    nextRepeats = progressResult?.successfulRepeats || (currentRepeats + 1);
-                } catch (err) {
-                    console.warn('Failed to auto-increment in review:', err);
-                    nextRepeats = currentRepeats + 1;
-                }
-            }
+            // Detect last review question (review index 2 → transition to basic)
+            const isLastReviewQuestion = isCurrentlyInReview && (currentInScenario === 12);
 
             let acceptNote;
             if (isLastBeginnerWord) {
-                // Transition isolation: ONLY congratulate, do NOT start basic prompts
-                acceptNote = `The user's ${feedbackNoun} was PERFECT. Congratulate them warmly — they have completed all vocabulary for this scenario! Tell them: "Purr-fect! 🐾 You've learned all the words! Let me quiz you quickly before we move on." Then ask them ONE recall question: "What's the word for [pick a random meaning from the words taught]?" Do NOT teach any new words. Do NOT start phrase building yet.`;
+                // Transition: Teaching → Review. ONLY congratulate + start review.
+                acceptNote = `The user's ${feedbackNoun} was PERFECT. Congratulate them warmly — they have completed all vocabulary for this scenario! Tell them: "Purr-fect! 🐾 You've learned all the words! Let me quiz you quickly before we move on." Then ask them ONE recall question: "What's the word for [pick a random meaning from the words taught]?" Do NOT teach any new words. Do NOT start phrase building yet. You MUST respond in valid JSON: {"content": "...", "success": null}.`;
             } else if (promptedPhrase && matchRatio >= threshold) {
                 acceptNote = `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isCurrentlyBeginner && isCurrentlyTeaching ? 'Then immediately set the next scene and teach the next word.' : 'Then move the conversation forward naturally.'} DO NOT ask them what they want to talk about.`;
             } else if (promptedPhrase && matchRatio < threshold) {
@@ -932,6 +922,10 @@ export default function Chat() {
             const currentScenarioVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
             const taughtVocab = learnedWordsList || currentScenarioVocab;
 
+            // Deterministic phrase for Basic mode
+            const phraseIndex = nextInScenario >= 13 && nextInScenario < 23 ? nextInScenario - 13 : -1;
+            const targetPhrase = phraseIndex >= 0 && scenarioData.phrases ? scenarioData.phrases[phraseIndex] : null;
+
             // Determine effective level AFTER increment (13/10/7 split)
             let nextEffectiveLevel = effectiveLevel;
             if (nextRepeats < 300) {
@@ -953,9 +947,13 @@ export default function Chat() {
                 const phonTag = targetWordObj.phonetic ? ` <phonetic>${targetWordObj.phonetic}</phonetic>` : '';
                 baseMetaNote += `\n[SYSTEM REMINDER: YOU MUST TEACH EXACTLY THIS WORD AND ONLY THIS WORD: **${targetWordObj.word}**${phonTag} (Meaning: ${targetWordObj.meaning}). Set a 1-sentence scene, use a bridging phrase "To say [meaning], say **Word**". Do not choose any other word.]`;
             } else if (isBeginner && nextIsReview) {
-                // Review mode: quiz on already-learned words
-                baseMetaNote += `\n[SYSTEM REMINDER: REVIEW MODE. The user has learned all 10 words for this scenario: [${currentScenarioVocab}]. Ask them a recall question: "What's the [target language] word for [pick a random meaning]?" Do NOT teach new words. Do NOT use bold text. If they get it right, praise them and ask another. If wrong, gently tell them the answer and move on. Keep it fun and low-pressure. 🐾]`;
+                // Review mode: quiz on already-learned words, use JSON for success tracking
+                baseMetaNote += `\n[SYSTEM REMINDER: REVIEW MODE. The user has learned all 10 words: [${currentScenarioVocab}]. Ask them a recall question: "What's the ${targetLang?.name || 'target'} word for [pick a random meaning from the list]?" Do NOT teach new words. Do NOT use bold text. If they answer correctly, set success to true and ask another word. If they answer wrong, set success to false, tell them the correct answer, and ask a different word. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+            } else if (nextEffectiveLevel === 'basic' && targetPhrase) {
+                // Deterministic phrase mode: inject the exact phrase exercise
+                baseMetaNote += `\n[SYSTEM REMINDER: PHRASE EXERCISE. Ask the user EXACTLY this: "${targetPhrase.prompt}". The CORRECT answer is: "${targetPhrase.correct}" (meaning: "${targetPhrase.meaning}"). Hint for the user: "${targetPhrase.hint}". If the user's response matches the correct answer (case-insensitive, minor punctuation differences OK), set success to true and say "Correct!" with the meaning. If wrong, set success to false, show them the correct answer and explain using the hint. Do NOT invent your own phrases. Do NOT use any words outside the user's known vocabulary. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
             } else if (nextEffectiveLevel === 'basic') {
+                // Fallback for scenarios without hardcoded phrases
                 baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask them to COMBINE 2-3 SPECIFIC words by naming the exact words. Give a word order hint. Do NOT use any target language words outside their known list. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
             } else if (nextEffectiveLevel === 'conversational') {
                 baseMetaNote += `\n[SYSTEM REMINDER: Act as a true ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask EXACTLY ONE question. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
@@ -979,9 +977,10 @@ export default function Chat() {
             let botResponse = rawResponse?.content || rawResponse;
             if (typeof botResponse !== 'string') botResponse = '';
 
-            // Fix #6: In Basic/Conversational modes, progress based on AI's success field
-            if (!isCurrentlyBeginner && rawResponse?.success === true) {
-                console.log('[Progress] AI reports success:true in Basic/Conversational, incrementing...');
+            // Progress based on AI's success field (review, basic, conversational modes)
+            const usesJsonSuccess = !isCurrentlyBeginner || isCurrentlyInReview;
+            if (usesJsonSuccess && rawResponse?.success === true) {
+                console.log('[Progress] AI reports success:true, incrementing...');
                 try {
                     const progressResult = await api.post('/api/progress/increment');
                     setProgress(progressResult);
@@ -989,7 +988,7 @@ export default function Chat() {
                     console.warn('Failed to increment progress for success:', err);
                 }
                 setSentenceSuccesses(prev => ({ ...prev, [messages.length]: true }));
-            } else if (!isCurrentlyBeginner && rawResponse?.success === false) {
+            } else if (usesJsonSuccess && rawResponse?.success === false) {
                 setSentenceSuccesses(prev => ({ ...prev, [messages.length]: false }));
             }
 

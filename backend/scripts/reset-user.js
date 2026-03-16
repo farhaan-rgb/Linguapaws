@@ -35,7 +35,7 @@ async function main() {
     // 1. Clear onboarding fields and set successfulRepeats to 0
     await User.findByIdAndUpdate(user._id, {
         $unset: { nativeLang: '', englishLevel: '', targetLang: '' },
-        $set: { successfulRepeats: 0 },
+        $set: { successfulRepeats: 0, learnedWords: [] },
     });
     console.log('✅  Cleared nativeLang and englishLevel');
 
