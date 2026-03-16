@@ -844,6 +844,32 @@ export default function Chat() {
             const currentInScenario = currentRepeats % 30;
             const isCurrentlyInReview = currentInScenario >= 10 && currentInScenario < 13;
             const isCurrentlyTeaching = currentInScenario < 10;
+
+            // REVIEW MODE: Deterministic word quiz with client-side matching
+            // Pick specific words to quiz (spread across the vocabulary for variety)
+            const REVIEW_WORD_INDICES = [3, 7, 1]; // Quiz words at indices 3, 7, 1 for review rounds 0, 1, 2
+            let reviewExpectedWord = null;
+            if (isCurrentlyInReview) {
+                const reviewRound = currentInScenario - 10; // 0, 1, or 2
+                const reviewWordIdx = REVIEW_WORD_INDICES[reviewRound] || 0;
+                const reviewSafeLang = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Hindi';
+                const reviewScenarioIdx = Math.min(Math.floor(currentRepeats / 30), 9);
+                const reviewScenarioData = (CURRICULUM[reviewSafeLang] && CURRICULUM[reviewSafeLang][reviewScenarioIdx]) || { vocabulary: [] };
+                reviewExpectedWord = reviewScenarioData.vocabulary[reviewWordIdx]?.word || null;
+
+                if (reviewExpectedWord) {
+                    // Override matching: treat the user's text as a response to the review quiz
+                    const reviewActual = (text || '').replace(/[.!?]+$/g, '').trim();
+                    matchRatio = similarityRatioLatin(reviewActual, reviewExpectedWord);
+                    // Set these so the progress increment logic below treats it like a correct answer
+                    displayPhrase = reviewExpectedWord;
+                    console.log('[Review Match]', { reviewExpectedWord, userSaid: reviewActual, matchRatio: Math.round(matchRatio * 100) + '%' });
+
+                    // Show match score for the user
+                    const reviewScorePercent = Math.round(matchRatio * 100);
+                    setMatchScores(prev => ({ ...prev, [userMessageIndex]: reviewScorePercent }));
+                }
+            }
             const SCENARIOS_LIST = [
                 "Greetings & Identity",
                 "Ordering Food & Drinks",
@@ -859,7 +885,8 @@ export default function Chat() {
 
             // Server-side level progression via DB
             let nextRepeats = currentRepeats; // Track locally for anti-stale word selection
-            if (promptedPhrase && matchRatio >= threshold) {
+            const hasCorrectMatch = (promptedPhrase && matchRatio >= threshold) || (isCurrentlyInReview && reviewExpectedWord && matchRatio >= threshold);
+            if (hasCorrectMatch) {
                 console.log('[Progress] Match >= 50%, calling /api/progress/increment...');
                 try {
                     const progressResult = await api.post('/api/progress/increment');
@@ -893,12 +920,26 @@ export default function Chat() {
             const isLastBeginnerWord = isCurrentlyBeginner && isCurrentlyTeaching && (currentInScenario === 9) && promptedPhrase && matchRatio >= threshold;
 
             // Detect last review question (review index 2 → transition to basic)
-            const isLastReviewQuestion = isCurrentlyInReview && (currentInScenario === 12);
+            const isLastReviewQuestion = isCurrentlyInReview && (currentInScenario === 12) && reviewExpectedWord && matchRatio >= threshold;
+
+            // Compute the NEXT review word (for the next prompt)
+            const nextReviewSafeLang = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Hindi';
+            const nextReviewScenarioIdx = Math.min(Math.floor((isLastBeginnerWord ? currentRepeats + 1 : nextRepeats) / 30), 9);
+            const nextReviewScenarioData = (CURRICULUM[nextReviewSafeLang] && CURRICULUM[nextReviewSafeLang][nextReviewScenarioIdx]) || { vocabulary: [] };
 
             let acceptNote;
             if (isLastBeginnerWord) {
-                // Transition: Teaching → Review. ONLY congratulate + start review.
-                acceptNote = `The user's ${feedbackNoun} was PERFECT. Congratulate them warmly — they have completed all vocabulary for this scenario! Tell them: "Purr-fect! 🐾 You've learned all the words! Let me quiz you quickly before we move on." Then ask them ONE recall question: "What's the word for [pick a random meaning from the words taught]?" Do NOT teach any new words. Do NOT start phrase building yet. You MUST respond in valid JSON: {"content": "...", "success": null}.`;
+                // Transition: Teaching → Review. Congratulate + ask FIRST specific review word.
+                const firstReviewWordIdx = REVIEW_WORD_INDICES[0];
+                const firstReviewWord = nextReviewScenarioData.vocabulary[firstReviewWordIdx];
+                const firstReviewMeaning = firstReviewWord?.meaning || 'Hello';
+                acceptNote = `The user's ${feedbackNoun} was PERFECT. Congratulate them warmly — they have completed all vocabulary for this scenario! Tell them: "Purr-fect! 🐾 You've learned all the words! Let me quiz you quickly before we move on." Then ask them EXACTLY this recall question: "What's the ${targetLang?.name || 'target'} word for '${firstReviewMeaning}'?" Do NOT teach any new words. Do NOT start phrase building yet.`;
+            } else if (isCurrentlyInReview && reviewExpectedWord && matchRatio >= threshold) {
+                // Review: correct answer
+                acceptNote = `The user recalled the word correctly! Say "Correct! 🐾" warmly.`;
+            } else if (isCurrentlyInReview && reviewExpectedWord && matchRatio < threshold) {
+                // Review: wrong answer — tell them the right answer, re-ask same word
+                acceptNote = `The user's answer was incorrect. Gently tell them: "Not quite — the word for that is '${reviewExpectedWord}'." Then encourage them to try again.`;
             } else if (promptedPhrase && matchRatio >= threshold) {
                 acceptNote = `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isCurrentlyBeginner && isCurrentlyTeaching ? 'Then immediately set the next scene and teach the next word.' : 'Then move the conversation forward naturally.'} DO NOT ask them what they want to talk about.`;
             } else if (promptedPhrase && matchRatio < threshold) {
@@ -947,8 +988,12 @@ export default function Chat() {
                 const phonTag = targetWordObj.phonetic ? ` <phonetic>${targetWordObj.phonetic}</phonetic>` : '';
                 baseMetaNote += `\n[SYSTEM REMINDER: YOU MUST TEACH EXACTLY THIS WORD AND ONLY THIS WORD: **${targetWordObj.word}**${phonTag} (Meaning: ${targetWordObj.meaning}). Set a 1-sentence scene, use a bridging phrase "To say [meaning], say **Word**". Do not choose any other word.]`;
             } else if (isBeginner && nextIsReview) {
-                // Review mode: quiz on already-learned words, use JSON for success tracking
-                baseMetaNote += `\n[SYSTEM REMINDER: REVIEW MODE. The user has learned all 10 words: [${currentScenarioVocab}]. Ask them a recall question: "What's the ${targetLang?.name || 'target'} word for [pick a random meaning from the list]?" Do NOT teach new words. Do NOT use bold text. If they answer correctly, set success to true and ask another word. If they answer wrong, set success to false, tell them the correct answer, and ask a different word. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+                // Review mode: deterministic quiz — inject the specific word to ask
+                const nextReviewRound = nextInScenario - 10; // 0, 1, or 2
+                const nextReviewWordIdx = REVIEW_WORD_INDICES[nextReviewRound] || 0;
+                const nextReviewWordObj = scenarioData.vocabulary[nextReviewWordIdx];
+                const nextReviewMeaning = nextReviewWordObj?.meaning || 'Hello';
+                baseMetaNote += `\n[SYSTEM REMINDER: REVIEW MODE. Ask the user EXACTLY: "What's the ${targetLang?.name || 'target'} word for '${nextReviewMeaning}'?" Do NOT teach new words. Do NOT use bold text. Keep it playful. 🐾]`;
             } else if (nextEffectiveLevel === 'basic' && targetPhrase) {
                 // Deterministic phrase mode: inject the exact phrase exercise
                 baseMetaNote += `\n[SYSTEM REMINDER: PHRASE EXERCISE. Ask the user EXACTLY this: "${targetPhrase.prompt}". The CORRECT answer is: "${targetPhrase.correct}" (meaning: "${targetPhrase.meaning}"). Hint for the user: "${targetPhrase.hint}". If the user's response matches the correct answer (case-insensitive, minor punctuation differences OK), set success to true and say "Correct!" with the meaning. If wrong, set success to false, show them the correct answer and explain using the hint. Do NOT invent your own phrases. Do NOT use any words outside the user's known vocabulary. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
@@ -977,8 +1022,8 @@ export default function Chat() {
             let botResponse = rawResponse?.content || rawResponse;
             if (typeof botResponse !== 'string') botResponse = '';
 
-            // Progress based on AI's success field (review, basic, conversational modes)
-            const usesJsonSuccess = !isCurrentlyBeginner || isCurrentlyInReview;
+            // Progress based on AI's success field (basic, conversational modes only — review uses client-side matching)
+            const usesJsonSuccess = !isCurrentlyBeginner;
             if (usesJsonSuccess && rawResponse?.success === true) {
                 console.log('[Progress] AI reports success:true, incrementing...');
                 try {
