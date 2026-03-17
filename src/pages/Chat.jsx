@@ -928,7 +928,7 @@ export default function Chat() {
             const nextReviewScenarioData = (CURRICULUM[nextReviewSafeLang] && CURRICULUM[nextReviewSafeLang][nextReviewScenarioIdx]) || { vocabulary: [] };
 
             // Detect help requests and previous failures for hint display
-            const HELP_WORDS = ["don't know", "dont know", "i don't know", "idk", "how", "how?", "help", "hint", "tell me", "show me", "what is it", "i forgot"];
+            const HELP_WORDS = ["don't know", "dont know", "i don't know", "idk", "how", "how?", "help", "hint", "tell me", "show me", "what is it", "i forgot", "not sure", "what", "what?", "confused", "i'm confused", "no idea", "repeat", "again", "can you help"];
             const isHelpRequest = HELP_WORDS.some(h => (text || '').trim().toLowerCase().includes(h));
 
             // Check if the last AI message indicated the user failed (for showing hints on retry)
@@ -1032,21 +1032,31 @@ export default function Chat() {
                 const nextReviewMeaning = nextReviewWordObj?.meaning || 'Hello';
                 baseMetaNote += `\n[SYSTEM REMINDER: REVIEW MODE. Ask the user EXACTLY: "What's the ${targetLang?.name || 'target'} word for '${nextReviewMeaning}'?" Do NOT teach new words. Do NOT use bold text. Keep it playful. 🐾]`;
             } else if (nextEffectiveLevel === 'basic' && targetPhrase) {
-                // Deterministic phrase mode — HIDE HINT on first attempt, show on failure
+                // Compute the NEXT phrase for auto-continue
+                const nextPhraseIdx = phraseIndex + 1;
+                const nextPhraseObj = scenarioData.phrases?.[nextPhraseIdx];
+                const autoNextPrompt = nextPhraseObj ? `Then IMMEDIATELY present the next exercise: "${nextPhraseObj.prompt}"` : 'Then congratulate them for completing all phrase exercises!';
+
+                // Deterministic phrase mode — EVALUATE FIRST, then present next
                 if (userFailedLastAttempt) {
-                    baseMetaNote += `\n[SYSTEM REMINDER: PHRASE EXERCISE (RETRY). The user got it wrong. Ask them again: "${targetPhrase.prompt}". Now SHOW the hint: "${targetPhrase.hint}". The correct answer is: "${targetPhrase.correct}". If they get it right now, set success to true. If wrong again, show the correct answer. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+                    baseMetaNote += `\n[SYSTEM REMINDER: PHRASE EXERCISE (RETRY WITH HINT).\nSTEP 1: EVALUATE the user's message against the correct answer "${targetPhrase.correct}" (case-insensitive, minor punctuation OK). If it matches → say "Correct! '${targetPhrase.correct}' means '${targetPhrase.meaning}'" and set success to true. ${autoNextPrompt}\nSTEP 2: If it does NOT match → show the hint: "${targetPhrase.hint}". Re-ask: "${targetPhrase.prompt}" and set success to false.\nYou MUST respond in valid JSON: {"content": "...", "success": true/false}.]`;
                 } else {
-                    baseMetaNote += `\n[SYSTEM REMINDER: PHRASE EXERCISE. Ask the user EXACTLY this: "${targetPhrase.prompt}". The CORRECT answer is: "${targetPhrase.correct}" (meaning: "${targetPhrase.meaning}"). Do NOT show any hints yet — let them try first. If correct, set success to true and say "Correct!" with the meaning. If wrong, set success to false and say "Not quite, try again!". Do NOT show the correct answer on the first attempt. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+                    baseMetaNote += `\n[SYSTEM REMINDER: PHRASE EXERCISE.\nSTEP 1: EVALUATE the user's message against the correct answer "${targetPhrase.correct}" (case-insensitive, minor punctuation OK). If it matches → say "Correct! '${targetPhrase.correct}' means '${targetPhrase.meaning}'" and set success to true. ${autoNextPrompt}\nSTEP 2: If it does NOT match → say "Not quite, try again!" and set success to false. Do NOT show the hint or correct answer on the first failure.\nSTEP 3: If the user hasn't attempted yet (this is the first prompt) → ask: "${targetPhrase.prompt}" and set success to null.\nYou MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
                 }
             } else if (nextEffectiveLevel === 'basic') {
                 // Fallback for scenarios without hardcoded phrases
                 baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask them to COMBINE 2-3 SPECIFIC words by naming the exact words. Do NOT show hints upfront. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
             } else if (nextEffectiveLevel === 'conversational' && targetConvo) {
-                // Deterministic conversation exercise — same hint strategy
+                // Compute the NEXT conversation exercise for auto-continue
+                const nextConvoIdx = convoIndex + 1;
+                const nextConvoObj = scenarioData.conversations?.[nextConvoIdx];
+                const autoNextConvo = nextConvoObj ? `Then IMMEDIATELY present the next exercise: "${nextConvoObj.prompt}"` : 'Then congratulate them for completing the scenario!';
+
+                // Deterministic conversation exercise — same evaluate-first strategy
                 if (userFailedLastAttempt) {
-                    baseMetaNote += `\n[SYSTEM REMINDER: CONVERSATION EXERCISE (RETRY). The user got it wrong. Ask again: "${targetConvo.prompt}". Now SHOW the hint: "${targetConvo.hint}". Correct answer: "${targetConvo.correct}". You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+                    baseMetaNote += `\n[SYSTEM REMINDER: CONVERSATION EXERCISE (RETRY WITH HINT).\nSTEP 1: EVALUATE the user's message against "${targetConvo.correct}" (case-insensitive). If it matches → say "Correct!" with success true. ${autoNextConvo}\nSTEP 2: If NOT → show hint: "${targetConvo.hint}". Re-ask: "${targetConvo.prompt}" with success false.\nYou MUST respond in valid JSON: {"content": "...", "success": true/false}.]`;
                 } else {
-                    baseMetaNote += `\n[SYSTEM REMINDER: CONVERSATION EXERCISE. Set a scene and ask: "${targetConvo.prompt}". Correct answer: "${targetConvo.correct}" (meaning: "${targetConvo.meaning}"). Do NOT show hints. If correct, set success to true. If wrong, set success to false and say "Not quite, try again!". You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+                    baseMetaNote += `\n[SYSTEM REMINDER: CONVERSATION EXERCISE.\nSTEP 1: EVALUATE the user's message against "${targetConvo.correct}" (case-insensitive). If it matches → say "Correct!" with success true. ${autoNextConvo}\nSTEP 2: If NOT → say "Not quite, try again!" with success false.\nSTEP 3: If first prompt → set the scene and ask: "${targetConvo.prompt}". Set success to null.\nYou MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
                 }
             } else if (nextEffectiveLevel === 'conversational') {
                 // Fallback
