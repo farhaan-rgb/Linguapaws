@@ -967,6 +967,10 @@ export default function Chat() {
             const phraseIndex = nextInScenario >= 13 && nextInScenario < 23 ? nextInScenario - 13 : -1;
             const targetPhrase = phraseIndex >= 0 && scenarioData.phrases ? scenarioData.phrases[phraseIndex] : null;
 
+            // Deterministic conversation exercise for Conversational mode
+            const convoIndex = nextInScenario >= 23 ? nextInScenario - 23 : -1;
+            const targetConvo = convoIndex >= 0 && scenarioData.conversations ? scenarioData.conversations[convoIndex] : null;
+
             // Determine effective level AFTER increment (13/10/7 split)
             let nextEffectiveLevel = effectiveLevel;
             if (nextRepeats < 300) {
@@ -978,6 +982,26 @@ export default function Chat() {
             }
             const nextIsReview = nextInScenario >= 10 && nextInScenario < 13;
             const nextIsTeaching = nextInScenario < 10;
+
+            // ── PHASE TRANSITION ANNOUNCEMENTS ──
+            // Detect when user just crossed a phase boundary
+            if (isLastBeginnerWord) {
+                const transMsg = { role: 'system', content: '🎓 **Vocabulary complete!** Now let me test your memory with a quick review quiz.' };
+                setMessages(prev => [...prev, transMsg]);
+            } else if (isLastReviewQuestion) {
+                const transMsg = { role: 'system', content: '🎓 **Review passed!** Now let\'s combine those words into phrases. I\'ll ask you to build sentences!' };
+                setMessages(prev => [...prev, transMsg]);
+            }
+            // Detect Basic → Conversational transition
+            const wasBasic = effectiveLevel === 'basic' || (currentInScenario >= 13 && currentInScenario < 23);
+            const nowConvo = nextEffectiveLevel === 'conversational';
+            if (wasBasic && nowConvo && hasCorrectMatch) {
+                const transMsg = { role: 'system', content: '🎓 **Phrases mastered!** Time for real conversation practice. I\'ll set the scene!' };
+                setMessages(prev => [...prev, transMsg]);
+            }
+
+            // Detect if user is RETRYING a failed phrase (to decide whether to show hint)
+            const userFailedLastAttempt = (promptedPhrase && matchRatio < threshold) || (isCurrentlyInReview && reviewExpectedWord && matchRatio < threshold);
 
             const isBeginner = nextEffectiveLevel === 'zero';
             let baseMetaNote = acceptNote || '';
@@ -995,13 +1019,25 @@ export default function Chat() {
                 const nextReviewMeaning = nextReviewWordObj?.meaning || 'Hello';
                 baseMetaNote += `\n[SYSTEM REMINDER: REVIEW MODE. Ask the user EXACTLY: "What's the ${targetLang?.name || 'target'} word for '${nextReviewMeaning}'?" Do NOT teach new words. Do NOT use bold text. Keep it playful. 🐾]`;
             } else if (nextEffectiveLevel === 'basic' && targetPhrase) {
-                // Deterministic phrase mode: inject the exact phrase exercise
-                baseMetaNote += `\n[SYSTEM REMINDER: PHRASE EXERCISE. Ask the user EXACTLY this: "${targetPhrase.prompt}". The CORRECT answer is: "${targetPhrase.correct}" (meaning: "${targetPhrase.meaning}"). Hint for the user: "${targetPhrase.hint}". If the user's response matches the correct answer (case-insensitive, minor punctuation differences OK), set success to true and say "Correct!" with the meaning. If wrong, set success to false, show them the correct answer and explain using the hint. Do NOT invent your own phrases. Do NOT use any words outside the user's known vocabulary. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+                // Deterministic phrase mode — HIDE HINT on first attempt, show on failure
+                if (userFailedLastAttempt) {
+                    baseMetaNote += `\n[SYSTEM REMINDER: PHRASE EXERCISE (RETRY). The user got it wrong. Ask them again: "${targetPhrase.prompt}". Now SHOW the hint: "${targetPhrase.hint}". The correct answer is: "${targetPhrase.correct}". If they get it right now, set success to true. If wrong again, show the correct answer. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+                } else {
+                    baseMetaNote += `\n[SYSTEM REMINDER: PHRASE EXERCISE. Ask the user EXACTLY this: "${targetPhrase.prompt}". The CORRECT answer is: "${targetPhrase.correct}" (meaning: "${targetPhrase.meaning}"). Do NOT show any hints yet — let them try first. If correct, set success to true and say "Correct!" with the meaning. If wrong, set success to false and say "Not quite, try again!". Do NOT show the correct answer on the first attempt. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+                }
             } else if (nextEffectiveLevel === 'basic') {
                 // Fallback for scenarios without hardcoded phrases
-                baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask them to COMBINE 2-3 SPECIFIC words by naming the exact words. Give a word order hint. Do NOT use any target language words outside their known list. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+                baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask them to COMBINE 2-3 SPECIFIC words by naming the exact words. Do NOT show hints upfront. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+            } else if (nextEffectiveLevel === 'conversational' && targetConvo) {
+                // Deterministic conversation exercise — same hint strategy
+                if (userFailedLastAttempt) {
+                    baseMetaNote += `\n[SYSTEM REMINDER: CONVERSATION EXERCISE (RETRY). The user got it wrong. Ask again: "${targetConvo.prompt}". Now SHOW the hint: "${targetConvo.hint}". Correct answer: "${targetConvo.correct}". You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+                } else {
+                    baseMetaNote += `\n[SYSTEM REMINDER: CONVERSATION EXERCISE. Set a scene and ask: "${targetConvo.prompt}". Correct answer: "${targetConvo.correct}" (meaning: "${targetConvo.meaning}"). Do NOT show hints. If correct, set success to true. If wrong, set success to false and say "Not quite, try again!". You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+                }
             } else if (nextEffectiveLevel === 'conversational') {
-                baseMetaNote += `\n[SYSTEM REMINDER: Act as a true ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask EXACTLY ONE question. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+                // Fallback
+                baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask EXACTLY ONE question using ONLY those words. Do NOT use any words outside their known list. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
             }
             const metaNote = baseMetaNote;
 
@@ -1023,9 +1059,12 @@ export default function Chat() {
             if (typeof botResponse !== 'string') botResponse = '';
 
             // Progress based on AI's success field (basic, conversational modes only — review uses client-side matching)
+            // FILLER GUARD: Don't count filler words like 'okay/sure/next' as valid attempts
+            const FILLER_WORDS = ['okay', 'ok', 'sure', 'next', 'continue', 'yes', 'no', 'hmm', 'alright', 'got it', 'cool', 'nice', 'great', 'thanks', 'thank you'];
+            const isFillerText = FILLER_WORDS.includes((text || '').trim().toLowerCase());
             const usesJsonSuccess = !isCurrentlyBeginner;
-            if (usesJsonSuccess && rawResponse?.success === true) {
-                console.log('[Progress] AI reports success:true, incrementing...');
+            if (usesJsonSuccess && rawResponse?.success === true && !isFillerText) {
+                console.log('[Progress] AI reports success:true (non-filler input), incrementing...');
                 try {
                     const progressResult = await api.post('/api/progress/increment');
                     setProgress(progressResult);
@@ -1033,7 +1072,7 @@ export default function Chat() {
                     console.warn('Failed to increment progress for success:', err);
                 }
                 setSentenceSuccesses(prev => ({ ...prev, [messages.length]: true }));
-            } else if (usesJsonSuccess && rawResponse?.success === false) {
+            } else if (usesJsonSuccess && rawResponse?.success === false && !isFillerText) {
                 setSentenceSuccesses(prev => ({ ...prev, [messages.length]: false }));
             }
 

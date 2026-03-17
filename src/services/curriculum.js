@@ -75,6 +75,50 @@ export const CURRICULUM = {
                     meaning: "Hello, I am from Hyderabad",
                     hint: "Hello + I + [place] + from → Namaskaram + nenu + Hyderabad + nundi"
                 }
+            ],
+            conversations: [
+                {
+                    prompt: "Someone greets you and asks your name. Introduce yourself as Ravi.",
+                    correct: "Namaskaram, nenu Ravi",
+                    meaning: "Hello, I am Ravi",
+                    hint: "Hello + I + [name] → Namaskaram + nenu + Ravi"
+                },
+                {
+                    prompt: "Someone asks 'Meeru ekkada nundi?' — answer that you are from Chennai.",
+                    correct: "Nenu Chennai nundi",
+                    meaning: "I am from Chennai",
+                    hint: "I + [city] + from → Nenu + Chennai + nundi"
+                },
+                {
+                    prompt: "Someone asks 'Meeru bagunnaraa?' — say 'Yes, I am fine, and you?'",
+                    correct: "Avunu, nenu bagunna, meeru?",
+                    meaning: "Yes, I am fine, and you?",
+                    hint: "Yes + I + am fine + you? → Avunu + nenu + bagunna + meeru?"
+                },
+                {
+                    prompt: "Greet someone, introduce yourself as Priya, and say you're from Hyderabad.",
+                    correct: "Namaskaram, nenu Priya, nenu Hyderabad nundi",
+                    meaning: "Hello, I am Priya, I am from Hyderabad",
+                    hint: "Hello + I + [name] + I + [city] + from → Namaskaram + nenu + Priya + nenu + Hyderabad + nundi"
+                },
+                {
+                    prompt: "Someone asks 'Mee peru emiti?' — say your name is Ravi and ask their name back.",
+                    correct: "Nenu Ravi, mee peru emiti?",
+                    meaning: "I am Ravi, what is your name?",
+                    hint: "I + [name] + your + name + what? → Nenu + Ravi + mee + peru + emiti?"
+                },
+                {
+                    prompt: "Someone asks if you're from Delhi. Say 'No, I am from Hyderabad.'",
+                    correct: "Ledu, nenu Hyderabad nundi",
+                    meaning: "No, I am from Hyderabad",
+                    hint: "No + I + [city] + from → Ledu + nenu + Hyderabad + nundi"
+                },
+                {
+                    prompt: "Complete this full greeting: Say hello, say you're fine, and ask where they are from.",
+                    correct: "Namaskaram, nenu bagunna, meeru ekkada nundi?",
+                    meaning: "Hello, I am fine, where are you from?",
+                    hint: "Hello + I + fine + you + where + from? → Namaskaram + nenu + bagunna + meeru + ekkada + nundi?"
+                }
             ]
         },
         {
@@ -151,6 +195,50 @@ export const CURRICULUM = {
                     correct: "Annam kavali, neeru ivvandi",
                     meaning: "I want food, please give water",
                     hint: "Food + want + water + give → Annam kavali, neeru ivvandi"
+                }
+            ],
+            conversations: [
+                {
+                    prompt: "A waiter asks what you'd like. Say you want coffee and water.",
+                    correct: "Coffee kavali, neeru kavali",
+                    meaning: "I want coffee, I want water",
+                    hint: "Coffee + want + water + want → Coffee kavali, neeru kavali"
+                },
+                {
+                    prompt: "The waiter offers tea. Say 'No, I want coffee.'",
+                    correct: "Ledu, coffee kavali",
+                    meaning: "No, I want coffee",
+                    hint: "No + coffee + want → Ledu + coffee + kavali"
+                },
+                {
+                    prompt: "Ask the waiter to give you food and the bill.",
+                    correct: "Annam ivvandi, bill ivvandi",
+                    meaning: "Please give food, please give the bill",
+                    hint: "Food + give + bill + give → Annam ivvandi, bill ivvandi"
+                },
+                {
+                    prompt: "The waiter asks if you want more water. Say 'No, I don't want water, please give the bill.'",
+                    correct: "Ledu, neeru oddhu, bill ivvandi",
+                    meaning: "No, I don't want water, please give the bill",
+                    hint: "No + water + don't want + bill + give → Ledu + neeru + oddhu + bill + ivvandi"
+                },
+                {
+                    prompt: "Greet the waiter, then order food and coffee.",
+                    correct: "Namaskaram, annam kavali, coffee kavali",
+                    meaning: "Hello, I want food, I want coffee",
+                    hint: "Hello + food + want + coffee + want → Namaskaram + annam + kavali + coffee + kavali"
+                },
+                {
+                    prompt: "Say you don't want food but want water.",
+                    correct: "Annam oddhu, neeru kavali",
+                    meaning: "I don't want food, I want water",
+                    hint: "Food + don't want + water + want → Annam oddhu + neeru kavali"
+                },
+                {
+                    prompt: "Thank the waiter: say 'Yes, I want the bill, thank you' (use Namaskaram as thanks).",
+                    correct: "Avunu, bill ivvandi, namaskaram",
+                    meaning: "Yes, please give the bill, thank you",
+                    hint: "Yes + bill + give + thank you → Avunu + bill + ivvandi + namaskaram"
                 }
             ]
         },
