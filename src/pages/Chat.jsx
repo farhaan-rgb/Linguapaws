@@ -927,6 +927,14 @@ export default function Chat() {
             const nextReviewScenarioIdx = Math.min(Math.floor((isLastBeginnerWord ? currentRepeats + 1 : nextRepeats) / 30), 9);
             const nextReviewScenarioData = (CURRICULUM[nextReviewSafeLang] && CURRICULUM[nextReviewSafeLang][nextReviewScenarioIdx]) || { vocabulary: [] };
 
+            // Detect help requests and previous failures for hint display
+            const HELP_WORDS = ["don't know", "dont know", "i don't know", "idk", "how", "how?", "help", "hint", "tell me", "show me", "what is it", "i forgot"];
+            const isHelpRequest = HELP_WORDS.some(h => (text || '').trim().toLowerCase().includes(h));
+
+            // Check if the last AI message indicated the user failed (for showing hints on retry)
+            const lastAssistantContent = [...messages].reverse().find(m => m.role === 'assistant')?.content || '';
+            const lastWasFailure = lastAssistantContent.includes('Not quite') || lastAssistantContent.includes('try again') || lastAssistantContent.includes('not quite');
+
             let acceptNote;
             if (isLastBeginnerWord) {
                 // Transition: Teaching → Review. Congratulate + ask FIRST specific review word.
@@ -940,6 +948,9 @@ export default function Chat() {
             } else if (isCurrentlyInReview && reviewExpectedWord && matchRatio < threshold) {
                 // Review: wrong answer — tell them the right answer, re-ask same word
                 acceptNote = `The user's answer was incorrect. Gently tell them: "Not quite — the word for that is '${reviewExpectedWord}'." Then encourage them to try again.`;
+            } else if (isHelpRequest && !isCurrentlyBeginner) {
+                // User asked for help in Basic/Conversational — acknowledge and show hint
+                acceptNote = `The user is asking for help. Be warm and encouraging: "No worries! Let me give you a hint." Then show the hint for the current exercise.`;
             } else if (promptedPhrase && matchRatio >= threshold) {
                 acceptNote = `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isCurrentlyBeginner && isCurrentlyTeaching ? 'Then immediately set the next scene and teach the next word.' : 'Then move the conversation forward naturally.'} DO NOT ask them what they want to talk about.`;
             } else if (promptedPhrase && matchRatio < threshold) {
@@ -1000,8 +1011,10 @@ export default function Chat() {
                 setMessages(prev => [...prev, transMsg]);
             }
 
-            // Detect if user is RETRYING a failed phrase (to decide whether to show hint)
-            const userFailedLastAttempt = (promptedPhrase && matchRatio < threshold) || (isCurrentlyInReview && reviewExpectedWord && matchRatio < threshold);
+            // Detect if user needs the hint (failed before, or asked for help)
+            const userFailedLastAttempt = (promptedPhrase && matchRatio < threshold) || 
+                (isCurrentlyInReview && reviewExpectedWord && matchRatio < threshold) ||
+                lastWasFailure || isHelpRequest;
 
             const isBeginner = nextEffectiveLevel === 'zero';
             let baseMetaNote = acceptNote || '';
@@ -1059,9 +1072,9 @@ export default function Chat() {
             if (typeof botResponse !== 'string') botResponse = '';
 
             // Progress based on AI's success field (basic, conversational modes only — review uses client-side matching)
-            // FILLER GUARD: Don't count filler words like 'okay/sure/next' as valid attempts
+            // FILLER GUARD: Don't count filler words or help requests as valid phrase attempts
             const FILLER_WORDS = ['okay', 'ok', 'sure', 'next', 'continue', 'yes', 'no', 'hmm', 'alright', 'got it', 'cool', 'nice', 'great', 'thanks', 'thank you'];
-            const isFillerText = FILLER_WORDS.includes((text || '').trim().toLowerCase());
+            const isFillerText = FILLER_WORDS.includes((text || '').trim().toLowerCase()) || isHelpRequest;
             const usesJsonSuccess = !isCurrentlyBeginner;
             if (usesJsonSuccess && rawResponse?.success === true && !isFillerText) {
                 console.log('[Progress] AI reports success:true (non-filler input), incrementing...');
