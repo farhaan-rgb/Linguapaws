@@ -30,8 +30,7 @@ export default function Home() {
         let url = '/chat';
         const params = new URLSearchParams();
         if (topic) {
-            params.set('topic', topic.id);
-            params.set('name', topic.name);
+            params.set('scenario', topic.id);
         }
         if (character) {
             localStorage.setItem('linguapaws_active_character', JSON.stringify(character));

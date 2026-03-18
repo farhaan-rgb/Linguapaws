@@ -1,27 +1,27 @@
 import React from 'react';
 import { useTranslation } from '../hooks/useTranslation';
-
-const topics = [
-    { id: 'weather', name: 'Weather', icon: '☀️', color: '#e0f2fe' },
-    { id: 'news', name: 'Current Affairs', icon: '🗞️', color: '#f1f5f9' },
-    { id: 'chai', name: 'Chai Sutta chronicles', icon: '☕', color: '#fef3c7' },
-    { id: 'travel', name: 'Travel Stories', icon: '✈️', color: '#dcfce7' },
-    { id: 'food', name: 'Foodie Vibes', icon: '🍕', color: '#ffedd5' },
-    { id: 'tech', name: 'Tech Talk', icon: '💻', color: '#ede9fe' },
-    { id: 'music', name: 'Music Beats', icon: '🎵', color: '#fae8ff' },
-    { id: 'sports', name: 'Play Time', icon: '⚽', color: '#f0fdf4' },
-    { id: 'fashion', name: 'Style Check', icon: '👗', color: '#fff1f2' },
-    { id: 'nature', name: 'Nature Walk', icon: '🌿', color: '#ecfdf5' },
-];
+import { CURRICULUM } from '../services/curriculum';
 
 export default function TopicGrid({ onSelectTopic }) {
     const { t } = useTranslation();
+    const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{}');
+    const safeLang = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Telugu';
+    
+    // Dynamically derive topics from CURRICULUM
+    const scenarios = CURRICULUM[safeLang] || [];
+    const topics = scenarios.map((s, idx) => ({
+        id: idx,
+        name: s.scenario,
+        icon: s.icon || '🧩', // Fallback icon
+        color: s.color || '#f1f5f9' // Fallback color
+    })).slice(0, 15); // Show first 15 for now to keep it tidy
+
     return (
         <section className="card" style={{ textAlign: 'center', padding: '16px' }}>
             <div style={{ paddingRight: 24 }}>
-                <h3 style={{ fontSize: '15px', marginBottom: '2px' }}>{t.choose_topic}</h3>
+                <h3 style={{ fontSize: '15px', marginBottom: '2px' }}>{t.choose_topic || 'Choose a Scenario'}</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '12px' }}>
-                    {t.topic_desc}
+                    Pick a specific scenario to practice!
                 </p>
             </div>
 
@@ -31,7 +31,7 @@ export default function TopicGrid({ onSelectTopic }) {
                 overflowX: 'auto',
                 paddingBottom: '20px',
                 paddingRight: '24px',
-                scrollbarWidth: 'none', // Hide scrollbar for clean look
+                scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
                 WebkitOverflowScrolling: 'touch'
             }}>
@@ -60,12 +60,15 @@ export default function TopicGrid({ onSelectTopic }) {
                         </div>
                         <span style={{
                             fontSize: '13px',
-                            fontWeight: '500',
+                            fontWeight: '600',
                             display: 'block',
                             lineHeight: '1.3',
-                            color: 'var(--text-main)'
+                            color: 'var(--text-main)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
                         }}>
-                            {t[topic.id] || topic.name}
+                            {topic.name}
                         </span>
                     </div>
                 ))}

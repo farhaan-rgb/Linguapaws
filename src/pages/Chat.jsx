@@ -786,7 +786,7 @@ export default function Chat() {
         setIsLoading(true);
 
         try {
-            // ── LEVEL DETERMINATION (15-step Cycle) ─────────────
+            // -- 1. DETERMINE CURRENT STATE --
             const currentRepeats = progress?.successfulRepeats || 0;
             const CYCLE_SIZE = 15;
             const currentInScenario = currentRepeats % CYCLE_SIZE;
@@ -796,48 +796,32 @@ export default function Chat() {
             const isCurrentlyInBasic = currentInScenario >= 8 && currentInScenario < 11;
             const isCurrentlyInConvo = currentInScenario >= 11;
 
-            const isLastScenarioStep = currentInScenario === 14 && hasCorrectMatch;
-
-            // -- SCORE TRACKING --
-            if (hasCorrectMatch) {
-                setMatchScores(prev => ({ ...prev, [messages.length]: Math.round(matchRatio * 100) }));
-                if (matchRatio < 0.95 && (promptedPhrase || reviewExpectedWord || phraseExpectedCorrect)) {
-                   setCorrections(prev => ({ ...prev, [messages.length]: { expected: promptedPhrase || reviewExpectedWord || phraseExpectedCorrect, ratio: matchRatio } }));
-                }
-            }
-            let effectiveLevel = 'zero';
-            if (currentRepeats < 450) { // 30 scenarios * 15 repeats
-                if (currentInScenario < 8) effectiveLevel = 'zero';
-                else if (currentInScenario < 11) effectiveLevel = 'basic';
-                else effectiveLevel = 'conversational';
-            } else {
-                effectiveLevel = 'fluent';
-            }
-
-            // DETERMINISTIC MATCHING (Client-side)
-            const safeLangForMatch = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Telugu';
+            const searchParamsVal = new URL(window.location.href).searchParams;
+            const scenarioOverride = searchParamsVal.get('scenario');
             const scenarioIdxForMatch = scenarioOverride !== null 
                 ? parseInt(scenarioOverride) 
                 : Math.min(Math.floor(currentRepeats / CYCLE_SIZE), 29);
-                
+            
+            const safeLangForMatch = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Telugu';
             const scenarioDataForMatch = CURRICULUM[safeLangForMatch]?.[scenarioIdxForMatch] || { vocabulary: [], phrases: [], conversations: [] };
+
+            // -- 2. EVALUATE USER INPUT (MATCHING) --
+            const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+            const promptedPhrase = extractPromptedPhrase(lastAssistant?.content || '');
+            const threshold = 0.5;
+            const actual = (text || '').replace(/[.!?]+$/g, '').trim();
 
             let matchRatio = 0;
             let displayPhrase = null;
             let phraseExpectedCorrect = null;
             let reviewExpectedWord = null;
 
-            const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-            const promptedPhrase = extractPromptedPhrase(lastAssistant?.content || '');
-            const threshold = 0.5;
-            const actual = (text || '').replace(/[.!?]+$/g, '').trim();
-
             if (isCurrentlyTeaching && promptedPhrase) {
                 matchRatio = similarityRatioLatin(actual, promptedPhrase);
                 displayPhrase = promptedPhrase;
             } else if (isCurrentlyInReview) {
                 const round = currentInScenario - 5;
-                const REVIEW_MAP = [0, 2, 4]; // Review these indices from vocabulary
+                const REVIEW_MAP = [0, 2, 4];
                 const reviewWordIdx = REVIEW_MAP[round] ?? 0;
                 reviewExpectedWord = scenarioDataForMatch.vocabulary[reviewWordIdx]?.word || null;
                 if (reviewExpectedWord) {
@@ -860,33 +844,33 @@ export default function Chat() {
                 }
             }
 
-            if (displayPhrase) {
-                const scorePercent = Math.round(matchRatio * 100);
-                setMatchScores(prev => ({ ...prev, [userMessageIndex]: scorePercent }));
+            const hasCorrectMatch = matchRatio >= threshold && (promptedPhrase || reviewExpectedWord || phraseExpectedCorrect);
+            const isLastScenarioStep = currentInScenario === 14 && hasCorrectMatch;
+
+            // -- 3. SCORE TRACKING & CORRECTIONS --
+            if (hasCorrectMatch) {
+                setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(matchRatio * 100) }));
+                if (matchRatio < 0.95 && (promptedPhrase || reviewExpectedWord || phraseExpectedCorrect)) {
+                   setCorrections(prev => ({ ...prev, [userMessageIndex]: { expected: promptedPhrase || reviewExpectedWord || phraseExpectedCorrect, ratio: matchRatio } }));
+                }
             }
 
-            // ── PROGRESS & META-NOTE SYNERGY ──
-            const hasCorrectMatch = matchRatio >= threshold && (promptedPhrase || reviewExpectedWord || phraseExpectedCorrect);
-            let hasIncrementedThisTurn = false;
+            // -- 4. PROGRESS INCREMENT --
             let nextRepeats = currentRepeats;
-
-            // Increment progress if correct
             if (hasCorrectMatch) {
                 try {
                     const res = await api.post('/api/progress/increment');
                     setProgress(res);
                     nextRepeats = res?.successfulRepeats || (currentRepeats + 1);
-                    hasIncrementedThisTurn = true;
 
-                    // Check for scenario completion
+                    const activeScenario = scenarioDataForMatch.scenario || 'Learning';
                     if (isLastScenarioStep) {
                         setLevelUpToast(`🏆 Scenario Complete: ${activeScenario}!`);
                         setTimeout(() => setLevelUpToast(null), 5000);
                         setMessages(prev => [...prev, { role: 'system', content: '✨ **Scenario Mastered!** You\'ve completed all 15 steps. Moving to the next challenge...' }]);
-                    }
-                    else if (isLastBeginnerWord) {
+                    } else if (isCurrentlyTeaching && currentInScenario === 4) {
                         setMessages(prev => [...prev, { role: 'system', content: '🎓 **Vocabulary complete!** Now let me test your memory with a quick review quiz.' }]);
-                    } else if (isLastReviewQuestion) {
+                    } else if (isCurrentlyInReview && currentInScenario === 7) {
                         setMessages(prev => [...prev, { role: 'system', content: '🎓 **Review passed!** Now let\'s combine those words into phrases. I\'ll ask you to build sentences!' }]);
                     }
                 } catch (e) {
@@ -894,22 +878,13 @@ export default function Chat() {
                 }
             }
 
-            // Detect Phase Transitions
-            const isLastBeginnerWord = isCurrentlyTeaching && (currentInScenario === 4) && hasCorrectMatch;
-            const isLastReviewQuestion = isCurrentlyInReview && (currentInScenario === 7) && hasCorrectMatch;
+            // -- 5. META-NOTE CONSTRUCTION --
+            const nextInScenario = nextRepeats % CYCLE_SIZE;
             const HELP_WORDS = ["don't know", "dont know", "i don't know", "idk", "how", "how?", "help", "hint", "tell me", "show me", "not sure", "what", "what?", "confused", "no idea", "repeat", "again", "what part", "not clear"];
             const isHelpRequest = HELP_WORDS.some(h => (text || '').trim().toLowerCase().includes(h));
             const lastAssistantContent = lastAssistant?.content || '';
             const lastWasFailure = lastAssistantContent.includes('Not quite') || lastAssistantContent.includes('try again') || lastAssistantContent.includes('not quite');
 
-            // ── META-NOTE CONSTRUCTION ────────────────────────────────────
-            const vocabIndex = nextInScenario < 5 ? nextInScenario : -1;
-            const phraseIndex = nextInScenario >= 8 && nextInScenario < 11 ? nextInScenario - 8 : -1;
-            const targetPhrase = phraseIndex >= 0 ? scenarioDataForMatch.phrases?.[phraseIndex] : null;
-            const convoIndex = nextInScenario >= 11 ? nextInScenario - 11 : -1;
-            const targetConvo = convoIndex >= 0 ? scenarioDataForMatch.conversations?.[convoIndex] : null;
-
-            // Decision: Confirm previous or Eval current?
             let evalNote = '';
             if (hasCorrectMatch) {
                 const matchDetail = displayPhrase ? `matched "${displayPhrase}"` : 'was correct';
@@ -923,30 +898,32 @@ export default function Chat() {
                 evalNote = `[SYSTEM: EVALUATE NOW. The user is attempting the exercise. Check against the target.]`;
             }
 
-            const activeScenario = scenarioDataForMatch.scenario || 'Learning';
-            let baseMetaNote = evalNote + `\n[SCENARIO: '${activeScenario}'].`;
+            const activeScenarioLabel = scenarioDataForMatch.scenario || 'Learning';
+            let metaNote = evalNote + `\n[SCENARIO: '${activeScenarioLabel}'].`;
 
             // Instructions for NEXT step
             if (nextInScenario < 5) {
                 const wordObj = scenarioDataForMatch.vocabulary[nextInScenario] || { word: 'Word', meaning: 'Meaning' };
-                baseMetaNote += `\n[NEXT: TEACH word **${wordObj.word}** (${wordObj.meaning}). Bridge: "To say [meaning], say **Word**".]`;
+                metaNote += `\n[NEXT: TEACH word **${wordObj.word}** (${wordObj.meaning}). Bridge: "To say [meaning], say **Word**".]`;
             } else if (nextInScenario < 8) {
                 const round = nextInScenario - 5;
                 const meaning = scenarioDataForMatch.vocabulary[[0, 2, 4][round]]?.meaning || 'Hello';
-                baseMetaNote += `\n[NEXT: REVIEW. Ask "What's the word for '${meaning}'?"]`;
-            } else if (nextInScenario < 11 && targetPhrase) {
-                const nextPhrase = scenarioDataForMatch.phrases?.[phraseIndex + 1];
-                const autoNextMsg = hasCorrectMatch && nextPhrase ? `After confirming success, IMMEDIATELY ask: "${nextPhrase.prompt}"` : `Ask: "${targetPhrase.prompt}"`;
-                baseMetaNote += `\n[NEXT: BASIC PHRASE. Target: "${targetPhrase.correct}". ${autoNextMsg}. Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
-            } else if (nextInScenario >= 11 && targetConvo) {
-                const nextConvo = scenarioDataForMatch.conversations?.[convoIndex + 1];
-                const autoNextMsg = hasCorrectMatch && nextConvo ? `After confirming success, IMMEDIATELY ask: "${nextConvo.prompt}"` : `Ask: "${targetConvo.prompt}"`;
-                baseMetaNote += `\n[NEXT: CONVO MODE. Target: "${targetConvo.correct}". ${autoNextMsg}. Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
+                metaNote += `\n[NEXT: REVIEW. Ask "What's the word for '${meaning}'?"]`;
+            } else if (nextInScenario < 11) {
+                const phraseIdx = nextInScenario - 8;
+                const targetPhrase = scenarioDataForMatch.phrases?.[phraseIdx];
+                if (targetPhrase) {
+                    metaNote += `\n[NEXT: BASIC PHRASE. Target: "${targetPhrase.correct}". Ask: "${targetPhrase.prompt}". Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
+                }
+            } else {
+                const convoIdx = nextInScenario - 11;
+                const targetConvo = scenarioDataForMatch.conversations?.[convoIdx];
+                if (targetConvo) {
+                    metaNote += `\n[NEXT: CONVO MODE. Target: "${targetConvo.correct}". Ask: "${targetConvo.prompt}". Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
+                }
             }
-            const metaNote = baseMetaNote;
 
-            // ── PHASE TRANSITION ANNOUNCEMENTS ──
-            if (isCurrentlyInBasic && phraseIndex === -1 && hasCorrectMatch) { // Just finishing Basic
+            if (isCurrentlyInBasic && (nextInScenario === 11) && hasCorrectMatch) {
                  setMessages(prev => [...prev, { role: 'system', content: '🎓 **Phrases mastered!** Time for real conversation practice. I\'ll set the scene!' }]);
             }
 
