@@ -1258,7 +1258,7 @@ export default function Chat() {
                     <span style={{ fontSize: '14px' }}>
                         {(() => {
                             const r = progress.successfulRepeats || 0;
-                            const sub = r < 300 ? Math.floor((r % 30) / 10) : 3;
+                            const sub = r < 450 ? Math.floor((r % 15) / 5) : 3;
                             return sub === 0 ? '🌱' : sub === 1 ? '🌿' : sub === 2 ? '🌳' : '⭐';
                         })()}
                     </span>
@@ -1267,32 +1267,24 @@ export default function Chat() {
                             <span style={{ fontSize: '11px', fontWeight: '700', color: '#7c3aed' }}>
                                 {(() => {
                                     const r = progress.successfulRepeats || 0;
-                                    const stageNum = Math.min(Math.floor(r / 30) + 1, 10);
-                                    const scenarios = [
-                                        "Greetings & Identity",
-                                        "Ordering Food & Drinks",
-                                        "Shopping & Prices",
-                                        "Asking for Directions",
-                                        "Transportation & Travel",
-                                        "Time & Schedules",
-                                        "Hobbies & Preferences",
-                                        "Weather & Environment",
-                                        "Health & Body",
-                                        "Social Gatherings & Events"
-                                    ];
-                                    return `Scenario ${stageNum}: ${scenarios[Math.min(stageNum - 1, 9)]}`;
+                                    const stageNum = Math.min(Math.floor(r / 15) + 1, 30);
+                                    
+                                    const safeLangForMatch = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Telugu';
+                                    const scenarioLabel = CURRICULUM[safeLangForMatch]?.[stageNum - 1]?.scenario || `Scenario ${stageNum}`;
+                                    
+                                    return `Scenario ${stageNum}: ${scenarioLabel}`;
                                 })()}
                             </span>
                             <span style={{ fontSize: '11px', color: '#94a3b8' }}>
                                 {(() => {
                                     const r = progress.successfulRepeats || 0;
-                                    if (r >= 300) return 'Fluent Mode';
-                                    const inS = r % 30;
+                                    if (r >= 450) return 'Fluent Mode';
+                                    const inS = r % 15;
                                     let subLabel, nextLabel, pts, total;
-                                    if (inS < 10) { subLabel = 'Beginner'; nextLabel = 'Review'; pts = inS; total = 10; }
-                                    else if (inS < 13) { subLabel = 'Review'; nextLabel = 'Basic'; pts = inS - 10; total = 3; }
-                                    else if (inS < 23) { subLabel = 'Basic'; nextLabel = 'Conversational'; pts = inS - 13; total = 10; }
-                                    else { subLabel = 'Conversational'; nextLabel = 'Next Scenario'; pts = inS - 23; total = 7; }
+                                    if (inS < 5) { subLabel = 'Beginner'; nextLabel = 'Review'; pts = inS; total = 5; }
+                                    else if (inS < 8) { subLabel = 'Review'; nextLabel = 'Basic'; pts = inS - 5; total = 3; }
+                                    else if (inS < 11) { subLabel = 'Basic'; nextLabel = 'Conversational'; pts = inS - 8; total = 3; }
+                                    else { subLabel = 'Conversational'; nextLabel = 'Next Scenario'; pts = inS - 11; total = 4; }
                                     return `${subLabel} · ${pts}/${total} → ${nextLabel}`;
                                 })()}
                             </span>
@@ -1307,11 +1299,11 @@ export default function Chat() {
                                 initial={{ width: 0 }}
                                 animate={{
                                     width: `${(() => {
-                                        const r = (progress.successfulRepeats || 0) % 30;
-                                        if (r < 10) return (r / 10) * 100;
-                                        if (r < 13) return ((r - 10) / 3) * 100;
-                                        if (r < 23) return ((r - 13) / 10) * 100;
-                                        return ((r - 23) / 7) * 100;
+                                        const r = (progress.successfulRepeats || 0) % 15;
+                                        if (r < 5) return (r / 5) * 100;
+                                        if (r < 8) return ((r - 5) / 3) * 100;
+                                        if (r < 11) return ((r - 8) / 3) * 100;
+                                        return ((r - 11) / 4) * 100;
                                     })()}%`
                                 }}
                                 transition={{ duration: 0.5, ease: 'easeOut' }}
