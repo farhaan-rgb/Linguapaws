@@ -784,285 +784,149 @@ export default function Chat() {
         setIsLoading(true);
 
         try {
-            // ── LEVEL DETERMINATION (13/10/7 split) ────────────────────
+            // ── LEVEL DETERMINATION (15-step Cycle) ─────────────
             const currentRepeats = progress?.successfulRepeats || 0;
-            let effectiveLevel = userLevel;
-            if (currentRepeats < 300) {
-                const inScenario = currentRepeats % 30;
-                if (inScenario < 13) effectiveLevel = 'zero';       // 0-9 teach + 10-12 review
-                else if (inScenario < 23) effectiveLevel = 'basic'; // 13-22
-                else effectiveLevel = 'conversational';              // 23-29
+            const CYCLE_SIZE = 15;
+            const currentInScenario = currentRepeats % CYCLE_SIZE;
+            
+            const isCurrentlyTeaching = currentInScenario < 5;
+            const isCurrentlyInReview = currentInScenario >= 5 && currentInScenario < 8;
+            const isCurrentlyInBasic = currentInScenario >= 8 && currentInScenario < 11;
+            const isCurrentlyInConvo = currentInScenario >= 11;
+
+            let effectiveLevel = 'zero';
+            if (currentRepeats < 450) { // 30 scenarios * 15 repeats
+                if (currentInScenario < 8) effectiveLevel = 'zero';
+                else if (currentInScenario < 11) effectiveLevel = 'basic';
+                else effectiveLevel = 'conversational';
             } else {
                 effectiveLevel = 'fluent';
             }
 
-            // Increment exchange count and determine if this is a scheduled shadow round
-            exchangeCount.current += 1;
-            const triggerShadow = exchangeCount.current > 0 && exchangeCount.current % 6 === 0;
-            const userMessageIndex = messages.length;
+            // DETERMINISTIC MATCHING (Client-side)
+            const safeLangForMatch = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Telugu';
+            const scenarioIdxForMatch = Math.min(Math.floor(currentRepeats / CYCLE_SIZE), 29);
+            const scenarioDataForMatch = CURRICULUM[safeLangForMatch]?.[scenarioIdxForMatch] || { vocabulary: [], phrases: [], conversations: [] };
 
-            // Find the most recent instruction from Miko
-            // We prioritize messages with bold phrases because they are actively teaching
-            const lastAssistant = [...messages].reverse().find(m =>
-                m.role === 'assistant' &&
-                (m.content.includes('**') || (!m.content.includes("couldn't quite hear") && !m.content.includes("whiskers got tangled")))
-            );
-            const lastWasTopicPrompt = isTopicPrompt(lastAssistant?.content);
-            const isTopicAnswer = lastWasTopicPrompt && isTopicReply(text);
-            const promptedPhrase = lastWasTopicPrompt
-                ? ''
-                : extractPromptedPhrase(lastAssistant?.content || '');
-            const expected = (promptedPhrase || '').replace(/[.!?]+$/g, '').trim();
+            let matchRatio = 0;
+            let displayPhrase = null;
+            let phraseExpectedCorrect = null;
+            let reviewExpectedWord = null;
+
+            const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+            const promptedPhrase = extractPromptedPhrase(lastAssistant?.content || '');
+            const threshold = 0.5;
             const actual = (text || '').replace(/[.!?]+$/g, '').trim();
-            let matchRatio = expected ? similarityRatio(actual, expected) : 0;
 
-            console.log('[Match Step 1]', {
-                lastAssistantContent: lastAssistant?.content?.substring(0, 100),
-                promptedPhrase,
-                expected,
-                actual,
-                initialMatchRatio: Math.round(matchRatio * 100) + '%',
-                bothLatin: isMostlyLatin(actual) && isMostlyLatin(expected),
-            });
-            let displayPhrase = promptedPhrase;
-
-            // Matching: promptedPhrase now comes directly from bold text in the prompt (**NAMASKARA**). 
-            // It is already in the transliterated form we expect for both levels and direct repetition.
-            if (promptedPhrase) {
+            if (isCurrentlyTeaching && promptedPhrase) {
                 matchRatio = similarityRatioLatin(actual, promptedPhrase);
-                console.log('[Match Debug]', { actual, expected: promptedPhrase, matchRatio: Math.round(matchRatio * 100) + '%' });
+                displayPhrase = promptedPhrase;
+            } else if (isCurrentlyInReview) {
+                const round = currentInScenario - 5;
+                const REVIEW_MAP = [0, 2, 4]; // Review these indices from vocabulary
+                const reviewWordIdx = REVIEW_MAP[round] ?? 0;
+                reviewExpectedWord = scenarioDataForMatch.vocabulary[reviewWordIdx]?.word || null;
+                if (reviewExpectedWord) {
+                    matchRatio = similarityRatioLatin(actual, reviewExpectedWord);
+                    displayPhrase = reviewExpectedWord;
+                }
+            } else if (isCurrentlyInBasic) {
+                const basicIdx = currentInScenario - 8;
+                phraseExpectedCorrect = scenarioDataForMatch.phrases?.[basicIdx]?.correct || null;
+                if (phraseExpectedCorrect) {
+                    matchRatio = similarityRatioLatin(actual, phraseExpectedCorrect);
+                    displayPhrase = phraseExpectedCorrect;
+                }
+            } else if (isCurrentlyInConvo) {
+                const convoIdx = currentInScenario - 11;
+                phraseExpectedCorrect = scenarioDataForMatch.conversations?.[convoIdx]?.correct || null;
+                if (phraseExpectedCorrect) {
+                    matchRatio = similarityRatioLatin(actual, phraseExpectedCorrect);
+                    displayPhrase = phraseExpectedCorrect;
+                }
             }
 
-            if (promptedPhrase) {
+            if (displayPhrase) {
                 const scorePercent = Math.round(matchRatio * 100);
                 setMatchScores(prev => ({ ...prev, [userMessageIndex]: scorePercent }));
-                console.log('[Match Step 2] Score set:', scorePercent + '% for message index', userMessageIndex);
             }
-            const threshold = 0.5;
 
-            const isCurrentlyBeginner = effectiveLevel === 'zero';
-            const currentInScenario = currentRepeats % 30;
-            const isCurrentlyInReview = currentInScenario >= 10 && currentInScenario < 13;
-            const isCurrentlyTeaching = currentInScenario < 10;
+            // ── PROGRESS & META-NOTE SYNERGY ──
+            const hasCorrectMatch = matchRatio >= threshold && (promptedPhrase || reviewExpectedWord || phraseExpectedCorrect);
+            let hasIncrementedThisTurn = false;
+            let nextRepeats = currentRepeats;
 
-            // REVIEW MODE: Deterministic word quiz with client-side matching
-            // Pick specific words to quiz (spread across the vocabulary for variety)
-            const REVIEW_WORD_INDICES = [3, 7, 1]; // Quiz words at indices 3, 7, 1 for review rounds 0, 1, 2
-            let reviewExpectedWord = null;
-            if (isCurrentlyInReview) {
-                const reviewRound = currentInScenario - 10; // 0, 1, or 2
-                const reviewWordIdx = REVIEW_WORD_INDICES[reviewRound] || 0;
-                const reviewSafeLang = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Hindi';
-                const reviewScenarioIdx = Math.min(Math.floor(currentRepeats / 30), 9);
-                const reviewScenarioData = (CURRICULUM[reviewSafeLang] && CURRICULUM[reviewSafeLang][reviewScenarioIdx]) || { vocabulary: [] };
-                reviewExpectedWord = reviewScenarioData.vocabulary[reviewWordIdx]?.word || null;
-
-                if (reviewExpectedWord) {
-                    // Override matching: treat the user's text as a response to the review quiz
-                    const reviewActual = (text || '').replace(/[.!?]+$/g, '').trim();
-                    matchRatio = similarityRatioLatin(reviewActual, reviewExpectedWord);
-                    // Set these so the progress increment logic below treats it like a correct answer
-                    displayPhrase = reviewExpectedWord;
-                    console.log('[Review Match]', { reviewExpectedWord, userSaid: reviewActual, matchRatio: Math.round(matchRatio * 100) + '%' });
-
-                    // Show match score for the user
-                    const reviewScorePercent = Math.round(matchRatio * 100);
-                    setMatchScores(prev => ({ ...prev, [userMessageIndex]: reviewScorePercent }));
-                }
-            }
-            const SCENARIOS_LIST = [
-                "Greetings & Identity",
-                "Ordering Food & Drinks",
-                "Shopping & Prices",
-                "Asking for Directions",
-                "Transportation & Travel",
-                "Time & Schedules",
-                "Hobbies & Preferences",
-                "Weather & Environment",
-                "Health & Body",
-                "Social Gatherings & Events"
-            ];
-
-            // Server-side level progression via DB
-            let nextRepeats = currentRepeats; // Track locally for anti-stale word selection
-            const hasCorrectMatch = (promptedPhrase && matchRatio >= threshold) || (isCurrentlyInReview && reviewExpectedWord && matchRatio >= threshold);
             if (hasCorrectMatch) {
-                console.log('[Progress] Match >= 50%, calling /api/progress/increment...');
+                console.log('[Progress] Deterministic match confirmed, incrementing...');
                 try {
-                    const progressResult = await api.post('/api/progress/increment');
-                    setProgress(progressResult);
-                    nextRepeats = progressResult?.successfulRepeats || (currentRepeats + 1);
-
-                    // Store the learned word in DB for cumulative vocabulary tracking
-                    if (isCurrentlyBeginner && isCurrentlyTeaching && promptedPhrase) {
-                        const currentScenarioIdx = Math.min(Math.floor(currentRepeats / 30), 9);
-                        const currentScenario = SCENARIOS_LIST[currentScenarioIdx];
-                        const safeLangForLearn = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Hindi';
-                        const currentScenarioData = (CURRICULUM[safeLangForLearn] && CURRICULUM[safeLangForLearn][currentScenarioIdx]) || { vocabulary: [] };
-                        const currentVocabIdx = Math.floor(currentInScenario % 10);
-                        const learnedWordObj = currentScenarioData.vocabulary[currentVocabIdx];
-                        if (learnedWordObj) {
-                            api.post('/api/progress/learn-word', {
-                                word: learnedWordObj.word,
-                                meaning: learnedWordObj.meaning,
-                                scenario: currentScenario
-                            }).catch(err => console.warn('Failed to store learned word:', err));
-                        }
-                    }
-                } catch (err) {
-                    console.warn('Failed to increment progress:', err);
-                    nextRepeats = currentRepeats + 1;
-                }
+                    const res = await api.post('/api/progress/increment');
+                    setProgress(res);
+                    nextRepeats = res?.successfulRepeats || (currentRepeats + 1);
+                    hasIncrementedThisTurn = true;
+                } catch (err) { console.warn('Increment failed:', err); }
             }
-            const feedbackNoun = isVoice ? 'pronunciation' : 'spelling';
 
-            // Detect last teaching word (word index 9 → transition to review)
-            const isLastBeginnerWord = isCurrentlyBeginner && isCurrentlyTeaching && (currentInScenario === 9) && promptedPhrase && matchRatio >= threshold;
-
-            // Detect last review question (review index 2 → transition to basic)
-            const isLastReviewQuestion = isCurrentlyInReview && (currentInScenario === 12) && reviewExpectedWord && matchRatio >= threshold;
-
-            // Compute the NEXT review word (for the next prompt)
-            const nextReviewSafeLang = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Hindi';
-            const nextReviewScenarioIdx = Math.min(Math.floor((isLastBeginnerWord ? currentRepeats + 1 : nextRepeats) / 30), 9);
-            const nextReviewScenarioData = (CURRICULUM[nextReviewSafeLang] && CURRICULUM[nextReviewSafeLang][nextReviewScenarioIdx]) || { vocabulary: [] };
-
-            // Detect help requests and previous failures for hint display
-            const HELP_WORDS = ["don't know", "dont know", "i don't know", "idk", "how", "how?", "help", "hint", "tell me", "show me", "what is it", "i forgot", "not sure", "what", "what?", "confused", "i'm confused", "no idea", "repeat", "again", "can you help"];
+            // Detect Phase Transitions
+            const isLastBeginnerWord = isCurrentlyTeaching && (currentInScenario === 4) && hasCorrectMatch;
+            const isLastReviewQuestion = isCurrentlyInReview && (currentInScenario === 7) && hasCorrectMatch;
+            const HELP_WORDS = ["don't know", "dont know", "i don't know", "idk", "how", "how?", "help", "hint", "tell me", "show me", "not sure", "what", "what?", "confused", "no idea", "repeat", "again", "what part", "not clear"];
             const isHelpRequest = HELP_WORDS.some(h => (text || '').trim().toLowerCase().includes(h));
-
-            // Check if the last AI message indicated the user failed (for showing hints on retry)
-            const lastAssistantContent = [...messages].reverse().find(m => m.role === 'assistant')?.content || '';
+            const lastAssistantContent = lastAssistant?.content || '';
             const lastWasFailure = lastAssistantContent.includes('Not quite') || lastAssistantContent.includes('try again') || lastAssistantContent.includes('not quite');
 
-            let acceptNote;
-            if (isLastBeginnerWord) {
-                // Transition: Teaching → Review. Congratulate + ask FIRST specific review word.
-                const firstReviewWordIdx = REVIEW_WORD_INDICES[0];
-                const firstReviewWord = nextReviewScenarioData.vocabulary[firstReviewWordIdx];
-                const firstReviewMeaning = firstReviewWord?.meaning || 'Hello';
-                acceptNote = `The user's ${feedbackNoun} was PERFECT. Congratulate them warmly — they have completed all vocabulary for this scenario! Tell them: "Purr-fect! 🐾 You've learned all the words! Let me quiz you quickly before we move on." Then ask them EXACTLY this recall question: "What's the ${targetLang?.name || 'target'} word for '${firstReviewMeaning}'?" Do NOT teach any new words. Do NOT start phrase building yet.`;
-            } else if (isCurrentlyInReview && reviewExpectedWord && matchRatio >= threshold) {
-                // Review: correct answer
-                acceptNote = `The user recalled the word correctly! Say "Correct! 🐾" warmly.`;
-            } else if (isCurrentlyInReview && reviewExpectedWord && matchRatio < threshold) {
-                // Review: wrong answer — tell them the right answer, re-ask same word
-                acceptNote = `The user's answer was incorrect. Gently tell them: "Not quite — the word for that is '${reviewExpectedWord}'." Then encourage them to try again.`;
-            } else if (isHelpRequest && !isCurrentlyBeginner) {
-                // User asked for help in Basic/Conversational — acknowledge and show hint
-                acceptNote = `The user is asking for help. Be warm and encouraging: "No worries! Let me give you a hint." Then show the hint for the current exercise.`;
-            } else if (promptedPhrase && matchRatio >= threshold) {
-                acceptNote = `The user's ${feedbackNoun} was PERFECT. Output ONLY a single flat confirmation word (Good/Correct/Yes). Do NOT correct them. Do NOT provide alternative variations. ${isCurrentlyBeginner && isCurrentlyTeaching ? 'Then immediately set the next scene and teach the next word.' : 'Then move the conversation forward naturally.'} DO NOT ask them what they want to talk about.`;
-            } else if (promptedPhrase && matchRatio < threshold) {
-                acceptNote = `The user attempted the phrase but their ${feedbackNoun} was incorrect. Gently encourage them and ask them to try saying EXACTLY the SAME phrase again.`;
+            // ── META-NOTE CONSTRUCTION ────────────────────────────────────
+            const nextInScenario = nextRepeats % CYCLE_SIZE;
+            const vocabIndex = nextInScenario < 5 ? nextInScenario : -1;
+            const phraseIndex = nextInScenario >= 8 && nextInScenario < 11 ? nextInScenario - 8 : -1;
+            const targetPhrase = phraseIndex >= 0 ? scenarioDataForMatch.phrases?.[phraseIndex] : null;
+            const convoIndex = nextInScenario >= 11 ? nextInScenario - 11 : -1;
+            const targetConvo = convoIndex >= 0 ? scenarioDataForMatch.conversations?.[convoIndex] : null;
+
+            // Decision: Confirm previous or Eval current?
+            let evalNote = '';
+            if (hasCorrectMatch) {
+                const matchDetail = displayPhrase ? `matched "${displayPhrase}"` : 'was correct';
+                const fuzzyCorrection = (matchRatio < 0.95) ? `(Note: User made a small spelling error - they said "${actual}" but we expected "${displayPhrase}". Gently mention the correct spelling while saying "Correct!")` : '';
+                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user ${matchDetail} ${fuzzyCorrection}. Say "Correct!" or "Purr-fect!" and confirm the meaning. Do NOT evaluate again.]`;
+            } else if (isHelpRequest) {
+                evalNote = `[SYSTEM: HELP REQUEST. The user is stuck. Give a helpful hint then re-ask the prompt.]`;
+            } else if (lastWasFailure) {
+                evalNote = `[SYSTEM: RETRY. User failed previously. Show the hint and re-ask the same prompt.]`;
             } else {
-                acceptNote = null;
+                evalNote = `[SYSTEM: EVALUATE NOW. The user is attempting the exercise. Check against the target.]`;
             }
 
-            const activeScenarioIdx = Math.min(Math.floor(nextRepeats / 30), 9);
-            const activeScenario = SCENARIOS_LIST[activeScenarioIdx];
+            const activeScenario = scenarioDataForMatch.scenario || 'Learning';
+            let baseMetaNote = evalNote + `\n[SCENARIO: '${activeScenario}'].`;
 
-            const safeLang = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Hindi';
-            const scenarioData = (CURRICULUM[safeLang] && CURRICULUM[safeLang][activeScenarioIdx]) || { vocabulary: [] };
-            const nextInScenario = nextRepeats % 30;
-            const vocabIndex = Math.floor(nextInScenario % 10);
-            const targetWordObj = scenarioData.vocabulary[vocabIndex] || { word: 'Word', meaning: 'Meaning', phonetic: '' };
-
-            // Build cumulative vocabulary from DB + current scenario fallback
-            const learnedFromDB = progress?.learnedWords || [];
-            const learnedWordsList = learnedFromDB.map(w => `${w.word} (${w.meaning})`).join(', ');
-            const currentScenarioVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
-            const taughtVocab = learnedWordsList || currentScenarioVocab;
-
-            // Deterministic phrase for Basic mode
-            const phraseIndex = nextInScenario >= 13 && nextInScenario < 23 ? nextInScenario - 13 : -1;
-            const targetPhrase = phraseIndex >= 0 && scenarioData.phrases ? scenarioData.phrases[phraseIndex] : null;
-
-            // Deterministic conversation exercise for Conversational mode
-            const convoIndex = nextInScenario >= 23 ? nextInScenario - 23 : -1;
-            const targetConvo = convoIndex >= 0 && scenarioData.conversations ? scenarioData.conversations[convoIndex] : null;
-
-            // Determine effective level AFTER increment (13/10/7 split)
-            let nextEffectiveLevel = effectiveLevel;
-            if (nextRepeats < 300) {
-                if (nextInScenario < 13) nextEffectiveLevel = 'zero';
-                else if (nextInScenario < 23) nextEffectiveLevel = 'basic';
-                else nextEffectiveLevel = 'conversational';
-            } else {
-                nextEffectiveLevel = 'fluent';
-            }
-            const nextIsReview = nextInScenario >= 10 && nextInScenario < 13;
-            const nextIsTeaching = nextInScenario < 10;
-
-            // ── PHASE TRANSITION ANNOUNCEMENTS ──
-            // Detect when user just crossed a phase boundary
-            if (isLastBeginnerWord) {
-                const transMsg = { role: 'system', content: '🎓 **Vocabulary complete!** Now let me test your memory with a quick review quiz.' };
-                setMessages(prev => [...prev, transMsg]);
-            } else if (isLastReviewQuestion) {
-                const transMsg = { role: 'system', content: '🎓 **Review passed!** Now let\'s combine those words into phrases. I\'ll ask you to build sentences!' };
-                setMessages(prev => [...prev, transMsg]);
-            }
-            // Detect Basic → Conversational transition
-            const wasBasic = effectiveLevel === 'basic' || (currentInScenario >= 13 && currentInScenario < 23);
-            const nowConvo = nextEffectiveLevel === 'conversational';
-            if (wasBasic && nowConvo && hasCorrectMatch) {
-                const transMsg = { role: 'system', content: '🎓 **Phrases mastered!** Time for real conversation practice. I\'ll set the scene!' };
-                setMessages(prev => [...prev, transMsg]);
-            }
-
-            // Detect if user needs the hint (failed before, or asked for help)
-            const userFailedLastAttempt = (promptedPhrase && matchRatio < threshold) || 
-                (isCurrentlyInReview && reviewExpectedWord && matchRatio < threshold) ||
-                lastWasFailure || isHelpRequest;
-
-            const isBeginner = nextEffectiveLevel === 'zero';
-            let baseMetaNote = acceptNote || '';
-            baseMetaNote += `\n[SYSTEM: The current scenario is '${activeScenario}'. You MUST stay strictly anchored to this scenario.]`;
-
-            if (isBeginner && nextIsTeaching) {
-                // Teaching mode: inject the next word
-                const phonTag = targetWordObj.phonetic ? ` <phonetic>${targetWordObj.phonetic}</phonetic>` : '';
-                baseMetaNote += `\n[SYSTEM REMINDER: YOU MUST TEACH EXACTLY THIS WORD AND ONLY THIS WORD: **${targetWordObj.word}**${phonTag} (Meaning: ${targetWordObj.meaning}). Set a 1-sentence scene, use a bridging phrase "To say [meaning], say **Word**". Do not choose any other word.]`;
-            } else if (isBeginner && nextIsReview) {
-                // Review mode: deterministic quiz — inject the specific word to ask
-                const nextReviewRound = nextInScenario - 10; // 0, 1, or 2
-                const nextReviewWordIdx = REVIEW_WORD_INDICES[nextReviewRound] || 0;
-                const nextReviewWordObj = scenarioData.vocabulary[nextReviewWordIdx];
-                const nextReviewMeaning = nextReviewWordObj?.meaning || 'Hello';
-                baseMetaNote += `\n[SYSTEM REMINDER: REVIEW MODE. Ask the user EXACTLY: "What's the ${targetLang?.name || 'target'} word for '${nextReviewMeaning}'?" Do NOT teach new words. Do NOT use bold text. Keep it playful. 🐾]`;
-            } else if (nextEffectiveLevel === 'basic' && targetPhrase) {
-                // Compute the NEXT phrase for auto-continue
-                const nextPhraseIdx = phraseIndex + 1;
-                const nextPhraseObj = scenarioData.phrases?.[nextPhraseIdx];
-                const autoNextPrompt = nextPhraseObj ? `Then IMMEDIATELY present the next exercise: "${nextPhraseObj.prompt}"` : 'Then congratulate them for completing all phrase exercises!';
-
-                // Deterministic phrase mode — EVALUATE FIRST, then present next
-                if (userFailedLastAttempt) {
-                    baseMetaNote += `\n[SYSTEM REMINDER: PHRASE EXERCISE (RETRY WITH HINT).\nSTEP 1: EVALUATE the user's message against the correct answer "${targetPhrase.correct}" (case-insensitive, minor punctuation OK). If it matches → say "Correct! '${targetPhrase.correct}' means '${targetPhrase.meaning}'" and set success to true. ${autoNextPrompt}\nSTEP 2: If it does NOT match → show the hint: "${targetPhrase.hint}". Re-ask: "${targetPhrase.prompt}" and set success to false.\nYou MUST respond in valid JSON: {"content": "...", "success": true/false}.]`;
-                } else {
-                    baseMetaNote += `\n[SYSTEM REMINDER: PHRASE EXERCISE.\nSTEP 1: EVALUATE the user's message against the correct answer "${targetPhrase.correct}" (case-insensitive, minor punctuation OK). If it matches → say "Correct! '${targetPhrase.correct}' means '${targetPhrase.meaning}'" and set success to true. ${autoNextPrompt}\nSTEP 2: If it does NOT match → say "Not quite, try again!" and set success to false. Do NOT show the hint or correct answer on the first failure.\nSTEP 3: If the user hasn't attempted yet (this is the first prompt) → ask: "${targetPhrase.prompt}" and set success to null.\nYou MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
-                }
-            } else if (nextEffectiveLevel === 'basic') {
-                // Fallback for scenarios without hardcoded phrases
-                baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask them to COMBINE 2-3 SPECIFIC words by naming the exact words. Do NOT show hints upfront. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
-            } else if (nextEffectiveLevel === 'conversational' && targetConvo) {
-                // Compute the NEXT conversation exercise for auto-continue
-                const nextConvoIdx = convoIndex + 1;
-                const nextConvoObj = scenarioData.conversations?.[nextConvoIdx];
-                const autoNextConvo = nextConvoObj ? `Then IMMEDIATELY present the next exercise: "${nextConvoObj.prompt}"` : 'Then congratulate them for completing the scenario!';
-
-                // Deterministic conversation exercise — same evaluate-first strategy
-                if (userFailedLastAttempt) {
-                    baseMetaNote += `\n[SYSTEM REMINDER: CONVERSATION EXERCISE (RETRY WITH HINT).\nSTEP 1: EVALUATE the user's message against "${targetConvo.correct}" (case-insensitive). If it matches → say "Correct!" with success true. ${autoNextConvo}\nSTEP 2: If NOT → show hint: "${targetConvo.hint}". Re-ask: "${targetConvo.prompt}" with success false.\nYou MUST respond in valid JSON: {"content": "...", "success": true/false}.]`;
-                } else {
-                    baseMetaNote += `\n[SYSTEM REMINDER: CONVERSATION EXERCISE.\nSTEP 1: EVALUATE the user's message against "${targetConvo.correct}" (case-insensitive). If it matches → say "Correct!" with success true. ${autoNextConvo}\nSTEP 2: If NOT → say "Not quite, try again!" with success false.\nSTEP 3: If first prompt → set the scene and ask: "${targetConvo.prompt}". Set success to null.\nYou MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
-                }
-            } else if (nextEffectiveLevel === 'conversational') {
-                // Fallback
-                baseMetaNote += `\n[SYSTEM REMINDER: Act as a ROLEPLAY PARTNER. The user ONLY knows these words: [${taughtVocab}]. Ask EXACTLY ONE question using ONLY those words. Do NOT use any words outside their known list. You MUST respond in valid JSON: {"content": "...", "success": true/false/null}.]`;
+            // Instructions for NEXT step
+            if (nextInScenario < 5) {
+                const wordObj = scenarioDataForMatch.vocabulary[nextInScenario] || { word: 'Word', meaning: 'Meaning' };
+                baseMetaNote += `\n[NEXT: TEACH word **${wordObj.word}** (${wordObj.meaning}). Bridge: "To say [meaning], say **Word**".]`;
+            } else if (nextInScenario < 8) {
+                const round = nextInScenario - 5;
+                const meaning = scenarioDataForMatch.vocabulary[[0, 2, 4][round]]?.meaning || 'Hello';
+                baseMetaNote += `\n[NEXT: REVIEW. Ask "What's the word for '${meaning}'?"]`;
+            } else if (nextInScenario < 11 && targetPhrase) {
+                const nextPhrase = scenarioDataForMatch.phrases?.[phraseIndex + 1];
+                const autoNextMsg = hasCorrectMatch && nextPhrase ? `After confirming success, IMMEDIATELY ask: "${nextPhrase.prompt}"` : `Ask: "${targetPhrase.prompt}"`;
+                baseMetaNote += `\n[NEXT: BASIC PHRASE. Target: "${targetPhrase.correct}". ${autoNextMsg}. Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
+            } else if (nextInScenario >= 11 && targetConvo) {
+                const nextConvo = scenarioDataForMatch.conversations?.[convoIndex + 1];
+                const autoNextMsg = hasCorrectMatch && nextConvo ? `After confirming success, IMMEDIATELY ask: "${nextConvo.prompt}"` : `Ask: "${targetConvo.prompt}"`;
+                baseMetaNote += `\n[NEXT: CONVO MODE. Target: "${targetConvo.correct}". ${autoNextMsg}. Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
             }
             const metaNote = baseMetaNote;
+
+            // ── PHASE TRANSITION ANNOUNCEMENTS ──
+            if (isLastBeginnerWord) {
+                setMessages(prev => [...prev, { role: 'system', content: '🎓 **Vocabulary complete!** Now let me test your memory with a quick review quiz.' }]);
+            } else if (isLastReviewQuestion) {
+                setMessages(prev => [...prev, { role: 'system', content: '🎓 **Review passed!** Now let\'s combine those words into phrases. I\'ll ask you to build sentences!' }]);
+            }
+            if (isCurrentlyInBasic && phraseIndex === -1 && hasCorrectMatch) { // Just finishing Basic
+                 setMessages(prev => [...prev, { role: 'system', content: '🎓 **Phrases mastered!** Time for real conversation practice. I\'ll set the scene!' }]);
+            }
 
             let rawResponse = null;
             if (isTopicAnswer && effectiveLevel !== 'zero') {
@@ -1081,25 +945,6 @@ export default function Chat() {
             let botResponse = rawResponse?.content || rawResponse;
             if (typeof botResponse !== 'string') botResponse = '';
 
-            // Progress based on AI's success field (basic, conversational modes only — review uses client-side matching)
-            // FILLER GUARD: Don't count filler words or help requests as valid phrase attempts
-            const FILLER_WORDS = ['okay', 'ok', 'sure', 'next', 'continue', 'yes', 'no', 'hmm', 'alright', 'got it', 'cool', 'nice', 'great', 'thanks', 'thank you'];
-            const isFillerText = FILLER_WORDS.includes((text || '').trim().toLowerCase()) || isHelpRequest;
-            const usesJsonSuccess = !isCurrentlyBeginner;
-            if (usesJsonSuccess && rawResponse?.success === true && !isFillerText) {
-                console.log('[Progress] AI reports success:true (non-filler input), incrementing...');
-                try {
-                    const progressResult = await api.post('/api/progress/increment');
-                    setProgress(progressResult);
-                } catch (err) {
-                    console.warn('Failed to increment progress for success:', err);
-                }
-                setSentenceSuccesses(prev => ({ ...prev, [messages.length]: true }));
-            } else if (usesJsonSuccess && rawResponse?.success === false && !isFillerText) {
-                setSentenceSuccesses(prev => ({ ...prev, [messages.length]: false }));
-            }
-
-            // Check for AI-triggered level recalibration (subtle cases the client-side check missed)
             const LEVEL_LABELS = { zero: 'Beginner', basic: 'Basic', conversational: 'Conversational', fluent: 'Fluent' };
             const charName = resolvedCharacter?.name || activeCharacter?.name || 'Miko';
 
@@ -1115,7 +960,6 @@ export default function Chat() {
                 setTimeout(() => setRecalibrationToast(null), 4000);
             }
 
-            // Check for AI-triggered level-up progression
             const levelUpMatch = responseWithoutMeta.match(/<level_up>(zero|basic|conversational|fluent)<\/level_up>/);
             responseWithoutMeta = responseWithoutMeta.replace(/<level_up>.*?<\/level_up>/g, '');
             if (levelUpMatch) {
@@ -1133,31 +977,23 @@ export default function Chat() {
                 setTimeout(() => setLevelUpToast(null), 6000);
             }
 
-            console.log('[AI Response Raw]', rawResponse);
-            // Check for AI-triggered short-term progress (Guided Sentence Construction success)
             let statusTag = 'missing';
-
-            // Priority 1: Use explicit success flag if the response was a JSON object
             if (rawResponse?.success !== undefined && rawResponse.success !== null) {
                 statusTag = rawResponse.success ? 'true' : 'false';
             } else {
-                // Priority 2: Fallback to XML tag regex for legacy sessions or non-JSON responses
                 const successMatch = responseWithoutMeta.match(/<success>\s*(true|false)\s*<\/success>/i);
                 if (successMatch) {
                     statusTag = successMatch[1].toLowerCase();
                 }
             }
-            // Clean up tags in either case
             responseWithoutMeta = responseWithoutMeta.replace(/<success>.*?<\/success>/gi, '');
 
             if (statusTag === 'true' || statusTag === 'false') {
-                if (statusTag === 'true' && effectiveLevel !== 'zero') {
-                    console.log('[Progress] AI reported success, calling /api/progress/increment...');
+                if (statusTag === 'true' && effectiveLevel !== 'zero' && !hasIncrementedThisTurn) {
+                    console.log('[Progress] AI reported success (fallback), calling /api/progress/increment...');
                     api.post('/api/progress/increment')
                         .then(progressResult => {
-                            console.log('[Progress] AI step API result:', JSON.stringify(progressResult));
                             setProgress(progressResult);
-                            // Level up is also handled holistically by the AI <level_up> tag for higher levels
                             if (progressResult.leveledUp) {
                                 setUserLevel(progressResult.level);
                                 localStorage.setItem('linguapaws_level', JSON.stringify({
