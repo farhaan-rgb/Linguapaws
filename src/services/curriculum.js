@@ -753,14 +753,7 @@ export const CURRICULUM = {
                 { prompt: "Say 'This is my story'.", correct: "Idu nanna kathey", meaning: "This is my story", hint: "This + my + story" },
                 { prompt: "Point to a teacher and say 'Her name' (formal).", correct: "Avara hesaru", meaning: "Her name", hint: "Formal her + name" }
             ]
-        },
-        ...CURRICULUM.Telugu.slice(5).map(s => ({
-            ...s,
-            scenario: s.scenario + " (Placeholder)",
-            vocabulary: s.vocabulary.map(v => ({...v, word: v.word + "*" })),
-            phrases: s.phrases.map(p => ({...p, correct: p.correct + "*" })),
-            conversations: s.conversations.map(c => ({...c, correct: c.correct + "*" }))
-        }))
+        }
     ],
     Hindi: [
         {
@@ -867,13 +860,17 @@ export const CURRICULUM = {
                 { prompt: "Say 'This is my story'.", correct: "Yeh meri kahani hai", meaning: "This is my story", hint: "This + my + story + is" },
                 { prompt: "Ask 'What is his name?'.", correct: "Unka naam kya hai?", meaning: "What is his name?", hint: "His + name + what + is?" }
             ]
-        },
-        ...CURRICULUM.Telugu.slice(5).map(s => ({
-            ...s,
-            scenario: s.scenario + " (Placeholder)",
-            vocabulary: s.vocabulary.map(v => ({...v, word: v.word + "*" })),
-            phrases: s.phrases.map(p => ({...p, correct: p.correct + "*" })),
-            conversations: s.conversations.map(c => ({...c, correct: c.correct + "*" }))
-        }))
+        }
     ]
 };
+
+const placeholders = CURRICULUM.Telugu.slice(5).map(s => ({
+    ...s,
+    scenario: s.scenario + " (Placeholder)",
+    vocabulary: s.vocabulary.map(v => ({ ...v, word: v.word + "*" })),
+    phrases: s.phrases.map(p => ({ ...p, correct: p.correct + "*" })),
+    conversations: s.conversations.map(c => ({ ...c, correct: c.correct + "*" }))
+}));
+
+CURRICULUM.Kannada.push(...placeholders);
+CURRICULUM.Hindi.push(...placeholders);
