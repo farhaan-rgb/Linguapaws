@@ -3,6 +3,8 @@ export const CURRICULUM = {
         // Phase 1: The Foundation (Lessons 1–10)
         {
             scenario: "Pronouns & Greetings",
+            icon: "👋",
+            color: "#e0f2fe",
             vocabulary: [
                 { word: "Namaskaram", meaning: "Hello", phonetic: "nah-mas-kah-ram" },
                 { word: "Nenu", meaning: "I", phonetic: "neh-noo" },
@@ -108,6 +110,8 @@ export const CURRICULUM = {
         },
         {
             scenario: "The 'Who'",
+            icon: "👤",
+            color: "#ede9fe",
             vocabulary: [
                 { word: "Evaru", meaning: "Who", phonetic: "eh-vah-roo" },
                 { word: "Snehithudu", meaning: "Friend", phonetic: "sneh-hee-thoo-doo" },
@@ -129,6 +133,8 @@ export const CURRICULUM = {
         },
         {
             scenario: "Basic Numbers",
+            icon: "🔢",
+            color: "#fae8ff",
             vocabulary: [
                 { word: "Okati", meaning: "One", phonetic: "oh-kah-tee" },
                 { word: "Rendu", meaning: "Two", phonetic: "ren-doo" },
@@ -150,6 +156,8 @@ export const CURRICULUM = {
         },
         {
             scenario: "Plurals",
+            icon: "📚",
+            color: "#fff1f2",
             vocabulary: [
                 { word: "Lu", meaning: "(Plural suffix)", phonetic: "loo" },
                 { word: "Pusthakalu", meaning: "Books", phonetic: "poos-tah-kah-loo" },
@@ -171,6 +179,8 @@ export const CURRICULUM = {
         },
         {
             scenario: "Basic Adjectives",
+            icon: "✨",
+            color: "#ecfdf5",
             vocabulary: [
                 { word: "Pedda", meaning: "Big", phonetic: "ped-dah" },
                 { word: "Chinna", meaning: "Small", phonetic: "chin-nah" },
@@ -192,6 +202,8 @@ export const CURRICULUM = {
         },
         {
             scenario: "Review & Survival Dialogue",
+            icon: "🍽️",
+            color: "#fee2e2",
             vocabulary: [
                 { word: "Bhojanam", meaning: "Meal", phonetic: "bho-jah-nam" },
                 { word: "Billu", meaning: "Bill", phonetic: "bil-loo" },
@@ -635,5 +647,233 @@ export const CURRICULUM = {
                 { prompt: "Final Check: 'Now, I can speak Telugu nicely!'.", correct: "Ippudu nenu Telugu baga matladagalanu", meaning: "Now I can speak Telugu nicely", hint: "Now + I + Telugu + well + speak can" }
             ]
         }
+    ],
+    Kannada: [
+        {
+            scenario: "Pronouns & Greetings",
+            vocabulary: [
+                { word: "Namaskara", meaning: "Hello", phonetic: "nah-mas-kah-rah" },
+                { word: "Naanu", meaning: "I", phonetic: "nah-noo" },
+                { word: "Neevu", meaning: "You", phonetic: "nee-voo" },
+                { word: "Chennagiddini", meaning: "Fine", phonetic: "chen-nah-geed-dee-nee" },
+                { word: "Hege", meaning: "How", phonetic: "heh-geh" }
+            ],
+            phrases: [
+                { prompt: "Say 'Hello, I am fine'", correct: "Namaskara, naanu chennagiddini", meaning: "Hello, I am fine", hint: "Hello + I + fine" },
+                { prompt: "Ask 'How are you?' (formal)", correct: "Neevu hege iddeera?", meaning: "How are you?", hint: "You + how + are?" },
+                { prompt: "Say 'I am fine, and you?'", correct: "Naanu chennagiddini, neevu?", meaning: "I am fine, and you?", hint: "I + fine + you?" }
+            ],
+            conversations: [
+                { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskara, naanu chennagiddini", meaning: "Hello, I am fine", hint: "Basic greeting" },
+                { prompt: "Ask Miko how she is doing.", correct: "Miko, neevu hege iddeera?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Someone asks 'Neevu hege iddeera?'. Answer 'Naanu chennagiddini'.", correct: "Naanu chennagiddini", meaning: "I am fine", hint: "Direct answer" },
+                { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskara, naanu chennagiddini, neevu hege iddeera?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
+            ]
+        },
+        {
+            scenario: "The 'What' & 'This/That'",
+            vocabulary: [
+                { word: "Idu", meaning: "This", phonetic: "ee-doo" },
+                { word: "Adu", meaning: "That", phonetic: "ah-doo" },
+                { word: "Yenu", meaning: "What", phonetic: "yeh-noo" },
+                { word: "Pustaka", meaning: "Book", phonetic: "poos-tah-kah" },
+                { word: "Hesaru", meaning: "Name", phonetic: "heh-sah-roo" }
+            ],
+            phrases: [
+                { prompt: "Ask 'What is this?'", correct: "Idu yenu?", meaning: "What is this?", hint: "This + what?" },
+                { prompt: "Say 'This is a book'", correct: "Idu pustaka", meaning: "This is a book", hint: "This + book" },
+                { prompt: "Ask 'What is that?'", correct: "Adu yenu?", meaning: "What is that?", hint: "That + what?" }
+            ],
+            conversations: [
+                { prompt: "Someone points to a book. Ask them what it is.", correct: "Idu yenu?", meaning: "What is this?", hint: "Question for item" },
+                { prompt: "Point to a distant object and ask 'What is that?'", correct: "Adu yenu?", meaning: "What is that?", hint: "Distant question" },
+                { prompt: "Tell Miko 'This is my book' (using Idu pustaka)", correct: "Idu pustaka", meaning: "This is a book", hint: "Simple statement" },
+                { prompt: "Ask 'What is your name?'", correct: "Nimma hesaru yenu?", meaning: "What is your name?", hint: "Your(Nimma) + name + what?" }
+            ]
+        },
+        {
+            scenario: "The 'Where' & 'Going'",
+            vocabulary: [
+                { word: "Yelli", meaning: "Where", phonetic: "yel-lee" },
+                { word: "Hogu", meaning: "Go", phonetic: "hoh-goo" },
+                { word: "Illi", meaning: "Here", phonetic: "eel-lee" },
+                { word: "Alli", meaning: "There", phonetic: "al-lee" },
+                { word: "Mane", meaning: "Home/House", phonetic: "mah-neh" }
+            ],
+            phrases: [
+                { prompt: "Ask 'Where is the house?'", correct: "Mane yelli?", meaning: "Where is the house?", hint: "House + where?" },
+                { prompt: "Say 'Go there'", correct: "Alli hogu", meaning: "Go there", hint: "There + go" },
+                { prompt: "Say 'I am here'", correct: "Naanu illi", meaning: "I am here", hint: "I + here" }
+            ],
+            conversations: [
+                { prompt: "Ask Miko where the home is.", correct: "Mane yelli?", meaning: "Where is the home?", hint: "Location question" },
+                { prompt: "Tell someone to go here.", correct: "Illi hogu", meaning: "Go here", hint: "Direction" },
+                { prompt: "Someone asks 'Neevu yelli?'. Answer 'I am here'.", correct: "Naanu illi", meaning: "I am here", hint: "Response" },
+                { prompt: "Final Check: Say 'I am going home'.", correct: "Naanu manege hogu", meaning: "I go home", hint: "I + home + go" }
+            ]
+        },
+        {
+            scenario: "Desires & Negation",
+            vocabulary: [
+                { word: "Beku", meaning: "Want", phonetic: "beh-koo" },
+                { word: "Beda", meaning: "Don't want", phonetic: "beh-dah" },
+                { word: "Oota", meaning: "Food", phonetic: "oo-tah" },
+                { word: "Neeru", meaning: "Water", phonetic: "nee-roo" },
+                { word: "Haudu", meaning: "Yes", phonetic: "how-doo" }
+            ],
+            phrases: [
+                { prompt: "Say 'I want water'", correct: "Neeru beku", meaning: "I want water", hint: "Water + want" },
+                { prompt: "Say 'I don't want food'", correct: "Oota beda", meaning: "I don't want food", hint: "Food + don't want" },
+                { prompt: "Say 'Okay, I want this'", correct: "Sari, idu beku", meaning: "Okay, I want this", hint: "Okay + this + want" }
+            ],
+            conversations: [
+                { prompt: "Miko offers you water. Say 'Yes, I want water'.", correct: "Haudu, neeru beku", meaning: "Yes, I want water", hint: "Yes + water + want" },
+                { prompt: "Someone offers you food you don't like. Say 'No, I don't want'.", correct: "Illa, oota beda", meaning: "No, I don't want food", hint: "No + food + don't want" },
+                { prompt: "Ask for 'this book' saying 'I want this book'.", correct: "Idu pustaka beku", meaning: "I want this book", hint: "This + book + want" },
+                { prompt: "Say 'I don't want that'.", correct: "Adu beda", meaning: "That + don't want", hint: "That + don't want" }
+            ]
+        },
+        {
+            scenario: "Possession",
+            vocabulary: [
+                { word: "Nanna", meaning: "My", phonetic: "nan-nah" },
+                { word: "Nimma", meaning: "Your", phonetic: "neem-mah" },
+                { word: "Avara", meaning: "His/Her (formal)", phonetic: "ah-vah-rah" },
+                { word: "Aatana", meaning: "His", phonetic: "ah-tah-nah" },
+                { word: "Kathey", meaning: "Story", phonetic: "kah-theh" }
+            ],
+            phrases: [
+                { prompt: "Say 'My name'", correct: "Nanna hesaru", meaning: "My name", hint: "My + name" },
+                { prompt: "Say 'Your book'", correct: "Nimma pustaka", meaning: "Your book", hint: "Your + book" },
+                { prompt: "Say 'His story'", correct: "Aatana kathey", meaning: "His story", hint: "His + story" }
+            ],
+            conversations: [
+                { prompt: "Introduce yourself: 'Hello, my name is Ravi'.", correct: "Namaskara, nanna hesaru Ravi", meaning: "Hello, my name is Ravi", hint: "Greeting + My + Name" },
+                { prompt: "Identify a book as 'your book'.", correct: "Adu nimma pustaka", meaning: "That is your book", hint: "That + your + book" },
+                { prompt: "Say 'This is my story'.", correct: "Idu nanna kathey", meaning: "This is my story", hint: "This + my + story" },
+                { prompt: "Point to a teacher and say 'Her name' (formal).", correct: "Avara hesaru", meaning: "Her name", hint: "Formal her + name" }
+            ]
+        },
+        ...CURRICULUM.Telugu.slice(5).map(s => ({
+            ...s,
+            scenario: s.scenario + " (Placeholder)",
+            vocabulary: s.vocabulary.map(v => ({...v, word: v.word + "*" })),
+            phrases: s.phrases.map(p => ({...p, correct: p.correct + "*" })),
+            conversations: s.conversations.map(c => ({...c, correct: c.correct + "*" }))
+        }))
+    ],
+    Hindi: [
+        {
+            scenario: "Pronouns & Greetings",
+            vocabulary: [
+                { word: "Namaste", meaning: "Hello", phonetic: "nah-mas-tey" },
+                { word: "Main", meaning: "I", phonetic: "mayn" },
+                { word: "Aap", meaning: "You", phonetic: "ahp" },
+                { word: "Theek", meaning: "Fine", phonetic: "theek" },
+                { word: "Kaise", meaning: "How", phonetic: "kay-say" }
+            ],
+            phrases: [
+                { prompt: "Say 'Hello, I am fine'", correct: "Namaste, main theek hoon", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
+                { prompt: "Ask 'How are you?' (formal)", correct: "Aap kaise hain?", meaning: "How are you?", hint: "You + how + are?" },
+                { prompt: "Say 'I am fine, and you?'", correct: "Main theek hoon, aap?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
+            ],
+            conversations: [
+                { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaste, main theek hoon", meaning: "Hello, I am fine", hint: "Basic greeting" },
+                { prompt: "Ask Miko how she is doing.", correct: "Miko, aap kaise hain?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Someone asks 'Aap kaise hain?'. Answer 'Main theek hoon'.", correct: "Main theek hoon", meaning: "I am fine", hint: "Direct answer" },
+                { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaste, main theek hoon, aap kaise hain?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
+            ]
+        },
+        {
+            scenario: "The 'What' & 'This/That'",
+            vocabulary: [
+                { word: "Yeh", meaning: "This", phonetic: "yeh" },
+                { word: "Woh", meaning: "That", phonetic: "voh" },
+                { word: "Kya", meaning: "What", phonetic: "kyah" },
+                { word: "Kitab", meaning: "Book", phonetic: "kee-tahb" },
+                { word: "Naam", meaning: "Name", phonetic: "nahm" }
+            ],
+            phrases: [
+                { prompt: "Ask 'What is this?'", correct: "Yeh kya hai?", meaning: "What is this?", hint: "This + what + is?" },
+                { prompt: "Say 'This is a book'", correct: "Yeh kitab hai", meaning: "This is a book", hint: "This + book + is" },
+                { prompt: "Ask 'What is that?'", correct: "Woh kya hai?", meaning: "What is that?", hint: "That + what + is?" }
+            ],
+            conversations: [
+                { prompt: "Someone points to a book. Ask them what it is.", correct: "Yeh kya hai?", meaning: "What is this?", hint: "Question for item" },
+                { prompt: "Point to a distant object and ask 'What is that?'", correct: "Woh kya hai?", meaning: "What is that?", hint: "Distant question" },
+                { prompt: "Tell Miko 'This is my book' (using Yeh kitab hai)", correct: "Yeh kitab hai", meaning: "This is a book", hint: "Simple statement" },
+                { prompt: "Ask 'What is your name?'", correct: "Aapka naam kya hai?", meaning: "What is your name?", hint: "Your(Aapka) + name + what + is?" }
+            ]
+        },
+        {
+            scenario: "The 'Where' & 'Going'",
+            vocabulary: [
+                { word: "Kahan", meaning: "Where", phonetic: "kah-hahn" },
+                { word: "Chalo", meaning: "Go", phonetic: "chah-loh" },
+                { word: "Yahan", meaning: "Here", phonetic: "yah-hahn" },
+                { word: "Wahan", meaning: "There", phonetic: "vah-hahn" },
+                { word: "Ghar", meaning: "Home/House", phonetic: "ghahr" }
+            ],
+            phrases: [
+                { prompt: "Ask 'Where is the house?'", correct: "Ghar kahan hai?", meaning: "Where is the house?", hint: "House + where + is?" },
+                { prompt: "Say 'Go there'", correct: "Wahan chalo", meaning: "Go there", hint: "There + go" },
+                { prompt: "Say 'I am here'", correct: "Main yahan hoon", meaning: "I am here", hint: "I + here + am" }
+            ],
+            conversations: [
+                { prompt: "Ask Miko where the home is.", correct: "Ghar kahan hai?", meaning: "Where is the home?", hint: "Location question" },
+                { prompt: "Tell someone to go here.", correct: "Yahan chalo", meaning: "Go here", hint: "Direction" },
+                { prompt: "Someone asks 'Aap kahan hain?'. Answer 'I am here'.", correct: "Main yahan hoon", meaning: "I am here", hint: "Response" },
+                { prompt: "Final Check: Say 'I am going home'.", correct: "Main ghar ja raha hoon", meaning: "I go home", hint: "I + home + going + am" }
+            ]
+        },
+        {
+            scenario: "Desires & Negation",
+            vocabulary: [
+                { word: "Chahiye", meaning: "Want", phonetic: "chah-hee-yay" },
+                { word: "Nahin", meaning: "No/Not", phonetic: "nah-heen" },
+                { word: "Khana", meaning: "Food", phonetic: "khah-nah" },
+                { word: "Paani", meaning: "Water", phonetic: "pah-nee" },
+                { word: "Theek", meaning: "Okay/Fine", phonetic: "theek" }
+            ],
+            phrases: [
+                { prompt: "Say 'I want water'", correct: "Paani chahiye", meaning: "Water want", hint: "Water + want" },
+                { prompt: "Say 'I don't want food'", correct: "Khana nahin chahiye", meaning: "Food not want", hint: "Food + not + want" },
+                { prompt: "Say 'Okay, I want this'", correct: "Theek hai, yeh chahiye", meaning: "Okay, I want this", hint: "Okay + this + want" }
+            ],
+            conversations: [
+                { prompt: "Miko offers you water. Say 'Yes, I want water'.", correct: "Haan, paani chahiye", meaning: "Yes, I want water", hint: "Yes + water + want" },
+                { prompt: "Someone offers you food you don't like. Say 'No, I don't want'.", correct: "Nahin, khana nahin chahiye", meaning: "No, I don't want food", hint: "No + food + not + want" },
+                { prompt: "Ask for 'this book' saying 'I want this book'.", correct: "Yeh kitab chahiye", meaning: "I want this book", hint: "This + book + want" },
+                { prompt: "Say 'I don't want that'.", correct: "Woh nahin chahiye", meaning: "That not want", hint: "That + not + want" }
+            ]
+        },
+        {
+            scenario: "Possession",
+            vocabulary: [
+                { word: "Mera", meaning: "My", phonetic: "meh-rah" },
+                { word: "Aapka", meaning: "Your", phonetic: "ahp-kah" },
+                { word: "Unka", meaning: "His/Her", phonetic: "oon-kah" },
+                { word: "Uski", meaning: "His/Her (informal)", phonetic: "oos-kee" },
+                { word: "Kahani", meaning: "Story", phonetic: "kah-hah-nee" }
+            ],
+            phrases: [
+                { prompt: "Say 'My name'", correct: "Mera naam", meaning: "My name", hint: "My + name" },
+                { prompt: "Say 'Your book'", correct: "Aapka kitab", meaning: "Your book", hint: "Your + book" },
+                { prompt: "Say 'His story'", correct: "Unki kahani", meaning: "His story", hint: "His + story" }
+            ],
+            conversations: [
+                { prompt: "Introduce yourself: 'Hello, my name is Ravi'.", correct: "Namaste, mera naam Ravi hai", meaning: "Hello, my name is Ravi", hint: "Greeting + My + Name + is" },
+                { prompt: "Identify a book as 'your book'.", correct: "Woh aapka kitab hai", meaning: "That is your book", hint: "That + your + book + is" },
+                { prompt: "Say 'This is my story'.", correct: "Yeh meri kahani hai", meaning: "This is my story", hint: "This + my + story + is" },
+                { prompt: "Ask 'What is his name?'.", correct: "Unka naam kya hai?", meaning: "What is his name?", hint: "His + name + what + is?" }
+            ]
+        },
+        ...CURRICULUM.Telugu.slice(5).map(s => ({
+            ...s,
+            scenario: s.scenario + " (Placeholder)",
+            vocabulary: s.vocabulary.map(v => ({...v, word: v.word + "*" })),
+            phrases: s.phrases.map(p => ({...p, correct: p.correct + "*" })),
+            conversations: s.conversations.map(c => ({...c, correct: c.correct + "*" }))
+        }))
     ]
 };

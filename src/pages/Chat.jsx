@@ -42,7 +42,8 @@ export default function Chat() {
     const targetLang = getStoredJSON('linguapaws_target_lang', {});
 
     const [recalibrationToast, setRecalibrationToast] = useState(null);
-    const [copyToast, setCopyToast] = useState(false);
+    const [failures, setFailures] = useState({});
+    const [corrections, setCorrections] = useState({}); // New state for fuzzy match corrections
     const [levelUpToast, setLevelUpToast] = useState(null);
     const [userTransliterations, setUserTransliterations] = useState({});
     const [matchScores, setMatchScores] = useState({});
@@ -771,6 +772,7 @@ export default function Chat() {
     const handleSend = async (text, isVoice = false) => {
         if (!text) return;
 
+        const userMessageIndex = messages.length; // Store index for this user message
         setMessages(prev => [...prev, { role: 'user', content: text }]);
 
         // Track user's words (only track words longer than 3 characters)
@@ -794,6 +796,15 @@ export default function Chat() {
             const isCurrentlyInBasic = currentInScenario >= 8 && currentInScenario < 11;
             const isCurrentlyInConvo = currentInScenario >= 11;
 
+            const isLastScenarioStep = currentInScenario === 14 && hasCorrectMatch;
+
+            // -- SCORE TRACKING --
+            if (hasCorrectMatch) {
+                setMatchScores(prev => ({ ...prev, [messages.length]: Math.round(matchRatio * 100) }));
+                if (matchRatio < 0.95 && (promptedPhrase || reviewExpectedWord || phraseExpectedCorrect)) {
+                   setCorrections(prev => ({ ...prev, [messages.length]: { expected: promptedPhrase || reviewExpectedWord || phraseExpectedCorrect, ratio: matchRatio } }));
+                }
+            }
             let effectiveLevel = 'zero';
             if (currentRepeats < 450) { // 30 scenarios * 15 repeats
                 if (currentInScenario < 8) effectiveLevel = 'zero';
@@ -805,7 +816,10 @@ export default function Chat() {
 
             // DETERMINISTIC MATCHING (Client-side)
             const safeLangForMatch = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Telugu';
-            const scenarioIdxForMatch = Math.min(Math.floor(currentRepeats / CYCLE_SIZE), 29);
+            const scenarioIdxForMatch = scenarioOverride !== null 
+                ? parseInt(scenarioOverride) 
+                : Math.min(Math.floor(currentRepeats / CYCLE_SIZE), 29);
+                
             const scenarioDataForMatch = CURRICULUM[safeLangForMatch]?.[scenarioIdxForMatch] || { vocabulary: [], phrases: [], conversations: [] };
 
             let matchRatio = 0;
@@ -856,14 +870,28 @@ export default function Chat() {
             let hasIncrementedThisTurn = false;
             let nextRepeats = currentRepeats;
 
+            // Increment progress if correct
             if (hasCorrectMatch) {
-                console.log('[Progress] Deterministic match confirmed, incrementing...');
                 try {
                     const res = await api.post('/api/progress/increment');
                     setProgress(res);
                     nextRepeats = res?.successfulRepeats || (currentRepeats + 1);
                     hasIncrementedThisTurn = true;
-                } catch (err) { console.warn('Increment failed:', err); }
+
+                    // Check for scenario completion
+                    if (isLastScenarioStep) {
+                        setLevelUpToast(`🏆 Scenario Complete: ${activeScenario}!`);
+                        setTimeout(() => setLevelUpToast(null), 5000);
+                        setMessages(prev => [...prev, { role: 'system', content: '✨ **Scenario Mastered!** You\'ve completed all 15 steps. Moving to the next challenge...' }]);
+                    }
+                    else if (isLastBeginnerWord) {
+                        setMessages(prev => [...prev, { role: 'system', content: '🎓 **Vocabulary complete!** Now let me test your memory with a quick review quiz.' }]);
+                    } else if (isLastReviewQuestion) {
+                        setMessages(prev => [...prev, { role: 'system', content: '🎓 **Review passed!** Now let\'s combine those words into phrases. I\'ll ask you to build sentences!' }]);
+                    }
+                } catch (e) {
+                    console.error('Failed to increment progress', e);
+                }
             }
 
             // Detect Phase Transitions
@@ -875,7 +903,6 @@ export default function Chat() {
             const lastWasFailure = lastAssistantContent.includes('Not quite') || lastAssistantContent.includes('try again') || lastAssistantContent.includes('not quite');
 
             // ── META-NOTE CONSTRUCTION ────────────────────────────────────
-            const nextInScenario = nextRepeats % CYCLE_SIZE;
             const vocabIndex = nextInScenario < 5 ? nextInScenario : -1;
             const phraseIndex = nextInScenario >= 8 && nextInScenario < 11 ? nextInScenario - 8 : -1;
             const targetPhrase = phraseIndex >= 0 ? scenarioDataForMatch.phrases?.[phraseIndex] : null;
@@ -919,11 +946,6 @@ export default function Chat() {
             const metaNote = baseMetaNote;
 
             // ── PHASE TRANSITION ANNOUNCEMENTS ──
-            if (isLastBeginnerWord) {
-                setMessages(prev => [...prev, { role: 'system', content: '🎓 **Vocabulary complete!** Now let me test your memory with a quick review quiz.' }]);
-            } else if (isLastReviewQuestion) {
-                setMessages(prev => [...prev, { role: 'system', content: '🎓 **Review passed!** Now let\'s combine those words into phrases. I\'ll ask you to build sentences!' }]);
-            }
             if (isCurrentlyInBasic && phraseIndex === -1 && hasCorrectMatch) { // Just finishing Basic
                  setMessages(prev => [...prev, { role: 'system', content: '🎓 **Phrases mastered!** Time for real conversation practice. I\'ll set the scene!' }]);
             }
@@ -1441,9 +1463,30 @@ export default function Chat() {
                                         borderRadius: '10px',
                                         border: '1px solid #e0e7ff',
                                     }}>
-                                        Match: {matchScores[i]}%
                                     </div>
                                 )}
+
+                                {/* Fuzzy match correction toast-like hint */}
+                                {corrections[i] && (
+                                    <div style={{
+                                        alignSelf: 'flex-end',
+                                        marginTop: '4px',
+                                        background: '#fffbeb',
+                                        color: '#b45309',
+                                        fontSize: '11px',
+                                        fontWeight: '700',
+                                        padding: '4px 10px',
+                                        borderRadius: '10px',
+                                        border: '1px solid #fde68a',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                    }}>
+                                        <span>Close! Spelled:</span>
+                                        <span style={{ color: '#d97706', fontSize: '12px' }}>{corrections[i].expected}</span>
+                                    </div>
+                                )}
+
                                 <motion.button
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => navigate('/feedback', { state: { text: msg.content } })}
