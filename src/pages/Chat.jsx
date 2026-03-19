@@ -42,6 +42,7 @@ export default function Chat() {
     const targetLang = getStoredJSON('linguapaws_target_lang', {});
 
     const [recalibrationToast, setRecalibrationToast] = useState(null);
+    const [copyToast, setCopyToast] = useState(false);
     const [failures, setFailures] = useState({});
     const [corrections, setCorrections] = useState({}); // New state for fuzzy match corrections
     const [levelUpToast, setLevelUpToast] = useState(null);
