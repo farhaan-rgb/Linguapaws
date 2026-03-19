@@ -14,14 +14,14 @@ export const CURRICULUM = {
             ],
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskaram, nenu bagunna", meaning: "Hello, I am fine", hint: "Hello + I + fine" },
-                { prompt: "Ask 'How are you?' (formal)", correct: "Meeru ela unnaru?", meaning: "How are you?", hint: "You + how + are?" },
+                { prompt: "Ask 'How are you?' (formal)", correct: "Meeru ela unnaru?", meaning: "How are you?", hint: "You + how?", grammarNote: "In Telugu, add 'unnaru' to the end of a question when addressing someone formally with 'Meeru'." },
                 { prompt: "Say 'I am fine, and you?'", correct: "Nenu bagunna, meeru?", meaning: "I am fine, and you?", hint: "I + fine + you?" }
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskaram, nenu bagunna", meaning: "Hello, I am fine", hint: "Basic greeting + state" },
                 { prompt: "Ask Miko how she is doing.", correct: "Miko, meeru ela unnaru?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
-                { prompt: "Someone asks 'Meeru ela unnaru?'. Answer: 'Nenu bagunna'.", correct: "Nenu bagunna", meaning: "I am fine", hint: "Direct answer" },
-                { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskaram, nenu bagunna, meeru ela unnaru?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
+                { prompt: "Someone asks how you are. Answer: 'I am fine'.", correct: "Nenu bagunna", meaning: "I am fine", hint: "Direct answer" },
+                { prompt: "Say hello, tell them you are fine, and ask how they are.", correct: "Namaskaram, nenu bagunna. Meeru ela unnaru?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
             ]
         },
         {
@@ -36,13 +36,13 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Ask 'What is this?'", correct: "Idhi emiti?", meaning: "What is this?", hint: "This + what?" },
                 { prompt: "Say 'This is a book'", correct: "Idhi pusthakam", meaning: "This is a book", hint: "This + book" },
-                { prompt: "Ask 'What is that?'", correct: "Adhi emiti?", meaning: "What is that?", hint: "That + what?" }
+                { prompt: "Combine 'You' (from last lesson) and 'Name What?'", correct: "Meeru peru emiti?", meaning: "What is your name?", hint: "You + name + what?", grammarNote: "In casual spoken Telugu, combining 'You + Name + What' works! Later you'll learn the strict possessive 'Mee'." }
             ],
             conversations: [
-                { prompt: "Someone points to a book. Ask them what it is.", correct: "Idhi emiti?", meaning: "What is this?", hint: "Question for item" },
+                { prompt: "Say hello (from last lesson), and ask 'What is this?'", correct: "Namaskaram, idhi emiti?", meaning: "Hello, what is this?", hint: "Hello + this + what?" },
                 { prompt: "Point to a distant object and ask 'What is that?'", correct: "Adhi emiti?", meaning: "What is that?", hint: "Distant question" },
-                { prompt: "Tell Miko 'This is my book' (using Idhi pusthakam)", correct: "Idhi pusthakam", meaning: "This is a book", hint: "Simple statement" },
-                { prompt: "Ask 'What is your name?' using a mix of known words.", correct: "Mee peru emiti?", meaning: "What is your name?", hint: "Your(Mee) + name + what?" }
+                { prompt: "Tell Miko 'This is a book'", correct: "Idhi pusthakam", meaning: "This is a book", hint: "Simple statement" },
+                { prompt: "Ask a stranger what their name is using words you know.", correct: "Meeru peru emiti?", meaning: "What is your name?", hint: "You + name + what?" }
             ]
         },
         {
@@ -56,14 +56,14 @@ export const CURRICULUM = {
             ],
             phrases: [
                 { prompt: "Ask 'Where is the house?'", correct: "Inti ekkada?", meaning: "Where is the house?", hint: "House + where?" },
-                { prompt: "Say 'Go there'", correct: "Akkada vellu", meaning: "Go there", hint: "There + go" },
-                { prompt: "Say 'I am here'", correct: "Nenu ikkada", meaning: "I am here", hint: "I + here" }
+                { prompt: "Say 'I am here' (Use 'I' from Scenario 1)", correct: "Nenu ikkada", meaning: "I am here", hint: "I + here" },
+                { prompt: "Say 'Go there'", correct: "Akkada vellu", meaning: "Go there", hint: "There + go" }
             ],
             conversations: [
                 { prompt: "Ask Miko where the home is.", correct: "Inti ekkada?", meaning: "Where is the home?", hint: "Location question" },
-                { prompt: "Tell someone to go here.", correct: "Ikkada vellu", meaning: "Go here", hint: "Direction" },
-                { prompt: "Someone asks 'Meeru ekkada?'. Answer 'I am here'.", correct: "Nenu ikkada", meaning: "I am here", hint: "Response" },
-                { prompt: "Final Check: Say 'I am going home'. (Nenu inti vellu)", correct: "Nenu inti vellu", meaning: "I go home", hint: "I + home + go" }
+                { prompt: "Tell someone to go there.", correct: "Akkada vellu", meaning: "Go there", hint: "Direction" },
+                { prompt: "Someone asks 'Meeru ekkada?'. Connect 'I am here' with 'You?' (from Scenario 1).", correct: "Nenu ikkada, meeru?", meaning: "I am here, and you?", hint: "I + here + you?" },
+                { prompt: "Say 'I go home'. Start with 'I' (Nenu).", correct: "Nenu inti vellu", meaning: "I go home", hint: "I + home + go", grammarNote: "Literally 'I home go'. Telugu follows Subject-Object-Verb order!" }
             ]
         },
         {
@@ -76,15 +76,15 @@ export const CURRICULUM = {
                 { word: "Sare", meaning: "Okay", phonetic: "sah-reh" }
             ],
             phrases: [
-                { prompt: "Say 'I want water'", correct: "Neeru kaavali", meaning: "I want water", hint: "Water + want" },
-                { prompt: "Say 'I don't want food'", correct: "Annam oddu", meaning: "I don't want food", hint: "Food + don't want" },
-                { prompt: "Say 'Okay, I want this'", correct: "Sare, idhi kaavali", meaning: "Okay, I want this", hint: "Okay + this + want" }
+                { prompt: "Say 'Want water'", correct: "Neeru kaavali", meaning: "I want water", hint: "Water + want" },
+                { prompt: "Say 'Don't want food'", correct: "Annam oddu", meaning: "I don't want food", hint: "Food + don't want" },
+                { prompt: "Say 'Okay, I want this' (Use 'This' from Scenario 2)", correct: "Sare, idhi kaavali", meaning: "Okay, I want this", hint: "Okay + this + want" }
             ],
             conversations: [
-                { prompt: "Miko offers you water. Say 'Yes, I want water'.", correct: "Avunu, neeru kaavali", meaning: "Yes, I want water", hint: "Yes + water + want" },
-                { prompt: "Someone offers you food you don't like. Say 'No, I don't want'.", correct: "Ledu, annam oddu", meaning: "No, I don't want food", hint: "No + food + don't want" },
-                { prompt: "Ask for 'this book' saying 'I want this book'.", correct: "Idhi pusthakam kaavali", meaning: "I want this book", hint: "This + book + want" },
-                { prompt: "Say 'I don't want that'.", correct: "Adhi oddu", meaning: "I don't want that", hint: "That + don't want" }
+                { prompt: "Miko offers you water. Say 'Okay, water want'.", correct: "Sare, neeru kaavali", meaning: "Okay, I want water", hint: "Okay + water + want" },
+                { prompt: "Miko offers you food you don't like. Say 'Food don't want'.", correct: "Annam oddu", meaning: "Food don't want", hint: "Food + don't want" },
+                { prompt: "Point to a book (from Scenario 2) and say 'Book want'.", correct: "Pusthakam kaavali", meaning: "Book want", hint: "Book + want" },
+                { prompt: "Point far away and say 'That don't want' (Use 'That' from Scenario 2).", correct: "Adhi oddu", meaning: "That don't want", hint: "That + don't want" }
             ]
         },
         {
