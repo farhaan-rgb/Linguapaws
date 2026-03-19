@@ -928,14 +928,7 @@ export default function Chat() {
                  setMessages(prev => [...prev, { role: 'system', content: '🎓 **Phrases mastered!** Time for real conversation practice. I\'ll set the scene!' }]);
             }
 
-            let rawResponse = null;
-            if (isTopicAnswer && effectiveLevel !== 'zero') {
-                const followupMsg = `Great! Tell me a topic you like (travel, food, friends), or say "you decide".`;
-                const translated = await safeTranslate(followupMsg, nativeLangName);
-                rawResponse = { content: translated, success: null };
-            } else {
-                rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
-            }
+            let rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
 
             // Fallback safety
             if (!rawResponse || (!rawResponse.content && typeof rawResponse !== 'string')) {
