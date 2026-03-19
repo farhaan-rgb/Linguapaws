@@ -928,11 +928,11 @@ export default function Chat() {
                  setMessages(prev => [...prev, { role: 'system', content: '🎓 **Phrases mastered!** Time for real conversation practice. I\'ll set the scene!' }]);
             }
 
-            let rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
+            let rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, effectiveLevel, metaNote);
 
             // Fallback safety
             if (!rawResponse || (!rawResponse.content && typeof rawResponse !== 'string')) {
-                rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, triggerShadow, effectiveLevel, metaNote);
+                rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, effectiveLevel, metaNote);
             }
 
             let botResponse = rawResponse?.content || rawResponse;
