@@ -849,10 +849,15 @@ export default function Chat() {
             const isLastScenarioStep = currentInScenario === 14 && hasCorrectMatch;
 
             // -- 3. SCORE TRACKING & CORRECTIONS --
+            let expectedCorrectionStr = null;
+            if (isCurrentlyTeaching) expectedCorrectionStr = promptedPhrase;
+            else if (isCurrentlyInReview) expectedCorrectionStr = reviewExpectedWord;
+            else expectedCorrectionStr = phraseExpectedCorrect;
+
             if (hasCorrectMatch) {
                 setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(matchRatio * 100) }));
-                if (matchRatio < 0.95 && (promptedPhrase || reviewExpectedWord || phraseExpectedCorrect)) {
-                   setCorrections(prev => ({ ...prev, [userMessageIndex]: { expected: promptedPhrase || reviewExpectedWord || phraseExpectedCorrect, ratio: matchRatio } }));
+                if (matchRatio < 0.95 && expectedCorrectionStr) {
+                   setCorrections(prev => ({ ...prev, [userMessageIndex]: { expected: expectedCorrectionStr, ratio: matchRatio } }));
                 }
             }
 
@@ -891,8 +896,8 @@ export default function Chat() {
                 evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user nailed the final challenge of the scenario! CELEBRATE warmly and congratulate them for mastering this topic! Do NOT introduce any new words yet. Invite them to type 'continue' or hit 'Next' when they are ready.]`;
             } else if (hasCorrectMatch) {
                 const matchDetail = displayPhrase ? `matched "${displayPhrase}"` : 'was correct';
-                const fuzzyCorrection = (matchRatio < 0.95) ? `(Note: User made a small spelling error - they said "${actual}" but we expected "${displayPhrase}". Gently mention the correct spelling while saying "Correct!")` : '';
-                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user ${matchDetail} ${fuzzyCorrection}. Vary your praise (e.g., "Spot on!", "Great job!", "Exactly!", "Chala bagundi!", "Perfect!"). Confirm the meaning. Do NOT evaluate again.]`;
+                const fuzzyCorrection = (matchRatio < 0.95 && expectedCorrectionStr) ? `![CRITICAL GRAMMAR/SPELLING ERROR: The user said "${actual}" but the formal/correct target is "${expectedCorrectionStr}". You MUST explicitly point out their missing word or spelling mistake before praising them!]` : '';
+                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user ${matchDetail}. ${fuzzyCorrection} Vary your praise (e.g., "Spot on!", "Great job!", "Exactly!", "Chala bagundi!", "Perfect!"). Confirm the meaning. Do NOT evaluate again.]`;
             } else if (isHelpRequest) {
                 evalNote = `[SYSTEM: HELP REQUEST. The user is stuck. Give a helpful hint then re-ask the prompt.]`;
             } else if (lastWasFailure) {
@@ -918,14 +923,14 @@ export default function Chat() {
                     const targetPhrase = scenarioDataForMatch.phrases?.[phraseIdx];
                     if (targetPhrase) {
                         const grammarHintStr = targetPhrase.grammarNote ? ` Note: ${targetPhrase.grammarNote}` : '';
-                        metaNote += `\n[NEXT: BASIC PHRASE. Target translation: "${targetPhrase.correct}". Prompt the user: "${targetPhrase.prompt}" WITHOUT revealing the target translation up front! Challenge them to construct it using words they know. Instead, offer a structural hint: "${targetPhrase.hint}".${grammarHintStr} Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
+                        metaNote += `\n[NEXT: BASIC PHRASE. Target translation: "${targetPhrase.correct}". Prompt the user: "${targetPhrase.prompt}" WITHOUT revealing the target translation up front! Challenge them to construct it using words they know. Instead, offer a structural hint: "${targetPhrase.hint}".${grammarHintStr} End your prompt naturally without repeating "Give it a try!". Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
                     }
                 } else {
                     const convoIdx = nextInScenario - 11;
                     const targetConvo = scenarioDataForMatch.conversations?.[convoIdx];
                     if (targetConvo) {
                         const grammarHintStr = targetConvo.grammarNote ? ` Note: ${targetConvo.grammarNote}` : '';
-                        metaNote += `\n[NEXT: CONVO MODE. Target translation: "${targetConvo.correct}". Set the scene and prompt the user: "${targetConvo.prompt}". Do NOT reveal the translation; challenge the user to recall previous words. Provide structural hint: "${targetConvo.hint}".${grammarHintStr} Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
+                        metaNote += `\n[NEXT: CONVO MODE. Target translation: "${targetConvo.correct}". Set the scene and prompt the user: "${targetConvo.prompt}". Do NOT reveal the translation; challenge the user to recall previous words. Provide structural hint: "${targetConvo.hint}".${grammarHintStr} End your prompt naturally without repeating "Give it a try!". Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
                     }
                 }
             }
@@ -1171,9 +1176,9 @@ export default function Chat() {
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
                         const transcript = messages
-                            .filter(m => m.role === 'user' || m.role === 'assistant')
+                            .filter(m => m.role === 'user' || m.role === 'assistant' || m.role === 'system')
                             .map((m, idx) => {
-                                const label = m.role === 'assistant' ? 'Tutor' : 'Learner';
+                                const label = m.role === 'assistant' ? 'Tutor' : m.role === 'system' ? 'System' : 'Learner';
 
                                 let clean = m.content;
 

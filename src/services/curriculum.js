@@ -14,14 +14,14 @@ export const CURRICULUM = {
             ],
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskaram, nenu bagunna", meaning: "Hello, I am fine", hint: "Hello + I + fine" },
-                { prompt: "Ask 'How are you?' (formal)", correct: "Meeru ela unnaru?", meaning: "How are you?", hint: "You + how?", grammarNote: "In Telugu, add 'unnaru' to the end of a question when addressing someone formally with 'Meeru'." },
+                { prompt: "Ask 'How are you?'", correct: "Meeru ela", meaning: "How are you?", hint: "You + how?", grammarNote: "Acknowledge that 'Meeru ela' is a great start! Bonus tip: In real Telugu, native speakers add the word 'unnaru' at the end to be polite: 'Meeru ela unnaru?'. Don't punish the user, just share this as a fun fact!" },
                 { prompt: "Say 'I am fine, and you?'", correct: "Nenu bagunna, meeru?", meaning: "I am fine, and you?", hint: "I + fine + you?" }
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskaram, nenu bagunna", meaning: "Hello, I am fine", hint: "Basic greeting + state" },
-                { prompt: "Ask Miko how she is doing.", correct: "Miko, meeru ela unnaru?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Ask Miko how she is doing.", correct: "Miko, meeru ela", meaning: "Miko, how are you?", hint: "Name + you + how?", grammarNote: "Bonus tip: Share gracefully that natives say 'Miko, meeru ela unnaru?' but their sentence is perfectly understandable!" },
                 { prompt: "Someone asks how you are. Answer: 'I am fine'.", correct: "Nenu bagunna", meaning: "I am fine", hint: "Direct answer" },
-                { prompt: "Say hello, tell them you are fine, and ask how they are.", correct: "Namaskaram, nenu bagunna. Meeru ela unnaru?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
+                { prompt: "Say hello, tell them you are fine, and ask how they are.", correct: "Namaskaram, nenu bagunna. Meeru ela", meaning: "Hello, I am fine, how are you?", hint: "Full intro", grammarNote: "Praise them! Again, just remind them lightly that 'unnaru' is the formal verb for 'are'." }
             ]
         },
         {
