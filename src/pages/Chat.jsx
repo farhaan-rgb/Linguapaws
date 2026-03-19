@@ -928,11 +928,11 @@ export default function Chat() {
                  setMessages(prev => [...prev, { role: 'system', content: '🎓 **Phrases mastered!** Time for real conversation practice. I\'ll set the scene!' }]);
             }
 
-            let rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, effectiveLevel, metaNote);
+            let rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, userLevel, metaNote);
 
             // Fallback safety
             if (!rawResponse || (!rawResponse.content && typeof rawResponse !== 'string')) {
-                rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, effectiveLevel, metaNote);
+                rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, userLevel, metaNote);
             }
 
             let botResponse = rawResponse?.content || rawResponse;
@@ -982,7 +982,7 @@ export default function Chat() {
             responseWithoutMeta = responseWithoutMeta.replace(/<success>.*?<\/success>/gi, '');
 
             if (statusTag === 'true' || statusTag === 'false') {
-                if (statusTag === 'true' && effectiveLevel !== 'zero' && !hasIncrementedThisTurn) {
+                if (statusTag === 'true' && userLevel !== 'zero' && !hasCorrectMatch) {
                     console.log('[Progress] AI reported success (fallback), calling /api/progress/increment...');
                     api.post('/api/progress/increment')
                         .then(progressResult => {
