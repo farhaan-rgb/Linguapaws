@@ -907,13 +907,24 @@ export default function Chat() {
             const lastAssistantContent = lastAssistant?.content || '';
             const lastWasFailure = lastAssistantContent.includes('Not quite') || lastAssistantContent.includes('try again') || lastAssistantContent.includes('not quite');
 
+            // Build grammarNote for post-answer feedback (only shown AFTER correct answer)
+            let postAnswerGrammarNote = '';
+            if (isCurrentlyInBasic) {
+                const basicIdx = currentInScenario - 8;
+                postAnswerGrammarNote = scenarioDataForMatch.phrases?.[basicIdx]?.grammarNote || '';
+            } else if (isCurrentlyInConvo) {
+                const convoIdx = currentInScenario - 11;
+                postAnswerGrammarNote = scenarioDataForMatch.conversations?.[convoIdx]?.grammarNote || '';
+            }
+            const grammarFeedback = postAnswerGrammarNote ? ` [GRAMMAR TIP to share: ${postAnswerGrammarNote}]` : '';
+
             let evalNote = '';
             if (isLastScenarioStep) {
-                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user nailed the final challenge of the scenario! CELEBRATE warmly and congratulate them for mastering this topic! Do NOT introduce any new words yet. Invite them to type 'continue' or hit 'Next' when they are ready.]`;
+                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user nailed the final challenge of the scenario! CELEBRATE warmly and congratulate them for mastering this topic! Do NOT introduce any new words yet. Invite them to type 'continue' or hit 'Next' when they are ready.${grammarFeedback}]`;
             } else if (hasCorrectMatch) {
                 const matchDetail = displayPhrase ? `matched "${displayPhrase}"` : 'was correct';
                 const fuzzyCorrection = (matchRatio < 0.95 && expectedCorrectionStr) ? `![CRITICAL GRAMMAR/SPELLING ERROR: The user said "${actual}" but the formal/correct target is "${expectedCorrectionStr}". You MUST explicitly point out their missing word or spelling mistake before praising them!]` : '';
-                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user ${matchDetail}. ${fuzzyCorrection} Vary your praise (e.g., "Spot on!", "Great job!", "Exactly!", "Chala bagundi!", "Perfect!"). Confirm the meaning. Do NOT evaluate again.]`;
+                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user ${matchDetail}. ${fuzzyCorrection} Give brief, varied praise (e.g., "Spot on!", "Great job!", "Exactly!", "Chala bagundi!", "Perfect!"). Do NOT repeat the meaning or translation back to the user — they already know it. Just acknowledge and move on.${grammarFeedback} NEVER preview or reference the next target phrase in your current response. Do NOT evaluate again.]`;
             } else if (isHelpRequest) {
                 evalNote = `[SYSTEM: HELP REQUEST. The user is stuck. Give a helpful hint then re-ask the prompt.]`;
             } else if (lastWasFailure) {
@@ -929,26 +940,24 @@ export default function Chat() {
             if (!isLastScenarioStep) {
                 if (nextInScenario < 5) {
                     const wordObj = scenarioDataForMatch.vocabulary[nextInScenario] || { word: 'Word', meaning: 'Meaning' };
-                    metaNote += `\n[NEXT: TEACH word **${wordObj.word}** (${wordObj.meaning}). Bridge naturally: e.g., "To say [meaning], say **Word**".]`;
+                    metaNote += `\n[NEXT: TEACH word **${wordObj.word}** (${wordObj.meaning}). Vary how you introduce each word — do NOT always use the same "To say X, say Y" template. Sometimes use a question, a mini-story, or connect it to something the user already said. NEVER say "try", "give it a try", or "give it a go".]`;
                 } else if (nextInScenario < 8) {
                     const round = nextInScenario - 5;
                     const meaning = scenarioDataForMatch.vocabulary[[0, 2, 4][round]]?.meaning || 'Hello';
-                    metaNote += `\n[NEXT: REVIEW. Ask "What's the word for '${meaning}'?"]`;
+                    metaNote += `\n[NEXT: REVIEW. Ask "What's the word for '${meaning}'?". NEVER say "try", "give it a try", or "give it a go".]`;
                 } else if (nextInScenario < 11) {
                     const phraseIdx = nextInScenario - 8;
                     const targetPhrase = scenarioDataForMatch.phrases?.[phraseIdx];
                     if (targetPhrase) {
-                        const grammarHintStr = targetPhrase.grammarNote ? ` Note: ${targetPhrase.grammarNote}` : '';
                         const acceptableStr = targetPhrase.acceptable?.length ? ` Also accept (as 100% correct): ${targetPhrase.acceptable.join(', ')}.` : '';
-                        metaNote += `\n[NEXT: BASIC PHRASE. Target translation: "${targetPhrase.correct}".${acceptableStr} Prompt the user: "${targetPhrase.prompt}" WITHOUT revealing the translation up front. Weave the hint naturally into conversation - do NOT write equations like "Think of it as X + Y". Use the structural idea "${targetPhrase.hint}" but phrase it like a real tutor would say it conversationally.${grammarHintStr} Vary how you end (don't always say "Give it a try!"). Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
+                        metaNote += `\n[NEXT: BASIC PHRASE. Target translation: "${targetPhrase.correct}".${acceptableStr} Prompt the user: "${targetPhrase.prompt}" WITHOUT revealing the translation up front. Do NOT give ANY part of the answer — not even as an example or tip. Weave the hint naturally into conversation — do NOT write equations like "Think of it as X + Y" or "X + Y + Z". Phrase it conversationally like a real tutor. NEVER say "try", "give it a try", or "give it a go". Match → success:true. Else → success:false.]`;
                     }
                 } else {
                     const convoIdx = nextInScenario - 11;
                     const targetConvo = scenarioDataForMatch.conversations?.[convoIdx];
                     if (targetConvo) {
-                        const grammarHintStr = targetConvo.grammarNote ? ` Note: ${targetConvo.grammarNote}` : '';
                         const acceptableStr = targetConvo.acceptable?.length ? ` Also accept (as 100% correct): ${targetConvo.acceptable.join(', ')}.` : '';
-                        metaNote += `\n[NEXT: CONVO MODE. Target translation: "${targetConvo.correct}".${acceptableStr} Set the scene naturally and prompt: "${targetConvo.prompt}". DO NOT reveal the translation. Weave the hint "${targetConvo.hint}" into conversation like a real tutor - no math equations like "X + Y".${grammarHintStr} Vary how you end (don't always say "Give it a try!"). Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
+                        metaNote += `\n[NEXT: CONVO MODE. Target translation: "${targetConvo.correct}".${acceptableStr} Set the scene naturally and prompt: "${targetConvo.prompt}". Do NOT reveal ANY part of the translation — not even as an example, tip, or "native touch". Let the user figure it out entirely from context and previously learned words. Weave the hint "${targetConvo.hint}" conversationally — no equations like "X + Y". NEVER say "try", "give it a try", or "give it a go". Match → success:true. Else → success:false.]`;
                     }
                 }
             }
@@ -1443,20 +1452,7 @@ export default function Chat() {
                                         {sentenceSuccesses[i] === 'true' && <Check size={12} strokeWidth={3} />}
                                         {sentenceSuccesses[i] === 'true' ? 'Success' : sentenceSuccesses[i] === 'false' ? 'Not Successful' : 'Status Not Received'}
                                     </div>
-                                ) : typeof matchScores[i] === 'number' && (
-                                    <div style={{
-                                        alignSelf: 'flex-end',
-                                        marginTop: '6px',
-                                        background: '#eef2ff',
-                                        color: '#4338ca',
-                                        fontSize: '11px',
-                                        fontWeight: '700',
-                                        padding: '4px 10px',
-                                        borderRadius: '10px',
-                                        border: '1px solid #e0e7ff',
-                                    }}>
-                                    </div>
-                                )}
+                                ) : null}
 
                                 {/* Fuzzy match correction toast-like hint */}
                                 {corrections[i] && (
