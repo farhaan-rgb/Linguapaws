@@ -831,16 +831,32 @@ export default function Chat() {
                 }
             } else if (isCurrentlyInBasic) {
                 const basicIdx = currentInScenario - 8;
-                phraseExpectedCorrect = scenarioDataForMatch.phrases?.[basicIdx]?.correct || null;
+                const basicItem = scenarioDataForMatch.phrases?.[basicIdx];
+                phraseExpectedCorrect = basicItem?.correct || null;
                 if (phraseExpectedCorrect) {
-                    matchRatio = similarityRatioLatin(actual, phraseExpectedCorrect);
+                    // Check acceptable alternatives first (counts as perfect match)
+                    const acceptables = (basicItem?.acceptable || []).map(a => a.toLowerCase());
+                    const actualLower = actual.toLowerCase();
+                    if (acceptables.includes(actualLower)) {
+                        matchRatio = 1.0;
+                    } else {
+                        matchRatio = similarityRatioLatin(actual, phraseExpectedCorrect);
+                    }
                     displayPhrase = phraseExpectedCorrect;
                 }
             } else if (isCurrentlyInConvo) {
                 const convoIdx = currentInScenario - 11;
-                phraseExpectedCorrect = scenarioDataForMatch.conversations?.[convoIdx]?.correct || null;
+                const convoItem = scenarioDataForMatch.conversations?.[convoIdx];
+                phraseExpectedCorrect = convoItem?.correct || null;
                 if (phraseExpectedCorrect) {
-                    matchRatio = similarityRatioLatin(actual, phraseExpectedCorrect);
+                    // Check acceptable alternatives first (counts as perfect match)
+                    const acceptables = (convoItem?.acceptable || []).map(a => a.toLowerCase());
+                    const actualLower = actual.toLowerCase();
+                    if (acceptables.includes(actualLower)) {
+                        matchRatio = 1.0;
+                    } else {
+                        matchRatio = similarityRatioLatin(actual, phraseExpectedCorrect);
+                    }
                     displayPhrase = phraseExpectedCorrect;
                 }
             }
@@ -923,14 +939,16 @@ export default function Chat() {
                     const targetPhrase = scenarioDataForMatch.phrases?.[phraseIdx];
                     if (targetPhrase) {
                         const grammarHintStr = targetPhrase.grammarNote ? ` Note: ${targetPhrase.grammarNote}` : '';
-                        metaNote += `\n[NEXT: BASIC PHRASE. Target translation: "${targetPhrase.correct}". Prompt the user: "${targetPhrase.prompt}" WITHOUT revealing the target translation up front! Challenge them to construct it using words they know. Instead, offer a structural hint: "${targetPhrase.hint}".${grammarHintStr} End your prompt naturally without repeating "Give it a try!". Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
+                        const acceptableStr = targetPhrase.acceptable?.length ? ` Also accept (as 100% correct): ${targetPhrase.acceptable.join(', ')}.` : '';
+                        metaNote += `\n[NEXT: BASIC PHRASE. Target translation: "${targetPhrase.correct}".${acceptableStr} Prompt the user: "${targetPhrase.prompt}" WITHOUT revealing the translation up front. Weave the hint naturally into conversation - do NOT write equations like "Think of it as X + Y". Use the structural idea "${targetPhrase.hint}" but phrase it like a real tutor would say it conversationally.${grammarHintStr} Vary how you end (don't always say "Give it a try!"). Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
                     }
                 } else {
                     const convoIdx = nextInScenario - 11;
                     const targetConvo = scenarioDataForMatch.conversations?.[convoIdx];
                     if (targetConvo) {
                         const grammarHintStr = targetConvo.grammarNote ? ` Note: ${targetConvo.grammarNote}` : '';
-                        metaNote += `\n[NEXT: CONVO MODE. Target translation: "${targetConvo.correct}". Set the scene and prompt the user: "${targetConvo.prompt}". Do NOT reveal the translation; challenge the user to recall previous words. Provide structural hint: "${targetConvo.hint}".${grammarHintStr} End your prompt naturally without repeating "Give it a try!". Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
+                        const acceptableStr = targetConvo.acceptable?.length ? ` Also accept (as 100% correct): ${targetConvo.acceptable.join(', ')}.` : '';
+                        metaNote += `\n[NEXT: CONVO MODE. Target translation: "${targetConvo.correct}".${acceptableStr} Set the scene naturally and prompt: "${targetConvo.prompt}". DO NOT reveal the translation. Weave the hint "${targetConvo.hint}" into conversation like a real tutor - no math equations like "X + Y".${grammarHintStr} Vary how you end (don't always say "Give it a try!"). Match → success:true. Else → success:false. Respond in valid JSON: {"content": "...", "success": true/false}.]`;
                     }
                 }
             }
