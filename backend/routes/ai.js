@@ -367,7 +367,7 @@ router.post('/transcribe', async (req, res) => {
 
                 // Language IDs that Whisper supports
                 const supportedByWhisper = new Set([
-                    'hi', 'mr', 'ta', 'ur', 'kn', 'en',
+                    'hi', 'mr', 'ta', 'te', 'ur', 'kn', 'bn', 'gu', 'pa', 'or', 'ml', 'en',
                     'fr', 'es', 'de', 'it', 'pt', 'ja', 'ko', 'zh',
                     'ne', 'ar', 'ru', 'tr', 'pl', 'nl', 'sv', 'th', 'vi',
                 ]);
