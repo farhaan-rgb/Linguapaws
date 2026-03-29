@@ -274,7 +274,9 @@ export default function Chat() {
             .replace(/\\\*/g, '')                            // Strip escaped asterisks \*
             .replace(/\*\*/g, '')                            // Strip double asterisks (bold)
             .replace(/\*/g, '')                             // Strip single asterisks (italic)
-            .replace(/[\p{Extended_Pictographic}\p{Emoji_Component}]/gu, ''); // Strip emojis (e.g. 🎉, 🐾)
+            .replace(/[\p{Extended_Pictographic}\p{Emoji_Component}]/gu, '') // Strip emojis via Unicode property
+            .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')  // Supplementary emoji block fallback
+            .replace(/[\u2600-\u27BF\uFE00-\uFE0F]/g, ''); // Misc symbols + variation selectors
 
         text = cleanupDisplayText(stripTargetScript(text));
         if (isNativeEnglish()) text = stripLatinDiacritics(text);
@@ -781,6 +783,10 @@ export default function Chat() {
 
     const handleSend = async (text, isVoice = false) => {
         if (!text) return;
+        // Voice STT sometimes returns native script (e.g. Telugu) — strip it to Latin only
+        if (isVoice && hasTargetScript(text)) {
+            text = stripTargetScript(text).trim() || text;
+        }
 
         const userMessageIndex = messages.length; // Store index for this user message
         setMessages(prev => [...prev, { role: 'user', content: text }]);
@@ -850,13 +856,13 @@ export default function Chat() {
                 const basicItem = scenarioDataForMatch.phrases?.[basicIdx];
                 phraseExpectedCorrect = basicItem?.correct || null;
                 if (phraseExpectedCorrect) {
-                    // Check acceptable alternatives first (counts as perfect match)
-                    const acceptables = (basicItem?.acceptable || []).map(a => a.toLowerCase());
-                    const actualLower = actual.toLowerCase();
-                    if (acceptables.includes(actualLower)) {
+                    const acceptables = basicItem?.acceptable || [];
+                    const bestAltScore = acceptables.reduce((best, alt) =>
+                        Math.max(best, similarityRatioLatin(actual, alt)), 0);
+                    if (bestAltScore >= 0.8) {
                         matchRatio = 1.0;
                     } else {
-                        matchRatio = similarityRatioLatin(actual, phraseExpectedCorrect);
+                        matchRatio = Math.max(similarityRatioLatin(actual, phraseExpectedCorrect), bestAltScore);
                     }
                     displayPhrase = phraseExpectedCorrect;
                 }
@@ -865,13 +871,13 @@ export default function Chat() {
                 const convoItem = scenarioDataForMatch.conversations?.[convoIdx];
                 phraseExpectedCorrect = convoItem?.correct || null;
                 if (phraseExpectedCorrect) {
-                    // Check acceptable alternatives first (counts as perfect match)
-                    const acceptables = (convoItem?.acceptable || []).map(a => a.toLowerCase());
-                    const actualLower = actual.toLowerCase();
-                    if (acceptables.includes(actualLower)) {
+                    const acceptables = convoItem?.acceptable || [];
+                    const bestAltScore = acceptables.reduce((best, alt) =>
+                        Math.max(best, similarityRatioLatin(actual, alt)), 0);
+                    if (bestAltScore >= 0.8) {
                         matchRatio = 1.0;
                     } else {
-                        matchRatio = similarityRatioLatin(actual, phraseExpectedCorrect);
+                        matchRatio = Math.max(similarityRatioLatin(actual, phraseExpectedCorrect), bestAltScore);
                     }
                     displayPhrase = phraseExpectedCorrect;
                 }
