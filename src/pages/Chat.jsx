@@ -783,9 +783,13 @@ export default function Chat() {
 
     const handleSend = async (text, isVoice = false) => {
         if (!text) return;
-        // Voice STT sometimes returns native script (e.g. Telugu) — strip it to Latin only
+        // Voice STT sometimes mixes native script — strip it, but only if Latin chars remain
         if (isVoice && hasTargetScript(text)) {
-            text = stripTargetScript(text).trim() || text;
+            const stripped = stripTargetScript(text).trim();
+            if ((stripped.match(/[\p{L}\p{N}]/gu) || []).length >= 2) {
+                text = stripped;
+            }
+            // else: pure native script input — keep as-is so guard doesn't fire on leftover punctuation
         }
 
         const userMessageIndex = messages.length; // Store index for this user message
