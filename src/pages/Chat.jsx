@@ -40,6 +40,8 @@ export default function Chat() {
 
     const nativeLang = getStoredJSON('linguapaws_native_lang', {});
     const targetLang = getStoredJSON('linguapaws_target_lang', {});
+    const targetLangName = targetLang?.name || 'Hindi';
+    const safeLang = CURRICULUM[targetLangName] ? targetLangName : (CURRICULUM['Hindi'] ? 'Hindi' : Object.keys(CURRICULUM)[0]);
 
     const [recalibrationToast, setRecalibrationToast] = useState(null);
     const [copyToast, setCopyToast] = useState(false);
@@ -351,6 +353,19 @@ export default function Chat() {
         return score;
     };
 
+    // Deterministic shuffle seeded by scenario index — same 3 words sampled per scenario,
+    // different across scenarios, so the review quiz feels fresh each time.
+    const seededReviewIndices = (seed) => {
+        let s = ((seed + 1) * 1664525 + 1013904223) & 0x7fffffff;
+        const all = [0, 1, 2, 3, 4];
+        for (let i = 4; i > 0; i--) {
+            s = (s * 1664525 + 1013904223) & 0x7fffffff;
+            const j = s % (i + 1);
+            [all[i], all[j]] = [all[j], all[i]];
+        }
+        return all.slice(0, 3);
+    };
+
     const extractPromptedPhrase = (text) => {
         if (!text) return null;
         const boldMatches = text.match(/\*\*(.*?)\*\*/g);
@@ -599,45 +614,24 @@ export default function Chat() {
             hasGreeted.current = true;
 
             setIsLoading(true);
-            const nativeLangName = nativeLang?.name || 'Hindi';
-            const targetLangName = targetLang?.name || 'English';
+            const nativeLangName = nativeLang?.name || 'English';
 
             let levelNote;
             let greeting = "";
             const currentRepeats = progress?.successfulRepeats || 0;
-            // New split: 0-9 teach, 10-12 review, 13-22 basic, 23-29 conversational
+            const CYCLE_SIZE_GREET = 15;
+            const inScenario = currentRepeats % CYCLE_SIZE_GREET;
+            const isReviewMode = inScenario >= 5 && inScenario < 8;
+
             let levelId = userLevel || 'conversational';
-            if (currentRepeats < 300) {
-                const inScenario = currentRepeats % 30;
-                if (inScenario < 10) levelId = 'zero';
-                else if (inScenario < 13) levelId = 'zero'; // review (still beginner UI)
-                else if (inScenario < 23) levelId = 'basic';
-                else levelId = 'conversational';
-            } else {
-                levelId = 'fluent';
-            }
-            const inScenario = currentRepeats % 30;
-            const isReviewMode = inScenario >= 10 && inScenario < 13;
+            if (inScenario < 5 || isReviewMode) levelId = 'zero';
+            else if (inScenario < 11) levelId = 'basic';
+            else levelId = 'conversational';
 
-            const SCENARIOS = [
-                "Greetings & Identity",
-                "Ordering Food & Drinks",
-                "Shopping & Prices",
-                "Asking for Directions",
-                "Transportation & Travel",
-                "Time & Schedules",
-                "Hobbies & Preferences",
-                "Weather & Environment",
-                "Health & Body",
-                "Social Gatherings & Events"
-            ];
-            const activeScenarioIdx = Math.min(Math.floor(currentRepeats / 30), 9);
-            const activeScenario = SCENARIOS[activeScenarioIdx];
-
-            // Safely fetch curriculum slice based on current progress
-            const safeLang = CURRICULUM[targetLangName] ? targetLangName : 'Hindi';
+            const activeScenarioIdx = Math.min(Math.floor(currentRepeats / CYCLE_SIZE_GREET), 29);
             const scenarioData = (CURRICULUM[safeLang] && CURRICULUM[safeLang][activeScenarioIdx]) || { vocabulary: [] };
-            const vocabIndex = Math.floor(inScenario % 10);
+            const activeScenario = scenarioData.scenario || 'Learning';
+            const vocabIndex = inScenario < 5 ? inScenario : 0;
             const targetWordObj = scenarioData.vocabulary[vocabIndex] || { word: 'Word', meaning: 'Meaning', phonetic: '' };
             const taughtVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
 
@@ -803,14 +797,21 @@ export default function Chat() {
                 ? parseInt(scenarioOverride) 
                 : Math.min(Math.floor(currentRepeats / CYCLE_SIZE), 29);
             
-            const safeLangForMatch = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Telugu';
-            const scenarioDataForMatch = CURRICULUM[safeLangForMatch]?.[scenarioIdxForMatch] || { vocabulary: [], phrases: [], conversations: [] };
+            const scenarioDataForMatch = CURRICULUM[safeLang]?.[scenarioIdxForMatch] || { vocabulary: [], phrases: [], conversations: [] };
 
             // -- 2. EVALUATE USER INPUT (MATCHING) --
             const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
             const promptedPhrase = extractPromptedPhrase(lastAssistant?.content || '');
             const threshold = 0.5;
             const actual = (text || '').replace(/[.!?]+$/g, '').trim();
+
+            // Guard: reject trivial input (empty, punctuation-only, single char)
+            const meaningfulChars = (actual.match(/[\p{L}\p{N}]/gu) || []).length;
+            if (meaningfulChars < 2) {
+                setMessages(prev => [...prev, { role: 'assistant', content: "Hmm, I didn't catch that! Type your answer and I'll check it. 😊" }]);
+                setIsLoading(false);
+                return;
+            }
 
             let matchRatio = 0;
             let displayPhrase = null;
@@ -822,7 +823,7 @@ export default function Chat() {
                 displayPhrase = promptedPhrase;
             } else if (isCurrentlyInReview) {
                 const round = currentInScenario - 5;
-                const REVIEW_MAP = [0, 2, 4];
+                const REVIEW_MAP = seededReviewIndices(scenarioIdxForMatch);
                 const reviewWordIdx = REVIEW_MAP[round] ?? 0;
                 reviewExpectedWord = scenarioDataForMatch.vocabulary[reviewWordIdx]?.word || null;
                 if (reviewExpectedWord) {
@@ -877,31 +878,23 @@ export default function Chat() {
                 }
             }
 
-            // -- 4. PROGRESS INCREMENT --
-            let nextRepeats = currentRepeats;
+            // -- 4. TRANSITION SYSTEM MESSAGES (fire before AI call, based on current state) --
             if (hasCorrectMatch) {
-                try {
-                    const res = await api.post('/api/progress/increment');
-                    setProgress(res);
-                    nextRepeats = res?.successfulRepeats || (currentRepeats + 1);
-
-                    const activeScenario = scenarioDataForMatch.scenario || 'Learning';
-                    if (isLastScenarioStep) {
-                        setLevelUpToast(`🏆 Scenario Complete: ${activeScenario}!`);
-                        setTimeout(() => setLevelUpToast(null), 5000);
-                        setMessages(prev => [...prev, { role: 'system', content: '✨ **Scenario Mastered!** You\'ve completed all 15 steps. Moving to the next challenge...' }]);
-                    } else if (isCurrentlyTeaching && currentInScenario === 4) {
-                        setMessages(prev => [...prev, { role: 'system', content: '🎓 **Vocabulary complete!** Now let me test your memory with a quick review quiz.' }]);
-                    } else if (isCurrentlyInReview && currentInScenario === 7) {
-                        setMessages(prev => [...prev, { role: 'system', content: '🎓 **Review passed!** Now let\'s combine those words into phrases. I\'ll ask you to build sentences!' }]);
-                    }
-                } catch (e) {
-                    console.error('Failed to increment progress', e);
+                const activeScenario = scenarioDataForMatch.scenario || 'Learning';
+                if (isLastScenarioStep) {
+                    setLevelUpToast(`🏆 Scenario Complete: ${activeScenario}!`);
+                    setTimeout(() => setLevelUpToast(null), 5000);
+                    setMessages(prev => [...prev, { role: 'system', content: '✨ **Scenario Mastered!** You\'ve completed all 15 steps. Moving to the next challenge...' }]);
+                } else if (isCurrentlyTeaching && currentInScenario === 4) {
+                    setMessages(prev => [...prev, { role: 'system', content: '🎓 **Vocabulary complete!** Now let me test your memory with a quick review quiz.' }]);
+                } else if (isCurrentlyInReview && currentInScenario === 7) {
+                    setMessages(prev => [...prev, { role: 'system', content: '🎓 **Review passed!** Now let\'s combine those words into phrases. I\'ll ask you to build sentences!' }]);
                 }
             }
 
-            // -- 5. META-NOTE CONSTRUCTION --
-            const nextInScenario = nextRepeats % CYCLE_SIZE;
+            // -- 5. META-NOTE CONSTRUCTION (uses optimistic +1 so AI gets the right next step) --
+            const optimisticNextRepeats = hasCorrectMatch ? currentRepeats + 1 : currentRepeats;
+            const nextInScenario = optimisticNextRepeats % CYCLE_SIZE;
             const HELP_WORDS = ["don't know", "dont know", "i don't know", "idk", "how", "how?", "help", "hint", "tell me", "show me", "not sure", "what", "what?", "confused", "no idea", "repeat", "again", "what part", "not clear"];
             const isHelpRequest = HELP_WORDS.some(h => (text || '').trim().toLowerCase().includes(h));
             const lastAssistantContent = lastAssistant?.content || '';
@@ -930,7 +923,10 @@ export default function Chat() {
             } else if (lastWasFailure) {
                 evalNote = `[SYSTEM: RETRY. User failed previously. Show the hint and re-ask the same prompt.]`;
             } else {
-                evalNote = `[SYSTEM: EVALUATE NOW. The user is attempting the exercise. Check against the target.]`;
+                const targetHint = expectedCorrectionStr
+                    ? ` The ONLY accepted answer is "${expectedCorrectionStr}". Be strict: only accept a close match to this exact phrase. If the user typed something unrelated, random, or just punctuation, tell them it's not quite right and ask them to try again — do NOT reveal the answer.`
+                    : '';
+                evalNote = `[SYSTEM: EVALUATE NOW. The user is attempting the exercise.${targetHint}]`;
             }
 
             const activeScenarioLabel = scenarioDataForMatch.scenario || 'Learning';
@@ -943,7 +939,7 @@ export default function Chat() {
                     metaNote += `\n[NEXT: TEACH word **${wordObj.word}** (${wordObj.meaning}). Vary how you introduce each word — do NOT always use the same "To say X, say Y" template. Sometimes use a question, a mini-story, or connect it to something the user already said. NEVER say "try", "give it a try", or "give it a go".]`;
                 } else if (nextInScenario < 8) {
                     const round = nextInScenario - 5;
-                    const meaning = scenarioDataForMatch.vocabulary[[0, 2, 4][round]]?.meaning || 'Hello';
+                    const meaning = scenarioDataForMatch.vocabulary[seededReviewIndices(scenarioIdxForMatch)[round]]?.meaning || 'Hello';
                     metaNote += `\n[NEXT: REVIEW. Ask "What's the word for '${meaning}'?". NEVER say "try", "give it a try", or "give it a go".]`;
                 } else if (nextInScenario < 11) {
                     const phraseIdx = nextInScenario - 8;
@@ -963,14 +959,25 @@ export default function Chat() {
             }
 
             if (isCurrentlyInBasic && (nextInScenario === 11) && hasCorrectMatch) {
-                 setMessages(prev => [...prev, { role: 'system', content: '🎓 **Phrases mastered!** Time for real conversation practice. I\'ll set the scene!' }]);
+                setMessages(prev => [...prev, { role: 'system', content: '🎓 **Phrases mastered!** Time for real conversation practice. I\'ll set the scene!' }]);
             }
+
+            // Fire progress increment and AI response in parallel — no more sequential wait
+            const progressPromise = hasCorrectMatch
+                ? api.post('/api/progress/increment').catch(e => { console.error('Failed to increment progress', e); return null; })
+                : Promise.resolve(null);
 
             let rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, userLevel, metaNote);
 
             // Fallback safety
             if (!rawResponse || (!rawResponse.content && typeof rawResponse !== 'string')) {
                 rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, userLevel, metaNote);
+            }
+
+            // Settle progress update (almost certainly already resolved by the time AI responds)
+            const progressRes = await progressPromise;
+            if (progressRes) {
+                setProgress(progressRes);
             }
 
             let botResponse = rawResponse?.content || rawResponse;
@@ -1301,8 +1308,7 @@ export default function Chat() {
                                     const r = progress.successfulRepeats || 0;
                                     const stageNum = Math.min(Math.floor(r / 15) + 1, 30);
                                     
-                                    const safeLangForMatch = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Telugu';
-                                    const scenarioLabel = CURRICULUM[safeLangForMatch]?.[stageNum - 1]?.scenario || `Scenario ${stageNum}`;
+                                    const scenarioLabel = CURRICULUM[safeLang]?.[stageNum - 1]?.scenario || `Scenario ${stageNum}`;
                                     
                                     return `Scenario ${stageNum}: ${scenarioLabel}`;
                                 })()}
