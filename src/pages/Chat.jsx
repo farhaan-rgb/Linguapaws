@@ -1045,11 +1045,11 @@ export default function Chat() {
                 ? api.post('/api/progress/increment').catch(e => { console.error('Failed to increment progress', e); return null; })
                 : Promise.resolve(null);
 
-            let rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, userLevel, metaNote);
+            let rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, userLevel, metaNote, systemOverride);
 
             // Fallback safety
             if (!rawResponse || (!rawResponse.content && typeof rawResponse !== 'string')) {
-                rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, userLevel, metaNote);
+                rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, userLevel, metaNote, systemOverride);
             }
 
             // Settle progress update (almost certainly already resolved by the time AI responds)
