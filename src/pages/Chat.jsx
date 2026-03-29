@@ -174,14 +174,20 @@ export default function Chat() {
             const msg = msgs[i];
             if (msg.role !== 'assistant') continue;
 
-            // If the message contains bold text, we assume it's teaching a phrase
-            if (msg.content.includes('**')) return true;
-
             // Skip generic error messages that don't change the tutorial context
             const isError = msg.content.includes("couldn't quite hear") || msg.content.includes("whiskers got tangled");
             if (isError) continue;
 
-            // If it's a normal assistant message without bold text, we are no longer in a tutorial step
+            // Teaching mode: bold text = expecting that target word
+            if (msg.content.includes('**')) return true;
+
+            // Review mode: "What's the word for X?" — user must respond in target language
+            if (/what'?s\s+the\s+word\s+for/i.test(msg.content)) return true;
+
+            // Basic/conversational mode: AI is asking user to produce a target-language phrase
+            if (/try\s+to\s+say|can\s+you\s+(say|ask)|what\s+would\s+you\s+(say|ask)|go\s+ahead\s+and|give\s+it\s+(a\s+)?(shot|try|go)/i.test(msg.content)) return true;
+
+            // If it's a normal assistant message without any of the above, not expecting target language
             return false;
         }
         return false;
