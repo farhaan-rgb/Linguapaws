@@ -636,8 +636,23 @@ export default function Chat() {
             const taughtVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
 
             if (levelId === 'zero' && !isReviewMode) {
-                const phonTag = targetWordObj.phonetic ? ` <phonetic>${targetWordObj.phonetic}</phonetic>` : '';
-                levelNote = `Greet the user briefly (1-2 sentences) introducing yourself as ${activeCharacter?.name || 'Miko'}. Use ONLY ${nativeLangName}. The active scenario is: '${activeScenario}'. YOU MUST TEACH EXACTLY THIS WORD: **${targetWordObj.word}**${phonTag} (Meaning: ${targetWordObj.meaning}). Use a bridging phrase like "To say [meaning], say **Word**". Do not teach any other concept. Do not teach full sentences in this first message.`;
+                // Instant template — content is 100% known from curriculum, no AI call needed
+                const charName = activeCharacter?.name || 'Miko';
+                const phonTag = targetWordObj.phonetic ? `\n<phonetic>${targetWordObj.phonetic}</phonetic>` : '';
+                const instantGreeting = `Hey there! I'm ${charName}, your friendly guide. 🐾 To say "${targetWordObj.meaning}", say **${targetWordObj.word}**${phonTag}\nMeaning: ${targetWordObj.meaning}`;
+                setMessages([{ role: 'assistant', content: instantGreeting }]);
+                setIsLoading(false);
+                if (!isMuted && isMounted.current) {
+                    const speechText = buildSpeechText(instantGreeting);
+                    aiService.generateSpeech(speechText, resolvedCharacter?.voice || 'alloy', targetLang?.name || null)
+                        .then(audioUrl => {
+                            if (audioUrl && isMounted.current) {
+                                audioRef.current.src = audioUrl;
+                                audioRef.current.play().catch(() => {});
+                            }
+                        });
+                }
+                return;
             } else if (levelId === 'zero' && isReviewMode) {
                 levelNote = `Greet the user briefly as ${activeCharacter?.name || 'Miko'}. The active scenario is: '${activeScenario}'. The user has learned these words: [${taughtVocab}]. Start a fun, low-pressure review quiz! Ask them: "What's the ${targetLangName} word for [pick a random meaning from the list]?" Do NOT teach new words. Do NOT use bold text. Keep it playful and encouraging.`;
             } else if (levelId === 'basic') {
@@ -899,6 +914,44 @@ export default function Chat() {
             const isHelpRequest = HELP_WORDS.some(h => (text || '').trim().toLowerCase().includes(h));
             const lastAssistantContent = lastAssistant?.content || '';
             const lastWasFailure = lastAssistantContent.includes('Not quite') || lastAssistantContent.includes('try again') || lastAssistantContent.includes('not quite');
+
+            // -- REVIEW FAST PATH: bypass AI entirely (avoids AI ignoring SUCCESS CONFIRMED) --
+            if (isCurrentlyInReview) {
+                const round = currentInScenario - 5;
+                const REVIEW_MAP = seededReviewIndices(scenarioIdxForMatch);
+                const currentMeaning = scenarioDataForMatch.vocabulary[REVIEW_MAP[round] ?? 0]?.meaning || 'that word';
+                const REVIEW_PRAISE = ["Spot on!", "Exactly!", "Great job!", "Perfect!", "Correct!"];
+                const praise = REVIEW_PRAISE[messages.length % REVIEW_PRAISE.length];
+
+                let reviewResponse;
+                if (hasCorrectMatch) {
+                    const progressRes = await api.post('/api/progress/increment').catch(() => null);
+                    if (progressRes) setProgress(progressRes);
+
+                    if (currentInScenario === 7) {
+                        // Transition message already added above; just give brief praise
+                        reviewResponse = `${praise} Now let's put those words into phrases!`;
+                    } else {
+                        const nextMeaning = scenarioDataForMatch.vocabulary[REVIEW_MAP[round + 1] ?? 0]?.meaning || 'hello';
+                        reviewResponse = `${praise} What's the word for "${nextMeaning}"?`;
+                    }
+                } else {
+                    reviewResponse = lastWasFailure && reviewExpectedWord
+                        ? `The answer was **${reviewExpectedWord}**! Let's try again — what's the word for "${currentMeaning}"?`
+                        : `Not quite! What's the word for "${currentMeaning}"?`;
+                }
+
+                setMessages(prev => [...prev, { role: 'assistant', content: reviewResponse }]);
+                if (!isMuted && isMounted.current) {
+                    const audioUrl = await aiService.generateSpeech(reviewResponse, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+                    if (audioUrl && isMounted.current) {
+                        audioRef.current.src = audioUrl;
+                        audioRef.current.play().catch(() => {});
+                    }
+                }
+                setIsLoading(false);
+                return;
+            }
 
             // Build grammarNote for post-answer feedback (only shown AFTER correct answer)
             let postAnswerGrammarNote = '';
