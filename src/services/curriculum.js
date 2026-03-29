@@ -867,10 +867,780 @@ export const CURRICULUM = {
                 { prompt: "Ask 'What is his name?'.", correct: "Unka naam kya hai?", meaning: "What is his name?", hint: "His + name + what + is?" }
             ]
         }
+    ],
+    Odiya: [
+        {
+            scenario: "Pronouns & Greetings",
+            vocabulary: [
+                { word: "Namaskara", meaning: "Hello", phonetic: "nuh-muh-skuh-ruh" },
+                { word: "Mu", meaning: "I", phonetic: "moo" },
+                { word: "Apana", meaning: "You", phonetic: "ah-pun-uh" },
+                { word: "Bhala", meaning: "Fine", phonetic: "bhuh-luh" },
+                { word: "Kemiti", meaning: "How", phonetic: "keh-mee-tee" }
+            ],
+            phrases: [
+                { prompt: "Say 'Hello, I am fine'", correct: "Namaskara, mu bhala", meaning: "Hello, I am fine", hint: "Hello + I + fine" },
+                { prompt: "Ask 'How are you?' (formal)", correct: "Apana kemiti achhanti?", meaning: "How are you?", hint: "You + how + are?" },
+                { prompt: "Say 'I am fine, and you?'", correct: "Mu bhala, apana?", meaning: "I am fine, and you?", hint: "I + fine + you?" }
+            ],
+            conversations: [
+                { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskara, mu bhala", meaning: "Hello, I am fine", hint: "Basic greeting" },
+                { prompt: "Ask Miko how she is doing.", correct: "Miko, apana kemiti achhanti?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Someone asks 'Apana kemiti achhanti?'. Answer 'Mu bhala'.", correct: "Mu bhala", meaning: "I am fine", hint: "Direct answer" },
+                { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskara, mu bhala, apana kemiti achhanti?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
+            ]
+        },
+        {
+            scenario: "The 'What' & 'This/That'",
+            vocabulary: [
+                { word: "Eha", meaning: "This", phonetic: "eh-hah" },
+                { word: "Sehi", meaning: "That", phonetic: "seh-hee" },
+                { word: "Kana", meaning: "What", phonetic: "kuh-nuh" },
+                { word: "Bahi", meaning: "Book", phonetic: "buh-hee" },
+                { word: "Nama", meaning: "Name", phonetic: "nah-muh" }
+            ],
+            phrases: [
+                { prompt: "Ask 'What is this?'", correct: "Eha kana?", meaning: "What is this?", hint: "This + what?" },
+                { prompt: "Say 'This is a book'", correct: "Eha bahi", meaning: "This is a book", hint: "This + book" },
+                { prompt: "Ask 'What is that?'", correct: "Sehi kana?", meaning: "What is that?", hint: "That + what?" }
+            ],
+            conversations: [
+                { prompt: "Someone points to a book. Ask them what it is.", correct: "Eha kana?", meaning: "What is this?", hint: "Question for item" },
+                { prompt: "Point to a distant object and ask 'What is that?'", correct: "Sehi kana?", meaning: "What is that?", hint: "Distant question" },
+                { prompt: "Tell Miko 'This is my book' (using Eha bahi)", correct: "Eha bahi", meaning: "This is a book", hint: "Simple statement" },
+                { prompt: "Ask 'What is your name?'", correct: "Apana nka nama kana?", meaning: "What is your name?", hint: "Your + name + what?" }
+            ]
+        },
+        {
+            scenario: "The 'Where' & 'Going'",
+            vocabulary: [
+                { word: "Kouthi", meaning: "Where", phonetic: "kow-thee" },
+                { word: "Jaantu", meaning: "Go", phonetic: "jahn-too" },
+                { word: "Ethi", meaning: "Here", phonetic: "eh-thee" },
+                { word: "Sethi", meaning: "There", phonetic: "seh-thee" },
+                { word: "Ghara", meaning: "Home/House", phonetic: "guh-ruh" }
+            ],
+            phrases: [
+                { prompt: "Ask 'Where is the house?'", correct: "Ghara kouthi?", meaning: "Where is the house?", hint: "House + where?" },
+                { prompt: "Say 'Go there'", correct: "Sethi jaantu", meaning: "Go there", hint: "There + go" },
+                { prompt: "Say 'I am here'", correct: "Mu ethi achhi", meaning: "I am here", hint: "I + here + am" }
+            ],
+            conversations: [
+                { prompt: "Ask Miko where the home is.", correct: "Ghara kouthi?", meaning: "Where is the home?", hint: "Location question" },
+                { prompt: "Tell someone to go here.", correct: "Ethi jaantu", meaning: "Go here", hint: "Direction" },
+                { prompt: "Someone asks 'Apana kouthi?'. Answer 'I am here'.", correct: "Mu ethi achhi", meaning: "I am here", hint: "Response" },
+                { prompt: "Final Check: Say 'I am going home'.", correct: "Mu ghara ku jauchhi", meaning: "I go home", hint: "I + home + going" }
+            ]
+        },
+        {
+            scenario: "Desires & Negation",
+            vocabulary: [
+                { word: "Darakara", meaning: "Want", phonetic: "duh-ruh-kuh-ruh" },
+                { word: "Darakara nahi", meaning: "Don't want", phonetic: "duh-ruh-kuh-ruh nah-hee" },
+                { word: "Khana", meaning: "Food", phonetic: "khah-nuh" },
+                { word: "Pani", meaning: "Water", phonetic: "pah-nee" },
+                { word: "Hela", meaning: "Okay", phonetic: "heh-lah" }
+            ],
+            phrases: [
+                { prompt: "Say 'I want water'", correct: "Pani darakara", meaning: "I want water", hint: "Water + want" },
+                { prompt: "Say 'I don't want food'", correct: "Khana darakara nahi", meaning: "I don't want food", hint: "Food + don't want" },
+                { prompt: "Say 'Okay, I want this'", correct: "Hela, eha darakara", meaning: "Okay, I want this", hint: "Okay + this + want" }
+            ],
+            conversations: [
+                { prompt: "Miko offers you water. Say 'Yes, I want water'.", correct: "Han, pani darakara", meaning: "Yes, I want water", hint: "Yes + water + want" },
+                { prompt: "Someone offers you food you don't like. Say 'No, I don't want'.", correct: "Na, khana darakara nahi", meaning: "No, I don't want food", hint: "No + food + don't want" },
+                { prompt: "Ask for 'this book' saying 'I want this book'.", correct: "Eha bahi darakara", meaning: "I want this book", hint: "This + book + want" },
+                { prompt: "Say 'I don't want that'.", correct: "Sehi darakara nahi", meaning: "That + don't want", hint: "That + don't want" }
+            ]
+        },
+        {
+            scenario: "Possession",
+            vocabulary: [
+                { word: "Mora", meaning: "My", phonetic: "mo-ruh" },
+                { word: "Apana nka", meaning: "Your", phonetic: "ah-pun-uh-nkuh" },
+                { word: "Tanka", meaning: "His/Her", phonetic: "tun-kuh" },
+                { word: "Seta", meaning: "Its", phonetic: "seh-tah" },
+                { word: "Gapa", meaning: "Story", phonetic: "guh-puh" }
+            ],
+            phrases: [
+                { prompt: "Say 'My name'", correct: "Mora nama", meaning: "My name", hint: "My + name" },
+                { prompt: "Say 'Your book'", correct: "Apana nka bahi", meaning: "Your book", hint: "Your + book" },
+                { prompt: "Say 'His story'", correct: "Tanka gapa", meaning: "His story", hint: "His + story" }
+            ],
+            conversations: [
+                { prompt: "Introduce yourself: 'Hello, my name is Ravi'.", correct: "Namaskara, mora nama Ravi", meaning: "Hello, my name is Ravi", hint: "Greeting + My + Name" },
+                { prompt: "Identify a book as 'your book'.", correct: "Sehi apana nka bahi", meaning: "That is your book", hint: "That + your + book" },
+                { prompt: "Say 'This is my story'.", correct: "Eha mora gapa", meaning: "This is my story", hint: "This + my + story" },
+                { prompt: "Point to a teacher and say 'Her name'.", correct: "Tanka nama", meaning: "Her name", hint: "Her + name" }
+            ]
+        },
+        {
+            scenario: "The 'Who'",
+            vocabulary: [
+                { word: "Ke", meaning: "Who", phonetic: "keh" },
+                { word: "Bandhu", meaning: "Friend", phonetic: "bun-dhoo" },
+                { word: "Shikshaka", meaning: "Teacher", phonetic: "shik-shah-kuh" },
+                { word: "Bhai", meaning: "Brother", phonetic: "bhy" },
+                { word: "Bhauni", meaning: "Sister", phonetic: "bhow-nee" }
+            ],
+            phrases: [
+                { prompt: "Ask 'Who is this?'", correct: "Eha ke?", meaning: "Who is this?", hint: "This + who?" },
+                { prompt: "Say 'He is my friend'", correct: "Se mora bandhu", meaning: "He is my friend", hint: "He + my + friend" },
+                { prompt: "Ask 'Who are you?'", correct: "Apana ke?", meaning: "Who are you?", hint: "You + who?" }
+            ],
+            conversations: [
+                { prompt: "Someone knocks. Ask 'Who is it?'", correct: "Ke?", meaning: "Who?", hint: "Short question" },
+                { prompt: "Introduce Miko as your friend.", correct: "Miko mora bandhu", meaning: "Miko is my friend", hint: "Name + my + friend" },
+                { prompt: "Point to your teacher and say 'He is my teacher'.", correct: "Se mora shikshaka", meaning: "He is my teacher", hint: "He + my + teacher" },
+                { prompt: "Ask 'Who is your brother?'", correct: "Apana nka bhai ke?", meaning: "Who is your brother?", hint: "Your + brother + who?" }
+            ]
+        },
+        {
+            scenario: "Basic Numbers",
+            vocabulary: [
+                { word: "Eka", meaning: "One", phonetic: "eh-kuh" },
+                { word: "Dui", meaning: "Two", phonetic: "doo-ee" },
+                { word: "Tini", meaning: "Three", phonetic: "tee-nee" },
+                { word: "Chari", meaning: "Four", phonetic: "chah-ree" },
+                { word: "Pancha", meaning: "Five", phonetic: "pun-chuh" }
+            ],
+            phrases: [
+                { prompt: "Say 'One book'", correct: "Eka bahi", meaning: "One book", hint: "One + book" },
+                { prompt: "Say 'Two friends'", correct: "Dui bandhu", meaning: "Two friends", hint: "Two + friends" },
+                { prompt: "Say 'Five houses'", correct: "Pancha ghara", meaning: "Five houses", hint: "Five + houses" }
+            ],
+            conversations: [
+                { prompt: "Miko asks how many books. Say 'Three books'.", correct: "Tini bahi", meaning: "Three books", hint: "Three + books" },
+                { prompt: "Say 'I want two' (using Dui darakara).", correct: "Dui darakara", meaning: "I want two", hint: "Number + want" },
+                { prompt: "Tell Miko 'I have one sister' (using Mora bhauni eka).", correct: "Mora bhauni eka", meaning: "My sister one", hint: "My + sister + number" },
+                { prompt: "Count 1, 2, 3.", correct: "Eka, dui, tini", meaning: "1, 2, 3", hint: "Consecutive" }
+            ]
+        },
+        {
+            scenario: "Plurals",
+            vocabulary: [
+                { word: "Mane", meaning: "(People plural suffix)", phonetic: "mah-neh" },
+                { word: "Guda", meaning: "(Things plural suffix)", phonetic: "goo-dah" },
+                { word: "Bahiguda", meaning: "Books", phonetic: "buh-hee-goo-dah" },
+                { word: "Bandhumane", meaning: "Friends", phonetic: "bun-dhoo-mah-neh" },
+                { word: "Gharaguda", meaning: "Houses", phonetic: "guh-ruh-goo-dah" }
+            ],
+            phrases: [
+                { prompt: "Say 'Many books'", correct: "Bahut bahiguda", meaning: "Many books", hint: "Many + books" },
+                { prompt: "Convert 'Book' to 'Books'", correct: "Bahi bahiguda", meaning: "Book books", hint: "Singular + Plural" },
+                { prompt: "Say 'My friends'", correct: "Mora bandhumane", meaning: "My friends", hint: "My + friends" }
+            ],
+            conversations: [
+                { prompt: "Tell Miko you have many friends.", correct: "Mora bahut bandhumane achi", meaning: "My many friends are", hint: "My + many + friends" },
+                { prompt: "Ask 'Where are the books?'", correct: "Bahiguda kouthi?", meaning: "Where are the books?", hint: "Books + where?" },
+                { prompt: "Say 'I don't want these houses'.", correct: "Ehi gharaguda darakara nahi", meaning: "These houses not want", hint: "These + houses + don't want" },
+                { prompt: "Final check: Say 'Hello my friends'.", correct: "Namaskara mora bandhumane", meaning: "Hello my friends", hint: "Hello + my + friends" }
+            ]
+        },
+        {
+            scenario: "Basic Adjectives",
+            vocabulary: [
+                { word: "Bara", meaning: "Big", phonetic: "buh-ruh" },
+                { word: "Sana", meaning: "Small", phonetic: "suh-nuh" },
+                { word: "Bhala", meaning: "Good", phonetic: "bhuh-luh" },
+                { word: "Kharap", meaning: "Bad", phonetic: "khuh-ruhp" },
+                { word: "Garam", meaning: "Hot", phonetic: "guh-rum" }
+            ],
+            phrases: [
+                { prompt: "Say 'Big house'", correct: "Bara ghara", meaning: "Big house", hint: "Big + house" },
+                { prompt: "Say 'Good friend'", correct: "Bhala bandhu", meaning: "Good friend", hint: "Good + friend" },
+                { prompt: "Say 'Small water'", correct: "Sana pani", meaning: "Small water", hint: "Small + water" }
+            ],
+            conversations: [
+                { prompt: "Tell Miko 'This is a big book'.", correct: "Eha bara bahi", meaning: "This is a big book", hint: "This + big + book" },
+                { prompt: "Ask for 'Hot water' (Garam pani darakara).", correct: "Garam pani darakara", meaning: "I want hot water", hint: "Hot + water + want" },
+                { prompt: "Say 'He is a good teacher'.", correct: "Se bhala shikshaka", meaning: "He is a good teacher", hint: "He + good + teacher" },
+                { prompt: "Say 'That is bad'.", correct: "Sehi kharap", meaning: "That is bad", hint: "That + bad" }
+            ]
+        },
+        {
+            scenario: "Review & Survival Dialogue",
+            vocabulary: [
+                { word: "Khana", meaning: "Meal", phonetic: "khah-nuh" },
+                { word: "Bill", meaning: "Bill", phonetic: "bil" },
+                { word: "Diya", meaning: "Give", phonetic: "dee-yuh" },
+                { word: "Danyabada", meaning: "Thank you", phonetic: "dun-yuh-bah-duh" },
+                { word: "Baisa", meaning: "Sit", phonetic: "by-suh" }
+            ],
+            phrases: [
+                { prompt: "Say 'Please give the bill'", correct: "Bill diya", meaning: "Please give the bill", hint: "Bill + give" },
+                { prompt: "Say 'Thank you Miko'", correct: "Danyabada Miko", meaning: "Thank you Miko", hint: "Thanks + Name" },
+                { prompt: "Say 'I want a meal'", correct: "Khana darakara", meaning: "I want a meal", hint: "Meal + want" }
+            ],
+            conversations: [
+                { prompt: "Order a meal and water.", correct: "Khana darakara, pani darakara", meaning: "I want a meal, I want water", hint: "Meal + want + water + want" },
+                { prompt: "Ask the waiter for the bill.", correct: "Bill diya", meaning: "Please give the bill", hint: "Bill + give" },
+                { prompt: "Say 'This meal is good'.", correct: "Eha khana bhala", meaning: "This meal is good", hint: "This + meal + good" },
+                { prompt: "Final check: Say hello, thank you.", correct: "Namaskara, danyabada", meaning: "Hello, thank you", hint: "Greet + Thanks" }
+            ]
+        },
+        {
+            scenario: "Present Continuous",
+            vocabulary: [
+                { word: "Karuchhi", meaning: "am doing", phonetic: "kuh-roo-chhee" },
+                { word: "Khauchhi", meaning: "am eating", phonetic: "khow-chhee" },
+                { word: "Jauchhi", meaning: "am going", phonetic: "jow-chhee" },
+                { word: "Ebe", meaning: "Now", phonetic: "eh-beh" },
+                { word: "Kama", meaning: "Work", phonetic: "kah-muh" }
+            ],
+            phrases: [
+                { prompt: "Say 'I am doing work'", correct: "Mu kama karuchhi", meaning: "I am doing work", hint: "I + work + doing" },
+                { prompt: "Say 'I am going now'", correct: "Mu ebe jauchhi", meaning: "I am going now", hint: "I + now + going" },
+                { prompt: "Say 'I am eating food'", correct: "Mu khana khauchhi", meaning: "I am eating food", hint: "I + food + eating" }
+            ],
+            conversations: [
+                { prompt: "Miko asks what you're doing. Say 'I am doing work'.", correct: "Mu kama karuchhi", meaning: "I am doing work", hint: "I + work + doing" },
+                { prompt: "Tell someone 'I am going home now'.", correct: "Mu ebe ghara ku jauchhi", meaning: "I am going home now", hint: "I + now + home + going" },
+                { prompt: "Say 'I am eating' when asked.", correct: "Mu khauchhi", meaning: "I am eating", hint: "I + eating" },
+                { prompt: "Final check: 'I am doing this now'.", correct: "Mu ebe eha karuchhi", meaning: "I am doing this now", hint: "I + now + this + doing" }
+            ]
+        },
+        {
+            scenario: "The 'When' (Time)",
+            vocabulary: [
+                { word: "Aaji", meaning: "Today", phonetic: "ah-jee" },
+                { word: "Kaali", meaning: "Tomorrow", phonetic: "kah-lee" },
+                { word: "Agaru", meaning: "Yesterday", phonetic: "uh-guh-roo" },
+                { word: "Sebe", meaning: "Then/At that time", phonetic: "seh-beh" },
+                { word: "Ghanta", meaning: "Hour", phonetic: "ghun-tuh" }
+            ],
+            phrases: [
+                { prompt: "Say 'Today I am going'", correct: "Aaji mu jauchhi", meaning: "Today I am going", hint: "Today + I + going" },
+                { prompt: "Say 'Yesterday I did'", correct: "Agaru mu kaila", meaning: "Yesterday I did", hint: "Yesterday + I + did" },
+                { prompt: "Say 'Tomorrow one hour'", correct: "Kaali eka ghanta", meaning: "Tomorrow one hour", hint: "Tomorrow + one + hour" }
+            ],
+            conversations: [
+                { prompt: "Tell Miko you are going today.", correct: "Aaji mu jauchhi", meaning: "Today I am going", hint: "Today + I + going" },
+                { prompt: "Say 'I will do it tomorrow'.", correct: "Mu kaali kariba", meaning: "I will do tomorrow", hint: "I + tomorrow + will do" },
+                { prompt: "Ask 'Are you going today?' (simple).", correct: "Aaji apana jauchha?", meaning: "Are you going today?", hint: "Today + you + going?" },
+                { prompt: "Say 'I ate yesterday'.", correct: "Mu agaru khaila", meaning: "I ate yesterday", hint: "I + yesterday + ate" }
+            ]
+        },
+        {
+            scenario: "Simple Past Tense",
+            vocabulary: [
+                { word: "Kaila", meaning: "Did", phonetic: "ky-luh" },
+                { word: "Gela", meaning: "Went", phonetic: "geh-luh" },
+                { word: "Khaila", meaning: "Ate", phonetic: "khy-luh" },
+                { word: "Dekhila", meaning: "Saw", phonetic: "deh-khee-luh" },
+                { word: "Kahila", meaning: "Said", phonetic: "kuh-hee-luh" }
+            ],
+            phrases: [
+                { prompt: "Say 'I went home'", correct: "Mu ghara ku gela", meaning: "I went home", hint: "I + home + went" },
+                { prompt: "Say 'I saw that'", correct: "Mu sehi dekhila", meaning: "I saw that", hint: "I + that + saw" },
+                { prompt: "Say 'I ate food'", correct: "Mu khana khaila", meaning: "I ate food", hint: "I + food + ate" }
+            ],
+            conversations: [
+                { prompt: "Miko asks about your trip. Say 'I went there'.", correct: "Mu sethi gela", meaning: "I went there", hint: "I + there + went" },
+                { prompt: "Say 'I did that yesterday'.", correct: "Mu agaru sehi kaila", meaning: "I yesterday that did", hint: "I + yesterday + that + did" },
+                { prompt: "Confirm you saw Miko.", correct: "Mu Miko ku dekhila", meaning: "I saw Miko", hint: "I + name + saw" },
+                { prompt: "Final check: 'I went and I ate'.", correct: "Mu gela, mu khaila", meaning: "I went, I ate", hint: "I + went + I + ate" }
+            ]
+        },
+        {
+            scenario: "Simple Future Tense",
+            vocabulary: [
+                { word: "Kariba", meaning: "Will do", phonetic: "kuh-ree-buh" },
+                { word: "Jaiba", meaning: "Will go", phonetic: "jy-buh" },
+                { word: "Khaiba", meaning: "Will eat", phonetic: "khy-buh" },
+                { word: "Dekhiba", meaning: "Will see", phonetic: "deh-khee-buh" },
+                { word: "Kaali", meaning: "Tomorrow", phonetic: "kah-lee" }
+            ],
+            phrases: [
+                { prompt: "Say 'I will go tomorrow'", correct: "Mu kaali jaiba", meaning: "I will go tomorrow", hint: "I + tomorrow + will go" },
+                { prompt: "Say 'I will eat now'", correct: "Mu ebe khaiba", meaning: "I will eat now", hint: "I + now + will eat" },
+                { prompt: "Say 'I will see you'", correct: "Mu apananka dekhiba", meaning: "I will see you", hint: "I + you + will see" }
+            ],
+            conversations: [
+                { prompt: "Miko asks if you'll help. Say 'I will do it'.", correct: "Mu kariba", meaning: "I will do", hint: "I + will do" },
+                { prompt: "Tell someone 'I will go home tomorrow'.", correct: "Mu kaali ghara ku jaiba", meaning: "I will go home tomorrow", hint: "I + tomorrow + home + will go" },
+                { prompt: "Say 'I will see that film'.", correct: "Mu sehi film dekhiba", meaning: "I will see that film", hint: "I + that + film + will see" },
+                { prompt: "Final check: 'I will eat soon'.", correct: "Mu shighra khaiba", meaning: "I will eat soon", hint: "I + soon + will eat" }
+            ]
+        },
+        {
+            scenario: "Asking 'Why'",
+            vocabulary: [
+                { word: "Kena", meaning: "Why", phonetic: "keh-nuh" },
+                { word: "Tenu", meaning: "Therefore/That's why", phonetic: "teh-noo" },
+                { word: "Bhala lage", meaning: "Like", phonetic: "bhuh-luh lah-geh" },
+                { word: "Nahi", meaning: "Not", phonetic: "nah-hee" },
+                { word: "Bhaya", meaning: "Fear", phonetic: "bhuh-yuh" }
+            ],
+            phrases: [
+                { prompt: "Ask 'Why are you going?'", correct: "Apana kena jauchha?", meaning: "Why are you going?", hint: "You + why + going?" },
+                { prompt: "Say 'Because I like it'", correct: "Tenu mote bhala lage", meaning: "That's why I like it", hint: "Because + me + like" },
+                { prompt: "Ask 'Why this?'", correct: "Eha kena?", meaning: "Why this?", hint: "This + why?" }
+            ],
+            conversations: [
+                { prompt: "Miko asks why you're leaving. Say 'Because I am going'.", correct: "Tenu mu jauchhi", meaning: "That's why I am going", hint: "Because + I + going" },
+                { prompt: "Ask someone why they want that.", correct: "Sehi kena darakara?", meaning: "Why want that?", hint: "That + why + want?" },
+                { prompt: "Say 'I don't know why'.", correct: "Mu kena janina", meaning: "I don't know why", hint: "I + why + not know" },
+                { prompt: "Ask 'Why are you here?'", correct: "Apana kena ethi?", meaning: "Why are you here?", hint: "You + why + here?" }
+            ]
+        },
+        {
+            scenario: "The 'How'",
+            vocabulary: [
+                { word: "Kemiti", meaning: "How", phonetic: "keh-mee-tee" },
+                { word: "Bhali", meaning: "Well/Very", phonetic: "bhuh-lee" },
+                { word: "Sighara", meaning: "Quickly", phonetic: "see-ghuh-ruh" },
+                { word: "Ahiste", meaning: "Slowly", phonetic: "ah-his-teh" },
+                { word: "Khushi", meaning: "Happy", phonetic: "khoo-shee" }
+            ],
+            phrases: [
+                { prompt: "Ask 'How to do?'", correct: "Kemiti kariba?", meaning: "How to do?", hint: "How + do?" },
+                { prompt: "Say 'Go slowly'", correct: "Ahiste jaantu", meaning: "Go slowly", hint: "Slowly + go" },
+                { prompt: "Say 'I am doing well'", correct: "Mu bhali karuchhi", meaning: "I am doing well", hint: "I + well + doing" }
+            ],
+            conversations: [
+                { prompt: "Ask Miko how to eat this.", correct: "Eha kemiti khaiba?", meaning: "How to eat this?", hint: "This + how + eat?" },
+                { prompt: "Tell someone to do it quickly.", correct: "Sighara kariba", meaning: "Do quickly", hint: "Quickly + do" },
+                { prompt: "Say 'I am very happy'.", correct: "Mu bhali khushi", meaning: "I am very happy", hint: "I + well + happy" },
+                { prompt: "Ask 'How is your friend?'", correct: "Apana nka bandhu kemiti achi?", meaning: "How is your friend?", hint: "Your + friend + how + is?" }
+            ]
+        },
+        {
+            scenario: "Family Relations",
+            vocabulary: [
+                { word: "Maa", meaning: "Mother", phonetic: "mah" },
+                { word: "Bapa", meaning: "Father", phonetic: "bah-puh" },
+                { word: "Bhai", meaning: "Elder Brother", phonetic: "bhy" },
+                { word: "Bhauni", meaning: "Elder Sister", phonetic: "bhow-nee" },
+                { word: "Parivara", meaning: "Family", phonetic: "puh-ree-vah-ruh" }
+            ],
+            phrases: [
+                { prompt: "Say 'My mother'", correct: "Mora maa", meaning: "My mother", hint: "My + mother" },
+                { prompt: "Say 'Your father'", correct: "Apana nka bapa", meaning: "Your father", hint: "Your + father" },
+                { prompt: "Say 'This is my family'", correct: "Eha mora parivara", meaning: "This is my family", hint: "This + my + family" }
+            ],
+            conversations: [
+                { prompt: "Introduce your mother to Miko.", correct: "Eha mora maa", meaning: "This is my mother", hint: "This + my + mother" },
+                { prompt: "Ask 'Where is your home?'", correct: "Apana nka ghara kouthi?", meaning: "Where is your home?", hint: "Your + house + where?" },
+                { prompt: "Say 'My brother is a good friend'.", correct: "Mora bhai bhala bandhu", meaning: "My brother is a good friend", hint: "My + brother + good + friend" },
+                { prompt: "Point to a photo: 'My elder sister'.", correct: "Mora bhauni", meaning: "My elder sister", hint: "My + sister" }
+            ]
+        },
+        {
+            scenario: "Daily Routine",
+            vocabulary: [
+                { word: "Nidha", meaning: "Sleep", phonetic: "nee-dhuh" },
+                { word: "Snana", meaning: "Bath", phonetic: "snah-nuh" },
+                { word: "Kama", meaning: "Work", phonetic: "kah-muh" },
+                { word: "Uthiba", meaning: "Wake up", phonetic: "oo-thee-buh" },
+                { word: "Ranna", meaning: "Cook", phonetic: "run-nuh" }
+            ],
+            phrases: [
+                { prompt: "Say 'I am sleeping'", correct: "Mu nidha jauchhi", meaning: "I am going to sleep", hint: "I + sleep + going" },
+                { prompt: "Say 'I want a bath'", correct: "Snana darakara", meaning: "I want a bath", hint: "Bath + want" },
+                { prompt: "Say 'I am cooking food'", correct: "Mu khana ranna karuchhi", meaning: "I am cooking food", hint: "I + food + cook + doing" }
+            ],
+            conversations: [
+                { prompt: "Tell Miko you are waking up now.", correct: "Mu ebe uthuchhi", meaning: "I am waking up now", hint: "I + now + wake up" },
+                { prompt: "Say 'I have work today'.", correct: "Aaji mora kama achi", meaning: "Today my work is", hint: "Today + my + work + is" },
+                { prompt: "Say 'I will sleep later'.", correct: "Mu pore nidha jaiba", meaning: "I will sleep later", hint: "I + later + sleep" },
+                { prompt: "Ask Miko 'Did you eat?' (simple).", correct: "Apana khaila?", meaning: "Did you eat?", hint: "You + ate?" }
+            ]
+        },
+        {
+            scenario: "Colors & Clothes",
+            vocabulary: [
+                { word: "Ranga", meaning: "Color", phonetic: "run-guh" },
+                { word: "Kapada", meaning: "Clothes", phonetic: "kuh-puh-duh" },
+                { word: "Dhala", meaning: "White", phonetic: "dhuh-luh" },
+                { word: "Kala", meaning: "Black", phonetic: "kuh-luh" },
+                { word: "Lal", meaning: "Red", phonetic: "lul" }
+            ],
+            phrases: [
+                { prompt: "Say 'Red color'", correct: "Lal ranga", meaning: "Red color", hint: "Red + color" },
+                { prompt: "Say 'White clothes'", correct: "Dhala kapada", meaning: "White clothes", hint: "White + clothes" },
+                { prompt: "Say 'I want black'", correct: "Kala darakara", meaning: "I want black", hint: "Black + want" }
+            ],
+            conversations: [
+                { prompt: "Miko asks your favorite color. Say 'I like red'.", correct: "Mora lal bhala lage", meaning: "I like red", hint: "My + red + like" },
+                { prompt: "Say 'I want new clothes'.", correct: "Nua kapada darakara", meaning: "New clothes want", hint: "New + clothes + want" },
+                { prompt: "Point to a white shirt: 'This is white'.", correct: "Eha dhala", meaning: "This is white", hint: "This + white" },
+                { prompt: "Ask 'What color is that?'", correct: "Sehi kemiti ranga?", meaning: "What color is that?", hint: "That + what + color?" }
+            ]
+        },
+        {
+            scenario: "Review & Dialogue: Your Day",
+            vocabulary: [
+                { word: "Aaji", meaning: "Today", phonetic: "ah-jee" },
+                { word: "Bhali", meaning: "Well", phonetic: "bhuh-lee" },
+                { word: "Khushi", meaning: "Happy", phonetic: "khoo-shee" },
+                { word: "Mone pade", meaning: "Remember", phonetic: "mo-neh puh-deh" },
+                { word: "Thik", meaning: "Okay", phonetic: "theek" }
+            ],
+            phrases: [
+                { prompt: "Say 'Today was good'", correct: "Aaji bhala thila", meaning: "Today was good", hint: "Today + good + was" },
+                { prompt: "Say 'I am happy today'", correct: "Aaji mu khushi", meaning: "Today I am happy", hint: "Today + I + happy" },
+                { prompt: "Say 'I remember you'", correct: "Apananka mote mone pade", meaning: "You I remember", hint: "You + me + remember" }
+            ],
+            conversations: [
+                { prompt: "Miko asks about your day. Say 'It was good'.", correct: "Aaji bhala thila", meaning: "Today it was good", hint: "Today + good + was" },
+                { prompt: "Tell Miko 'I am going to work now'.", correct: "Mu ebe kama ku jauchhi", meaning: "I am going to work now", hint: "I + now + work + going" },
+                { prompt: "Say 'Okay, thank you'.", correct: "Thik, danyabada", meaning: "Okay, thank you", hint: "Okay + thanks" },
+                { prompt: "Final check: Say hello, I am very happy.", correct: "Namaskara, mu bhali khushi", meaning: "Hello, I am very happy", hint: "Hello + I + well + happy" }
+            ]
+        },
+        {
+            scenario: "Postpositions",
+            vocabulary: [
+                { word: "Re", meaning: "In/At", phonetic: "reh" },
+                { word: "Upare", meaning: "On/Above", phonetic: "oo-puh-reh" },
+                { word: "Tale", meaning: "Under", phonetic: "tah-leh" },
+                { word: "Sange", meaning: "With", phonetic: "sun-geh" },
+                { word: "Pakhe", meaning: "Near", phonetic: "puh-kheh" }
+            ],
+            phrases: [
+                { prompt: "Say 'In the house'", correct: "Ghara re", meaning: "In the house", hint: "House + in" },
+                { prompt: "Say 'On the book'", correct: "Bahi upare", meaning: "On the book", hint: "Book + on" },
+                { prompt: "Say 'With me'", correct: "Mora sange", meaning: "With me", hint: "My + with" }
+            ],
+            conversations: [
+                { prompt: "Miko asks where you are. Say 'I am in the house'.", correct: "Mu ghara re achi", meaning: "I am in the house", hint: "I + house + in + am" },
+                { prompt: "Tell someone to sit near you.", correct: "Mora pakhe baisa", meaning: "Sit near me", hint: "My + near + sit" },
+                { prompt: "Tell Miko 'Go with him'.", correct: "Tanka sange jaantu", meaning: "Go with him", hint: "He + with + go" },
+                { prompt: "Say 'Under the big tree'.", correct: "Bara gachha tale", meaning: "Under big tree", hint: "Big + tree + under" }
+            ]
+        },
+        {
+            scenario: "The 'Can' & 'Can't'",
+            vocabulary: [
+                { word: "Pariba", meaning: "Can", phonetic: "puh-ree-buh" },
+                { word: "Pariba nahi", meaning: "Can't", phonetic: "puh-ree-buh nah-hee" },
+                { word: "Kariba pariba", meaning: "Can do", phonetic: "kuh-ree-buh puh-ree-buh" },
+                { word: "Kahiba", meaning: "Speak", phonetic: "kuh-hee-buh" },
+                { word: "Sahayata", meaning: "Help", phonetic: "suh-hah-yuh-tuh" }
+            ],
+            phrases: [
+                { prompt: "Say 'I can do'", correct: "Mu kariba pariba", meaning: "I can do", hint: "I + can do" },
+                { prompt: "Say 'I can't go'", correct: "Mu jaiba pariba nahi", meaning: "I cannot go", hint: "I + go + cannot" },
+                { prompt: "Say 'I can speak Odia'", correct: "Mu Odia kahiba pariba", meaning: "I can speak Odia", hint: "I + Odia + speak + can" }
+            ],
+            conversations: [
+                { prompt: "Miko asks if you can help. Say 'I can help'.", correct: "Mu sahayata kariba pariba", meaning: "I can help", hint: "I + help + can do" },
+                { prompt: "Tell someone 'I can't come today'.", correct: "Aaji mu aasiba pariba nahi", meaning: "Today I cannot come", hint: "Today + I + come + cannot" },
+                { prompt: "Say 'I can see that'.", correct: "Mu sehi dekhiba pariba", meaning: "I can see that", hint: "I + that + see + can" },
+                { prompt: "Final check: 'I can't do this now'.", correct: "Mu ebe eha kariba pariba nahi", meaning: "I now this cannot do", hint: "I + now + this + cannot do" }
+            ]
+        },
+        {
+            scenario: "Should & Must",
+            vocabulary: [
+                { word: "Uchhita", meaning: "Should", phonetic: "oo-chhee-tuh" },
+                { word: "Darikar", meaning: "Must/Need", phonetic: "duh-ree-kur" },
+                { word: "Kariba uchhita", meaning: "Must do", phonetic: "kuh-ree-buh oo-chhee-tuh" },
+                { word: "Jaiba uchhita", meaning: "Must go", phonetic: "jy-buh oo-chhee-tuh" },
+                { word: "Khaiba uchhita", meaning: "Must eat", phonetic: "khy-buh oo-chhee-tuh" }
+            ],
+            phrases: [
+                { prompt: "Say 'I must go'", correct: "Mu jaiba uchhita", meaning: "I must go", hint: "I + must go" },
+                { prompt: "Say 'I must do work'", correct: "Mu kama kariba uchhita", meaning: "I must do work", hint: "I + work + must do" },
+                { prompt: "Say 'I must speak Odia'", correct: "Mu Odia kahiba uchhita", meaning: "I must speak Odia", hint: "I + Odia + must speak" }
+            ],
+            conversations: [
+                { prompt: "Miko says it's late. Say 'I must go home now'.", correct: "Mu ebe ghara ku jaiba uchhita", meaning: "I must go home now", hint: "I + now + home + must go" },
+                { prompt: "Tell someone 'You must eat food'.", correct: "Apana khana khaiba uchhita", meaning: "You must eat food", hint: "You + food + must eat" },
+                { prompt: "Say 'I must see Miko today'.", correct: "Aaji mu Miko ku dekhiba uchhita", meaning: "Today I must see Miko", hint: "Today + I + name + must see" },
+                { prompt: "Final check: 'I must do this tomorrow'.", correct: "Mu kaali eha kariba uchhita", meaning: "I must do this tomorrow", hint: "I + tomorrow + this + must do" }
+            ]
+        },
+        {
+            scenario: "Conjunctions",
+            vocabulary: [
+                { word: "Ebam", meaning: "And", phonetic: "eh-bum" },
+                { word: "Kintu", meaning: "But", phonetic: "keen-too" },
+                { word: "Karana", meaning: "Because", phonetic: "kuh-ruh-nuh" },
+                { word: "Nahole", meaning: "Or", phonetic: "nuh-ho-leh" },
+                { word: "Thik", meaning: "Okay", phonetic: "theek" }
+            ],
+            phrases: [
+                { prompt: "Say 'I want water and food'", correct: "Pani ebam khana darakara", meaning: "Water and food want", hint: "Water + and + food + want" },
+                { prompt: "Say 'I want this but not that'", correct: "Eha darakara kintu sehi darakara nahi", meaning: "I want this but that don't want", hint: "This + want + but + that + don't want" },
+                { prompt: "Say 'This or that?'", correct: "Eha nahole sehi?", meaning: "This or that?", hint: "This + or + that?" }
+            ],
+            conversations: [
+                { prompt: "Miko asks what you want. Say 'Coffee and water'.", correct: "Coffee ebam pani darakara", meaning: "Coffee and water want", hint: "Coffee + and + water + want" },
+                { prompt: "Say 'I want to go but I have work'.", correct: "Mu jaiba darakara kintu mora kama achi", meaning: "I must go but I have work", hint: "I + go + but + I + work" },
+                { prompt: "Say 'Because I'm happy'.", correct: "Karana mu khushi", meaning: "Because I am happy", hint: "Because + I + happy" },
+                { prompt: "Final check: 'Rice or bread?'", correct: "Bhata nahole roti?", meaning: "Rice or bread?", hint: "Rice + or + bread?" }
+            ]
+        },
+        {
+            scenario: "The 'If' Clause",
+            vocabulary: [
+                { word: "Jadi", meaning: "If", phonetic: "juh-dee" },
+                { word: "Tahole", meaning: "Then", phonetic: "tuh-ho-leh" },
+                { word: "Thile", meaning: "If there is", phonetic: "thee-leh" },
+                { word: "Gale", meaning: "If going", phonetic: "guh-leh" },
+                { word: "Khale", meaning: "If eating", phonetic: "khuh-leh" }
+            ],
+            phrases: [
+                { prompt: "Say 'If it is here'", correct: "Jadi ethi thile", meaning: "If it is here", hint: "If + here + there is" },
+                { prompt: "Say 'If you go, then...'", correct: "Apana gale tahole", meaning: "If you go then", hint: "You + go(if) + then" },
+                { prompt: "Say 'If I do work'", correct: "Jadi mu kama kariba", meaning: "If I do work", hint: "If + I + work + do" }
+            ],
+            conversations: [
+                { prompt: "Tell Miko 'If you are happy, I am happy'.", correct: "Jadi apana khushi, tahole mu khushi", meaning: "If you are happy I am happy", hint: "If + you + happy + then + I + happy" },
+                { prompt: "Say 'If there is water, I will drink'.", correct: "Jadi pani thile mu phibi", meaning: "If water is there I will drink", hint: "If + water + is + I + drink" },
+                { prompt: "Say 'If you want, take it'.", correct: "Jadi apana darakara, niya", meaning: "If you want, take", hint: "If + you + want + take" },
+                { prompt: "Final check: 'If tomorrow comes...'", correct: "Jadi kaali aasiba", meaning: "If tomorrow comes", hint: "If + tomorrow + comes" }
+            ]
+        },
+        {
+            scenario: "Feeling Words",
+            vocabulary: [
+                { word: "Khushi", meaning: "Happy", phonetic: "khoo-shee" },
+                { word: "Dukha", meaning: "Sad", phonetic: "doo-khuh" },
+                { word: "Raga", meaning: "Angry", phonetic: "rah-guh" },
+                { word: "Thaka", meaning: "Tired", phonetic: "thuh-kuh" },
+                { word: "Bhaya", meaning: "Scared/Fear", phonetic: "bhuh-yuh" }
+            ],
+            phrases: [
+                { prompt: "Say 'I am tired'", correct: "Mu thaka", meaning: "I am tired", hint: "I + tired" },
+                { prompt: "Say 'Are you angry?'", correct: "Apana ku raga huchi?", meaning: "Are you angry?", hint: "You + angry + are?" },
+                { prompt: "Say 'Don't be sad'", correct: "Dukha kara nahi", meaning: "Don't be sad", hint: "Sad + do not" }
+            ],
+            conversations: [
+                { prompt: "Miko asks how you feel. Say 'I am happy'.", correct: "Mu khushi", meaning: "I am happy", hint: "I + happy" },
+                { prompt: "Tell someone you are not scared.", correct: "Mora bhaya nahi", meaning: "I have no fear", hint: "My + fear + not" },
+                { prompt: "Say 'I am very tired today'.", correct: "Aaji mu bhali thaka", meaning: "Today I am very tired", hint: "Today + I + well + tired" },
+                { prompt: "Point to a sad friend: 'He is sad'.", correct: "Se dukhi achi", meaning: "He is sad", hint: "He + sad + is" }
+            ]
+        },
+        {
+            scenario: "Advanced Numbers & Money",
+            vocabulary: [
+                { word: "Tanka", meaning: "Money", phonetic: "tun-kuh" },
+                { word: "Sho", meaning: "Hundred", phonetic: "sho" },
+                { word: "Hajara", meaning: "Thousand", phonetic: "huh-jah-ruh" },
+                { word: "Lakh", meaning: "Lakh", phonetic: "lukh" },
+                { word: "Khuchura", meaning: "Change (coins)", phonetic: "khoo-choo-ruh" }
+            ],
+            phrases: [
+                { prompt: "Say 'Hundred rupees'", correct: "Eka sho tanka", meaning: "100 rupees", hint: "One + hundred + money" },
+                { prompt: "Say 'I have money'", correct: "Mora tanka achi", meaning: "I have money", hint: "My + money + is" },
+                { prompt: "Say 'Give change'", correct: "Khuchura diya", meaning: "Give change", hint: "Change + give" }
+            ],
+            conversations: [
+                { prompt: "Ask the price in thousands.", correct: "Eka hajara tanka?", meaning: "1000 rupees?", hint: "One + thousand + money?" },
+                { prompt: "Tell Miko you don't have change.", correct: "Mora khuchura nahi", meaning: "I don't have change", hint: "My + change + not" },
+                { prompt: "Say 'That costs one lakh'.", correct: "Sehi eka lakh tanka", meaning: "That is 1 lakh rupees", hint: "That + one + lakh + money" },
+                { prompt: "Ask 'Do you have money?'", correct: "Apana nka tanka achi?", meaning: "Do you have money?", hint: "Your + money + is?" }
+            ]
+        },
+        {
+            scenario: "Weather & Travel",
+            vocabulary: [
+                { word: "Garam", meaning: "Hot", phonetic: "guh-rum" },
+                { word: "Yatra", meaning: "Trip/Travel", phonetic: "yuh-truh" },
+                { word: "Ticket", meaning: "Ticket", phonetic: "tik-it" },
+                { word: "Bus", meaning: "Bus", phonetic: "bus" },
+                { word: "Bata", meaning: "Weather", phonetic: "buh-tuh" }
+            ],
+            phrases: [
+                { prompt: "Say 'It's very hot today'", correct: "Aaji bhali garam", meaning: "Today very hot", hint: "Today + well + hot" },
+                { prompt: "Say 'I want a bus ticket'", correct: "Bus ticket darakara", meaning: "I want a bus ticket", hint: "Bus + ticket + want" },
+                { prompt: "Say 'Safe trip'", correct: "Bhala yatra", meaning: "Good trip", hint: "Good + trip" }
+            ],
+            conversations: [
+                { prompt: "Miko asks about the weather. Say 'It is raining' (Brishti paduchhi).", correct: "Brishti paduchhi", meaning: "Rain is falling", hint: "Rain + falling" },
+                { prompt: "Ask someone 'Where is the bus?'", correct: "Bus kouthi?", meaning: "Where is the bus?", hint: "Bus + where?" },
+                { prompt: "Say 'I am going on a trip tomorrow'.", correct: "Kaali mu yatra ku jauchhi", meaning: "Tomorrow I am going on a trip", hint: "Tomorrow + I + trip + going" },
+                { prompt: "Final check: 'Hot weather today'.", correct: "Aaji garam bata", meaning: "Today hot weather", hint: "Today + hot + weather" }
+            ]
+        },
+        {
+            scenario: "Slang & Fillers",
+            vocabulary: [
+                { word: "Na", meaning: "Right?", phonetic: "nuh" },
+                { word: "Dekha", meaning: "Look/See", phonetic: "deh-khuh" },
+                { word: "Thik", meaning: "Okay", phonetic: "theek" },
+                { word: "Ta", meaning: "Um/So", phonetic: "tuh" },
+                { word: "Han", meaning: "Yes", phonetic: "hun" }
+            ],
+            phrases: [
+                { prompt: "Say 'It's good, right?'", correct: "Bhala, na?", meaning: "Good, right?", hint: "Good + right?" },
+                { prompt: "Say 'Look there!'", correct: "Sethi dekha!", meaning: "Look there!", hint: "There + look" },
+                { prompt: "Say 'Okay, I agree'", correct: "Thik, han", meaning: "Okay, yes", hint: "Okay + yes" }
+            ],
+            conversations: [
+                { prompt: "Miko says something. Respond with 'Right?' (Na?)", correct: "Na?", meaning: "Right?", hint: "Filler word" },
+                { prompt: "Point to Miko: 'Look at Miko!'", correct: "Miko ku dekha!", meaning: "See Miko!", hint: "Name + look" },
+                { prompt: "Say 'Okay okay' (Thik thik).", correct: "Thik thik", meaning: "Okay okay", hint: "Double filler" },
+                { prompt: "Confirm: 'Yes, it is big, right?'", correct: "Han, eha bara, na?", meaning: "Yes, this is big, right?", hint: "Yes + this + big + right?" }
+            ]
+        },
+        {
+            scenario: "Final Capstone",
+            vocabulary: [
+                { word: "Badhila", meaning: "Grew up", phonetic: "buh-dhee-luh" },
+                { word: "Kahiba pariba", meaning: "Can speak", phonetic: "kuh-hee-buh puh-ree-buh" },
+                { word: "Khushira sathe", meaning: "Happily", phonetic: "khoo-shee-ruh suh-theh" },
+                { word: "Odia", meaning: "Odia", phonetic: "oh-dee-yuh" },
+                { word: "Mu", meaning: "I", phonetic: "moo" }
+            ],
+            phrases: [
+                { prompt: "Say 'I can speak Odia'", correct: "Mu Odia kahiba pariba", meaning: "I can speak Odia", hint: "I + Odia + speak + can" },
+                { prompt: "Say 'I am speaking happily'", correct: "Mu khushira sathe kahuchhi", meaning: "I am speaking happily", hint: "I + happily + speaking" },
+                { prompt: "Say 'This is my final'", correct: "Eha mora final", meaning: "This is my final", hint: "This + my + final" }
+            ],
+            conversations: [
+                { prompt: "Tell Miko your full story: 'Hello, I am Ravi, I can speak Odia.'", correct: "Namaskara, mu Ravi, mu Odia kahiba pariba", meaning: "Hello, I am Ravi, I can speak Odia", hint: "Greeting + I + Name + I + Odia + speak can" },
+                { prompt: "Say 'I am very happy today'.", correct: "Aaji mu bhali khushi", meaning: "Today I am very happy", hint: "Today + I + well + happy" },
+                { prompt: "Tell someone 'I am from Odisha and I grew up there'.", correct: "Mu Odisha ru, mu sethi badhila", meaning: "I from Odisha, I there grew up", hint: "I Odisha from, I there grew up" },
+                { prompt: "Final Check: 'Now, I can speak Odia nicely!'", correct: "Ebe mu Odia bhali kahiba pariba", meaning: "Now I can speak Odia nicely", hint: "Now + I + Odia + well + speak can" }
+            ]
+        }
+    ],
+    Tamil: [
+        {
+            scenario: "Pronouns & Greetings",
+            vocabulary: [
+                { word: "Vanakkam", meaning: "Hello", phonetic: "vuh-nuk-kum" },
+                { word: "Naan", meaning: "I", phonetic: "naan" },
+                { word: "Neenga", meaning: "You", phonetic: "neen-guh" },
+                { word: "Nalla", meaning: "Fine", phonetic: "nul-luh" },
+                { word: "Eppadi", meaning: "How", phonetic: "ep-puh-dee" }
+            ],
+            phrases: [
+                { prompt: "Say 'Hello, I am fine'", correct: "Vanakkam, naan nalla irukken", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
+                { prompt: "Ask 'How are you?' (formal)", correct: "Neenga eppadi irukkeenga?", meaning: "How are you?", hint: "You + how + are?" },
+                { prompt: "Say 'I am fine, and you?'", correct: "Naan nalla irukken, neenga?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
+            ],
+            conversations: [
+                { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Vanakkam, naan nalla irukken", meaning: "Hello, I am fine", hint: "Basic greeting" },
+                { prompt: "Ask Miko how she is doing.", correct: "Miko, neenga eppadi irukkeenga?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Someone asks 'Neenga eppadi irukkeenga?'. Answer 'Naan nalla irukken'.", correct: "Naan nalla irukken", meaning: "I am fine", hint: "Direct answer" },
+                { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Vanakkam, naan nalla irukken, neenga eppadi irukkeenga?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
+            ]
+        }
+    ],
+    Bengali: [
+        {
+            scenario: "Pronouns & Greetings",
+            vocabulary: [
+                { word: "Namaskar", meaning: "Hello", phonetic: "nuh-mush-kar" },
+                { word: "Ami", meaning: "I", phonetic: "ah-mee" },
+                { word: "Apni", meaning: "You", phonetic: "up-nee" },
+                { word: "Bhalo", meaning: "Fine", phonetic: "bhah-lo" },
+                { word: "Kemon", meaning: "How", phonetic: "keh-mon" }
+            ],
+            phrases: [
+                { prompt: "Say 'Hello, I am fine'", correct: "Namaskar, ami bhalo achi", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
+                { prompt: "Ask 'How are you?' (formal)", correct: "Apni kemon achen?", meaning: "How are you?", hint: "You + how + are?" },
+                { prompt: "Say 'I am fine, and you?'", correct: "Ami bhalo achi, apni?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
+            ],
+            conversations: [
+                { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskar, ami bhalo achi", meaning: "Hello, I am fine", hint: "Basic greeting" },
+                { prompt: "Ask Miko how she is doing.", correct: "Miko, apni kemon achen?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Someone asks 'Apni kemon achen?'. Answer 'Ami bhalo achi'.", correct: "Ami bhalo achi", meaning: "I am fine", hint: "Direct answer" },
+                { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskar, ami bhalo achi, apni kemon achen?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
+            ]
+        }
+    ],
+    Marathi: [
+        {
+            scenario: "Pronouns & Greetings",
+            vocabulary: [
+                { word: "Namaskar", meaning: "Hello", phonetic: "nuh-mus-kar" },
+                { word: "Mi", meaning: "I", phonetic: "mee" },
+                { word: "Tumhi", meaning: "You", phonetic: "too-mhee" },
+                { word: "Thik", meaning: "Fine", phonetic: "theek" },
+                { word: "Kasa", meaning: "How", phonetic: "kuh-sah" }
+            ],
+            phrases: [
+                { prompt: "Say 'Hello, I am fine'", correct: "Namaskar, mi thik ahe", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
+                { prompt: "Ask 'How are you?' (formal)", correct: "Tumhi kasa ahat?", meaning: "How are you?", hint: "You + how + are?" },
+                { prompt: "Say 'I am fine, and you?'", correct: "Mi thik ahe, ani tumhi?", meaning: "I am fine, and you?", hint: "I + fine + am + and + you?" }
+            ],
+            conversations: [
+                { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskar, mi thik ahe", meaning: "Hello, I am fine", hint: "Basic greeting" },
+                { prompt: "Ask Miko how she is doing.", correct: "Miko, tumhi kasa ahat?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Someone asks 'Tumhi kasa ahat?'. Answer 'Mi thik ahe'.", correct: "Mi thik ahe", meaning: "I am fine", hint: "Direct answer" },
+                { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskar, mi thik ahe, tumhi kasa ahat?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
+            ]
+        }
+    ],
+    Malayalam: [
+        {
+            scenario: "Pronouns & Greetings",
+            vocabulary: [
+                { word: "Namaskkaram", meaning: "Hello", phonetic: "nuh-mus-kah-rum" },
+                { word: "Njan", meaning: "I", phonetic: "nyahn" },
+                { word: "Ningal", meaning: "You", phonetic: "neen-gul" },
+                { word: "Sugam", meaning: "Fine", phonetic: "soo-gum" },
+                { word: "Engane", meaning: "How", phonetic: "eng-uh-neh" }
+            ],
+            phrases: [
+                { prompt: "Say 'Hello, I am fine'", correct: "Namaskkaram, njan sugam-ayi irikkunnu", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
+                { prompt: "Ask 'How are you?' (formal)", correct: "Ningalude sugamano?", meaning: "How are you?", hint: "Your + fine?" },
+                { prompt: "Say 'I am fine, and you?'", correct: "Njan sugam-ayi irikkunnu, ningalo?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
+            ],
+            conversations: [
+                { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskkaram, njan sugam-ayi irikkunnu", meaning: "Hello, I am fine", hint: "Basic greeting" },
+                { prompt: "Ask Miko how she is doing.", correct: "Miko, sugamano?", meaning: "Miko, are you fine?", hint: "Name + fine?" },
+                { prompt: "Someone asks 'Sugamano?'. Answer 'Sugam' (Fine).", correct: "Sugam", meaning: "Fine", hint: "Direct answer" },
+                { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskkaram, njan sugam-ayi irikkunnu, ningalku sugamano?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
+            ]
+        }
+    ],
+    Urdu: [
+        {
+            scenario: "Pronouns & Greetings",
+            vocabulary: [
+                { word: "Assalamu Alaikum", meaning: "Hello", phonetic: "us-suh-lah-moo ah-lai-koom" },
+                { word: "Main", meaning: "I", phonetic: "mayn" },
+                { word: "Aap", meaning: "You", phonetic: "ahp" },
+                { word: "Theek", meaning: "Fine", phonetic: "theek" },
+                { word: "Kaise", meaning: "How", phonetic: "kai-say" }
+            ],
+            phrases: [
+                { prompt: "Say 'Hello, I am fine'", correct: "Assalamu Alaikum, main theek hoon", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
+                { prompt: "Ask 'How are you?' (formal)", correct: "Aap kaise hain?", meaning: "How are you?", hint: "You + how + are?" },
+                { prompt: "Say 'I am fine, and you?'", correct: "Main theek hoon, aap?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
+            ],
+            conversations: [
+                { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Assalamu Alaikum, main theek hoon", meaning: "Hello, I am fine", hint: "Basic greeting" },
+                { prompt: "Ask Miko how she is doing.", correct: "Miko, aap kaise hain?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Someone asks 'Aap kaise hain?'. Answer 'Main theek hoon'.", correct: "Main theek hoon", meaning: "I am fine", hint: "Direct answer" },
+                { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Assalamu Alaikum, main theek hoon, aap kaise hain?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
+            ]
+        }
+    ],
+    Punjabi: [
+        {
+            scenario: "Pronouns & Greetings",
+            vocabulary: [
+                { word: "Sat Sri Akaal", meaning: "Hello", phonetic: "sut sree ah-kahl" },
+                { word: "Main", meaning: "I", phonetic: "mayn" },
+                { word: "Tusi", meaning: "You", phonetic: "too-see" },
+                { word: "Theek", meaning: "Fine", phonetic: "theek" },
+                { word: "Ki haal", meaning: "How", phonetic: "kee hahl" }
+            ],
+            phrases: [
+                { prompt: "Say 'Hello, I am fine'", correct: "Sat Sri Akaal, main theek haan", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
+                { prompt: "Ask 'How are you?' (formal)", correct: "Tusi ki haal ho?", meaning: "How are you?", hint: "You + how + are?" },
+                { prompt: "Say 'I am fine, and you?'", correct: "Main theek haan, tusi?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
+            ],
+            conversations: [
+                { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Sat Sri Akaal, main theek haan", meaning: "Hello, I am fine", hint: "Basic greeting" },
+                { prompt: "Ask Miko how she is doing.", correct: "Miko, tusi ki haal ho?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Someone asks 'Tusi ki haal ho?'. Answer 'Main theek haan'.", correct: "Main theek haan", meaning: "I am fine", hint: "Direct answer" },
+                { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Sat Sri Akaal, main theek haan, tusi ki haal ho?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
+            ]
+        }
     ]
 };
 
-const placeholders = CURRICULUM.Telugu.slice(5).map(s => ({
+const placeholders = CURRICULUM.Telugu.slice(1).map(s => ({
     ...s,
     scenario: s.scenario + " (Placeholder)",
     vocabulary: s.vocabulary.map(v => ({ ...v, word: v.word + "*" })),
@@ -880,3 +1650,9 @@ const placeholders = CURRICULUM.Telugu.slice(5).map(s => ({
 
 CURRICULUM.Kannada.push(...placeholders);
 CURRICULUM.Hindi.push(...placeholders);
+CURRICULUM.Tamil.push(...placeholders);
+CURRICULUM.Bengali.push(...placeholders);
+CURRICULUM.Marathi.push(...placeholders);
+CURRICULUM.Malayalam.push(...placeholders);
+CURRICULUM.Urdu.push(...placeholders);
+CURRICULUM.Punjabi.push(...placeholders);
