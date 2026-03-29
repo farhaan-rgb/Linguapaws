@@ -334,6 +334,11 @@ router.post('/transcribe', async (req, res) => {
         let usedEngine = 'none';
 
         // --- PHASE 1: Try Deepgram (Primary) ---
+        // Deepgram nova-2 supported language codes — unsupported langs fall back to 'hi' (best proxy for Indian languages)
+        const deepgramSupported = new Set(['en','es','fr','de','hi','pt','ja','nl','it','zh','sv','pl','ru','tr','ko','uk','ro','id','cs','da','no','ms','ca','fi','bg','sk','el','hu','vi','th','ar','pa']);
+        const deepgramLang = expectingTargetLang
+            ? (deepgramSupported.has(targetLangId) ? targetLangId : (targetLangId ? 'hi' : 'en'))
+            : (nativeLangId || 'en');
         if (process.env.DEEPGRAM_API_KEY) {
             try {
                 const deepgramClient = getDeepgram();
@@ -341,7 +346,7 @@ router.post('/transcribe', async (req, res) => {
                     buffer,
                     {
                         model: 'nova-2',
-                        language: expectingTargetLang ? (targetLangId || 'hi') : (nativeLangId || 'en'),
+                        language: deepgramLang,
                         smart_format: true,
                         punctuate: true,
                         // Search for the specific phrase if provided (high accuracy boost)
