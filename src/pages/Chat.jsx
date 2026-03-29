@@ -344,11 +344,11 @@ export default function Chat() {
         const len = Math.max(splitGraphemes(na).length, splitGraphemes(nb).length, 1);
         const score = 1 - dist / len;
 
-        // Soften "Almost Right" matches: if it's > 85%, and the difference is 
-        // just single vowels vs double vowels (ai vs ay), bump it up.
+        // Soften "Almost Right" matches: if it's > 80%, and the difference is 
+        // just single vowels vs double vowels (ai vs ay, ee vs i), bump it up.
         if (score > 0.8 && score < 1.0) {
-            const simplifiedA = na.replace(/[aeiouy]/g, 'v');
-            const simplifiedB = nb.replace(/[aeiouy]/g, 'v');
+            const simplifiedA = na.replace(/[aeiouy]+/g, 'v');
+            const simplifiedB = nb.replace(/[aeiouy]+/g, 'v');
             if (simplifiedA === simplifiedB) return 1.0;
         }
 
@@ -829,6 +829,8 @@ export default function Chat() {
             const promptedPhrase = extractPromptedPhrase(lastAssistant?.content || '');
             const threshold = 0.5;
             const actual = (text || '').replace(/[.!?]+$/g, '').trim();
+            // Detect pure native script (e.g. Telugu) — normalizeLatin strips everything, so local match won't work
+            const isPureNativeScript = actual.length > 0 && normalizeLatin(actual).length === 0;
 
             // Guard: reject trivial input (empty, punctuation-only, single char)
             const meaningfulChars = (actual.match(/[\p{L}\p{N}]/gu) || []).length;
@@ -989,11 +991,18 @@ export default function Chat() {
                 const targetHint = expectedCorrectionStr
                     ? ` The ONLY accepted answer is "${expectedCorrectionStr}". Be strict: only accept a close match to this exact phrase. If the user typed something unrelated, random, or just punctuation, tell them it's not quite right and ask them to try again — do NOT reveal the answer.`
                     : '';
-                evalNote = `[SYSTEM: EVALUATE NOW. The user is attempting the exercise.${targetHint}]`;
+                const nativeScriptHint = isPureNativeScript
+                    ? ` The user answered in ${targetLang?.name || 'target language'} native script — evaluate if it is semantically equivalent to the expected answer.`
+                    : '';
+                evalNote = `[SYSTEM: EVALUATE NOW. The user is attempting the exercise.${targetHint}${nativeScriptHint}]`;
             }
 
             const activeScenarioLabel = scenarioDataForMatch.scenario || 'Learning';
-            let metaNote = evalNote + `\n[SCENARIO: '${activeScenarioLabel}'].`;
+            // For SUCCESS: evalNote goes as a system-role override (highest authority, AI cannot ignore it).
+            // For FAILURE: evalNote stays in the user message as before.
+            const systemOverride = (hasCorrectMatch || isLastScenarioStep) ? evalNote : null;
+            const contextNote = `\n[SCENARIO: '${activeScenarioLabel}'].`;
+            let metaNote = systemOverride ? contextNote : (evalNote + contextNote);
 
             // Instructions for NEXT step
             if (!isLastScenarioStep) {
@@ -1273,11 +1282,11 @@ export default function Chat() {
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
                         const transcript = messages
-                            .filter(m => m.role === 'user' || m.role === 'assistant' || m.role === 'system')
                             .map((m, idx) => {
+                                if (m.role !== 'user' && m.role !== 'assistant' && m.role !== 'system') return null;
                                 const label = m.role === 'assistant' ? 'Tutor' : m.role === 'system' ? 'System' : 'Learner';
 
-                                let clean = m.content;
+                                let clean = m.role === 'user' ? (userTransliterations[idx] || m.content) : m.content;
 
                                 clean = stripTargetScript(clean)
                                     .replace(/<phonetic>.*?<\/phonetic>/gi, '')
@@ -1291,6 +1300,7 @@ export default function Chat() {
                                     .trim();
                                 return `${label}: ${clean}`;
                             })
+                            .filter(Boolean)
                             .join('\n');
                         navigator.clipboard.writeText(transcript).then(() => {
                             setCopyToast(true);

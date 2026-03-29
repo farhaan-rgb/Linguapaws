@@ -35,7 +35,7 @@ class AIService {
     // Kept for legacy compatibility — no-op now that API key lives on backend
     init(_apiKey) { }
 
-    async getResponse(message, topic = null, character = null, nativeLang = null, targetLang = null, triggerShadow = false, userLevel = 'conversational', metaNote = null) {
+    async getResponse(message, topic = null, character = null, nativeLang = null, targetLang = null, triggerShadow = false, userLevel = 'conversational', metaNote = null, systemOverride = null) {
         const nativeLangName = nativeLang?.name || 'Hindi';
         const targetLangName = targetLang?.name || 'English';
 
@@ -196,6 +196,7 @@ SHADOW PRACTICE:
         const messages = [
             { role: 'system', content: systemPrompt + TUTOR_FRAMEWORK + (topic ? `\nThe current conversation topic is: ${topic}.` : '') },
             ...this.history,
+            ...(systemOverride ? [{ role: 'system', content: systemOverride }] : []),
             { role: 'user', content: metaNote ? `${message}\n\nIMPORTANT SYSTEM NOTE (do not mention to user): ${metaNote}` : message },
         ];
 
