@@ -537,6 +537,17 @@ export default function Chat() {
         return words.filter(w => ENGLISH_TELLS.has(w.replace(/'/g, ''))).length >= 2;
     };
 
+    /* Every turn must give the learner something to do. The transition into the
+       phrase stage used to be a bare "Now let's put those words into phrases!"
+       with no task attached — the actual prompt only arrived on the NEXT turn
+       from the model, so the learner sat looking at a banner and typed "okay". */
+    const drillPrompt = (items, idx) => {
+        const item = items?.[idx];
+        if (!item?.prompt) return null;
+        const p = item.prompt.trim();
+        return /[.?!]$/.test(p) ? p : `${p}.`;
+    };
+
     /** The word this review step is asking for, or null if the set isn't built. */
     const reviewItemAt = (scenarioIdx, round, vocabulary = []) => {
         const set = getReviewSet(safeLang, scenarioIdx);
@@ -1031,6 +1042,11 @@ export default function Chat() {
         const CONTINUE_WORDS = new Set([
             'continue', 'next', 'next please', 'next one', 'go on', 'goon',
             'proceed', 'move on', 'carry on', 'keep going', 'ready', 'im ready',
+            // Acknowledgments. A learner types these when the tutor gave them
+            // nothing to do; grading them as wrong answers is what produced
+            // "You're getting there!" in response to "okay".
+            'okay', 'ok', 'okey', 'sure', 'got it', 'gotit', 'yes', 'yeah', 'yep',
+            'hmm', 'hm', 'alright', 'right', 'cool', 'done', 'understood', 'k',
         ]);
         const isContinueRequest = CONTINUE_WORDS.has(
             (text || '').trim().toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim()
@@ -1238,8 +1254,9 @@ export default function Chat() {
 
                     if (hasCorrectMatch) {
                         await advance();
+                        const firstPhrase = drillPrompt(scenarioDataForMatch.phrases, 0);
                         reviewResponse = currentInScenario === 7
-                            ? `${praise} Now let's put those words into phrases!`
+                            ? `${praise} Now let's build a sentence. ${firstPhrase || ''}`.trim()
                             : `${praise} ${nextQuestion()}`;
                     } else if (misses >= REVIEW_RETRY_LIMIT) {
                         /* Out of retries: show the answer and MOVE ON. Previously the
@@ -1251,8 +1268,9 @@ export default function Chat() {
                            lapse in the ladder, so it comes back on its own. */
                         await advance();
                         const shown = reviewExpectedWord ? `It's **${reviewExpectedWord}**.` : '';
+                        const firstPhrase2 = drillPrompt(scenarioDataForMatch.phrases, 0);
                         reviewResponse = currentInScenario === 7
-                            ? `${shown} We'll come back to that one. Now let's put those words into phrases!`
+                            ? `${shown} We'll come back to that one. Now let's build a sentence. ${firstPhrase2 || ''}`.trim()
                             : `${shown} We'll come back to it later — ${nextQuestion()}`;
                     } else {
                         reviewResponse = `Not quite! What's the word for "${currentMeaning}"?`;
@@ -1270,6 +1288,57 @@ export default function Chat() {
                     return;
                 }
                 // isLearnerQuestion: fall through to the model.
+            }
+
+            /* -- PHRASE FAST PATH: steps 9-11.
+               The model was told "Do NOT give ANY part of the answer — not even
+               as an example or tip" and did it anyway on the very first phrase
+               step: "you can say Namaskaram, nenu bagunnanu. Now, go ahead and
+               say it!" That reduces the drill to copy-typing. The prompts are
+               already authored in the curriculum, so emit them directly — same
+               reasoning as the teaching and review paths. Conversation steps
+               (12-15) stay with the model, where roleplay is the point. */
+            if (isCurrentlyInBasic) {
+                const phraseIdx = currentInScenario - 8;
+                const phraseItem = scenarioDataForMatch.phrases?.[phraseIdx];
+                const phraseIsQuestion = !hasCorrectMatch && (isHelpRequest || looksLikeQuestion(text));
+
+                if (phraseItem && !phraseIsQuestion && !isContinueRequest) {
+                    const misses = consecutiveMisses(messages);
+                    const PHRASE_PRAISE = ["Spot on!", "Exactly!", "Great job!", "Perfect!", "Correct!"];
+                    const praise = PHRASE_PRAISE[messages.length % PHRASE_PRAISE.length];
+                    const nextUp = () => drillPrompt(scenarioDataForMatch.phrases, phraseIdx + 1)
+                        || `Now for real conversation. ${drillPrompt(scenarioDataForMatch.conversations, 0) || ''}`.trim();
+
+                    const out = [];
+                    if (hasCorrectMatch) {
+                        const pr = await api.post('/api/progress/increment').catch(() => null);
+                        if (pr) setProgress(pr);
+                        // Explains the answer just given, so it precedes the next prompt.
+                        if (phraseItem.grammarNote) out.push({ role: 'system', content: `💡 ${phraseItem.grammarNote}` });
+                        out.push({ role: 'assistant', content: `${praise} ${nextUp()}` });
+                    } else if (misses >= REVIEW_RETRY_LIMIT) {
+                        const pr = await api.post('/api/progress/increment').catch(() => null);
+                        if (pr) setProgress(pr);
+                        out.push({ role: 'assistant', content: `It's **${phraseItem.correct}**. We'll come back to this — ${nextUp()}` });
+                    } else {
+                        const hint = phraseItem.hint ? ` Hint: ${phraseItem.hint}.` : '';
+                        out.push({ role: 'assistant', content: `Not quite.${hint} ${drillPrompt(scenarioDataForMatch.phrases, phraseIdx)}` });
+                    }
+
+                    setMessages(prev => [...prev, ...out]);
+                    const spoken = out.filter(m => m.role === 'assistant').map(m => m.content).join(' ');
+                    if (!isMuted && isMounted.current && spoken) {
+                        const audioUrl = await aiService.generateSpeech(buildSpeechText(spoken), resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+                        if (audioUrl && isMounted.current) {
+                            audioRef.current.src = audioUrl;
+                            audioRef.current.play().catch(() => {});
+                        }
+                    }
+                    setIsLoading(false);
+                    return;
+                }
+                // question or acknowledgment: fall through to the model.
             }
 
             /* -- TEACHING FAST PATH: bypass the AI for steps 0-4.
@@ -1298,7 +1367,7 @@ export default function Chat() {
                     const first = reviewItemAt(scenarioIdxForMatch, 0, vocab);
                     teachResponse = first
                         ? `${praise} 🐾 Quick memory check: what's the ${targetLangName} word for "${first.meaning}"?`
-                        : `${praise} 🐾 Now let's put those words into phrases!`;
+                        : `${praise} 🐾 Now let's build a sentence. ${drillPrompt(scenarioDataForMatch.phrases, 0) || ''}`.trim();
                 } else {
                     const current = vocab[currentInScenario];
                     teachResponse = current
@@ -1532,13 +1601,16 @@ export default function Chat() {
                 }
             }
 
-            setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
-            // The grammar tip lands as its own message, verbatim, only after a
-            // correct answer — so the rule arrives attached to a sentence the
-            // learner just produced, and in exactly the words it was authored in.
+            /* The tip explains the answer the learner just gave, but the model's
+               reply already contains the NEXT prompt — appending the tip after it
+               stranded the explanation below a new question and read as two
+               consecutive tutor messages. It goes first. */
+            const outgoing = [];
             if (postAnswerGrammarNote && hasCorrectMatch) {
-                setMessages(prev => [...prev, { role: 'system', content: `💡 ${postAnswerGrammarNote}` }]);
+                outgoing.push({ role: 'system', content: `💡 ${postAnswerGrammarNote}` });
             }
+            outgoing.push({ role: 'assistant', content: storedResponse });
+            setMessages(prev => [...prev, ...outgoing]);
             setIsLoading(false); // Unblock UI
 
             // Play voice immediately
