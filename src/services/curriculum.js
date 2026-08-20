@@ -9,7 +9,7 @@ export const CURRICULUM = {
                 { word: "Namaskaram", meaning: "Hello", phonetic: "nah-mas-kah-ram" },
                 { word: "Nenu", meaning: "I", phonetic: "neh-noo" },
                 { word: "Meeru", meaning: "You", phonetic: "mee-roo" },
-                { word: "Bagunna", meaning: "I am fine", phonetic: "bah-goon-nah", teach: "**Bagunna** already means “I am fine” — the “I” is baked into the ending, it is not a bare “fine”. Telugu still often puts *nenu* in front for clarity, which is what you will practise." },
+                { word: "Bagunna", meaning: "I am fine", phonetic: "bah-goon-nah", teach: "**Bagunna** already means “I am fine” — the “I” is baked into the ending, it is not a bare “fine”. Telugu still often puts *nenu* in front for clarity." },
                 { word: "Ela", meaning: "How", phonetic: "eh-lah", teach: "“How” is {w}. It goes right before the verb, not at the front like English." }
             ],
             phrases: [
@@ -165,7 +165,7 @@ export const CURRICULUM = {
             icon: "📚",
             color: "#fff1f2",
             vocabulary: [
-                { word: "Lu", meaning: "(Plural suffix)", phonetic: "loo", teach: "{w} is not a word you can say on its own — it is the *ending* you attach to a noun to make it plural. Watch it do its work on the next few words." },
+                { word: "Lu", meaning: "(Plural suffix)", phonetic: "loo", teach: "{w} is not a word you can say on its own — it is the *ending* you attach to a noun to make it plural." },
                 { word: "Pusthakalu", meaning: "Books", phonetic: "poos-tah-kah-loo" },
                 { word: "Snehithulu", meaning: "Friends", phonetic: "sneh-hee-thoo-loo" },
                 { word: "Illu", meaning: "Houses (sg. illu; inti- is its oblique stem)", phonetic: "il-loo", teach: "“House” is {w}. When it takes an ending it shifts to inti- — that is the form you already met." },
@@ -813,7 +813,7 @@ export const CURRICULUM = {
             icon: "📚",
             color: "#dcfce7",
             vocabulary: [
-                { word: "Galu", meaning: "(Plural suffix)", phonetic: "gah-loo", teach: "{w} is not a standalone word — it is the *ending* you attach to a noun to make it plural. You will see it applied next." },
+                { word: "Galu", meaning: "(Plural suffix)", phonetic: "gah-loo", teach: "{w} is not a standalone word — it is the *ending* you attach to a noun to make it plural." },
                 { word: "Pustakagalu", meaning: "Books", phonetic: "poos-tah-kah-gah-loo" },
                 { word: "Snehitaru", meaning: "Friends", phonetic: "sneh-hee-tah-roo" },
                 { word: "Manegalu", meaning: "Houses", phonetic: "mah-neh-gah-loo" },

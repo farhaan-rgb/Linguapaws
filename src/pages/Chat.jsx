@@ -433,8 +433,13 @@ export default function Chat() {
        "To say X, say Y" form that already worked.                           */
     const buildTeachingLine = (wordObj, opener = '') => {
         if (!wordObj?.word) return null;
+        // An authored `teach` line explains the word but does not ask for it, so
+        // it must close with the same direct instruction the plain template
+        // carries — otherwise the learner is left reading grammar with no idea
+        // it is their turn, and the app sits waiting. The last bold span is what
+        // the answer matcher expects, and both spans are the same word.
         const body = wordObj.teach
-            ? wordObj.teach.replace('{w}', `**${wordObj.word}**`)
+            ? `${wordObj.teach.replace('{w}', `**${wordObj.word}**`)} Your turn — say **${wordObj.word}**`
             : `To say "${wordObj.meaning}", say **${wordObj.word}**`;
         const phon = wordObj.phonetic ? `\n<phonetic>${wordObj.phonetic}</phonetic>` : '';
         return `${opener}${opener ? ' ' : ''}${body}${phon}`;
