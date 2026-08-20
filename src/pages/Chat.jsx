@@ -498,6 +498,45 @@ export default function Chat() {
         };
     };
 
+    /* How many times in a row the learner has just missed the current review
+       word. Derived from the message log rather than component state so it
+       survives a reload — the chat is restored from the DB, so state would not. */
+    const REVIEW_RETRY_LIMIT = 2;
+
+    const consecutiveMisses = (msgs) => {
+        let n = 0;
+        for (let i = msgs.length - 1; i >= 0; i--) {
+            if (msgs[i].role !== 'assistant') continue;
+            if (/Not quite|The answer (was|is)|try again/i.test(msgs[i].content)) { n++; continue; }
+            break;
+        }
+        return n;
+    };
+
+    /** Did the previous turn hand the learner the answer? */
+    const answerWasRevealed = (text) => /the answer (was|is)/i.test(text || '');
+
+    /* A learner talking to the tutor rather than answering it.
+       The signal is that they switched to ENGLISH, not that the text ends in a
+       question mark — plenty of valid Telugu answers do ("Emiti?", "Nenu
+       bagunnanu, meeru?"), so punctuation alone misreads real answers as
+       questions. Two or more English function words is the giveaway, since none
+       of them appear in a romanised Telugu or Kannada answer. */
+    const ENGLISH_TELLS = new Set([
+        'can', 'cant', 'could', 'why', 'what', 'whats', 'how', 'is', 'are', 'was',
+        'do', 'does', 'did', 'the', 'a', 'an', 'and', 'or', 'but', 'not', 'no',
+        'i', 'you', 'me', 'my', 'it', 'this', 'that', 'also', 'as', 'well', 'too',
+        'say', 'said', 'mean', 'means', 'meaning', 'same', 'different', 'instead',
+        'another', 'other', 'both', 'use', 'used', 'about', 'in', 'of', 'to', 'for',
+        'should', 'would', 'isnt', 'dont', 'doesnt', 'wrong', 'right', 'correct',
+    ]);
+
+    const looksLikeQuestion = (t) => {
+        const words = (t || '').toLowerCase().replace(/[^a-z\s']/g, ' ').split(/\s+/).filter(Boolean);
+        if (words.length < 3) return false;
+        return words.filter(w => ENGLISH_TELLS.has(w.replace(/'/g, ''))).length >= 2;
+    };
+
     /** The word this review step is asking for, or null if the set isn't built. */
     const reviewItemAt = (scenarioIdx, round, vocabulary = []) => {
         const set = getReviewSet(safeLang, scenarioIdx);
@@ -1163,48 +1202,74 @@ export default function Chat() {
                 const REVIEW_PRAISE = ["Spot on!", "Exactly!", "Great job!", "Perfect!", "Correct!"];
                 const praise = REVIEW_PRAISE[messages.length % REVIEW_PRAISE.length];
 
-                /* Feed the outcome back into the ladder. A correct recall promotes
-                   the word and pushes its next review out; a miss drops it to box 0
-                   and leaves it due, so the retry below re-asks the same word. */
-                if (reviewExpectedWord) {
-                    recordReview({
-                        lang: safeLang,
-                        word: reviewExpectedWord,
-                        wasCorrect: Boolean(hasCorrectMatch),
-                        meaning: reviewItem?.meaning,
-                        scenario: scenarioDataForMatch.scenario,
-                    });
-                }
+                /* A learner asking a question is not a wrong answer. Hand it to
+                   the model instead of grading it — falling through to the normal
+                   AI path, whose metaNote already knows how to re-ask a review
+                   question. Checked after the matcher, so "Emiti?" still scores. */
+                const isLearnerQuestion = !hasCorrectMatch && (isHelpRequest || looksLikeQuestion(text));
 
-                let reviewResponse;
-                if (hasCorrectMatch) {
-                    const progressRes = await api.post('/api/progress/increment').catch(() => null);
-                    if (progressRes) setProgress(progressRes);
+                if (!isLearnerQuestion) {
+                    const misses = consecutiveMisses(messages);
+                    const revealed = answerWasRevealed(lastAssistantContent);
 
-                    if (currentInScenario === 7) {
-                        // Transition message already added above; just give brief praise
-                        reviewResponse = `${praise} Now let's put those words into phrases!`;
-                    } else {
+                    /* Feed the outcome back into the ladder — but a correct answer
+                       typed straight after being shown the answer is a parrot, not
+                       recall, so it is recorded as a lapse. Otherwise the scheduler
+                       learns "they know this" from a word it handed over. */
+                    if (reviewExpectedWord) {
+                        recordReview({
+                            lang: safeLang,
+                            word: reviewExpectedWord,
+                            wasCorrect: Boolean(hasCorrectMatch) && !revealed,
+                            meaning: reviewItem?.meaning,
+                            scenario: scenarioDataForMatch.scenario,
+                        });
+                    }
+
+                    let reviewResponse;
+                    const advance = async () => {
+                        const progressRes = await api.post('/api/progress/increment').catch(() => null);
+                        if (progressRes) setProgress(progressRes);
+                    };
+                    const nextQuestion = () => {
                         const nextItem = reviewItemAt(scenarioIdxForMatch, round + 1, scenarioDataForMatch.vocabulary);
-                        const nextMeaning = nextItem?.meaning || 'hello';
-                        reviewResponse = `${praise} What's the word for "${nextMeaning}"?`;
-                    }
-                } else {
-                    reviewResponse = lastWasFailure && reviewExpectedWord
-                        ? `The answer was **${reviewExpectedWord}**! Let's try again — what's the word for "${currentMeaning}"?`
-                        : `Not quite! What's the word for "${currentMeaning}"?`;
-                }
+                        return `What's the word for "${nextItem?.meaning || 'hello'}"?`;
+                    };
 
-                setMessages(prev => [...prev, { role: 'assistant', content: reviewResponse }]);
-                if (!isMuted && isMounted.current) {
-                    const audioUrl = await aiService.generateSpeech(reviewResponse, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
-                    if (audioUrl && isMounted.current) {
-                        audioRef.current.src = audioUrl;
-                        audioRef.current.play().catch(() => {});
+                    if (hasCorrectMatch) {
+                        await advance();
+                        reviewResponse = currentInScenario === 7
+                            ? `${praise} Now let's put those words into phrases!`
+                            : `${praise} ${nextQuestion()}`;
+                    } else if (misses >= REVIEW_RETRY_LIMIT) {
+                        /* Out of retries: show the answer and MOVE ON. Previously the
+                           reveal message itself contained "try again", which kept
+                           lastWasFailure true forever, so the same line repeated
+                           indefinitely with no skip and no escape — and since
+                           progress only increments on a correct match, the whole
+                           course was blocked behind one word. The word is now a
+                           lapse in the ladder, so it comes back on its own. */
+                        await advance();
+                        const shown = reviewExpectedWord ? `It's **${reviewExpectedWord}**.` : '';
+                        reviewResponse = currentInScenario === 7
+                            ? `${shown} We'll come back to that one. Now let's put those words into phrases!`
+                            : `${shown} We'll come back to it later — ${nextQuestion()}`;
+                    } else {
+                        reviewResponse = `Not quite! What's the word for "${currentMeaning}"?`;
                     }
+
+                    setMessages(prev => [...prev, { role: 'assistant', content: reviewResponse }]);
+                    if (!isMuted && isMounted.current) {
+                        const audioUrl = await aiService.generateSpeech(reviewResponse, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+                        if (audioUrl && isMounted.current) {
+                            audioRef.current.src = audioUrl;
+                            audioRef.current.play().catch(() => {});
+                        }
+                    }
+                    setIsLoading(false);
+                    return;
                 }
-                setIsLoading(false);
-                return;
+                // isLearnerQuestion: fall through to the model.
             }
 
             /* -- TEACHING FAST PATH: bypass the AI for steps 0-4.
@@ -1288,6 +1353,8 @@ export default function Chat() {
                 evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user ${matchDetail}. ${fuzzyCorrection} Give brief, varied praise (e.g., "Spot on!", "Great job!", "Exactly!", "Chala bagundi!", "Perfect!"). Do NOT repeat the meaning or translation back to the user — they already know it. Just acknowledge and move on.${grammarFeedback} NEVER preview or reference the next target phrase in your current response. Do NOT evaluate again.]`;
             } else if (isContinueRequest) {
                 evalNote = `[SYSTEM: The user is asking to move on, not answering. Do NOT grade or correct their message, and do NOT say they were wrong. Briefly acknowledge and present the next challenge for this scenario.]`;
+            } else if (isCurrentlyInReview) {
+                evalNote = `[SYSTEM: The learner asked you a QUESTION instead of answering: "${actual}". Do NOT grade it, do NOT say they were wrong, and do NOT tell them the answer to the quiz. Answer their question directly and briefly in ${nativeLang?.name || 'English'} — if they asked whether another word also works, say plainly whether it does and how it differs. Then re-ask the quiz question: what is the ${targetLangName} word for "${expectedCorrectionStr ? (reviewItem?.meaning || 'that word') : 'that word'}"?]`;
             } else if (isHelpRequest) {
                 evalNote = `[SYSTEM: HELP REQUEST. The user is stuck. Give a helpful hint then re-ask the prompt.]`;
             } else if (lastWasFailure) {

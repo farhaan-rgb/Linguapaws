@@ -6,9 +6,9 @@ export const CURRICULUM = {
             icon: "👋",
             color: "#e0f2fe",
             vocabulary: [
-                { word: "Namaskaram", meaning: "Hello", phonetic: "nah-mas-kah-ram" },
+                { word: "Namaskaram", meaning: "Hello", phonetic: "nah-mas-kah-ram", alt: ["namaste"] },
                 { word: "Nenu", meaning: "I", phonetic: "neh-noo" },
-                { word: "Meeru", meaning: "You", phonetic: "mee-roo" },
+                { word: "Meeru", meaning: "You", phonetic: "mee-roo", alt: ["nuvvu"] },
                 { word: "Bagunnanu", meaning: "I'm fine", phonetic: "bah-goon-nah-noo", alt: ["bagunna"] },
                 { word: "Ela", meaning: "How", phonetic: "eh-lah" }
             ],
@@ -39,7 +39,7 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Idhi", meaning: "This", phonetic: "ee-dhee", teach: "“This” is {w}, and it comes *first* — before the thing you are pointing at." },
                 { word: "Adhi", meaning: "That", phonetic: "ah-dhee", teach: "“That” is {w} — for something further away. It also comes before the noun." },
-                { word: "Emiti", meaning: "What", phonetic: "eh-mee-tee", teach: "“What” on its own is {w}. In Telugu the question word goes at the *end* of the sentence, never the start — so it follows whatever you are asking about." },
+                { word: "Emiti", meaning: "What", phonetic: "eh-mee-tee", teach: "“What” on its own is {w}. In Telugu the question word goes at the *end* of the sentence, never the start — so it follows whatever you are asking about.", alt: ["enti", "emi"] },
                 { word: "Pusthakam", meaning: "Book", phonetic: "poos-tah-kam" },
                 { word: "Peru", meaning: "Name", phonetic: "peh-roo" }
             ],
@@ -217,7 +217,7 @@ export const CURRICULUM = {
                 { word: "Bhojanam", meaning: "Meal", phonetic: "bho-jah-nam" },
                 { word: "Billu", meaning: "Bill", phonetic: "bil-loo" },
                 { word: "Ivvandi", meaning: "Give (please)", phonetic: "iv-van-dee", teach: "A polite “please give” is {w}. That -andi ending is what turns any Telugu command polite — you will reuse it constantly." },
-                { word: "Dhanyavaadaalu", meaning: "Thank you", phonetic: "dhan-yah-vaa-daa-loo" },
+                { word: "Dhanyavaadaalu", meaning: "Thank you", phonetic: "dhan-yah-vaa-daa-loo", alt: ["dhanyavadalu", "danyavadhalu"] },
                 { word: "Kurchondi", meaning: "Sit (please)", phonetic: "koor-chon-dee", teach: "A polite “please sit” is {w} — the same -andi politeness ending you just met." }
             ],
             phrases: [
@@ -661,7 +661,7 @@ export const CURRICULUM = {
         {
             scenario: "Pronouns & Greetings",
             vocabulary: [
-                { word: "Namaskara", meaning: "Hello", phonetic: "nah-mas-kah-rah" },
+                { word: "Namaskara", meaning: "Hello", phonetic: "nah-mas-kah-rah", alt: ["namaste"] },
                 { word: "Naanu", meaning: "I", phonetic: "nah-noo" },
                 { word: "Neevu", meaning: "You", phonetic: "nee-voo" },
                 { word: "Chennagiddini", meaning: "I am fine", phonetic: "chen-nah-geed-dee-nee", teach: "**Chennagiddini** is a whole sentence: “I am fine”. The -ini ending is the “I” — for “you are fine” it becomes *chennagiddeera*." },
@@ -865,7 +865,7 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Lekka", meaning: "Bill / account", phonetic: "lek-kah" },
                 { word: "Kodi", meaning: "Give (please)", phonetic: "koh-dee", teach: "A polite “please give” is {w} — that -i ending is the polite command form." },
-                { word: "Dhanyavada", meaning: "Thank you", phonetic: "dhahn-yah-vah-dah" },
+                { word: "Dhanyavada", meaning: "Thank you", phonetic: "dhahn-yah-vah-dah", alt: ["dhanyavadagalu"] },
                 { word: "Estu", meaning: "How much", phonetic: "es-too" },
                 { word: "Kshamisi", meaning: "Sorry / excuse me", phonetic: "ksha-mee-see" }
             ],
