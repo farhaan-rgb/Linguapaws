@@ -394,6 +394,23 @@ export default function Chat() {
        rather than squeaking through on string distance.                     */
     const COVERAGE_FLOOR = 0.7;
 
+    /* Telugu and Kannada mark the subject in the verb ending, so a one-character
+       difference at the end of a word is usually a different PERSON, not a typo:
+       bagunnanu is "I am fine", bagunnaru is "you are fine", chesanu is "I did",
+       chesaru is "you did". The typo tolerance below would treat those as the
+       same word, quietly erasing the one distinction these lessons exist to
+       teach. Refuse to forgive an edit that swaps one person ending for another
+       on an otherwise identical stem. */
+    const PERSON_ENDINGS = ['nu', 'ru', 'vu', 'du', 'di', 'mu', 'ni', 'ra', 'va'];
+
+    const differsOnlyByPersonEnding = (a, b) => {
+        if (a.length < 4 || b.length < 4) return false;
+        const ea = a.slice(-2), eb = b.slice(-2);
+        if (ea === eb) return false;
+        if (!PERSON_ENDINGS.includes(ea) || !PERSON_ENDINGS.includes(eb)) return false;
+        return a.slice(0, -2) === b.slice(0, -2);
+    };
+
     const tokenCoverage = (actual, expected) => {
         const said = normalizeLatin(actual).split(' ').filter(Boolean);
         const need = normalizeLatin(expected).split(' ').filter(Boolean);
@@ -408,8 +425,11 @@ export default function Chat() {
             const i = pool.findIndex(s =>
                 s === token ||
                 // tolerate a one-character slip, but only on words long enough
-                // that a single edit isn't most of the word
-                (Math.max(s.length, token.length) >= 4 && levenshtein(s, token) <= 1)
+                // that a single edit isn't most of the word — and never when the
+                // slip is a swapped person ending
+                (Math.max(s.length, token.length) >= 4
+                    && levenshtein(s, token) <= 1
+                    && !differsOnlyByPersonEnding(s, token))
             );
             if (i !== -1) { hits++; pool.splice(i, 1); }
         }
@@ -451,6 +471,32 @@ export default function Chat() {
        They now draw from the learner's spaced-repetition due queue across every
        lesson they've seen, falling back to current-lesson vocabulary only while
        there is nothing older to review. See services/srs.js.               */
+
+    /* Accepted spoken variants of a taught word, from the curriculum's `alt`.
+       Lets the drill demand the form that shows the morphology (Bagunnanu, where
+       the -nu marking "I" is visible) without failing a learner who says the
+       clipped form people actually use (bagunna). Deliberately explicit rather
+       than a looser edit-distance tolerance: bagunnanu and bagunnaru are two
+       edits apart too, and those must stay distinct. */
+    const altsFor = (word) => {
+        if (!word) return [];
+        const target = word.toLowerCase();
+        for (const lesson of CURRICULUM[safeLang] || []) {
+            for (const v of lesson.vocabulary || []) {
+                if (v.word?.toLowerCase() === target) return v.alt || [];
+            }
+        }
+        return [];
+    };
+
+    /** Best string-similarity and token-coverage across a target and its variants. */
+    const scoreAgainst = (actual, expected, variants = []) => {
+        const all = [expected, ...variants].filter(Boolean);
+        return {
+            ratio: all.reduce((b, v) => Math.max(b, similarityRatioLatin(actual, v)), 0),
+            coverage: all.reduce((b, v) => Math.max(b, tokenCoverage(actual, v)), 0),
+        };
+    };
 
     /** The word this review step is asking for, or null if the set isn't built. */
     const reviewItemAt = (scenarioIdx, round, vocabulary = []) => {
@@ -1000,16 +1046,16 @@ export default function Chat() {
             let matchCoverage = 0;   // fraction of the target's words actually produced
 
             if (isCurrentlyTeaching && promptedPhrase) {
-                matchRatio = similarityRatioLatin(actual, promptedPhrase);
-                matchCoverage = tokenCoverage(actual, promptedPhrase);
+                ({ ratio: matchRatio, coverage: matchCoverage } =
+                    scoreAgainst(actual, promptedPhrase, altsFor(promptedPhrase)));
                 displayPhrase = promptedPhrase;
             } else if (isCurrentlyInReview) {
                 const round = currentInScenario - 5;
                 reviewItem = reviewItemAt(scenarioIdxForMatch, round, scenarioDataForMatch.vocabulary);
                 reviewExpectedWord = reviewItem?.word || null;
                 if (reviewExpectedWord) {
-                    matchRatio = similarityRatioLatin(actual, reviewExpectedWord);
-                    matchCoverage = tokenCoverage(actual, reviewExpectedWord);
+                    ({ ratio: matchRatio, coverage: matchCoverage } =
+                        scoreAgainst(actual, reviewExpectedWord, altsFor(reviewExpectedWord)));
                     displayPhrase = reviewExpectedWord;
                 }
             } else if (isCurrentlyInBasic) {
