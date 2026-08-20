@@ -1,0 +1,397 @@
+{
+  "language": "Odiya",
+  "target": "src/services/curriculum.js",
+  "reviewSheet": null,
+  "notes": [
+    "status: pending | approved | rejected.  Only \"approved\" rows are written by --apply.",
+    "Generated from a gap analysis, NOT reviewed by an Odia speaker. Every row is pending.",
+    "Class A - grammar words required by existing answers but never taught.",
+    "Class B - \"achi\" vs \"achhi\": one verb, two romanisations. Direction needs a speaker.",
+    "OPEN QUESTION (no row emitted): \"Tanka\" is glossed His/Her in L5 and Money in L27.",
+    "  Those are different Odia words (taanka vs tankaa) that romanise alike. A fix needs",
+    "  a speaker to choose distinct spellings, so it is deliberately left out of this spec.",
+    "ALSO NOT AUTOMATED: \"Apana nka\" (L5) vs \"apananka\" (L14,L20) spacing, \"Eha\" (L2) vs \"ehi\" (L8),",
+    "  and 15 words taught twice. See reviewQueue below for the untaught-word inventory."
+  ],
+  "reviewQueue": [
+    {
+      "word": "achhanti",
+      "firstLesson": 1,
+      "scenario": "Pronouns & Greetings",
+      "example": "Apana kemiti achhanti?",
+      "exampleMeaning": "How are you?"
+    },
+    {
+      "word": "nka",
+      "firstLesson": 2,
+      "scenario": "The 'What' & 'This/That'",
+      "example": "Apana nka nama kana?",
+      "exampleMeaning": "What is your name?"
+    },
+    {
+      "word": "achhi",
+      "firstLesson": 3,
+      "scenario": "The 'Where' & 'Going'",
+      "example": "Mu ethi achhi",
+      "exampleMeaning": "I am here"
+    },
+    {
+      "word": "ku",
+      "firstLesson": 3,
+      "scenario": "The 'Where' & 'Going'",
+      "example": "Mu ghara ku jauchhi",
+      "exampleMeaning": "I go home"
+    },
+    {
+      "word": "jauchhi",
+      "firstLesson": 3,
+      "scenario": "The 'Where' & 'Going'",
+      "example": "Mu ghara ku jauchhi",
+      "exampleMeaning": "I go home"
+    },
+    {
+      "word": "han",
+      "firstLesson": 4,
+      "scenario": "Desires & Negation",
+      "example": "Han, pani darakara",
+      "exampleMeaning": "Yes, I want water"
+    },
+    {
+      "word": "na",
+      "firstLesson": 4,
+      "scenario": "Desires & Negation",
+      "example": "Na, khana darakara nahi",
+      "exampleMeaning": "No, I don't want food"
+    },
+    {
+      "word": "se",
+      "firstLesson": 6,
+      "scenario": "The 'Who'",
+      "example": "Se mora bandhu",
+      "exampleMeaning": "He is my friend"
+    },
+    {
+      "word": "bahut",
+      "firstLesson": 8,
+      "scenario": "Plurals",
+      "example": "Bahut bahiguda",
+      "exampleMeaning": "Many books"
+    },
+    {
+      "word": "achi",
+      "firstLesson": 8,
+      "scenario": "Plurals",
+      "example": "Mora bahut bandhumane achi",
+      "exampleMeaning": "My many friends are"
+    },
+    {
+      "word": "ehi",
+      "firstLesson": 8,
+      "scenario": "Plurals",
+      "example": "Ehi gharaguda darakara nahi",
+      "exampleMeaning": "These houses not want"
+    },
+    {
+      "word": "kaila",
+      "firstLesson": 12,
+      "scenario": "The 'When' (Time)",
+      "example": "Agaru mu kaila",
+      "exampleMeaning": "Yesterday I did"
+    },
+    {
+      "word": "kariba",
+      "firstLesson": 12,
+      "scenario": "The 'When' (Time)",
+      "example": "Mu kaali kariba",
+      "exampleMeaning": "I will do tomorrow"
+    },
+    {
+      "word": "jauchha",
+      "firstLesson": 12,
+      "scenario": "The 'When' (Time)",
+      "example": "Aaji apana jauchha?",
+      "exampleMeaning": "Are you going today?"
+    },
+    {
+      "word": "khaila",
+      "firstLesson": 12,
+      "scenario": "The 'When' (Time)",
+      "example": "Mu agaru khaila",
+      "exampleMeaning": "I ate yesterday"
+    },
+    {
+      "word": "apananka",
+      "firstLesson": 14,
+      "scenario": "Simple Future Tense",
+      "example": "Mu apananka dekhiba",
+      "exampleMeaning": "I will see you"
+    },
+    {
+      "word": "shighra",
+      "firstLesson": 14,
+      "scenario": "Simple Future Tense",
+      "example": "Mu shighra khaiba",
+      "exampleMeaning": "I will eat soon"
+    },
+    {
+      "word": "mote",
+      "firstLesson": 15,
+      "scenario": "Asking 'Why'",
+      "example": "Tenu mote bhala lage",
+      "exampleMeaning": "That's why I like it"
+    },
+    {
+      "word": "janina",
+      "firstLesson": 15,
+      "scenario": "Asking 'Why'",
+      "example": "Mu kena janina",
+      "exampleMeaning": "I don't know why"
+    },
+    {
+      "word": "uthuchhi",
+      "firstLesson": 18,
+      "scenario": "Daily Routine",
+      "example": "Mu ebe uthuchhi",
+      "exampleMeaning": "I am waking up now"
+    },
+    {
+      "word": "pore",
+      "firstLesson": 18,
+      "scenario": "Daily Routine",
+      "example": "Mu pore nidha jaiba",
+      "exampleMeaning": "I will sleep later"
+    },
+    {
+      "word": "nua",
+      "firstLesson": 19,
+      "scenario": "Colors & Clothes",
+      "example": "Nua kapada darakara",
+      "exampleMeaning": "New clothes want"
+    },
+    {
+      "word": "thila",
+      "firstLesson": 20,
+      "scenario": "Review & Dialogue: Your Day",
+      "example": "Aaji bhala thila",
+      "exampleMeaning": "Today was good"
+    },
+    {
+      "word": "gachha",
+      "firstLesson": 21,
+      "scenario": "Postpositions",
+      "example": "Bara gachha tale",
+      "exampleMeaning": "Under big tree"
+    },
+    {
+      "word": "aasiba",
+      "firstLesson": 22,
+      "scenario": "The 'Can' & 'Can't'",
+      "example": "Aaji mu aasiba pariba nahi",
+      "exampleMeaning": "Today I cannot come"
+    },
+    {
+      "word": "bhata",
+      "firstLesson": 24,
+      "scenario": "Conjunctions",
+      "example": "Bhata nahole roti?",
+      "exampleMeaning": "Rice or bread?"
+    },
+    {
+      "word": "phibi",
+      "firstLesson": 25,
+      "scenario": "The 'If' Clause",
+      "example": "Jadi pani thile mu phibi",
+      "exampleMeaning": "If water is there I will drink"
+    },
+    {
+      "word": "niya",
+      "firstLesson": 25,
+      "scenario": "The 'If' Clause",
+      "example": "Jadi apana darakara, niya",
+      "exampleMeaning": "If you want, take"
+    },
+    {
+      "word": "huchi",
+      "firstLesson": 26,
+      "scenario": "Feeling Words",
+      "example": "Apana ku raga huchi?",
+      "exampleMeaning": "Are you angry?"
+    },
+    {
+      "word": "kara",
+      "firstLesson": 26,
+      "scenario": "Feeling Words",
+      "example": "Dukha kara nahi",
+      "exampleMeaning": "Don't be sad"
+    },
+    {
+      "word": "dukhi",
+      "firstLesson": 26,
+      "scenario": "Feeling Words",
+      "example": "Se dukhi achi",
+      "exampleMeaning": "He is sad"
+    },
+    {
+      "word": "brishti",
+      "firstLesson": 28,
+      "scenario": "Weather & Travel",
+      "example": "Brishti paduchhi",
+      "exampleMeaning": "Rain is falling"
+    },
+    {
+      "word": "paduchhi",
+      "firstLesson": 28,
+      "scenario": "Weather & Travel",
+      "example": "Brishti paduchhi",
+      "exampleMeaning": "Rain is falling"
+    },
+    {
+      "word": "kahuchhi",
+      "firstLesson": 30,
+      "scenario": "Final Capstone",
+      "example": "Mu khushira sathe kahuchhi",
+      "exampleMeaning": "I am speaking happily"
+    },
+    {
+      "word": "ru",
+      "firstLesson": 30,
+      "scenario": "Final Capstone",
+      "example": "Mu Odisha ru, mu sethi badhila",
+      "exampleMeaning": "I from Odisha, I there grew up"
+    }
+  ],
+  "corrections": [
+    {
+      "status": "pending",
+      "expect": 1,
+      "id": "A-ku",
+      "cls": "A",
+      "pri": "P1",
+      "scen": 3,
+      "kind": "raw",
+      "find": "                { word: \"Ghara\", meaning: \"Home/House\", phonetic: \"guh-ruh\" }",
+      "replace": "                { word: \"Ghara\", meaning: \"Home/House\", phonetic: \"guh-ruh\" },\n                { word: \"Ku\", meaning: \"To (towards)\", phonetic: \"koo\" }",
+      "note": "Postposition required by 11 answers across L3,L11,L13,L14,L20,L23,L26,L28,L29 and never taught. Confirm gloss and phonetic."
+    },
+    {
+      "status": "pending",
+      "expect": 1,
+      "id": "A-han-na",
+      "cls": "A",
+      "pri": "P1",
+      "scen": 4,
+      "kind": "raw",
+      "find": "                { word: \"Hela\", meaning: \"Okay\", phonetic: \"heh-lah\" }",
+      "replace": "                { word: \"Hela\", meaning: \"Okay\", phonetic: \"heh-lah\" },\n                { word: \"Han\", meaning: \"Yes\", phonetic: \"hahn\" },\n                { word: \"Na\", meaning: \"No\", phonetic: \"nah\" }",
+      "note": "L4 is Desires & Negation but teaches neither yes nor no, while its own answers use both."
+    },
+    {
+      "status": "pending",
+      "expect": 1,
+      "id": "A-se",
+      "cls": "A",
+      "pri": "P1",
+      "scen": 6,
+      "kind": "raw",
+      "find": "                { word: \"Bhauni\", meaning: \"Sister\", phonetic: \"bhow-nee\" }",
+      "replace": "                { word: \"Bhauni\", meaning: \"Sister\", phonetic: \"bhow-nee\" },\n                { word: \"Se\", meaning: \"He / She\", phonetic: \"seh\" }",
+      "note": "Third-person pronoun used in 4 answers (L6,L9,L26), first in L6 itself."
+    },
+    {
+      "status": "pending",
+      "expect": 1,
+      "id": "B-achi1",
+      "cls": "B",
+      "pri": "P1",
+      "scen": 8,
+      "kind": "answer",
+      "find": "Mora bahut bandhumane achi",
+      "replace": "Mora bahut bandhumane achhi",
+      "note": "Same verb ଅଛି is romanised \"achhi\" in L3 and \"achi\" from L8 onward. The matcher compares strings, so the variant reads as a wrong answer. Normalising to \"achhi\" (the form used first); reviewer to confirm direction."
+    },
+    {
+      "status": "pending",
+      "expect": 1,
+      "id": "B-achi2",
+      "cls": "B",
+      "pri": "P1",
+      "scen": 16,
+      "kind": "answer",
+      "find": "Apana nka bandhu kemiti achi?",
+      "replace": "Apana nka bandhu kemiti achhi?",
+      "note": "Same verb ଅଛି is romanised \"achhi\" in L3 and \"achi\" from L8 onward. The matcher compares strings, so the variant reads as a wrong answer. Normalising to \"achhi\" (the form used first); reviewer to confirm direction."
+    },
+    {
+      "status": "pending",
+      "expect": 1,
+      "id": "B-achi3",
+      "cls": "B",
+      "pri": "P1",
+      "scen": 18,
+      "kind": "answer",
+      "find": "Aaji mora kama achi",
+      "replace": "Aaji mora kama achhi",
+      "note": "Same verb ଅଛି is romanised \"achhi\" in L3 and \"achi\" from L8 onward. The matcher compares strings, so the variant reads as a wrong answer. Normalising to \"achhi\" (the form used first); reviewer to confirm direction."
+    },
+    {
+      "status": "pending",
+      "expect": 1,
+      "id": "B-achi4",
+      "cls": "B",
+      "pri": "P1",
+      "scen": 21,
+      "kind": "answer",
+      "find": "Mu ghara re achi",
+      "replace": "Mu ghara re achhi",
+      "note": "Same verb ଅଛି is romanised \"achhi\" in L3 and \"achi\" from L8 onward. The matcher compares strings, so the variant reads as a wrong answer. Normalising to \"achhi\" (the form used first); reviewer to confirm direction."
+    },
+    {
+      "status": "pending",
+      "expect": 1,
+      "id": "B-achi5",
+      "cls": "B",
+      "pri": "P1",
+      "scen": 24,
+      "kind": "answer",
+      "find": "Mu jaiba darakara kintu mora kama achi",
+      "replace": "Mu jaiba darakara kintu mora kama achhi",
+      "note": "Same verb ଅଛି is romanised \"achhi\" in L3 and \"achi\" from L8 onward. The matcher compares strings, so the variant reads as a wrong answer. Normalising to \"achhi\" (the form used first); reviewer to confirm direction."
+    },
+    {
+      "status": "pending",
+      "expect": 1,
+      "id": "B-achi6",
+      "cls": "B",
+      "pri": "P1",
+      "scen": 26,
+      "kind": "answer",
+      "find": "Se dukhi achi",
+      "replace": "Se dukhi achhi",
+      "note": "Same verb ଅଛି is romanised \"achhi\" in L3 and \"achi\" from L8 onward. The matcher compares strings, so the variant reads as a wrong answer. Normalising to \"achhi\" (the form used first); reviewer to confirm direction."
+    },
+    {
+      "status": "pending",
+      "expect": 1,
+      "id": "B-achi7",
+      "cls": "B",
+      "pri": "P1",
+      "scen": 27,
+      "kind": "answer",
+      "find": "Mora tanka achi",
+      "replace": "Mora tanka achhi",
+      "note": "Same verb ଅଛି is romanised \"achhi\" in L3 and \"achi\" from L8 onward. The matcher compares strings, so the variant reads as a wrong answer. Normalising to \"achhi\" (the form used first); reviewer to confirm direction."
+    },
+    {
+      "status": "pending",
+      "expect": 1,
+      "id": "B-achi8",
+      "cls": "B",
+      "pri": "P1",
+      "scen": 27,
+      "kind": "answer",
+      "find": "Apana nka tanka achi?",
+      "replace": "Apana nka tanka achhi?",
+      "note": "Same verb ଅଛି is romanised \"achhi\" in L3 and \"achi\" from L8 onward. The matcher compares strings, so the variant reads as a wrong answer. Normalising to \"achhi\" (the form used first); reviewer to confirm direction."
+    }
+  ]
+}

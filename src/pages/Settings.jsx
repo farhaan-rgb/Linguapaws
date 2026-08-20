@@ -4,6 +4,8 @@ import { ChevronLeft, Globe, Check, ChevronDown, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useTranslation } from '../hooks/useTranslation';
+import { isLanguageAvailable } from '../services/curriculum';
+import { clearAllReviewSets } from '../services/srs';
 
 const LANGUAGES = [
     { id: 'hi', name: 'Hindi', native: 'हिन्दी', landmark: '🕌', landmarkName: 'Taj Mahal, Agra' },
@@ -88,7 +90,11 @@ export default function Settings() {
     };
 
     const handleTargetSelect = (lang) => {
+        if (!isLanguageAvailable(lang.name)) return;   // "Coming soon"
         setSelectedTargetLang(lang);
+        // Review triplets are per-language; a stale one would quiz the learner
+        // on Telugu words inside a Kannada lesson.
+        clearAllReviewSets();
         localStorage.setItem('linguapaws_target_lang', JSON.stringify(lang));
         setShowTargetPicker(false);
         api.put('/api/settings', { targetLang: lang }).catch(() => { });
@@ -217,7 +223,8 @@ export default function Settings() {
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     gap: '12px',
-                                                    cursor: 'pointer',
+                                                    cursor: isLanguageAvailable(lang.name) ? 'pointer' : 'default',
+                                                    opacity: isLanguageAvailable(lang.name) ? 1 : 0.55,
                                                     textAlign: 'left',
                                                 }}
                                             >
@@ -226,6 +233,13 @@ export default function Settings() {
                                                     <div style={{ fontWeight: '600', fontSize: '14px', color: '#1e293b' }}>{lang.name}</div>
                                                     <div style={{ fontSize: '11px', color: '#94a3b8' }}>{lang.native}</div>
                                                 </div>
+                                                {!isLanguageAvailable(lang.name) && (
+                                                    <span style={{
+                                                        padding: '3px 8px', borderRadius: '999px',
+                                                        background: '#f1f5f9', color: '#64748b',
+                                                        fontSize: '10px', fontWeight: '700', whiteSpace: 'nowrap',
+                                                    }}>Coming soon</span>
+                                                )}
                                                 {selectedLang?.id === lang.id && (
                                                     <div style={{
                                                         width: '22px', height: '22px', borderRadius: '50%',
@@ -318,8 +332,9 @@ export default function Settings() {
                                         {[...LANGUAGES.filter(l => l.id !== selectedLang?.id), { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🏢', landmarkName: 'Golden Temple, Amritsar' }].map((lang) => (
                                             <motion.button
                                                 key={lang.id}
-                                                whileTap={{ scale: 0.99 }}
+                                                whileTap={isLanguageAvailable(lang.name) ? { scale: 0.99 } : undefined}
                                                 onClick={() => handleTargetSelect(lang)}
+                                                aria-disabled={!isLanguageAvailable(lang.name)}
                                                 style={{
                                                     padding: '12px 16px',
                                                     borderRadius: '14px',

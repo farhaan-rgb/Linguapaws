@@ -309,6 +309,21 @@ router.post('/speech', async (req, res) => {
     }
 });
 
+/**
+ * Guard for the transcript-correction pass. Rejects sentinel answers and
+ * runaway output so a valid transcript is never replaced by something worse.
+ */
+const CORRECTION_SENTINELS = new Set(['null', 'none', 'n/a', 'na', 'undefined', 'nil', 'empty', '-', '']);
+function isUsableCorrection(corrected, rawText) {
+    if (typeof corrected !== 'string') return false;
+    const c = corrected.trim();
+    if (!c) return false;
+    if (CORRECTION_SENTINELS.has(c.toLowerCase().replace(/[."']/g, ''))) return false;
+    // A corrector that returns far more than it was given is explaining, not correcting.
+    if (rawText && c.length > rawText.length * 3 + 40) return false;
+    return true;
+}
+
 // POST /api/ai/transcribe
 router.post('/transcribe', async (req, res) => {
     try {
@@ -334,18 +349,32 @@ router.post('/transcribe', async (req, res) => {
         let usedEngine = 'none';
 
         // --- PHASE 1: Try Deepgram (Primary) ---
-        // Deepgram nova-2 supported language codes — unsupported langs fall back to 'hi' (best proxy for Indian languages)
-        const deepgramSupported = new Set(['en','es','fr','de','hi','pt','ja','nl','it','zh','sv','pl','ru','tr','ko','uk','ro','id','cs','da','no','ms','ca','fi','bg','sk','el','hu','vi','th','ar','pa']);
-        const deepgramLang = expectingTargetLang
-            ? (deepgramSupported.has(targetLangId) ? targetLangId : (targetLangId ? 'hi' : 'en'))
-            : (nativeLangId || 'en');
-        if (process.env.DEEPGRAM_API_KEY) {
+        // nova-3 language coverage (verified against GET /v1/models). nova-2 did NOT
+        // support te/kn/ta/mr/bn/gu, and the old code silently decoded them as Hindi —
+        // so a Telugu or Kannada learner was transcribed in the wrong language.
+        // Odia ('or') is unsupported by every Deepgram model, so it skips to Whisper.
+        const deepgramSupported = new Set([
+            'en','es','fr','de','hi','pt','ja','nl','it','zh','sv','pl','ru','tr','ko',
+            'uk','ro','id','cs','da','no','ms','ca','fi','bg','sk','el','hu','vi','th','ar',
+            // added by nova-3:
+            'te','kn','ta','mr','bn','gu','pa','ur','ne','fa','he','af','et','hr','hy',
+            'ka','lt','lv','mk','sl','sr','tl','bs','be',
+        ]);
+        const requestedDeepgramLang = (expectingTargetLang ? targetLangId : nativeLangId) || 'en';
+        const deepgramLang = requestedDeepgramLang;
+        // Never substitute a different language: if Deepgram can't do this one, fall
+        // through to Whisper rather than returning confidently wrong text.
+        const deepgramUsable = deepgramSupported.has(deepgramLang);
+        if (!deepgramUsable) {
+            console.warn(`[deepgram] no model covers "${deepgramLang}" - skipping to Whisper`);
+        }
+        if (process.env.DEEPGRAM_API_KEY && deepgramUsable) {
             try {
                 const deepgramClient = getDeepgram();
                 const { result, error } = await deepgramClient.listen.prerecorded.transcribeFile(
                     buffer,
                     {
-                        model: 'nova-2',
+                        model: 'nova-3',
                         language: deepgramLang,
                         smart_format: true,
                         punctuate: true,
@@ -361,7 +390,7 @@ router.post('/transcribe', async (req, res) => {
                 rawText = result?.results?.channels[0]?.alternatives[0]?.transcript;
                 if (rawText) usedEngine = 'deepgram';
             } catch (dgErr) {
-                console.warn('Deepgram transcription failed or credits exhausted. Falling back to Whisper:', dgErr.message);
+                console.warn('[deepgram] transcription failed, falling back to Whisper —', dgErr.name + ': ' + dgErr.message);
             }
         }
 
@@ -441,7 +470,15 @@ A speech-to-text engine produced the following transcript. Your job:
                     temperature: 0.1,
                     max_tokens: 150,
                 });
-                if (corrected) rawText = corrected;
+                // The corrector sometimes answers with a sentinel ("null", "none")
+                // when it cannot map the audio to the expected language. Those are
+                // truthy strings, so an unguarded assignment would replace a perfectly
+                // good transcript with garbage that then shows up as the user's message.
+                if (isUsableCorrection(corrected, rawText)) {
+                    rawText = corrected.trim();
+                } else if (corrected) {
+                    console.warn('[transcribe] discarded correction %j, keeping raw transcript', corrected);
+                }
             } catch (verifyErr) {
                 // If verification fails, use raw transcript — better than nothing
                 console.warn('Transcript verification failed, using raw:', verifyErr.message);

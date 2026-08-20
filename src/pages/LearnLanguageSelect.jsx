@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useTranslation } from '../hooks/useTranslation';
 import { getStoredJSON } from '../utils/storage';
+import { isLanguageAvailable } from '../services/curriculum';
+import { clearAllReviewSets } from '../services/srs';
 
 const NATIVE_LANGUAGES = [
     { id: 'hi', name: 'Hindi', native: 'हिन्दी', landmark: '🕌', landmarkName: 'Taj Mahal, Agra' },
@@ -28,10 +30,16 @@ export default function LearnLanguageSelect() {
     const languages = [
         ...NATIVE_LANGUAGES.filter(l => l.id !== nativeLang?.id),
         PUNJABI,
-    ];
+    ]
+        // Availability comes from CURRICULUM, never a hardcoded list here,
+        // so this picker can't offer a language that has no lessons.
+        .map(l => ({ ...l, available: isLanguageAvailable(l.name) }))
+        .sort((a, b) => Number(b.available) - Number(a.available));
 
     const handleSelect = (lang) => {
+        if (!lang.available) return;   // "Coming soon" — nothing to teach yet
         setSelected(lang.id);
+        clearAllReviewSets();   // per-language; see Settings.handleTargetSelect
         localStorage.setItem('linguapaws_target_lang', JSON.stringify(lang));
         api.put('/api/settings', { targetLang: lang }).catch(() => { });
         setTimeout(() => { navigate('/level-select'); }, 350);
@@ -48,8 +56,9 @@ export default function LearnLanguageSelect() {
                 {languages.map((lang) => (
                     <motion.div
                         key={lang.id}
-                        whileTap={{ scale: 0.95 }}
+                        whileTap={lang.available ? { scale: 0.95 } : undefined}
                         onClick={() => handleSelect(lang)}
+                        aria-disabled={!lang.available}
                         style={{
                             padding: '18px 12px',
                             background: 'white',
@@ -58,7 +67,9 @@ export default function LearnLanguageSelect() {
                             boxShadow: selected === lang.id
                                 ? '0 4px 16px rgba(168, 85, 247, 0.15)'
                                 : '0 4px 12px rgba(0,0,0,0.03)',
-                            cursor: 'pointer',
+                            cursor: lang.available ? 'pointer' : 'default',
+                            opacity: lang.available ? 1 : 0.55,
+                            position: 'relative',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
@@ -85,6 +96,22 @@ export default function LearnLanguageSelect() {
 
                         <div style={{ fontWeight: '700', fontSize: '14px', color: '#1a1a1a' }}>{lang.name}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{lang.native}</div>
+
+                        {!lang.available && (
+                            <div style={{
+                                marginTop: '4px',
+                                padding: '3px 8px',
+                                borderRadius: '999px',
+                                background: '#f1f5f9',
+                                color: '#64748b',
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                letterSpacing: '0.02em',
+                                whiteSpace: 'nowrap',
+                            }}>
+                                Coming soon
+                            </div>
+                        )}
                     </motion.div>
                 ))}
             </div>

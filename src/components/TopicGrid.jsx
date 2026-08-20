@@ -1,20 +1,25 @@
 import React from 'react';
 import { useTranslation } from '../hooks/useTranslation';
-import { CURRICULUM } from '../services/curriculum';
+import { CURRICULUM, isLanguageAvailable } from '../services/curriculum';
 
 export default function TopicGrid({ onSelectTopic }) {
     const { t } = useTranslation();
     const targetLang = JSON.parse(localStorage.getItem('linguapaws_target_lang') || '{}');
-    const safeLang = CURRICULUM[targetLang?.name] ? targetLang?.name : 'Telugu';
-    
-    // Dynamically derive topics from CURRICULUM
-    const scenarios = CURRICULUM[safeLang] || [];
+    // Show nothing rather than silently substituting another language's lessons
+    // (this used to default to Telugu regardless of what the learner picked).
+    const scenarios = isLanguageAvailable(targetLang?.name)
+        ? CURRICULUM[targetLang.name]
+        : [];
     const topics = scenarios.map((s, idx) => ({
         id: idx,
         name: s.scenario,
         icon: s.icon || '🧩', // Fallback icon
         color: s.color || '#f1f5f9' // Fallback color
     })).slice(0, 15); // Show first 15 for now to keep it tidy
+
+    // Nothing to offer yet for this language - hide the section entirely
+    // rather than showing an empty scroller under a live heading.
+    if (topics.length === 0) return null;
 
     return (
         <section className="card" style={{ textAlign: 'center', padding: '16px' }}>

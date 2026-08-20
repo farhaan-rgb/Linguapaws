@@ -10,7 +10,7 @@ export const CURRICULUM = {
                 { word: "Nenu", meaning: "I", phonetic: "neh-noo" },
                 { word: "Meeru", meaning: "You", phonetic: "mee-roo" },
                 { word: "Bagunna", meaning: "Fine", phonetic: "bah-goon-nah" },
-                { word: "Ela", meaning: "How", phonetic: "eh-lah" }
+                { word: "Ela", meaning: "How", phonetic: "eh-lah", teach: "“How” is {w}. It goes right before the verb, not at the front like English." }
             ],
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskaram, nenu bagunna", meaning: "Hello, I am fine", hint: "Hello + I + fine" },
@@ -33,9 +33,9 @@ export const CURRICULUM = {
         {
             scenario: "The 'What' & 'This/That'",
             vocabulary: [
-                { word: "Idhi", meaning: "This", phonetic: "ee-dhee" },
-                { word: "Adhi", meaning: "That", phonetic: "ah-dhee" },
-                { word: "Emiti", meaning: "What", phonetic: "eh-mee-tee" },
+                { word: "Idhi", meaning: "This", phonetic: "ee-dhee", teach: "“This” is {w}, and it comes *first* — before the thing you are pointing at." },
+                { word: "Adhi", meaning: "That", phonetic: "ah-dhee", teach: "“That” is {w} — for something further away. It also comes before the noun." },
+                { word: "Emiti", meaning: "What", phonetic: "eh-mee-tee", teach: "“What” on its own is {w}. In Telugu the question word goes at the *end* of the sentence, never the start — so it follows whatever you are asking about." },
                 { word: "Pusthakam", meaning: "Book", phonetic: "poos-tah-kam" },
                 { word: "Peru", meaning: "Name", phonetic: "peh-roo" }
             ],
@@ -54,7 +54,7 @@ export const CURRICULUM = {
         {
             scenario: "The 'Where' & 'Going'",
             vocabulary: [
-                { word: "Ekkada", meaning: "Where", phonetic: "ek-kah-dah" },
+                { word: "Ekkada", meaning: "Where", phonetic: "ek-kah-dah", teach: "“Where” is {w}. Like every Telugu question word it lands at the end of the sentence, not the beginning." },
                 { word: "Vellu", meaning: "Go", phonetic: "vel-loo" },
                 { word: "Ikkada", meaning: "Here", phonetic: "ik-kah-dah" },
                 { word: "Akkada", meaning: "There", phonetic: "ak-kah-dah" },
@@ -63,13 +63,13 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Ask 'Where is the house?'", correct: "Inti ekkada?", meaning: "Where is the house?", hint: "House + where?" },
                 { prompt: "Say 'I am here' (Use 'I' from Scenario 1)", correct: "Nenu ikkada", meaning: "I am here", hint: "I + here" },
-                { prompt: "Say 'Go there'", correct: "Akkada vellu", meaning: "Go there", hint: "There + go" }
+                { prompt: "Say 'Go there'", correct: "Akkada vellandi", meaning: "Go there", hint: "There + go" }
             ],
             conversations: [
                 { prompt: "Ask Miko where the home is.", correct: "Inti ekkada?", meaning: "Where is the home?", hint: "Location question" },
-                { prompt: "Tell someone to go there.", correct: "Akkada vellu", meaning: "Go there", hint: "Direction" },
+                { prompt: "Tell someone to go there.", correct: "Akkada vellandi", meaning: "Go there", hint: "Direction" },
                 { prompt: "Someone asks 'Meeru ekkada?'. Connect 'I am here' with 'You?' (from Scenario 1).", correct: "Nenu ikkada, meeru?", meaning: "I am here, and you?", hint: "I + here + you?" },
-                { prompt: "Say 'I go home'. Start with 'I' (Nenu).", correct: "Nenu inti vellu", meaning: "I go home", hint: "I + home + go", grammarNote: "Literally 'I home go'. Telugu follows Subject-Object-Verb order!" }
+                { prompt: "Say 'I go home'. Start with 'I' (Nenu).", correct: "Nenu intiki velthanu", meaning: "I go home", hint: "I + home + go", grammarNote: "Literally 'I home go'. Telugu follows Subject-Object-Verb order!" }
             ]
         },
         {
@@ -88,9 +88,9 @@ export const CURRICULUM = {
             ],
             conversations: [
                 { prompt: "Miko offers you water. Say 'Okay, water want'.", correct: "Sare, neeru kaavali", meaning: "Okay, I want water", hint: "Okay + water + want" },
-                { prompt: "Miko offers you food you don't like. Say 'Food don't want'.", correct: "Annam oddu", meaning: "Food don't want", hint: "Food + don't want" },
-                { prompt: "Point to a book (from Scenario 2) and say 'Book want'.", correct: "Pusthakam kaavali", meaning: "Book want", hint: "Book + want" },
-                { prompt: "Point far away and say 'That don't want' (Use 'That' from Scenario 2).", correct: "Adhi oddu", meaning: "That don't want", hint: "That + don't want" }
+                { prompt: "Miko offers you food you don't like. Say 'Food don't want'.", correct: "Annam oddu", meaning: "I don't want food", hint: "Food + don't want" },
+                { prompt: "Point to a book (from Scenario 2) and say 'Book want'.", correct: "Pusthakam kaavali", meaning: "I want the book", hint: "Book + want" },
+                { prompt: "Point far away and say 'That don't want' (Use 'That' from Scenario 2).", correct: "Adhi oddu", meaning: "I don't want that", hint: "That + don't want" }
             ]
         },
         {
@@ -98,7 +98,7 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Naa", meaning: "My", phonetic: "nah" },
                 { word: "Mee", meaning: "Your", phonetic: "mee" },
-                { word: "Ayana", meaning: "His", phonetic: "ah-yah-nah" },
+                { word: "Ayana", meaning: "He (respectful) / his", phonetic: "ah-yah-nah", teach: "{w} covers both “he” and “his”, and it is the *respectful* form — use it for elders, teachers and strangers." },
                 { word: "Ame", meaning: "Her", phonetic: "ah-meh" },
                 { word: "Katha", meaning: "Story", phonetic: "kah-thah" }
             ],
@@ -119,14 +119,14 @@ export const CURRICULUM = {
             icon: "👤",
             color: "#ede9fe",
             vocabulary: [
-                { word: "Evaru", meaning: "Who", phonetic: "eh-vah-roo" },
+                { word: "Evaru", meaning: "Who", phonetic: "eh-vah-roo", teach: "“Who” is {w} — and it goes at the end of the question, Telugu-style." },
                 { word: "Snehithudu", meaning: "Friend", phonetic: "sneh-hee-thoo-doo" },
                 { word: "Guruvu", meaning: "Teacher", phonetic: "goo-roo-voo" },
-                { word: "Thammudu", meaning: "Brother", phonetic: "tham-moo-doo" },
-                { word: "Akka", meaning: "Sister", phonetic: "ak-kah" }
+                { word: "Thammudu", meaning: "Younger Brother", phonetic: "tham-moo-doo" },
+                { word: "Akka", meaning: "Elder Sister", phonetic: "ak-kah" }
             ],
             phrases: [
-                { prompt: "Ask 'Who is this?'", correct: "Idhi evaru?", meaning: "Who is this?", hint: "This + who?" },
+                { prompt: "Ask 'Who is this?'", correct: "Ithanu evaru?", meaning: "Who is this?", hint: "This + who?" },
                 { prompt: "Say 'He is my friend' (using Snehithudu)", correct: "Ayana naa snehithudu", meaning: "He is my friend", hint: "His + my + friend" },
                 { prompt: "Ask 'Who are you?'", correct: "Meeru evaru?", meaning: "Who are you?", hint: "You + who?" }
             ],
@@ -149,14 +149,14 @@ export const CURRICULUM = {
                 { word: "Aidhu", meaning: "Five", phonetic: "eye-dhoo" }
             ],
             phrases: [
-                { prompt: "Say 'One book'", correct: "Okati pusthakam", meaning: "One book", hint: "One + book" },
+                { prompt: "Say 'One book'", correct: "Oka pusthakam", meaning: "One book", hint: "One + book" },
                 { prompt: "Say 'Two friends'", correct: "Rendu snehithulu", meaning: "Two friends", hint: "Two + friends(pl)" },
                 { prompt: "Say 'Five houses'", correct: "Aidhu illu", meaning: "Five houses", hint: "Five + house" }
             ],
             conversations: [
                 { prompt: "Miko asks how many books. Say 'Three books'.", correct: "Moodu pusthakalu", meaning: "Three books", hint: "Three + books" },
                 { prompt: "Say 'I want two' (using Rendu kaavali).", correct: "Rendu kaavali", meaning: "I want two", hint: "Number + want" },
-                { prompt: "Tell Miko 'I have one sister' (using Naa akka okati).", correct: "Naa akka okati", meaning: "My sister one", hint: "My + sister + number" },
+                { prompt: "Tell Miko 'I have one sister' (using Naaku oka akka undi).", correct: "Naaku oka akka undi", meaning: "I have one sister", hint: "My + sister + number" },
                 { prompt: "Count 1, 2, 3.", correct: "Okati, rendu, moodu", meaning: "1, 2, 3", hint: "Consecutive" }
             ]
         },
@@ -165,19 +165,18 @@ export const CURRICULUM = {
             icon: "📚",
             color: "#fff1f2",
             vocabulary: [
-                { word: "Lu", meaning: "(Plural suffix)", phonetic: "loo" },
+                { word: "Lu", meaning: "(Plural suffix)", phonetic: "loo", teach: "{w} is not a word you can say on its own — it is the *ending* you attach to a noun to make it plural. Watch it do its work on the next few words." },
                 { word: "Pusthakalu", meaning: "Books", phonetic: "poos-tah-kah-loo" },
                 { word: "Snehithulu", meaning: "Friends", phonetic: "sneh-hee-thoo-loo" },
-                { word: "Illu", meaning: "Houses", phonetic: "il-loo" },
-                { word: "Ballem", meaning: "Spears/Items", phonetic: "bal-lem" }
+                { word: "Illu", meaning: "Houses (sg. illu; inti- is its oblique stem)", phonetic: "il-loo", teach: "“House” is {w}. When it takes an ending it shifts to inti- — that is the form you already met." },
+                { word: "Kurchilu", meaning: "Chairs", phonetic: "koor-chee-loo" }
             ],
             phrases: [
-                { prompt: "Say 'Many books' (Ekkuva pusthakalu)", correct: "Ekkuva pusthakalu", meaning: "Many books", hint: "Many + books" },
-                { prompt: "Convert 'Book' to 'Books'", correct: "Pusthakam pusthakalu", meaning: "Book books", hint: "Singular + Plural" },
+                { prompt: "Say 'Many books' (Chala pusthakalu)", correct: "Chala pusthakalu", meaning: "Many books", hint: "Many + books" },
                 { prompt: "Say 'My friends'", correct: "Naa snehithulu", meaning: "My friends", hint: "My + friends" }
             ],
             conversations: [
-                { prompt: "Tell Miko you have many friends.", correct: "Naa ekkuva snehithulu", meaning: "My many friends", hint: "My + many + friends" },
+                { prompt: "Tell Miko you have many friends.", correct: "Naaku chala mandi snehithulu unnaru", meaning: "I have many friends", hint: "My + many + friends" },
                 { prompt: "Ask 'Where are the books?'", correct: "Pusthakalu ekkada?", meaning: "Where are the books?", hint: "Books + where?" },
                 { prompt: "Say 'I don't want these houses'.", correct: "Ee illu oddu", meaning: "I don't want these houses", hint: "These + houses + don't want" },
                 { prompt: "Final check: Say 'Hello my friends'.", correct: "Namaskaram naa snehithulu", meaning: "Hello my friends", hint: "Hello + my + friends" }
@@ -197,13 +196,13 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Big house'", correct: "Pedda illu", meaning: "Big house", hint: "Big + house" },
                 { prompt: "Say 'Good friend'", correct: "Manchi snehithudu", meaning: "Good friend", hint: "Good + friend" },
-                { prompt: "Say 'Small water' (Small bottle)", correct: "Chinna neeru", meaning: "Small water", hint: "Small + water" }
+                { prompt: "Say 'A little water'", correct: "Konchem neeru", meaning: "A little water", hint: "Small + water" }
             ],
             conversations: [
                 { prompt: "Tell Miko 'This is a big book'.", correct: "Idhi pedda pusthakam", meaning: "This is a big book", hint: "This + big + book" },
                 { prompt: "Ask for 'Hot water' (Vedi neeru kaavali).", correct: "Vedi neeru kaavali", meaning: "I want hot water", hint: "Hot + water + want" },
                 { prompt: "Say 'He is a good teacher'.", correct: "Ayana manchi guruvu", meaning: "He is a good teacher", hint: "He + good + teacher" },
-                { prompt: "Say 'That is bad'.", correct: "Adhi chedu", meaning: "That is bad", hint: "That + bad" }
+                { prompt: "Say 'That is bad'.", correct: "Adhi bagoledu", meaning: "That is bad", hint: "That + bad" }
             ]
         },
         {
@@ -213,20 +212,20 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Bhojanam", meaning: "Meal", phonetic: "bho-jah-nam" },
                 { word: "Billu", meaning: "Bill", phonetic: "bil-loo" },
-                { word: "Ivvandi", meaning: "Give (please)", phonetic: "iv-van-dee" },
-                { word: "Danyavadhalu", meaning: "Thank you", phonetic: "dan-yah-vah-dhah-loo" },
-                { word: "Kurchoni", meaning: "Sit", phonetic: "koor-cho-nee" }
+                { word: "Ivvandi", meaning: "Give (please)", phonetic: "iv-van-dee", teach: "A polite “please give” is {w}. That -andi ending is what turns any Telugu command polite — you will reuse it constantly." },
+                { word: "Dhanyavaadaalu", meaning: "Thank you", phonetic: "dhan-yah-vaa-daa-loo" },
+                { word: "Kurchondi", meaning: "Sit (please)", phonetic: "koor-chon-dee", teach: "A polite “please sit” is {w} — the same -andi politeness ending you just met." }
             ],
             phrases: [
                 { prompt: "Say 'Please give the bill'", correct: "Billu ivvandi", meaning: "Please give the bill", hint: "Bill + give" },
-                { prompt: "Say 'Thank you Miko'", correct: "Danyavadhalu Miko", meaning: "Thank you Miko", hint: "Thanks + Name" },
+                { prompt: "Say 'Thank you Miko'", correct: "Dhanyavaadaalu Miko", meaning: "Thank you Miko", hint: "Thanks + Name" },
                 { prompt: "Say 'I want a meal'", correct: "Bhojanam kaavali", meaning: "I want a meal", hint: "Meal + want" }
             ],
             conversations: [
                 { prompt: "Order a meal and water.", correct: "Bhojanam kaavali, neeru kaavali", meaning: "I want a meal, I want water", hint: "Meal + want + water + want" },
                 { prompt: "Ask the waiter for the bill.", correct: "Billu ivvandi", meaning: "Please give the bill", hint: "Bill + give" },
-                { prompt: "Say 'This meal is good'.", correct: "Ee bhojanam manchi", meaning: "This meal is good", hint: "This + meal + good" },
-                { prompt: "Final check: Say hello, thank you.", correct: "Namaskaram, danyavadhalu", meaning: "Hello, thank you", hint: "Greet + Thanks" }
+                { prompt: "Say 'This meal is good'.", correct: "Ee bhojanam bagundi", meaning: "This meal is good", hint: "This + meal + good" },
+                { prompt: "Final check: Say hello, thank you.", correct: "Namaskaram, dhanyavaadaalu", meaning: "Hello, thank you", hint: "Greet + Thanks" }
             ]
         },
 
@@ -235,20 +234,20 @@ export const CURRICULUM = {
             scenario: "Present Continuous",
             vocabulary: [
                 { word: "Chestunnanu", meaning: "am doing", phonetic: "ches-thoon-nah-noo" },
-                { word: "Tinunnanu", meaning: "am eating", phonetic: "theen-oon-nah-noo" },
+                { word: "Tintunnanu", meaning: "am eating", phonetic: "theen-toon-nah-noo" },
                 { word: "Velthunnanu", phonetic: "vel-thoon-nah-noo", meaning: "am going" },
                 { word: "Ippudu", meaning: "Now", phonetic: "ip-poo-doo" },
-                { word: "Panu", meaning: "Work", phonetic: "pah-noo" }
+                { word: "Pani", meaning: "Work", phonetic: "pah-nee" }
             ],
             phrases: [
-                { prompt: "Say 'I am doing work'", correct: "Nenu panu chestunnanu", meaning: "I am doing work", hint: "I + work + doing" },
+                { prompt: "Say 'I am doing work'", correct: "Nenu pani chestunnanu", meaning: "I am doing work", hint: "I + work + doing" },
                 { prompt: "Say 'I am going now'", correct: "Nenu ippudu velthunnanu", meaning: "I am going now", hint: "I + now + going" },
-                { prompt: "Say 'I am eating food'", correct: "Nenu annam tinunnanu", meaning: "I am eating food", hint: "I + food + eating" }
+                { prompt: "Say 'I am eating food'", correct: "Nenu annam tintunnanu", meaning: "I am eating food", hint: "I + food + eating" }
             ],
             conversations: [
-                { prompt: "Miko asks what you're doing. Say 'I am doing work'.", correct: "Nenu panu chestunnanu", meaning: "I am doing work", hint: "I + work + doing" },
-                { prompt: "Tell someone 'I am going home now'.", correct: "Nenu ippudu inti velthunnanu", meaning: "I am going home now", hint: "I + now + home + going" },
-                { prompt: "Say 'I am eating' when asked.", correct: "Nenu tinunnanu", meaning: "I am eating", hint: "I + eating" },
+                { prompt: "Miko asks what you're doing. Say 'I am doing work'.", correct: "Nenu pani chestunnanu", meaning: "I am doing work", hint: "I + work + doing" },
+                { prompt: "Tell someone 'I am going home now'.", correct: "Nenu ippudu intiki velthunnanu", meaning: "I am going home now", hint: "I + now + home + going" },
+                { prompt: "Say 'I am eating' when asked.", correct: "Nenu tintunnanu", meaning: "I am eating", hint: "I + eating" },
                 { prompt: "Final check: 'I am doing this now'.", correct: "Nenu ippudu idhi chestunnanu", meaning: "I am doing this now", hint: "I + now + this + doing" }
             ]
         },
@@ -264,12 +263,12 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Today I am going'", correct: "Eeroju nenu velthunnanu", meaning: "Today I am going", hint: "Today + I + going" },
                 { prompt: "Say 'Yesterday I did'", correct: "Ninna nenu chesanu", meaning: "Yesterday I did", hint: "Yesterday + I + did" },
-                { prompt: "Say 'Tomorrow one hour'", correct: "Repu okati ganta", meaning: "Tomorrow one hour", hint: "Tomorrow + one + hour" }
+                { prompt: "Say 'Tomorrow one hour'", correct: "Repu oka ganta", meaning: "Tomorrow one hour", hint: "Tomorrow + one + hour" }
             ],
             conversations: [
                 { prompt: "Tell Miko you are going today.", correct: "Eeroju nenu velthunnanu", meaning: "Today I am going", hint: "Today + I + going" },
                 { prompt: "Say 'I will do it tomorrow'.", correct: "Nenu repu chestanu", meaning: "I will do tomorrow", hint: "I + tomorrow + will do" },
-                { prompt: "Ask 'When are you going?' (using simple words)", correct: "Eeroju meeru velthunnara?", meaning: "Are you going today?", hint: "Today + you + going(q)?" },
+                { prompt: "Ask if they are going today", correct: "Eeroju meeru velthunnara?", meaning: "Are you going today?", hint: "Today + you + going(q)?" },
                 { prompt: "Say 'I ate yesterday'.", correct: "Nenu ninna thinnanu", meaning: "I ate yesterday", hint: "I + yesterday + ate" }
             ]
         },
@@ -280,16 +279,16 @@ export const CURRICULUM = {
                 { word: "Vellanu", meaning: "Went", phonetic: "vel-lah-noo" },
                 { word: "Thinnanu", meaning: "Ate", phonetic: "thin-nah-noo" },
                 { word: "Chusanu", meaning: "Saw", phonetic: "choo-sah-noo" },
-                { word: "Pannanu", meaning: "Spoke/Did", phonetic: "pan-nah-noo" }
+                { word: "Cheppanu", meaning: "Spoke/Said", phonetic: "chep-pah-noo" }
             ],
             phrases: [
-                { prompt: "Say 'I went home'", correct: "Nenu inti vellanu", meaning: "I went home", hint: "I + home + went" },
+                { prompt: "Say 'I went home'", correct: "Nenu intiki vellanu", meaning: "I went home", hint: "I + home + went" },
                 { prompt: "Say 'I saw that'", correct: "Nenu adhi chusanu", meaning: "I saw that", hint: "I + that + saw" },
                 { prompt: "Say 'I ate food'", correct: "Nenu annam thinnanu", meaning: "I ate food", hint: "I + food + ate" }
             ],
             conversations: [
                 { prompt: "Miko asks about your trip. Say 'I went there'.", correct: "Nenu akkada vellanu", meaning: "I went there", hint: "I + there + went" },
-                { prompt: "Say 'I did that yesterday'.", correct: "Nenu ninna adhi chesanu", meaning: "I yesterday that did", hint: "I + yesterday + that + did" },
+                { prompt: "Say 'I did that yesterday'.", correct: "Nenu ninna adhi chesanu", meaning: "I did that yesterday", hint: "I + yesterday + that + did" },
                 { prompt: "Confirm you saw Miko.", correct: "Nenu Miko chusanu", meaning: "I saw Miko", hint: "I + name + saw" },
                 { prompt: "Final check: 'I went and I ate'.", correct: "Nenu vellanu, nenu thinnanu", meaning: "I went, I ate", hint: "I + went + I + ate" }
             ]
@@ -306,55 +305,55 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'I will go tomorrow'", correct: "Nenu repu velthanu", meaning: "I will go tomorrow", hint: "I + tomorrow + will go" },
                 { prompt: "Say 'I will eat now'", correct: "Nenu ippudu tintanu", meaning: "I will eat now", hint: "I + now + will eat" },
-                { prompt: "Say 'I will see you'", correct: "Nenu meeru chustanu", meaning: "I will see you", hint: "I + you + will see" }
+                { prompt: "Say 'I will see you'", correct: "Nenu mimmalni chustanu", meaning: "I will see you", hint: "I + you + will see" }
             ],
             conversations: [
                 { prompt: "Miko asks if you'll help. Say 'I will do it'.", correct: "Nenu chestanu", meaning: "I will do", hint: "I + will do" },
-                { prompt: "Tell someone 'I will go home tomorrow'.", correct: "Nenu repu inti velthanu", meaning: "I will go home tomorrow", hint: "I + tomorrow + home + will go" },
-                { prompt: "Say 'I will see that movie'.", correct: "Nenu adhi cinema chustanu", meaning: "I will see that movie", hint: "I + that + movie + see" },
+                { prompt: "Tell someone 'I will go home tomorrow'.", correct: "Nenu repu intiki velthanu", meaning: "I will go home tomorrow", hint: "I + tomorrow + home + will go" },
+                { prompt: "Say 'I will see that movie'.", correct: "Nenu aa cinema chustanu", meaning: "I will see that movie", hint: "I + that + movie + see" },
                 { prompt: "Final check: 'I will eat soon'.", correct: "Nenu tharuvatha tintanu", meaning: "I will eat later", hint: "I + later + will eat" }
             ]
         },
         {
             scenario: "Asking 'Why' (Enduku)",
             vocabulary: [
-                { word: "Enduku", meaning: "Why", phonetic: "en-doo-koo" },
-                { word: "Andhuke", meaning: "Because/That's why", phonetic: "an-dhoo-keh" },
+                { word: "Enduku", meaning: "Why", phonetic: "en-doo-koo", teach: "“Why” is {w}. It usually opens the question in speech, but it can also sit at the end." },
+                { word: "Andhuke", meaning: "That's why", phonetic: "an-dhoo-keh" },
                 { word: "Ishtam", meaning: "Like", phonetic: "ish-tam" },
-                { word: "Ledu", meaning: "No/Not", phonetic: "leh-doo" },
+                { word: "Ledu", meaning: "No/Not", phonetic: "leh-doo", teach: "“No” is {w}. It doubles as “is not” / “there isn’t”, and it goes at the end." },
                 { word: "Bhayam", meaning: "Fear", phonetic: "bhah-yam" }
             ],
             phrases: [
                 { prompt: "Ask 'Why are you going?'", correct: "Meeru enduku velthunnaru?", meaning: "Why are you going?", hint: "You + why + going?" },
-                { prompt: "Say 'Because I like it'", correct: "Andhuke nenu ishtam", meaning: "That's why I like", hint: "Because + I + like" },
+                { prompt: "Say 'Because I like it'", correct: "Endukante naaku ishtam", meaning: "That's why I like", hint: "Because + I + like" },
                 { prompt: "Ask 'Why this?'", correct: "Idhi enduku?", meaning: "Why this?", hint: "This + why?" }
             ],
             conversations: [
                 { prompt: "Miko asks why you're leaving. Say 'Because I am tired' (using simple words).", correct: "Andhuke nenu velthunnanu", meaning: "That's why I am going", hint: "Because + I + going" },
                 { prompt: "Ask someone why they want that.", correct: "Adhi enduku kaavali?", meaning: "Why want that?", hint: "That + why + want" },
-                { prompt: "Say 'I don't know why'.", correct: "Enduku nenu ledu", meaning: "Why I not", hint: "Why + I + not" },
+                { prompt: "Say 'I don't know why'.", correct: "Naaku enduku ani teliyadu", meaning: "I don't know why", hint: "Why + I + not" },
                 { prompt: "Ask 'Why are you here?'", correct: "Meeru enduku ikkada?", meaning: "Why are you here?", hint: "You + why + here?" }
             ]
         },
         {
             scenario: "The 'How' (Ela)",
             vocabulary: [
-                { word: "Ela", meaning: "How", phonetic: "eh-lah" },
-                { word: "Baga", meaning: "Well/Very", phonetic: "bah-gah" },
+                { word: "Ela", meaning: "How", phonetic: "eh-lah", teach: "\u201cHow\u201d is {w}. It goes right before the verb, not at the front like English." },
+                { word: "Baga", meaning: "Well", phonetic: "bah-gah" },
                 { word: "Tvaraga", meaning: "Quickly", phonetic: "tvah-rah-gah" },
-                { word: "Mellanega", meaning: "Slowly", phonetic: "mel-lah-neh-gah" },
+                { word: "Mellaga", meaning: "Slowly", phonetic: "mel-lah-gah" },
                 { word: "Santhosham", meaning: "Happy", phonetic: "san-tho-sham" }
             ],
             phrases: [
                 { prompt: "Ask 'How to do?'", correct: "Ela cheyali?", meaning: "How to do?", hint: "How + do?" },
-                { prompt: "Say 'Go slowly'", correct: "Mellanega vellu", meaning: "Go slowly", hint: "Slowly + go" },
+                { prompt: "Say 'Go slowly'", correct: "Mellaga vellandi", meaning: "Go slowly", hint: "Slowly + go" },
                 { prompt: "Say 'I am doing well'", correct: "Nenu baga chestunnanu", meaning: "I am doing well", hint: "I + well + doing" }
             ],
             conversations: [
                 { prompt: "Ask Miko how to eat this.", correct: "Idhi ela thinali?", meaning: "How to eat this?", hint: "This + how + eat?" },
-                { prompt: "Tell someone to do it quickly.", correct: "Tvaraga cheyali", meaning: "Do quickly", hint: "Quickly + do" },
-                { prompt: "Say 'I am very happy'.", correct: "Nenu baga santhosham", meaning: "I am very happy", hint: "I + well + happy" },
-                { prompt: "Ask 'How is your friend?'.", correct: "Mee snehithudu ela?", meaning: "How is your friend?", hint: "Your + friend + how?" }
+                { prompt: "Tell someone to do it quickly.", correct: "Tvaraga cheyandi", meaning: "Do quickly", hint: "Quickly + do" },
+                { prompt: "Say 'I am very happy'.", correct: "Nenu chala santhoshamga unnanu", meaning: "I am very happy", hint: "I + well + happy" },
+                { prompt: "Ask 'How is your friend?'.", correct: "Mee snehithudu ela unnaru?", meaning: "How is your friend?", hint: "Your + friend + how?" }
             ]
         },
         {
@@ -375,7 +374,7 @@ export const CURRICULUM = {
                 { prompt: "Introduce your mother to Miko.", correct: "Idhi naa amma", meaning: "This is my mother", hint: "This + my + mother" },
                 { prompt: "Ask 'Where is your home?'", correct: "Mee inti ekkada?", meaning: "Where is your home?", hint: "Your + house + where?" },
                 { prompt: "Say 'My brother is a good friend'.", correct: "Naa anna manchi snehithudu", meaning: "My brother is a good friend", hint: "My + brother + good + friend" },
-                { prompt: "Point to a photo: 'My elder sister'.", correct: "Naa akka", meaning: "My sister", hint: "My + sister" }
+                { prompt: "Point to a photo: 'My elder sister'.", correct: "Naa akka", meaning: "My elder sister", hint: "My + sister" }
             ]
         },
         {
@@ -388,14 +387,14 @@ export const CURRICULUM = {
                 { word: "Vanta", meaning: "Cook", phonetic: "van-tah" }
             ],
             phrases: [
-                { prompt: "Say 'I am sleeping'", correct: "Nenu niddra velthunnanu", meaning: "I am going to sleep", hint: "I + sleep + going" },
+                { prompt: "Say 'I am sleeping'", correct: "Nenu nidra potunnanu", meaning: "I am sleeping", hint: "I + sleep + going" },
                 { prompt: "Say 'I want a bath'", correct: "Snanam kaavali", meaning: "I want a bath", hint: "Bath + want" },
                 { prompt: "Say 'I am cooking food'", correct: "Nenu annam vanta chestunnanu", meaning: "I am cooking food", hint: "I + food + cook + doing" }
             ],
             conversations: [
                 { prompt: "Tell Miko you are waking up now.", correct: "Nenu ippudu melukonnanu", meaning: "I wake up now", hint: "I + now + wake up" },
-                { prompt: "Say 'I have work today'.", correct: "Eeroju nenu pani", meaning: "Today I work", hint: "Today + I + work" },
-                { prompt: "Say 'I will sleep later'.", correct: "Nenu tharuvatha niddra", meaning: "I later sleep", hint: "I + later + sleep" },
+                { prompt: "Say 'I have work today'.", correct: "Naaku eeroju pani undi", meaning: "I have work today", hint: "Today + I + work" },
+                { prompt: "Say 'I will sleep later'.", correct: "Nenu tharuvatha nidra potanu", meaning: "I will sleep later", hint: "I + later + sleep" },
                 { prompt: "Ask Miko 'Did you eat?' (simple).", correct: "Meeru thinnara?", meaning: "Did you eat?", hint: "You + ate?" }
             ]
         },
@@ -414,7 +413,7 @@ export const CURRICULUM = {
                 { prompt: "Say 'I want black'", correct: "Nalupu kaavali", meaning: "I want black", hint: "Black + want" }
             ],
             conversations: [
-                { prompt: "Miko asks your favorite color. Say 'I like red'.", correct: "Naa ishtam erupu", meaning: "My like red", hint: "My + like + red" },
+                { prompt: "Miko asks your favorite color. Say 'I like red'.", correct: "Naaku erupu ishtam", meaning: "I like red", hint: "My + like + red" },
                 { prompt: "Say 'I want new clothes'.", correct: "Kotha batta kaavali", meaning: "New clothes want", hint: "New + clothes + want" },
                 { prompt: "Point to a white shirt: 'This is white'.", correct: "Idhi telupu", meaning: "This is white", hint: "This + white" },
                 { prompt: "Ask 'Which color is that?' (simple).", correct: "Adhi em rangu?", meaning: "What color is that?", hint: "That + what + color?" }
@@ -430,15 +429,15 @@ export const CURRICULUM = {
                 { word: "Sare", meaning: "Okay", phonetic: "sah-reh" }
             ],
             phrases: [
-                { prompt: "Say 'Today was good'", correct: "Eeroju baga", meaning: "Today well", hint: "Today + well" },
-                { prompt: "Say 'I am happy today'", correct: "Eeroju nenu santhosham", meaning: "Today I am happy", hint: "Today + I + happy" },
-                { prompt: "Say 'I remember you'", correct: "Meeru gurthundi", meaning: "You remember", hint: "You + remember" }
+                { prompt: "Say 'Today was good'", correct: "Eeroju bagundi", meaning: "Today was good", hint: "Today + well" },
+                { prompt: "Say 'I am happy today'", correct: "Eeroju nenu santhoshamga unnanu", meaning: "Today I am happy", hint: "Today + I + happy" },
+                { prompt: "Say 'I remember you'", correct: "Naaku meeru gurthunnaru", meaning: "I remember you", hint: "You + remember" }
             ],
             conversations: [
-                { prompt: "Miko asks about your day. Say 'It was good'.", correct: "Eeroju baga", meaning: "Today well", hint: "Today + well" },
-                { prompt: "Tell Miko 'I am going to work now'.", correct: "Nenu ippudu pani velthunnanu", meaning: "I am going to work now", hint: "I + now + work + going" },
-                { prompt: "Say 'Okay, thank you'.", correct: "Sare, danyavadhalu", meaning: "Okay, thank you", hint: "Okay + thanks" },
-                { prompt: "Final check: Say hello, I am very happy.", correct: "Namaskaram, nenu baga santhosham", meaning: "Hello, I am very happy", hint: "Hello + I + well + happy" }
+                { prompt: "Miko asks about your day. Say 'It was good'.", correct: "Eeroju bagundi", meaning: "Today was good", hint: "Today + well" },
+                { prompt: "Tell Miko 'I am going to work now'.", correct: "Nenu ippudu paniki velthunnanu", meaning: "I am going to work now", hint: "I + now + work + going" },
+                { prompt: "Say 'Okay, thank you'.", correct: "Sare, dhanyavaadaalu", meaning: "Okay, thank you", hint: "Okay + thanks" },
+                { prompt: "Final check: Say hello, I am very happy.", correct: "Namaskaram, nenu chala santhoshamga unnanu", meaning: "Hello, I am very happy", hint: "Hello + I + well + happy" }
             ]
         },
 
@@ -446,11 +445,11 @@ export const CURRICULUM = {
         {
             scenario: "Postpositions",
             vocabulary: [
-                { word: "Lo", meaning: "In", phonetic: "loh" },
-                { word: "Paina", meaning: "On/Above", phonetic: "pye-nah" },
-                { word: "Kindha", meaning: "Under", phonetic: "keen-dhah" },
-                { word: "Tho", meaning: "With", phonetic: "tho" },
-                { word: "Daggara", meaning: "Near", phonetic: "dag-gah-rah" }
+                { word: "Lo", meaning: "In", phonetic: "loh", teach: "“In” is {w} — but here is the catch: it goes *after* the noun, not before. Telugu has postpositions, not prepositions." },
+                { word: "Paina", meaning: "On/Above", phonetic: "pye-nah", teach: "“On” or “above” is {w}, and like every Telugu postposition it *follows* the noun." },
+                { word: "Kindha", meaning: "Under", phonetic: "keen-dhah", teach: "“Under” is {w} — again it comes after the thing it describes, never before it." },
+                { word: "Tho", meaning: "With", phonetic: "tho", teach: "“With” is {w}. It hooks onto the end of the word it belongs to." },
+                { word: "Daggara", meaning: "Near", phonetic: "dag-gah-rah", teach: "“Near” is {w}, and it comes after the place — the opposite order from English." }
             ],
             phrases: [
                 { prompt: "Say 'In the house'", correct: "Inti lo", meaning: "In the house", hint: "House + in" },
@@ -459,16 +458,16 @@ export const CURRICULUM = {
             ],
             conversations: [
                 { prompt: "Miko asks where you are. Say 'I am in the house'.", correct: "Nenu inti lo", meaning: "I am in the house", hint: "I + house + in" },
-                { prompt: "Tell someone to sit near you.", correct: "Naa daggara kurchoni", meaning: "Sit near me", hint: "My + near + sit" },
-                { prompt: "Tell Miko 'Go with him'.", correct: "Ayana tho vellu", meaning: "Go with him", hint: "He + with + go" },
+                { prompt: "Tell someone to sit near you.", correct: "Naa daggara kurchondi", meaning: "Sit near me", hint: "My + near + sit" },
+                { prompt: "Tell Miko 'Go with him'.", correct: "Ayana tho vellandi", meaning: "Go with him", hint: "He + with + go" },
                 { prompt: "Say 'Under the big tree'.", correct: "Pedda chettu kindha", meaning: "Under big tree", hint: "Big + tree + under" }
             ]
         },
         {
             scenario: "The 'Can' & 'Can't'",
             vocabulary: [
-                { word: "Galanu", meaning: "Can", phonetic: "gah-lah-noo" },
-                { word: "Lenu", meaning: "Can't", phonetic: "leh-noo" },
+                { word: "Galanu", meaning: "Can", phonetic: "gah-lah-noo", teach: "{w} is an ending rather than a standalone “can”. Add it to a verb stem and it means “I can” — the “I” is already inside it." },
+                { word: "Lenu", meaning: "Can't", phonetic: "leh-noo", teach: "{w} is the matching negative ending: add it to a verb stem to say “I can’t”." },
                 { word: "Cheyagalanu", meaning: "Can do", phonetic: "cheh-yah-gah-lah-noo" },
                 { word: "Matladu", meaning: "Speak", phonetic: "mat-lah-doo" },
                 { word: "Sahaayam", meaning: "Help", phonetic: "sah-hah-yam" }
@@ -488,7 +487,7 @@ export const CURRICULUM = {
         {
             scenario: "Should & Must",
             vocabulary: [
-                { word: "Aali", meaning: "(Must suffix)", phonetic: "ah-lee" },
+                { word: "Aali", meaning: "(Must suffix)", phonetic: "ah-lee", teach: "{w} is an ending, not a word. Attach it to a verb stem and the verb becomes “must do that”." },
                 { word: "Cheyali", meaning: "Must do", phonetic: "cheh-yah-lee" },
                 { word: "Vellali", meaning: "Must go", phonetic: "vel-lah-lee" },
                 { word: "Thinali", meaning: "Must eat", phonetic: "thee-nah-lee" },
@@ -500,7 +499,7 @@ export const CURRICULUM = {
                 { prompt: "Say 'I must speak Telugu'", correct: "Nenu Telugu matladali", meaning: "I must speak Telugu", hint: "I + Telugu + must speak" }
             ],
             conversations: [
-                { prompt: "Miko says it's late. Say 'I must go home now'.", correct: "Nenu ippudu inti vellali", meaning: "I must go home now", hint: "I + now + home + must go" },
+                { prompt: "Miko says it's late. Say 'I must go home now'.", correct: "Nenu ippudu intiki vellali", meaning: "I must go home now", hint: "I + now + home + must go" },
                 { prompt: "Tell someone 'You must eat food'.", correct: "Meeru annam thinali", meaning: "You must eat food", hint: "You + food + must eat" },
                 { prompt: "Say 'I must see Miko today'.", correct: "Eeroju nenu Miko chudali", meaning: "Today I must see Miko", hint: "Today + I + name + must see" },
                 { prompt: "Final check: 'I must do this tomorrow'.", correct: "Nenu repu idhi cheyali", meaning: "I must do this tomorrow", hint: "I + tomorrow + this + must do" }
@@ -509,21 +508,21 @@ export const CURRICULUM = {
         {
             scenario: "Conjunctions",
             vocabulary: [
-                { word: "Mariyu", meaning: "And", phonetic: "mah-ree-yoo" },
+                { word: "Mariyu", meaning: "And", phonetic: "mah-ree-yoo", teach: "“And” is {w} — though be warned: this is bookish. In everyday speech Telugu usually just lists things with no “and” at all." },
                 { word: "Kani", meaning: "But", phonetic: "kah-nee" },
                 { word: "Endukante", meaning: "Because", phonetic: "en-doo-kan-teh" },
                 { word: "Leda", meaning: "Or", phonetic: "leh-dah" },
                 { word: "Sare", meaning: "Okay", phonetic: "sah-reh" }
             ],
             phrases: [
-                { prompt: "Say 'I want water and food'", correct: "Neeru mariyu annam kaavali", meaning: "Water and food want", hint: "Water + and + food + want" },
+                { prompt: "Say 'I want water and food'", correct: "Neeru, annam kaavali", meaning: "Water and food want", hint: "Water + and + food + want" },
                 { prompt: "Say 'I want this but not that'", correct: "Idhi kaavali kani adhi oddu", meaning: "I want this but that don't want", hint: "This + want + but + that + don't want" },
                 { prompt: "Say 'This or that?'", correct: "Idhi leda adhi?", meaning: "This or that?", hint: "This + or + that?" }
             ],
             conversations: [
-                { prompt: "Miko asks what you want. Say 'Coffee and water'.", correct: "Coffee mariyu neeru kaavali", meaning: "Coffee and water want", hint: "Coffee + and + water + want" },
-                { prompt: "Say 'I want to go but I have work'.", correct: "Nenu vellali kani nenu pani", meaning: "I must go but I have work", hint: "I + go(must) + but + I + work" },
-                { prompt: "Say 'Because I'm happy'.", correct: "Endukante nenu santhosham", meaning: "Because I am happy", hint: "Because + I + happy" },
+                { prompt: "Miko asks what you want. Say 'Coffee and water'.", correct: "Coffee, neeru kaavali", meaning: "Coffee and water want", hint: "Coffee + and + water + want" },
+                { prompt: "Say 'I want to go but I have work'.", correct: "Nenu vellali kani naaku pani undi", meaning: "I must go but I have work", hint: "I + go(must) + but + I + work" },
+                { prompt: "Say 'Because I'm happy'.", correct: "Endukante nenu santhoshamga unnanu", meaning: "Because I am happy", hint: "Because + I + happy" },
                 { prompt: "Final check: 'Rice or bread?' (Annam leda roti?)", correct: "Annam leda roti", meaning: "Rice or bread", hint: "Rice + or + bread" }
             ]
         },
@@ -531,7 +530,7 @@ export const CURRICULUM = {
             scenario: "The 'If' Clause",
             vocabulary: [
                 { word: "Unte", meaning: "If there is", phonetic: "oon-teh" },
-                { word: "Velle", meaning: "If going", phonetic: "vel-leh" },
+                { word: "Velthe", meaning: "If going", phonetic: "vel-theh" },
                 { word: "Thinte", meaning: "If eating", phonetic: "theen-teh" },
                 { word: "Chesthe", meaning: "If doing", phonetic: "ches-theh" },
                 { word: "Appudu", meaning: "Then", phonetic: "ap-poo-doo" }
@@ -542,10 +541,10 @@ export const CURRICULUM = {
                 { prompt: "Say 'If I do work'", correct: "Nenu pani chesthe", meaning: "If I do work", hint: "I + work + do(if)" }
             ],
             conversations: [
-                { prompt: "Tell Miko 'If you are happy, I am happy'.", correct: "Meeru santhosham unte, nenu santhosham", meaning: "If you are happy I am happy", hint: "You + happy + if + I + happy" },
+                { prompt: "Tell Miko 'If you are happy, I am happy'.", correct: "Meeru santhoshamga unte, nenu santhoshamga untanu", meaning: "If you are happy I am happy", hint: "You + happy + if + I + happy" },
                 { prompt: "Say 'If there is water, I will drink'.", correct: "Neeru unte nenu thaganu", meaning: "If water is there I drink", hint: "Water + if + I + drink" },
-                { prompt: "Say 'If you want, take it'.", correct: "Meeru kaavali unte theesko", meaning: "If you want take", hint: "You + want + if + take" },
-                { prompt: "Final check: 'If tomorrow comes...'", correct: "Repu unte", meaning: "If tomorrow stays", hint: "Tomorrow + if" }
+                { prompt: "Say 'If you want, take it'.", correct: "Meeku kaavalante theeskondi", meaning: "If you want take", hint: "You + want + if + take" },
+                { prompt: "Final check: 'If tomorrow comes...'", correct: "Repu vaste", meaning: "If tomorrow comes", hint: "Tomorrow + if" }
             ]
         },
         {
@@ -558,15 +557,15 @@ export const CURRICULUM = {
                 { word: "Bhayam", meaning: "Scared/Fear", phonetic: "bhah-yam" }
             ],
             phrases: [
-                { prompt: "Say 'I am tired'", correct: "Nenu alupu", meaning: "I am tired", hint: "I + tired" },
-                { prompt: "Say 'Are you angry?'", correct: "Meeru kopam unnara?", meaning: "Are you angry?", hint: "You + angry + are?" },
-                { prompt: "Say 'Don't be sad'", correct: "Badha oddu", meaning: "Sad don't want", hint: "Sad + don't" }
+                { prompt: "Say 'I am tired'", correct: "Naaku alupuga undi", meaning: "I am tired", hint: "I + tired" },
+                { prompt: "Say 'Are you angry?'", correct: "Meeru kopamga unnara?", meaning: "Are you angry?", hint: "You + angry + are?" },
+                { prompt: "Say 'Don't be sad'", correct: "Badha padoddu", meaning: "Don't be sad", hint: "Sad + don't" }
             ],
             conversations: [
-                { prompt: "Miko asks how you feel. Say 'I am happy'.", correct: "Nenu santhosham", meaning: "I am happy", hint: "I + happy" },
-                { prompt: "Tell someone you are not scared.", correct: "Nenu bhayam ledu", meaning: "I have no fear", hint: "I + fear + not" },
-                { prompt: "Say 'I am very tired today'.", correct: "Eeroju nenu baga alupu", meaning: "Today I am very tired", hint: "Today + I + well + tired" },
-                { prompt: "Point to a sad friend: 'He is sad'.", correct: "Ayana badha", meaning: "He is sad", hint: "He + sad" }
+                { prompt: "Miko asks how you feel. Say 'I am happy'.", correct: "Nenu santhoshamga unnanu", meaning: "I am happy", hint: "I + happy" },
+                { prompt: "Tell someone you are not scared.", correct: "Naaku bhayam ledu", meaning: "I have no fear", hint: "I + fear + not" },
+                { prompt: "Say 'I am very tired today'.", correct: "Eeroju naaku chala alupuga undi", meaning: "Today I am very tired", hint: "Today + I + well + tired" },
+                { prompt: "Point to a sad friend: 'He is sad'.", correct: "Ayana badhaga unnaru", meaning: "He is sad", hint: "He + sad" }
             ]
         },
         {
@@ -586,7 +585,7 @@ export const CURRICULUM = {
             conversations: [
                 { prompt: "Ask the price of something in thousands.", correct: "Veyi rupayalu?", meaning: "1000 rupees?", hint: "Thousand + currency" },
                 { prompt: "Tell Miko you don't have change.", correct: "Naa daggara chillar ledu", meaning: "I don't have change", hint: "My near + change + not" },
-                { prompt: "Say 'That costs one lakh'.", correct: "Adhi okati laksha", meaning: "That is 1 lakh", hint: "That + one + lakh" },
+                { prompt: "Say 'That costs one lakh'.", correct: "Adhi oka laksha", meaning: "That is 1 lakh", hint: "That + one + lakh" },
                 { prompt: "Ask 'Do you have money?'", correct: "Mee daggara dabbulu unnaya?", meaning: "Do you have money?", hint: "Your near + money + are?" }
             ]
         },
@@ -597,10 +596,10 @@ export const CURRICULUM = {
                 { word: "Prayanam", meaning: "Trip/Travel", phonetic: "prah-yah-nam" },
                 { word: "Ticketu", meaning: "Ticket", phonetic: "tik-keh-too" },
                 { word: "Bus", meaning: "Bus", phonetic: "bus" },
-                { word: "Veli", meaning: "Go (polite)", phonetic: "veh-lee" }
+                { word: "Vellandi", meaning: "Go (polite)", phonetic: "vel-lan-dee", teach: "A polite “please go” is {w}. Same -andi ending again." }
             ],
             phrases: [
-                { prompt: "Say 'It's very hot today' (Eeroju baga enda)", correct: "Eeroju baga enda", meaning: "Today very hot", hint: "Today + well + heat" },
+                { prompt: "Say 'It's very hot today' (Eeroju chala enda)", correct: "Eeroju chala enda", meaning: "Today very hot", hint: "Today + well + heat" },
                 { prompt: "Say 'I want a bus ticket'", correct: "Bus ticketu kaavali", meaning: "I want a bus ticket", hint: "Bus + ticket + want" },
                 { prompt: "Say 'Safe trip' (Manchi prayanam)", correct: "Manchi prayanam", meaning: "Good trip", hint: "Good + trip" }
             ],
@@ -608,7 +607,7 @@ export const CURRICULUM = {
                 { prompt: "Miko asks about the weather. Say 'It is raining' (Vana paduthundi).", correct: "Vana paduthundi", meaning: "Rain is falling", hint: "Rain + falling" },
                 { prompt: "Ask someone 'Where is the bus?'", correct: "Bus ekkada?", meaning: "Where is the bus?", hint: "Bus + where?" },
                 { prompt: "Say 'I am going on a trip tomorrow'.", correct: "Repu nenu prayanam velthunnanu", meaning: "Tomorrow I trip going", hint: "Tomorrow + I + trip + going" },
-                { prompt: "Final check: 'Hot weather today'.", correct: "Eeroju enda vaathavaranam", meaning: "Today hot weather", hint: "Today + heat + weather" }
+                { prompt: "Final check: 'Hot weather today'.", correct: "Eeroju vaathavaranam chala vediga undi", meaning: "Today hot weather", hint: "Today + heat + weather" }
             ]
         },
         {
@@ -617,7 +616,7 @@ export const CURRICULUM = {
                 { word: "Kada", meaning: "Right?", phonetic: "kah-dah" },
                 { word: "Chudu", meaning: "Look/See", phonetic: "choo-doo" },
                 { word: "Sare", meaning: "Okay", phonetic: "sah-reh" },
-                { word: "Adhi", meaning: "That/Um", phonetic: "ah-dhee" },
+                { word: "Adhi", meaning: "That/Um", phonetic: "ah-dhee", teach: "Telugu’s filler — the “um…” you stall with — is {w}. Same word as “that”, doing a completely different job." },
                 { word: "Avunu", meaning: "Yes", phonetic: "ah-voo-noo" }
             ],
             phrases: [
@@ -644,11 +643,11 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'I can speak Telugu'", correct: "Nenu Telugu matladagalanu", meaning: "I can speak Telugu", hint: "I + Telugu + speak + can" },
                 { prompt: "Say 'I am speaking happily'", correct: "Nenu santhoshamga matladuthunnanu", meaning: "I happily speaking", hint: "I + happily + speaking" },
-                { prompt: "Say 'This is my final' (Idhi naa final)", correct: "Idhi naa final", meaning: "This is my final", hint: "This + my + final" }
+                { prompt: "Say 'This is my last one' (Idhi naa aakhari)", correct: "Idhi naa aakhari", meaning: "This is my final", hint: "This + my + final" }
             ],
             conversations: [
                 { prompt: "Tell Miko your full story: 'Hello, I am Ravi, I can speak Telugu.'", correct: "Namaskaram, nenu Ravi, nenu Telugu matladagalanu", meaning: "Hello, I am Ravi, I can speak Telugu", hint: "Greeting + I + Name + I + Telugu + speak can" },
-                { prompt: "Say 'I am very happy today'.", correct: "Eeroju nenu baga santhosham", meaning: "Today I am very happy", hint: "Today + I + well + happy" },
+                { prompt: "Say 'I am very happy today'.", correct: "Eeroju nenu chala santhoshamga unnanu", meaning: "Today I am very happy", hint: "Today + I + well + happy" },
                 { prompt: "Tell someone 'I am from Hyderabad and I grew up there'.", correct: "Nenu Hyderabad nundi, nenu akkada perigaanu", meaning: "I from Hyderabad, I there grew up", hint: "I [city] from, I there grew up" },
                 { prompt: "Final Check: 'Now, I can speak Telugu nicely!'.", correct: "Ippudu nenu Telugu baga matladagalanu", meaning: "Now I can speak Telugu nicely", hint: "Now + I + Telugu + well + speak can" }
             ]
@@ -662,7 +661,8 @@ export const CURRICULUM = {
                 { word: "Naanu", meaning: "I", phonetic: "nah-noo" },
                 { word: "Neevu", meaning: "You", phonetic: "nee-voo" },
                 { word: "Chennagiddini", meaning: "Fine", phonetic: "chen-nah-geed-dee-nee" },
-                { word: "Hege", meaning: "How", phonetic: "heh-geh" }
+                { word: "Hege", meaning: "How", phonetic: "heh-geh", teach: "“How” is {w}. It sits just before the verb, not at the front like English." },
+                { word: "Iddeera", meaning: "Are (you) - polite", phonetic: "id-dee-rah", teach: "{w} means “are you”, the polite verb that *completes* a question like “how are you”. It is never used by itself." }
             ],
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskara, naanu chennagiddini", meaning: "Hello, I am fine", hint: "Hello + I + fine" },
@@ -679,9 +679,9 @@ export const CURRICULUM = {
         {
             scenario: "The 'What' & 'This/That'",
             vocabulary: [
-                { word: "Idu", meaning: "This", phonetic: "ee-doo" },
-                { word: "Adu", meaning: "That", phonetic: "ah-doo" },
-                { word: "Yenu", meaning: "What", phonetic: "yeh-noo" },
+                { word: "Idu", meaning: "This", phonetic: "ee-doo", teach: "“This” is {w}, and it comes *before* the thing you are pointing at." },
+                { word: "Adu", meaning: "That", phonetic: "ah-doo", teach: "“That” is {w} — for something further off, and also before the noun." },
+                { word: "Yenu", meaning: "What", phonetic: "yeh-noo", teach: "“What” on its own is {w}. Kannada puts the question word at the *end*, after whatever you are asking about." },
                 { word: "Pustaka", meaning: "Book", phonetic: "poos-tah-kah" },
                 { word: "Hesaru", meaning: "Name", phonetic: "heh-sah-roo" }
             ],
@@ -700,7 +700,7 @@ export const CURRICULUM = {
         {
             scenario: "The 'Where' & 'Going'",
             vocabulary: [
-                { word: "Yelli", meaning: "Where", phonetic: "yel-lee" },
+                { word: "Yelli", meaning: "Where", phonetic: "yel-lee", teach: "“Where” is {w}, and it goes at the end of the sentence rather than the start." },
                 { word: "Hogu", meaning: "Go", phonetic: "hoh-goo" },
                 { word: "Illi", meaning: "Here", phonetic: "eel-lee" },
                 { word: "Alli", meaning: "There", phonetic: "al-lee" },
@@ -725,7 +725,9 @@ export const CURRICULUM = {
                 { word: "Beda", meaning: "Don't want", phonetic: "beh-dah" },
                 { word: "Oota", meaning: "Food", phonetic: "oo-tah" },
                 { word: "Neeru", meaning: "Water", phonetic: "nee-roo" },
-                { word: "Haudu", meaning: "Yes", phonetic: "how-doo" }
+                { word: "Haudu", meaning: "Yes", phonetic: "how-doo" },
+                { word: "Illa", meaning: "No / not", phonetic: "il-lah", teach: "“No” is {w}. It also serves as “not” and “isn’t”, and it goes at the end." },
+                { word: "Sari", meaning: "Okay / correct", phonetic: "sah-ree" }
             ],
             phrases: [
                 { prompt: "Say 'I want water'", correct: "Neeru beku", meaning: "I want water", hint: "Water + want" },
@@ -744,7 +746,7 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Nanna", meaning: "My", phonetic: "nan-nah" },
                 { word: "Nimma", meaning: "Your", phonetic: "neem-mah" },
-                { word: "Avara", meaning: "His/Her (formal)", phonetic: "ah-vah-rah" },
+                { word: "Avara", meaning: "His/Her (formal)", phonetic: "ah-vah-rah", teach: "{w} is a respectful “his” or “her”. Kannada makes no gender distinction in the formal form." },
                 { word: "Aatana", meaning: "His", phonetic: "ah-tah-nah" },
                 { word: "Kathey", meaning: "Story", phonetic: "kah-theh" }
             ],
@@ -758,6 +760,121 @@ export const CURRICULUM = {
                 { prompt: "Identify a book as 'your book'.", correct: "Adu nimma pustaka", meaning: "That is your book", hint: "That + your + book" },
                 { prompt: "Say 'This is my story'.", correct: "Idu nanna kathey", meaning: "This is my story", hint: "This + my + story" },
                 { prompt: "Point to a teacher and say 'Her name' (formal).", correct: "Avara hesaru", meaning: "Her name", hint: "Formal her + name" }
+            ]
+        },
+        {
+            scenario: "The 'Who'",
+            icon: "🧑",
+            color: "#ede9fe",
+            vocabulary: [
+                { word: "Yaaru", meaning: "Who", phonetic: "yaa-roo", teach: "“Who” is {w} — again, at the end of the question." },
+                { word: "Ivaru", meaning: "This person (polite)", phonetic: "ee-vah-roo", teach: "{w} is “this person”, the polite way to refer to someone present — safer than pointing." },
+                { word: "Snehita", meaning: "Friend", phonetic: "sneh-hee-tah" },
+                { word: "Shikshaka", meaning: "Teacher", phonetic: "shik-shah-kah" },
+                { word: "Akka", meaning: "Elder sister", phonetic: "ak-kah" }
+            ],
+            phrases: [
+                { prompt: "Ask 'Who is this?'", correct: "Ivaru yaaru?", meaning: "Who is this?", hint: "This person + who?" },
+                { prompt: "Say 'This is my friend'", correct: "Ivaru nanna snehita", meaning: "This is my friend", hint: "This person + my + friend" },
+                { prompt: "Say 'She is my elder sister'", correct: "Ivaru nanna akka", meaning: "She is my elder sister", hint: "This person + my + sister" }
+            ],
+            conversations: [
+                { prompt: "Someone points at a person. Ask who they are.", correct: "Ivaru yaaru?", meaning: "Who is this?", hint: "This person + who?" },
+                { prompt: "Tell Miko this person is your teacher.", correct: "Ivaru nanna shikshaka", meaning: "This is my teacher", hint: "This person + my + teacher" },
+                { prompt: "Introduce your friend to Miko.", correct: "Ivaru nanna snehita", meaning: "This is my friend", hint: "This person + my + friend" },
+                { prompt: "Ask who the teacher is.", correct: "Shikshaka yaaru?", meaning: "Who is the teacher?", hint: "Teacher + who?" }
+            ]
+        },
+        {
+            scenario: "Basic Numbers",
+            icon: "🔢",
+            color: "#e0f2fe",
+            vocabulary: [
+                { word: "Ondu", meaning: "One", phonetic: "on-doo" },
+                { word: "Eradu", meaning: "Two", phonetic: "eh-rah-doo" },
+                { word: "Mooru", meaning: "Three", phonetic: "moo-roo" },
+                { word: "Naalku", meaning: "Four", phonetic: "naal-koo" },
+                { word: "Aidu", meaning: "Five", phonetic: "eye-doo" }
+            ],
+            phrases: [
+                { prompt: "Count from one to three", correct: "Ondu, eradu, mooru", meaning: "One, two, three", hint: "Count up" },
+                { prompt: "Say 'two books'", correct: "Eradu pustaka", meaning: "Two books", hint: "Two + book" },
+                { prompt: "Say 'five houses'", correct: "Aidu mane", meaning: "Five houses", hint: "Five + house" }
+            ],
+            conversations: [
+                { prompt: "Miko asks how many books you have. Say three.", correct: "Mooru pustaka", meaning: "Three books", hint: "Three + book" },
+                { prompt: "Count all the way from one to five.", correct: "Ondu, eradu, mooru, naalku, aidu", meaning: "One to five", hint: "Full count" },
+                { prompt: "Say 'four friends'", correct: "Naalku snehita", meaning: "Four friends", hint: "Four + friend" },
+                { prompt: "Ask for two waters.", correct: "Eradu neeru beku", meaning: "Two waters wanted", hint: "Two + water + want" }
+            ]
+        },
+        {
+            scenario: "Plurals",
+            icon: "📚",
+            color: "#dcfce7",
+            vocabulary: [
+                { word: "Galu", meaning: "(Plural suffix)", phonetic: "gah-loo", teach: "{w} is not a standalone word — it is the *ending* you attach to a noun to make it plural. You will see it applied next." },
+                { word: "Pustakagalu", meaning: "Books", phonetic: "poos-tah-kah-gah-loo" },
+                { word: "Snehitaru", meaning: "Friends", phonetic: "sneh-hee-tah-roo" },
+                { word: "Manegalu", meaning: "Houses", phonetic: "mah-neh-gah-loo" },
+                { word: "Hoovugalu", meaning: "Flowers", phonetic: "hoo-voo-gah-loo" }
+            ],
+            phrases: [
+                { prompt: "Say 'three books'", correct: "Mooru pustakagalu", meaning: "Three books", hint: "Three + books" },
+                { prompt: "Say 'my friends'", correct: "Nanna snehitaru", meaning: "My friends", hint: "My + friends" },
+                { prompt: "Say 'two houses'", correct: "Eradu manegalu", meaning: "Two houses", hint: "Two + houses" }
+            ],
+            conversations: [
+                { prompt: "Tell Miko you have four friends.", correct: "Nanna naalku snehitaru", meaning: "My four friends", hint: "My + four + friends" },
+                { prompt: "Say 'five books'", correct: "Aidu pustakagalu", meaning: "Five books", hint: "Five + books" },
+                { prompt: "Tell Miko you want flowers.", correct: "Hoovugalu beku", meaning: "Flowers wanted", hint: "Flowers + want" },
+                { prompt: "Say 'my books'", correct: "Nanna pustakagalu", meaning: "My books", hint: "My + books" }
+            ]
+        },
+        {
+            scenario: "Basic Adjectives",
+            icon: "🎨",
+            color: "#fef3c7",
+            vocabulary: [
+                { word: "Dodda", meaning: "Big", phonetic: "dod-dah" },
+                { word: "Chikka", meaning: "Small", phonetic: "chik-kah" },
+                { word: "Olleya", meaning: "Good", phonetic: "ol-leh-yah" },
+                { word: "Ketta", meaning: "Bad", phonetic: "ket-tah" },
+                { word: "Bisi", meaning: "Hot", phonetic: "bee-see" }
+            ],
+            phrases: [
+                { prompt: "Say 'a big house'", correct: "Dodda mane", meaning: "A big house", hint: "Big + house" },
+                { prompt: "Say 'good food'", correct: "Olleya oota", meaning: "Good food", hint: "Good + food" },
+                { prompt: "Say 'hot water'", correct: "Bisi neeru", meaning: "Hot water", hint: "Hot + water" }
+            ],
+            conversations: [
+                { prompt: "Describe your house as small.", correct: "Nanna mane chikka", meaning: "My house is small", hint: "My + house + small" },
+                { prompt: "Tell Miko the food is good.", correct: "Oota olleya", meaning: "The food is good", hint: "Food + good" },
+                { prompt: "Say 'this is a big book'", correct: "Idu dodda pustaka", meaning: "This is a big book", hint: "This + big + book" },
+                { prompt: "Ask for hot water.", correct: "Bisi neeru beku", meaning: "Hot water wanted", hint: "Hot + water + want" }
+            ]
+        },
+        {
+            scenario: "Review & Survival Dialogue",
+            icon: "🍽️",
+            color: "#fce7f3",
+            vocabulary: [
+                { word: "Lekka", meaning: "Bill / account", phonetic: "lek-kah" },
+                { word: "Kodi", meaning: "Give (please)", phonetic: "koh-dee", teach: "A polite “please give” is {w} — that -i ending is the polite command form." },
+                { word: "Dhanyavada", meaning: "Thank you", phonetic: "dhahn-yah-vah-dah" },
+                { word: "Estu", meaning: "How much", phonetic: "es-too" },
+                { word: "Kshamisi", meaning: "Sorry / excuse me", phonetic: "ksha-mee-see" }
+            ],
+            phrases: [
+                { prompt: "Ask 'How much?'", correct: "Estu?", meaning: "How much?", hint: "How much?" },
+                { prompt: "Ask for the bill", correct: "Lekka kodi", meaning: "Give the bill", hint: "Bill + give" },
+                { prompt: "Say thank you", correct: "Dhanyavada", meaning: "Thank you", hint: "One word" }
+            ],
+            conversations: [
+                { prompt: "You have finished eating. Ask for the bill.", correct: "Lekka kodi", meaning: "Give the bill", hint: "Bill + give" },
+                { prompt: "Ask how much the book costs.", correct: "Pustaka estu?", meaning: "How much is the book?", hint: "Book + how much?" },
+                { prompt: "Thank Miko warmly.", correct: "Dhanyavada Miko", meaning: "Thank you Miko", hint: "Thanks + name" },
+                { prompt: "Excuse yourself, then ask for water.", correct: "Kshamisi, neeru kodi", meaning: "Excuse me, give water", hint: "Sorry + water + give" }
             ]
         }
     ],
@@ -1640,19 +1757,33 @@ export const CURRICULUM = {
     ]
 };
 
-const placeholders = CURRICULUM.Telugu.slice(1).map(s => ({
-    ...s,
-    scenario: s.scenario + " (Placeholder)",
-    vocabulary: s.vocabulary.map(v => ({ ...v, word: v.word + "*" })),
-    phrases: s.phrases.map(p => ({ ...p, correct: p.correct + "*" })),
-    conversations: s.conversations.map(c => ({ ...c, correct: c.correct + "*" }))
-}));
+/* ────────────────────────────────────────────────────────────────
+   Language availability — SINGLE SOURCE OF TRUTH.
 
-CURRICULUM.Kannada.push(...placeholders);
-CURRICULUM.Hindi.push(...placeholders);
-CURRICULUM.Tamil.push(...placeholders);
-CURRICULUM.Bengali.push(...placeholders);
-CURRICULUM.Marathi.push(...placeholders);
-CURRICULUM.Malayalam.push(...placeholders);
-CURRICULUM.Urdu.push(...placeholders);
-CURRICULUM.Punjabi.push(...placeholders);
+   Derived from CURRICULUM itself so the language picker can never
+   drift from the content that actually exists. Previously the picker
+   hardcoded its own list (and offered English, which has no lessons),
+   while Chat.jsx silently fell back to Hindi and TopicGrid.jsx to
+   Telugu — so a learner could be taught a language they never chose.
+
+   Raise a language above MIN_LESSONS and it appears automatically.
+   ──────────────────────────────────────────────────────────────── */
+
+export const MIN_LESSONS = 10;
+
+export const LESSON_COUNTS = Object.fromEntries(
+    Object.entries(CURRICULUM).map(([lang, lessons]) => [lang, lessons.length])
+);
+
+/** Languages with enough content to teach. Everything else is "Coming soon". */
+export const AVAILABLE_LANGUAGES = Object.keys(CURRICULUM)
+    .filter(lang => CURRICULUM[lang].length >= MIN_LESSONS);
+
+/** Accepts a language name; unknown names (e.g. English) are unavailable. */
+export function isLanguageAvailable(name) {
+    return AVAILABLE_LANGUAGES.includes(name);
+}
+
+export function lessonCount(name) {
+    return LESSON_COUNTS[name] || 0;
+}

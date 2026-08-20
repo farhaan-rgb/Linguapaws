@@ -28,3 +28,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Env backups (contain live secrets)
+.env.bak.*
+backend/.env.bak.*
+
+# Curriculum edit backups
+*.js.bak.*
