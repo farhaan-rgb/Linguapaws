@@ -9,7 +9,7 @@ export const CURRICULUM = {
                 { word: "Namaskaram", meaning: "Hello", phonetic: "nah-mas-kah-ram" },
                 { word: "Nenu", meaning: "I", phonetic: "neh-noo" },
                 { word: "Meeru", meaning: "You", phonetic: "mee-roo" },
-                { word: "Bagunna", meaning: "Fine", phonetic: "bah-goon-nah" },
+                { word: "Bagunna", meaning: "I am fine", phonetic: "bah-goon-nah", teach: "**Bagunna** already means “I am fine” — the “I” is baked into the ending, it is not a bare “fine”. Telugu still often puts *nenu* in front for clarity, which is what you will practise." },
                 { word: "Ela", meaning: "How", phonetic: "eh-lah", teach: "“How” is {w}. It goes right before the verb, not at the front like English." }
             ],
             phrases: [
@@ -233,9 +233,9 @@ export const CURRICULUM = {
         {
             scenario: "Present Continuous",
             vocabulary: [
-                { word: "Chestunnanu", meaning: "am doing", phonetic: "ches-thoon-nah-noo" },
-                { word: "Tintunnanu", meaning: "am eating", phonetic: "theen-toon-nah-noo" },
-                { word: "Velthunnanu", phonetic: "vel-thoon-nah-noo", meaning: "am going" },
+                { word: "Chestunnanu", meaning: "I am doing", phonetic: "ches-thoon-nah-noo", teach: "**Chestunnanu** is one word meaning “I am doing”. That -nu on the end *is* the “I”." },
+                { word: "Tintunnanu", meaning: "I am eating", phonetic: "theen-toon-nah-noo" },
+                { word: "Velthunnanu", phonetic: "vel-thoon-nah-noo", meaning: "I am going" },
                 { word: "Ippudu", meaning: "Now", phonetic: "ip-poo-doo" },
                 { word: "Pani", meaning: "Work", phonetic: "pah-nee" }
             ],
@@ -275,11 +275,11 @@ export const CURRICULUM = {
         {
             scenario: "Simple Past Tense",
             vocabulary: [
-                { word: "Chesanu", meaning: "Did", phonetic: "cheh-sah-noo" },
-                { word: "Vellanu", meaning: "Went", phonetic: "vel-lah-noo" },
-                { word: "Thinnanu", meaning: "Ate", phonetic: "thin-nah-noo" },
-                { word: "Chusanu", meaning: "Saw", phonetic: "choo-sah-noo" },
-                { word: "Cheppanu", meaning: "Spoke/Said", phonetic: "chep-pah-noo" }
+                { word: "Chesanu", meaning: "I did", phonetic: "cheh-sah-noo", teach: "**Chesanu** is “I did”, not just “did”. Change that -nu ending and the subject changes with it: *chesaru* is “you did”, *chesadu* is “he did”." },
+                { word: "Vellanu", meaning: "I went", phonetic: "vel-lah-noo" },
+                { word: "Thinnanu", meaning: "I ate", phonetic: "thin-nah-noo" },
+                { word: "Chusanu", meaning: "I saw", phonetic: "choo-sah-noo" },
+                { word: "Cheppanu", meaning: "I spoke / I said", phonetic: "chep-pah-noo" }
             ],
             phrases: [
                 { prompt: "Say 'I went home'", correct: "Nenu intiki vellanu", meaning: "I went home", hint: "I + home + went" },
@@ -296,10 +296,10 @@ export const CURRICULUM = {
         {
             scenario: "Simple Future Tense",
             vocabulary: [
-                { word: "Chestanu", meaning: "Will do", phonetic: "ches-tah-noo" },
-                { word: "Velthanu", meaning: "Will go", phonetic: "vel-thah-noo" },
-                { word: "Tintanu", meaning: "Will eat", phonetic: "theen-tah-noo" },
-                { word: "Chustanu", meaning: "Will see", phonetic: "choos-tah-noo" },
+                { word: "Chestanu", meaning: "I will do", phonetic: "ches-tah-noo", teach: "**Chestanu** is “I will do” — the same -nu ending doing the same job as in the past tense. “You will do” is *chestaru*." },
+                { word: "Velthanu", meaning: "I will go", phonetic: "vel-thah-noo" },
+                { word: "Tintanu", meaning: "I will eat", phonetic: "theen-tah-noo" },
+                { word: "Chustanu", meaning: "I will see", phonetic: "choos-tah-noo" },
                 { word: "Repu", meaning: "Tomorrow", phonetic: "reh-poo" }
             ],
             phrases: [
@@ -468,7 +468,7 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Galanu", meaning: "Can", phonetic: "gah-lah-noo", teach: "{w} is an ending rather than a standalone “can”. Add it to a verb stem and it means “I can” — the “I” is already inside it." },
                 { word: "Lenu", meaning: "Can't", phonetic: "leh-noo", teach: "{w} is the matching negative ending: add it to a verb stem to say “I can’t”." },
-                { word: "Cheyagalanu", meaning: "Can do", phonetic: "cheh-yah-gah-lah-noo" },
+                { word: "Cheyagalanu", meaning: "I can do", phonetic: "cheh-yah-gah-lah-noo", teach: "**Cheyagalanu** is “I can do” — the verb plus *galanu*, with the “I” already inside it." },
                 { word: "Matladu", meaning: "Speak", phonetic: "mat-lah-doo" },
                 { word: "Sahaayam", meaning: "Help", phonetic: "sah-hah-yam" }
             ],
@@ -634,8 +634,8 @@ export const CURRICULUM = {
         {
             scenario: "Final Capstone",
             vocabulary: [
-                { word: "Perigaanu", meaning: "Grew up", phonetic: "peh-ree-gah-noo" },
-                { word: "Matladagalanu", meaning: "Can speak", phonetic: "mat-lah-dah-gah-lah-noo" },
+                { word: "Perigaanu", meaning: "I grew up", phonetic: "peh-ree-gah-noo" },
+                { word: "Matladagalanu", meaning: "I can speak", phonetic: "mat-lah-dah-gah-lah-noo" },
                 { word: "Santhoshamga", meaning: "Happily", phonetic: "san-tho-sham-gah" },
                 { word: "Telugu", meaning: "Telugu", phonetic: "teh-loo-goo" },
                 { word: "Nenu", meaning: "I", phonetic: "neh-noo" }
@@ -660,7 +660,7 @@ export const CURRICULUM = {
                 { word: "Namaskara", meaning: "Hello", phonetic: "nah-mas-kah-rah" },
                 { word: "Naanu", meaning: "I", phonetic: "nah-noo" },
                 { word: "Neevu", meaning: "You", phonetic: "nee-voo" },
-                { word: "Chennagiddini", meaning: "Fine", phonetic: "chen-nah-geed-dee-nee" },
+                { word: "Chennagiddini", meaning: "I am fine", phonetic: "chen-nah-geed-dee-nee", teach: "**Chennagiddini** is a whole sentence: “I am fine”. The -ini ending is the “I” — for “you are fine” it becomes *chennagiddeera*." },
                 { word: "Hege", meaning: "How", phonetic: "heh-geh", teach: "“How” is {w}. It sits just before the verb, not at the front like English." },
                 { word: "Iddeera", meaning: "Are (you) - polite", phonetic: "id-dee-rah", teach: "{w} means “are you”, the polite verb that *completes* a question like “how are you”. It is never used by itself." }
             ],
