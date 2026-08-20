@@ -14,24 +14,24 @@ export const CURRICULUM = {
             ],
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskaram, nenu bagunnanu", meaning: "Hello, I am fine", hint: "Hello + I + fine", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"],
-                  grammarNote: "Look at what you just built — *bagunnanu* is doing two jobs at once: *bagu* (\"well\") plus *unnanu* (\"I am\"). Telugu packs the \"I\" into the ending, which is why there is no separate word for \"am\"." },
+                  grammarNote: "*Bagunnanu* does two jobs at once: *bagu* (\"well\") plus *unnanu* (\"I am\"). That is why there is no separate word for \"am\" — and why the clipped *bagunna* you hear in fast speech still means the same thing." },
                 { prompt: "Ask 'How are you?'", correct: "Meeru ela", meaning: "How are you?", hint: "You + how?",
                   acceptable: ["meeru ela unnaru", "meeru ela unnaru?"],
-                  grammarNote: "That works. One thing you will hear from natives: they add *unnaru* on the end — *Meeru ela unnaru?* — which is the polite verb \"are\". Your version is perfectly understandable." },
+                  grammarNote: "Both forms work here. *Meeru ela* is the short spoken version; *Meeru ela unnaru?* adds *unnaru*, the polite verb \"are\"." },
                 { prompt: "Say 'I am fine, and you?'", correct: "Nenu bagunnanu, meeru?", meaning: "I am fine, and you?", hint: "I + fine + you?", acceptable: ["nenu bagunna, meeru?", "bagunnanu, meeru?", "bagunna, meeru?"],
-                  grammarNote: "You used *nenu* there for contrast — \"I'm fine, and **you**?\". Because the -nu ending already says \"I\", *nenu* is optional; you add it when you want to stress who you mean." }
+                  grammarNote: "*Nenu* is optional here — the -nu ending already says \"I\". Putting it in, as in *Nenu bagunnanu, meeru?*, stresses who you mean: \"**I'm** fine, and you?\"." }
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskaram, nenu bagunnanu", meaning: "Hello, I am fine", hint: "Basic greeting + state", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"],
                   grammarNote: "Swap that -nu ending and the subject changes: *bagunnaru* means \"you are fine\". Same word, different ending, different person — you will meet this pattern on every Telugu verb." },
                 { prompt: "Ask Miko how she is doing.", correct: "Miko, meeru ela", meaning: "Miko, how are you?", hint: "Name + you + how?",
                   acceptable: ["miko, meeru ela unnaru?", "miko meeru ela unnaru", "miko, meeru ela unnaru", "miko meeru ela unnaru?"],
-                  grammarNote: "Natives would say *Miko, meeru ela unnaru?* — same sentence with the polite verb added on the end." },
+                  grammarNote: "Leading with the name — *Miko, meeru ela...* — is as normal in Telugu as in English. Ending with *unnaru* gives you the polite full form." },
                 { prompt: "Someone asks how you are. Answer: 'I am fine'.", correct: "Nenu bagunnanu", meaning: "I am fine", hint: "Direct answer", acceptable: ["nenu bagunna", "bagunnanu", "bagunna"],
                   grammarNote: "In relaxed speech people clip this to *bagunna*, dropping the -nu. You will hear both, and either is accepted here." },
                 { prompt: "Say hello, tell them you are fine, and ask how they are.", correct: "Namaskaram, nenu bagunnanu. Meeru ela", meaning: "Hello, I am fine, how are you?", hint: "Full intro",
                   acceptable: ["namaskaram, nenu bagunna. meeru ela", "namaskaram, nenu bagunnanu. meeru ela unnaru?", "namaskaram, nenu bagunna. meeru ela unnaru?", "namaskaram nenu bagunna meeru ela unnaru?", "namaskaram, nenu bagunna. meeru ela unnaru"],
-                  grammarNote: "That is the whole greeting exchange in one go. Add *unnaru* on the end — *Meeru ela unnaru?* — whenever you want the polite form." }
+                  grammarNote: "That is the whole greeting exchange in one go — greeting, how you are, and the question back. *Unnaru* on the end is the polite \"are\"; you will be understood with or without it." }
             ]
         },
         {

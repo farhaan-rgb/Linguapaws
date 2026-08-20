@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Send, Mic, Square, BookOpen, Globe, Edit3, Sparkles, Keyboard, Volume2, VolumeX, Phone, PhoneOff, Mic2, Copy, Check } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -394,6 +394,23 @@ export default function Chat() {
        rather than squeaking through on string distance.                     */
     const COVERAGE_FLOOR = 0.7;
 
+    /* Every accepted variant of a word maps to the form the curriculum teaches,
+       so a synonym means the same thing at every step rather than only in
+       vocabulary recall. Built from the `alt` lists. */
+    const SYNONYMS = useMemo(() => {
+        const map = new Map();
+        for (const lesson of CURRICULUM[safeLang] || []) {
+            for (const v of lesson.vocabulary || []) {
+                if (!v.word || !Array.isArray(v.alt)) continue;
+                const canonical = v.word.toLowerCase();
+                for (const a of v.alt) map.set(String(a).toLowerCase(), canonical);
+            }
+        }
+        return map;
+    }, [safeLang]);
+
+    const canonical = (token) => SYNONYMS.get(token) || token;
+
     /* Telugu and Kannada mark the subject in the verb ending, so a one-character
        difference at the end of a word is usually a different PERSON, not a typo:
        bagunnanu is "I am fine", bagunnaru is "you are fine", chesanu is "I did",
@@ -401,7 +418,7 @@ export default function Chat() {
        same word, quietly erasing the one distinction these lessons exist to
        teach. Refuse to forgive an edit that swaps one person ending for another
        on an otherwise identical stem. */
-    const PERSON_ENDINGS = ['nu', 'ru', 'vu', 'du', 'di', 'mu', 'ni', 'ra', 'va'];
+    const PERSON_ENDINGS = ['nu', 'ru', 'vu', 'du', 'di', 'mu', 'ni', 'ri', 'ra', 'va'];
 
     const differsOnlyByPersonEnding = (a, b) => {
         if (a.length < 4 || b.length < 4) return false;
@@ -422,15 +439,17 @@ export default function Chat() {
             // [Place] / (name) wildcards count as satisfied — similarityRatioLatin
             // already treats them as free, so the gate must agree.
             if (/[[\]()]/.test(token)) { hits++; continue; }
-            const i = pool.findIndex(s =>
-                s === token ||
-                // tolerate a one-character slip, but only on words long enough
-                // that a single edit isn't most of the word — and never when the
-                // slip is a swapped person ending
-                (Math.max(s.length, token.length) >= 4
-                    && levenshtein(s, token) <= 1
-                    && !differsOnlyByPersonEnding(s, token))
-            );
+            const want = canonical(token);
+            const i = pool.findIndex(raw => {
+                const s = canonical(raw);
+                return s === want
+                    // tolerate a one-character slip, but only on words long enough
+                    // that a single edit isn't most of the word — and never when the
+                    // slip is a swapped person ending
+                    || (Math.max(s.length, want.length) >= 4
+                        && levenshtein(s, want) <= 1
+                        && !differsOnlyByPersonEnding(s, want));
+            });
             if (i !== -1) { hits++; pool.splice(i, 1); }
         }
         return hits / need.length;
@@ -1197,9 +1216,9 @@ export default function Chat() {
                     // from whatever is due at that point, not this session's set.
                     clearReviewSet(safeLang, scenarioIdxForMatch);
                 } else if (isCurrentlyTeaching && currentInScenario === 4) {
-                    setMessages(prev => [...prev, { role: 'system', content: '🎓 **Vocabulary complete!** Now let me test your memory with a quick review quiz.' }]);
+                    setMessages(prev => [...prev, { role: 'system', content: '🎓 **Vocabulary complete** — all five words done. Quick memory check next.' }]);
                 } else if (isCurrentlyInReview && currentInScenario === 7) {
-                    setMessages(prev => [...prev, { role: 'system', content: '🎓 **Review passed!** Now let\'s combine those words into phrases. I\'ll ask you to build sentences!' }]);
+                    setMessages(prev => [...prev, { role: 'system', content: '🎓 **Review passed** — now let\'s build whole sentences.' }]);
                 }
             }
 
@@ -1216,7 +1235,7 @@ export default function Chat() {
                 const round = currentInScenario - 5;
                 const currentMeaning = reviewItem?.meaning || 'that word';
                 const REVIEW_PRAISE = ["Spot on!", "Exactly!", "Great job!", "Perfect!", "Correct!"];
-                const praise = REVIEW_PRAISE[messages.length % REVIEW_PRAISE.length];
+                const praise = REVIEW_PRAISE[currentRepeats % REVIEW_PRAISE.length];
 
                 /* A learner asking a question is not a wrong answer. Hand it to
                    the model instead of grading it — falling through to the normal
@@ -1256,7 +1275,7 @@ export default function Chat() {
                         await advance();
                         const firstPhrase = drillPrompt(scenarioDataForMatch.phrases, 0);
                         reviewResponse = currentInScenario === 7
-                            ? `${praise} Now let's build a sentence. ${firstPhrase || ''}`.trim()
+                            ? (firstPhrase || "Let's build a sentence.")   // banner carries the transition
                             : `${praise} ${nextQuestion()}`;
                     } else if (misses >= REVIEW_RETRY_LIMIT) {
                         /* Out of retries: show the answer and MOVE ON. Previously the
@@ -1270,7 +1289,7 @@ export default function Chat() {
                         const shown = reviewExpectedWord ? `It's **${reviewExpectedWord}**.` : '';
                         const firstPhrase2 = drillPrompt(scenarioDataForMatch.phrases, 0);
                         reviewResponse = currentInScenario === 7
-                            ? `${shown} We'll come back to that one. Now let's build a sentence. ${firstPhrase2 || ''}`.trim()
+                            ? `${shown} We'll come back to that one. ${firstPhrase2 || ''}`.trim()
                             : `${shown} We'll come back to it later — ${nextQuestion()}`;
                     } else {
                         reviewResponse = `Not quite! What's the word for "${currentMeaning}"?`;
@@ -1306,9 +1325,12 @@ export default function Chat() {
                 if (phraseItem && !phraseIsQuestion && !isContinueRequest) {
                     const misses = consecutiveMisses(messages);
                     const PHRASE_PRAISE = ["Spot on!", "Exactly!", "Great job!", "Perfect!", "Correct!"];
-                    const praise = PHRASE_PRAISE[messages.length % PHRASE_PRAISE.length];
+                    const praise = PHRASE_PRAISE[currentRepeats % PHRASE_PRAISE.length];
+                    const atBoundary = phraseIdx + 1 >= (scenarioDataForMatch.phrases?.length || 0);
                     const nextUp = () => drillPrompt(scenarioDataForMatch.phrases, phraseIdx + 1)
-                        || `Now for real conversation. ${drillPrompt(scenarioDataForMatch.conversations, 0) || ''}`.trim();
+                        // banner announces the move to conversation; don't repeat it
+                        || drillPrompt(scenarioDataForMatch.conversations, 0)
+                        || "Let's talk.";
 
                     const out = [];
                     if (hasCorrectMatch) {
@@ -1316,7 +1338,7 @@ export default function Chat() {
                         if (pr) setProgress(pr);
                         // Explains the answer just given, so it precedes the next prompt.
                         if (phraseItem.grammarNote) out.push({ role: 'system', content: `💡 ${phraseItem.grammarNote}` });
-                        out.push({ role: 'assistant', content: `${praise} ${nextUp()}` });
+                        out.push({ role: 'assistant', content: atBoundary ? nextUp() : `${praise} ${nextUp()}` });
                     } else if (misses >= REVIEW_RETRY_LIMIT) {
                         const pr = await api.post('/api/progress/increment').catch(() => null);
                         if (pr) setProgress(pr);
@@ -1350,7 +1372,7 @@ export default function Chat() {
             if (isCurrentlyTeaching) {
                 const vocab = scenarioDataForMatch.vocabulary || [];
                 const PRAISE = ['Good.', 'Correct.', 'Right.', 'Yes.'];
-                const praise = PRAISE[messages.length % PRAISE.length];
+                const praise = PRAISE[currentRepeats % PRAISE.length];
 
                 let teachResponse;
                 if (isContinueRequest) {
@@ -1365,9 +1387,12 @@ export default function Chat() {
                     // Fifth word done — open the review quiz with its first question
                     // rather than handing off to the AI with nothing to ask.
                     const first = reviewItemAt(scenarioIdxForMatch, 0, vocab);
+                    // No praise prefix at a stage boundary: the banner above it
+                    // already reports the success, and the praise would read as
+                    // stranded underneath the announcement.
                     teachResponse = first
-                        ? `${praise} 🐾 Quick memory check: what's the ${targetLangName} word for "${first.meaning}"?`
-                        : `${praise} 🐾 Now let's build a sentence. ${drillPrompt(scenarioDataForMatch.phrases, 0) || ''}`.trim();
+                        ? `What's the ${targetLangName} word for "${first.meaning}"?`
+                        : `${drillPrompt(scenarioDataForMatch.phrases, 0) || "Let's build a sentence."}`;
                 } else {
                     const current = vocab[currentInScenario];
                     teachResponse = current
@@ -1482,7 +1507,7 @@ export default function Chat() {
             }
 
             if (isCurrentlyInBasic && (nextInScenario === 11) && hasCorrectMatch) {
-                setMessages(prev => [...prev, { role: 'system', content: '🎓 **Phrases mastered!** Time for real conversation practice. I\'ll set the scene!' }]);
+                setMessages(prev => [...prev, { role: 'system', content: '🎓 **Phrases done** — now real conversation.' }]);
             }
 
             // Fire progress increment and AI response in parallel — no more sequential wait
