@@ -9,25 +9,29 @@ export const CURRICULUM = {
                 { word: "Namaskaram", meaning: "Hello", phonetic: "nah-mas-kah-ram" },
                 { word: "Nenu", meaning: "I", phonetic: "neh-noo" },
                 { word: "Meeru", meaning: "You", phonetic: "mee-roo" },
-                { word: "Bagunnanu", meaning: "I am fine", phonetic: "bah-goon-nah-noo", alt: ["bagunna"], teach: "**Bagunnanu** is a whole sentence: “I am fine” — *bagu* (well) + *unnanu* (I am). That -nu ending is the “I”; swap it and the person changes, so *bagunnaru* is “you are fine”. Fast speech clips it to *bagunna*, and *nenu* goes in front only for emphasis." },
-                { word: "Ela", meaning: "How", phonetic: "eh-lah", teach: "“How” is {w}. It goes right before the verb, not at the front like English." }
+                { word: "Bagunnanu", meaning: "I'm fine", phonetic: "bah-goon-nah-noo", alt: ["bagunna"] },
+                { word: "Ela", meaning: "How", phonetic: "eh-lah" }
             ],
             phrases: [
-                { prompt: "Say 'Hello, I am fine'", correct: "Namaskaram, nenu bagunnanu", meaning: "Hello, I am fine", hint: "Hello + I + fine", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"] },
+                { prompt: "Say 'Hello, I am fine'", correct: "Namaskaram, nenu bagunnanu", meaning: "Hello, I am fine", hint: "Hello + I + fine", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"],
+                  grammarNote: "Look at what you just built — *bagunnanu* is doing two jobs at once: *bagu* (\"well\") plus *unnanu* (\"I am\"). Telugu packs the \"I\" into the ending, which is why there is no separate word for \"am\"." },
                 { prompt: "Ask 'How are you?'", correct: "Meeru ela", meaning: "How are you?", hint: "You + how?",
                   acceptable: ["meeru ela unnaru", "meeru ela unnaru?"],
-                  grammarNote: "Acknowledge that 'Meeru ela' is a great start! Bonus tip: In real Telugu, native speakers add the word 'unnaru' at the end to be polite: 'Meeru ela unnaru?'. Don't punish the user, just share this as a fun fact!" },
-                { prompt: "Say 'I am fine, and you?'", correct: "Nenu bagunnanu, meeru?", meaning: "I am fine, and you?", hint: "I + fine + you?", acceptable: ["nenu bagunna, meeru?", "bagunnanu, meeru?", "bagunna, meeru?"] }
+                  grammarNote: "That works. One thing you will hear from natives: they add *unnaru* on the end — *Meeru ela unnaru?* — which is the polite verb \"are\". Your version is perfectly understandable." },
+                { prompt: "Say 'I am fine, and you?'", correct: "Nenu bagunnanu, meeru?", meaning: "I am fine, and you?", hint: "I + fine + you?", acceptable: ["nenu bagunna, meeru?", "bagunnanu, meeru?", "bagunna, meeru?"],
+                  grammarNote: "You used *nenu* there for contrast — \"I'm fine, and **you**?\". Because the -nu ending already says \"I\", *nenu* is optional; you add it when you want to stress who you mean." }
             ],
             conversations: [
-                { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskaram, nenu bagunnanu", meaning: "Hello, I am fine", hint: "Basic greeting + state", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"] },
+                { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskaram, nenu bagunnanu", meaning: "Hello, I am fine", hint: "Basic greeting + state", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"],
+                  grammarNote: "Swap that -nu ending and the subject changes: *bagunnaru* means \"you are fine\". Same word, different ending, different person — you will meet this pattern on every Telugu verb." },
                 { prompt: "Ask Miko how she is doing.", correct: "Miko, meeru ela", meaning: "Miko, how are you?", hint: "Name + you + how?",
                   acceptable: ["miko, meeru ela unnaru?", "miko meeru ela unnaru", "miko, meeru ela unnaru", "miko meeru ela unnaru?"],
-                  grammarNote: "Bonus tip: Share gracefully that natives say 'Miko, meeru ela unnaru?' but their sentence is perfectly understandable!" },
-                { prompt: "Someone asks how you are. Answer: 'I am fine'.", correct: "Nenu bagunnanu", meaning: "I am fine", hint: "Direct answer", acceptable: ["nenu bagunna", "bagunnanu", "bagunna"] },
+                  grammarNote: "Natives would say *Miko, meeru ela unnaru?* — same sentence with the polite verb added on the end." },
+                { prompt: "Someone asks how you are. Answer: 'I am fine'.", correct: "Nenu bagunnanu", meaning: "I am fine", hint: "Direct answer", acceptable: ["nenu bagunna", "bagunnanu", "bagunna"],
+                  grammarNote: "In relaxed speech people clip this to *bagunna*, dropping the -nu. You will hear both, and either is accepted here." },
                 { prompt: "Say hello, tell them you are fine, and ask how they are.", correct: "Namaskaram, nenu bagunnanu. Meeru ela", meaning: "Hello, I am fine, how are you?", hint: "Full intro",
                   acceptable: ["namaskaram, nenu bagunna. meeru ela", "namaskaram, nenu bagunnanu. meeru ela unnaru?", "namaskaram, nenu bagunna. meeru ela unnaru?", "namaskaram nenu bagunna meeru ela unnaru?", "namaskaram, nenu bagunna. meeru ela unnaru"],
-                  grammarNote: "Praise them! Again, just remind them lightly that 'unnaru' is the formal verb for 'are'." }
+                  grammarNote: "That is the whole greeting exchange in one go. Add *unnaru* on the end — *Meeru ela unnaru?* — whenever you want the polite form." }
             ]
         },
         {
@@ -42,7 +46,7 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Ask 'What is this?'", correct: "Idhi emiti?", meaning: "What is this?", hint: "This + what?" },
                 { prompt: "Say 'This is a book'", correct: "Idhi pusthakam", meaning: "This is a book", hint: "This + book" },
-                { prompt: "Combine 'You' (from last lesson) and 'Name What?'", correct: "Meeru peru emiti?", meaning: "What is your name?", hint: "You + name + what?", grammarNote: "In casual spoken Telugu, combining 'You + Name + What' works! Later you'll learn the strict possessive 'Mee'." }
+                { prompt: "Combine 'You' (from last lesson) and 'Name What?'", correct: "Meeru peru emiti?", meaning: "What is your name?", hint: "You + name + what?", grammarNote: "In casual spoken Telugu, stringing together *You + Name + What* works. Later you will meet the strict possessive *Mee*." }
             ],
             conversations: [
                 { prompt: "Say hello (from last lesson), and ask 'What is this?'", correct: "Namaskaram, idhi emiti?", meaning: "Hello, what is this?", hint: "Hello + this + what?" },
@@ -69,7 +73,7 @@ export const CURRICULUM = {
                 { prompt: "Ask Miko where the home is.", correct: "Inti ekkada?", meaning: "Where is the home?", hint: "Location question" },
                 { prompt: "Tell someone to go there.", correct: "Akkada vellandi", meaning: "Go there", hint: "Direction" },
                 { prompt: "Someone asks 'Meeru ekkada?'. Connect 'I am here' with 'You?' (from Scenario 1).", correct: "Nenu ikkada, meeru?", meaning: "I am here, and you?", hint: "I + here + you?" },
-                { prompt: "Say 'I go home'. Start with 'I' (Nenu).", correct: "Nenu intiki velthanu", meaning: "I go home", hint: "I + home + go", grammarNote: "Literally 'I home go'. Telugu follows Subject-Object-Verb order!" }
+                { prompt: "Say 'I go home'. Start with 'I' (Nenu).", correct: "Nenu intiki velthanu", meaning: "I go home", hint: "I + home + go", grammarNote: "Word for word that is \"I home go\". Telugu puts the verb last — Subject, Object, Verb." }
             ]
         },
         {

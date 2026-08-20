@@ -1271,7 +1271,13 @@ export default function Chat() {
                 const convoIdx = currentInScenario - 11;
                 postAnswerGrammarNote = scenarioDataForMatch.conversations?.[convoIdx]?.grammarNote || '';
             }
-            const grammarFeedback = postAnswerGrammarNote ? ` [GRAMMAR TIP to share: ${postAnswerGrammarNote}]` : '';
+            // Deliberately NOT handed to the model. It used to arrive as
+            // "[GRAMMAR TIP to share: ...]" and get paraphrased — the same
+            // mechanism that inflated a one-word gloss into a whole sentence.
+            // It is appended verbatim after the reply instead (see below).
+            const grammarFeedback = postAnswerGrammarNote
+                ? ' Do NOT explain any grammar; a separate note handles that.'
+                : '';
 
             let evalNote = '';
             if (isLastScenarioStep) {
@@ -1460,6 +1466,12 @@ export default function Chat() {
             }
 
             setMessages(prev => [...prev, { role: 'assistant', content: storedResponse }]);
+            // The grammar tip lands as its own message, verbatim, only after a
+            // correct answer — so the rule arrives attached to a sentence the
+            // learner just produced, and in exactly the words it was authored in.
+            if (postAnswerGrammarNote && hasCorrectMatch) {
+                setMessages(prev => [...prev, { role: 'system', content: `💡 ${postAnswerGrammarNote}` }]);
+            }
             setIsLoading(false); // Unblock UI
 
             // Play voice immediately
