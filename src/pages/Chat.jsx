@@ -522,6 +522,14 @@ export default function Chat() {
        survives a reload — the chat is restored from the DB, so state would not. */
     const REVIEW_RETRY_LIMIT = 2;
 
+    /* Affirmations for the drill stages, which bypass the model and so cannot
+       inherit the persona rules from the prompt. Those rules are explicit:
+       "respond with ONLY one flat word" and "No exclamation marks on
+       affirmations", rotating Good / Correct / Right / Yes. Keep this list flat
+       — praising every single repeated word with "Perfect!" reads as hollow by
+       the third one, and it contradicted the tutor's own voice mid-lesson. */
+    const FLAT_PRAISE = ["Good.", "Correct.", "Right.", "Yes."];
+
     const consecutiveMisses = (msgs) => {
         let n = 0;
         for (let i = msgs.length - 1; i >= 0; i--) {
@@ -551,6 +559,25 @@ export default function Chat() {
         if (!correct) return 'missed';
         if (revealed) return 'revealed';
         return misses > 0 ? 'hinted' : 'unaided';
+    };
+
+    /* Did the learner answer in a DIFFERENT language they've studied here?
+       Every language block shares the same scenario and exercise ordering, so
+       the same slot in another language is the same question — which makes this
+       cheap to detect and worth detecting: someone who did Telugu first will
+       reach for "Meeru ela unnaru?" in a Kannada lesson, and a bare "Not quite"
+       sends them hunting for a vocabulary error they did not make. Naming the
+       language turns a dead end into the one correction they actually need. */
+    const crossLanguageMatch = (answer, { scenarioIdx, section, itemIdx }) => {
+        if (!answer || !section) return null;
+        for (const [lang, lessons] of Object.entries(CURRICULUM)) {
+            if (lang === safeLang) continue;
+            const peer = lessons?.[scenarioIdx]?.[section]?.[itemIdx];
+            if (!peer?.correct) continue;
+            const candidates = [peer.correct, ...(peer.acceptable || [])];
+            if (candidates.some(c => similarityRatioLatin(answer, c) >= 0.75)) return lang;
+        }
+        return null;
     };
 
     /* A learner talking to the tutor rather than answering it.
@@ -1252,8 +1279,7 @@ export default function Chat() {
             if (isCurrentlyInReview) {
                 const round = currentInScenario - 5;
                 const currentMeaning = reviewItem?.meaning || 'that word';
-                const REVIEW_PRAISE = ["Spot on!", "Exactly!", "Great job!", "Perfect!", "Correct!"];
-                const praise = REVIEW_PRAISE[currentRepeats % REVIEW_PRAISE.length];
+                const praise = FLAT_PRAISE[currentRepeats % FLAT_PRAISE.length];
 
                 /* A learner asking a question is not a wrong answer. Hand it to
                    the model instead of grading it — falling through to the normal
@@ -1314,7 +1340,7 @@ export default function Chat() {
                             ? `${shown} We'll come back to that one. ${firstPhrase2 || ''}`.trim()
                             : `${shown} We'll come back to it later — ${nextQuestion()}`;
                     } else {
-                        reviewResponse = `Not quite! What's the word for "${currentMeaning}"?`;
+                        reviewResponse = `Not quite. What's the word for "${currentMeaning}"?`;
                     }
 
                     setMessages(prev => [...prev, { role: 'assistant', content: reviewResponse }]);
@@ -1346,8 +1372,7 @@ export default function Chat() {
 
                 if (phraseItem && !phraseIsQuestion && !isContinueRequest) {
                     const misses = consecutiveMisses(messages);
-                    const PHRASE_PRAISE = ["Spot on!", "Exactly!", "Great job!", "Perfect!", "Correct!"];
-                    const praise = PHRASE_PRAISE[currentRepeats % PHRASE_PRAISE.length];
+                    const praise = FLAT_PRAISE[currentRepeats % FLAT_PRAISE.length];
                     const atBoundary = phraseIdx + 1 >= (scenarioDataForMatch.phrases?.length || 0);
                     const nextUp = () => drillPrompt(scenarioDataForMatch.phrases, phraseIdx + 1)
                         // banner announces the move to conversation; don't repeat it
@@ -1366,8 +1391,16 @@ export default function Chat() {
                         if (pr) setProgress(pr);
                         out.push({ role: 'assistant', content: `It's **${phraseItem.correct}**. We'll come back to this — ${nextUp()}` });
                     } else {
+                        const otherLang = crossLanguageMatch(text, {
+                            scenarioIdx: scenarioIdxForMatch, section: 'phrases', itemIdx: phraseIdx,
+                        });
                         const hint = phraseItem.hint ? ` Hint: ${phraseItem.hint}.` : '';
-                        out.push({ role: 'assistant', content: `Not quite.${hint} ${drillPrompt(scenarioDataForMatch.phrases, phraseIdx)}` });
+                        out.push({
+                            role: 'assistant',
+                            content: otherLang
+                                ? `That's ${otherLang}, not ${safeLang} — a good answer to the wrong question. In ${safeLang}:${hint} ${drillPrompt(scenarioDataForMatch.phrases, phraseIdx)}`
+                                : `Not quite.${hint} ${drillPrompt(scenarioDataForMatch.phrases, phraseIdx)}`,
+                        });
                     }
 
                     setMessages(prev => [...prev, ...out]);
@@ -1466,7 +1499,7 @@ export default function Chat() {
             } else if (hasCorrectMatch) {
                 const matchDetail = displayPhrase ? `matched "${displayPhrase}"` : 'was correct';
                 const fuzzyCorrection = (matchRatio < 0.95 && expectedCorrectionStr) ? `![CRITICAL GRAMMAR/SPELLING ERROR: The user said "${actual}" but the formal/correct target is "${expectedCorrectionStr}". You MUST explicitly point out their missing word or spelling mistake before praising them!]` : '';
-                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user ${matchDetail}. ${fuzzyCorrection} Give brief, varied praise (e.g., "Spot on!", "Great job!", "Exactly!", "Chala bagundi!", "Perfect!"). Do NOT repeat the meaning or translation back to the user — they already know it. Just acknowledge and move on.${grammarFeedback} NEVER preview or reference the next target phrase in your current response. Do NOT evaluate again.]`;
+                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user ${matchDetail}. ${fuzzyCorrection} Acknowledge with ONE flat word and no exclamation mark, rotating "Good." / "Correct." / "Right." / "Yes." — save real enthusiasm for the end of a stage, or it stops meaning anything. Do NOT repeat the meaning or translation back to the user — they already know it. Just acknowledge and move on.${grammarFeedback} NEVER preview or reference the next target phrase in your current response. Do NOT evaluate again.]`;
             } else if (isContinueRequest) {
                 evalNote = `[SYSTEM: The user is asking to move on, not answering. Do NOT grade or correct their message, and do NOT say they were wrong. Briefly acknowledge and present the next challenge for this scenario.]`;
             } else if (isCurrentlyInReview) {
@@ -1482,7 +1515,21 @@ export default function Chat() {
                 const nativeScriptHint = isPureNativeScript
                     ? ` The user answered in ${targetLang?.name || 'target language'} native script — evaluate if it is semantically equivalent to the expected answer.`
                     : '';
-                evalNote = `[SYSTEM: EVALUATE NOW. The user is attempting the exercise.${targetHint}${nativeScriptHint}]`;
+                /* Answering in another language they've studied here is a distinct
+                   mistake from getting the vocabulary wrong, and needs naming as
+                   one — otherwise the learner re-reads a correct sentence looking
+                   for a typo. */
+                const wrongLang = isCurrentlyInBasic || isCurrentlyInConvo
+                    ? crossLanguageMatch(actual, {
+                        scenarioIdx: scenarioIdxForMatch,
+                        section: isCurrentlyInBasic ? 'phrases' : 'conversations',
+                        itemIdx: currentInScenario - (isCurrentlyInBasic ? 8 : 11),
+                    })
+                    : null;
+                const wrongLangHint = wrongLang
+                    ? ` IMPORTANT: the user answered in ${wrongLang}, not ${targetLangName} — their sentence is correct, just in the wrong language. Say exactly that first, warmly and in one line, before re-asking. Do NOT imply their ${wrongLang} was wrong, and do NOT reveal the ${targetLangName} answer.`
+                    : '';
+                evalNote = `[SYSTEM: EVALUATE NOW. The user is attempting the exercise.${targetHint}${nativeScriptHint}${wrongLangHint}]`;
             }
 
             const activeScenarioLabel = scenarioDataForMatch.scenario || 'Learning';
