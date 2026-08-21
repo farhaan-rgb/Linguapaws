@@ -26,10 +26,9 @@ export const CURRICULUM = {
             ],
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskaram, nenu bagunnanu", meaning: "Hello, I am fine", hint: "Hello + I + fine", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"],
-                  grammarNote: "*Bagunnanu* does two jobs at once: *bagu* (\"well\") plus *unnanu* (\"I am\"). That is why there is no separate word for \"am\" — and why the clipped *bagunna* you hear in fast speech still means the same thing." },
-                { prompt: "Ask 'How are you?'", correct: "Meeru ela", meaning: "How are you?", hint: "You + how?",
-                  acceptable: ["meeru ela unnaru", "meeru ela unnaru?"],
-                  grammarNote: "*Unnaru* is the verb “are”, and it is worth knowing on its own: *unnanu* is “I am”, *unnaru* is “you are” — the same -nu / -ru swap you saw inside *bagunnanu*. Both *Meeru ela* and *Meeru ela unnaru?* work here." },
+                  grammarNote: "*Bagunnanu* is two pieces joined: *baga* (\"well\") plus *unnanu* (\"I am\"), with the vowel shortening where they meet. That is why there is no separate word for \"am\" — and why the clipped *bagunna* you hear in fast speech still means the same thing." },
+                { prompt: "Ask 'How are you?'", correct: "Meeru ela unnaru", meaning: "How are you?", hint: "You + how + are?", acceptable: ["meeru ela unnaru?", "meeru ela", "ela unnaru", "ela unnaru?"],
+                  grammarNote: "*Unnaru* is the verb “are”: *unnanu* is “I am” (the ending you already met inside *bagunnanu*), and *unnaru* is “you are” for anyone you would call *meeru*. The ending carries the person, so it shifts with who you mean — a close friend gets *unnavu*. Dropping it, as in *Meeru ela*, is understandable but incomplete; the full question is *Meeru ela unnaru?*" },
                 { prompt: "Say 'I am fine, and you?'", correct: "Nenu bagunnanu, meeru?", meaning: "I am fine, and you?", hint: "I + fine + you?", acceptable: ["nenu bagunna, meeru?", "bagunnanu, meeru?", "bagunna, meeru?"],
                   grammarNote: "*Nenu* is optional here — the -nu ending already says \"I\". Putting it in, as in *Nenu bagunnanu, meeru?*, stresses who you mean: \"**I'm** fine, and you?\"." }
             ],
@@ -678,18 +677,18 @@ export const CURRICULUM = {
                 { word: "Neevu", meaning: "You", phonetic: "nee-vu" },
                 { word: "Chennagiddini", meaning: "I am fine", phonetic: "chehn-naa-gih-dee-nih", teach: "“I am fine” is {w}." },
                 { word: "Hege", meaning: "How", phonetic: "hay-geh", teach: "“How” is {w}." },
-                { word: "Iddeera", meaning: "Are (you) - polite", phonetic: "ihd-dee-raa", teach: "{w} is “are you”." }
+                { word: "Iddeera", meaning: "Are you (polite)", phonetic: "ihd-dee-raa", alt: ["iddira", "iddiri"], teach: "{w} is “are you”." }
             ],
             phrases: [
-                { prompt: "Say 'Hello, I am fine'", correct: "Namaskara, naanu chennagiddini", grammarNote: "*Chennagiddini* is a whole sentence — the -ini ending is the “I”. Swap it and the person changes: *chennagiddiri* is “you are fine”. And *hege* sits just before the verb, not at the front like English.", meaning: "Hello, I am fine", hint: "Hello + I + fine" },
-                { prompt: "Ask 'How are you?' (formal)", correct: "Neevu hege iddeera?", meaning: "How are you?", hint: "You + how + are?" },
+                { prompt: "Say 'Hello, I am fine'", correct: "Namaskara, naanu chennagiddini", grammarNote: "*Chennagiddini* is a whole sentence on its own — the -ini ending is the “I”, so there is no separate word for “am”. Swap that ending and the person changes: *chennagiddiri* is “you are fine”.", meaning: "Hello, I am fine", hint: "Hello + I + fine" },
+                { prompt: "Ask 'How are you?' (formal)", correct: "Neevu hegiddira?", meaning: "How are you?", hint: "You + how-are-you", acceptable: ["neevu hege iddeera?", "neevu hegiddeera?", "neevu hegiddiri?", "neevu hege iddira?", "hegiddira?"], grammarNote: "*Hegiddira* is *hege* (“how”) and *iddira* (“are you”) run together — Kannada fuses them, and you will hear it as one word. That final -a is the question marker: *hegiddiri* is the statement, *hegiddira?* asks. Saying the parts separately, *hege iddeera*, is understood too." },
                 { prompt: "Say 'I am fine, and you?'", correct: "Naanu chennagiddini, neevu?", meaning: "I am fine, and you?", hint: "I + fine + you?" }
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskara, naanu chennagiddini", meaning: "Hello, I am fine", hint: "Basic greeting" },
-                { prompt: "Ask Miko how she is doing.", correct: "Miko, neevu hege iddeera?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Ask Miko how she is doing.", correct: "Miko, neevu hegiddira?", acceptable: ["miko, neevu hege iddeera?", "miko, neevu hegiddeera?", "miko neevu hegiddira?"], meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
                 { prompt: "Someone asks 'Neevu hege iddeera?'. Answer 'Naanu chennagiddini'.", correct: "Naanu chennagiddini", meaning: "I am fine", hint: "Direct answer" },
-                { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskara, naanu chennagiddini, neevu hege iddeera?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
+                { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskara, naanu chennagiddini, neevu hegiddira?", acceptable: ["namaskara, naanu chennagiddini, neevu hege iddeera?", "namaskara naanu chennagiddini neevu hegiddira?"], meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
             ]
         },
         {

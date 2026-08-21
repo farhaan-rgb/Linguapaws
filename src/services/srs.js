@@ -24,9 +24,11 @@ const cacheKey = (lang, scenarioIdx) => `linguapaws_reviewset_${lang}_${scenario
 /* ── Deterministic shuffle ──────────────────────────────────────────────
    Carried over from the original seededReviewIndices so the current-lesson
    fallback still varies from scenario to scenario.                        */
-const seededIndices = (seed, count) => {
+const seededIndices = (seed, size, count) => {
     let s = ((seed + 1) * 1664525 + 1013904223) & 0x7fffffff;
-    const all = [0, 1, 2, 3, 4];
+    // was hardcoded to [0..4], so a lesson carrying six or seven words could
+    // never have its later ones sampled for review
+    const all = Array.from({ length: Math.max(size, 0) }, (_, i) => i);
     for (let i = all.length - 1; i > 0; i--) {
         s = (s * 1664525 + 1013904223) & 0x7fffffff;
         const j = s % (i + 1);
@@ -57,7 +59,7 @@ export function getReviewSet(lang, scenarioIdx) {
  * Build (or return the cached) review triplet for this lesson.
  * Safe to call repeatedly — one network round-trip per lesson.
  */
-export async function ensureReviewSet(lang, scenarioIdx, vocabulary = []) {
+export async function ensureReviewSet(lang, scenarioIdx, vocabulary = [], priority = []) {
     if (!lang) return null;
 
     const cached = getReviewSet(lang, scenarioIdx);
@@ -81,7 +83,17 @@ export async function ensureReviewSet(lang, scenarioIdx, vocabulary = []) {
     // genuinely nothing else the learner could be reviewing.
     if (set.length < REVIEW_SLOTS && vocabulary.length) {
         const taken = new Set(set.map((w) => w.word.toLowerCase()));
-        for (const idx of seededIndices(scenarioIdx, vocabulary.length)) {
+        const wanted = new Set(priority.map((w) => String(w).toLowerCase()));
+        // Words the lesson's own drills are about to require come first. A real
+        // session quizzed three of five words and skipped the exact two the next
+        // task needed, which is a bad way to spend the only review slots there are.
+        const order = seededIndices(scenarioIdx, vocabulary.length, vocabulary.length)
+            .sort((a, b) => {
+                const pa = wanted.has((vocabulary[a]?.word || '').toLowerCase()) ? 0 : 1;
+                const pb = wanted.has((vocabulary[b]?.word || '').toLowerCase()) ? 0 : 1;
+                return pa - pb;
+            });
+        for (const idx of order) {
             if (set.length >= REVIEW_SLOTS) break;
             const item = vocabulary[idx];
             if (!item || !item.word) continue;

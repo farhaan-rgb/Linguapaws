@@ -1190,6 +1190,54 @@
       "replace": "I want the book",
       "expect": 1,
       "note": ""
+    },
+    {
+      "id": "I-1",
+      "cls": "I",
+      "pri": "P1",
+      "scen": 1,
+      "status": "approved",
+      "kind": "raw",
+      "find": "{ prompt: \"Ask 'How are you?'\", correct: \"Meeru ela\", meaning: \"How are you?\", hint: \"You + how?\",",
+      "replace": "{ prompt: \"Ask 'How are you?'\", correct: \"Meeru ela unnaru\", meaning: \"How are you?\", hint: \"You + how + are?\", acceptable: [\"meeru ela unnaru?\", \"meeru ela\", \"ela unnaru\", \"ela unnaru?\"],",
+      "expect": 1,
+      "note": "'Meeru ela' is an incomplete clause ('You how?'), not idiomatic ellipsis. Make the real sentence the target and keep the partial form accepted, so a beginner is still credited but learns the right shape first."
+    },
+    {
+      "id": "I-2",
+      "cls": "I",
+      "pri": "P1",
+      "scen": 1,
+      "status": "approved",
+      "kind": "raw",
+      "find": "*Unnaru* is the verb “are”, and it is worth knowing on its own: *unnanu* is “I am”, *unnaru* is “you are” — the same -nu / -ru swap you saw inside *bagunnanu*. Both *Meeru ela* and *Meeru ela unnaru?* work here.",
+      "replace": "*Unnaru* is the verb “are”: *unnanu* is “I am” (the ending you already met inside *bagunnanu*), and *unnaru* is “you are” for anyone you would call *meeru*. The ending carries the person, so it shifts with who you mean — a close friend gets *unnavu*. Dropping it, as in *Meeru ela*, is understandable but incomplete; the full question is *Meeru ela unnaru?*",
+      "expect": 1,
+      "note": "Removes the false claim that both forms work; drops the phantom '-ru you saw inside bagunnanu' (only -nu was shown); flags that the paradigm is wider than a two-way swap so 'unnavu' does not contradict it later."
+    },
+    {
+      "id": "I-3",
+      "cls": "I",
+      "pri": "P1",
+      "scen": 1,
+      "status": "approved",
+      "kind": "raw",
+      "find": "*Bagunnanu* does two jobs at once: *bagu* (\\\"well\\\") plus *unnanu* (\\\"I am\\\"). That is why there is no separate word for \\\"am\\\" — and why the clipped *bagunna* you hear in fast speech still means the same thing.",
+      "replace": "*Bagunnanu* is two pieces joined: *baga* (\\\"well\\\") plus *unnanu* (\\\"I am\\\"), with the vowel shortening where they meet. That is why there is no separate word for \\\"am\\\" — and why the clipped *bagunna* you hear in fast speech still means the same thing.",
+      "expect": 1,
+      "note": "The adverb is 'baga' (as taught in S16), not 'bagu'. A learner taking 'bagu' as a usable word will build wrong sentences with it."
+    },
+    {
+      "id": "I-4",
+      "cls": "I",
+      "pri": "P1",
+      "scen": 1,
+      "status": "approved",
+      "kind": "delete-line",
+      "find": "acceptable: [\"meeru ela unnaru\", \"meeru ela unnaru?\"],",
+      "replace": null,
+      "expect": 1,
+      "note": "I-1 inserted a new acceptable list but the object already had one on the next line, so the stale duplicate won and 'meeru ela' stopped being credited. Removes the duplicate key."
     }
   ]
 }

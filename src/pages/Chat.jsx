@@ -470,6 +470,18 @@ export default function Chat() {
        standalone English utterance (suffixes, postpositions, question words)
        carry an authored `teach` string; everything else uses the plain
        "To say X, say Y" form that already worked.                           */
+    const TEACH_STEPS = 5;
+
+    /** The vocabulary a given teaching step covers — one word usually, two when
+        the lesson carries more than five. */
+    const teachSliceFor = (vocabulary = [], step = 0) => {
+        const n = vocabulary.length;
+        if (!n) return [];
+        const from = Math.floor((step * n) / TEACH_STEPS);
+        const to = Math.floor(((step + 1) * n) / TEACH_STEPS);
+        return vocabulary.slice(from, Math.max(to, from + 1));
+    };
+
     const buildTeachingLine = (wordObj, opener = '') => {
         if (!wordObj?.word) return null;
         // An authored `teach` line explains the word but does not ask for it, so
@@ -490,6 +502,28 @@ export default function Chat() {
        They now draw from the learner's spaced-repetition due queue across every
        lesson they've seen, falling back to current-lesson vocabulary only while
        there is nothing older to review. See services/srs.js.               */
+
+    /** One teaching message for a whole slice. The final bold span is the word
+        the learner is asked for, which is what the answer matcher reads. */
+    const buildTeachingStep = (slice, opener = '') => {
+        const words = (slice || []).filter(w => w?.word);
+        if (!words.length) return null;
+        if (words.length === 1) return buildTeachingLine(words[0], opener);
+
+        const lead = words.slice(0, -1).map(w => {
+            const body = w.teach
+                ? w.teach.replace('{w}', `**${w.word}**`)
+                : `"${w.meaning}" is **${w.word}**`;
+            return body.replace(/\.$/, '');
+        }).join('. ');
+        const last = words[words.length - 1];
+        const lastRaw = last.teach
+            ? last.teach.replace('{w}', `**${last.word}**`)
+            : `"${last.meaning}" is **${last.word}**`;
+        const lastBody = /[.?!]$/.test(lastRaw) ? lastRaw : `${lastRaw}.`;
+        const phon = last.phonetic ? `\n<phonetic>${last.phonetic}</phonetic>` : '';
+        return `${opener}${opener ? ' ' : ''}${lead}. ${lastBody} Your turn — say **${last.word}**${phon}`;
+    };
 
     /* Accepted spoken variants of a taught word, from the curriculum's `alt`.
        Lets the drill demand the form that shows the morphology (Bagunnanu, where
@@ -530,12 +564,17 @@ export default function Chat() {
        the third one, and it contradicted the tutor's own voice mid-lesson. */
     const FLAT_PRAISE = ["Good.", "Correct.", "Right.", "Yes."];
 
+    const MISS_RE = /Not quite|The answer (was|is)|try again/i;
+    const ADVANCED_RE = /Spot on|Exactly|Great job|Perfect|Correct|Good\.|Right\.|Yes\.|come back|💡|🎓/i;
+
     const consecutiveMisses = (msgs) => {
         let n = 0;
         for (let i = msgs.length - 1; i >= 0; i--) {
-            if (msgs[i].role !== 'assistant') continue;
-            if (/Not quite|The answer (was|is)|try again/i.test(msgs[i].content)) { n++; continue; }
-            break;
+            const m = msgs[i];
+            if (m.role === 'user') continue;
+            if (MISS_RE.test(m.content)) { n++; continue; }
+            if (ADVANCED_RE.test(m.content)) break;   // a success or a new stage
+            // anything else (the model answering a question) is neutral: walk past
         }
         return n;
     };
@@ -552,6 +591,23 @@ export default function Chat() {
         if (/the answer (was|is)|it'?s \*\*/i.test(text || '')) return true;
         const needle = normalizeLatin(expected || '');
         return Boolean(needle) && needle.length >= 4 && haystack.includes(needle);
+    };
+
+    /* Never mark a learner wrong for saying back what the tutor just modelled.
+       A learner did exactly that — the tutor offered "Neevu hegiddira?", they
+       typed it, and the matcher rejected it because only the split form was on
+       the accepted list. Whatever else is true, that must not happen. */
+    const tutorModelled = (said, tutorText, expected) => {
+        const a = normalizeLatin(said);
+        const t = normalizeLatin(tutorText || '');
+        const e = normalizeLatin(expected || '');
+        if (a.length < 4 || !t.includes(a) || !e) return false;
+        const saidTokens = a.split(' ').filter(Boolean);
+        const wantTokens = e.split(' ').filter(Boolean);
+        if (saidTokens.length < wantTokens.length - 1) return false;
+        // must overlap the real answer, so echoing the English hint fails
+        return saidTokens.some(x => wantTokens.some(y =>
+            x === y || (Math.max(x.length, y.length) >= 4 && levenshtein(x, y) <= 1)));
     };
 
     /** How much help this answer needed — drives how far the word climbs. */
@@ -673,8 +729,12 @@ export default function Chat() {
     );
 
     useEffect(() => {
-        const vocabulary = CURRICULUM[safeLang]?.[currentScenarioIdx]?.vocabulary || [];
-        ensureReviewSet(safeLang, currentScenarioIdx, vocabulary);
+        const lesson = CURRICULUM[safeLang]?.[currentScenarioIdx];
+        const vocabulary = lesson?.vocabulary || [];
+        // words this lesson's own drills are about to require — reviewed first
+        const priority = [...(lesson?.phrases || []), ...(lesson?.conversations || [])]
+            .flatMap(it => String(it.correct || '').toLowerCase().match(/[a-z]+/g) || []);
+        ensureReviewSet(safeLang, currentScenarioIdx, vocabulary, priority);
     }, [safeLang, currentScenarioIdx]);
 
     // Persist messages to database whenever they change
@@ -901,14 +961,14 @@ export default function Chat() {
             const scenarioData = (CURRICULUM[safeLang] && CURRICULUM[safeLang][activeScenarioIdx]) || { vocabulary: [] };
             const activeScenario = scenarioData.scenario || 'Learning';
             const vocabIndex = inScenario < 5 ? inScenario : 0;
-            const targetWordObj = scenarioData.vocabulary[vocabIndex] || { word: 'Word', meaning: 'Meaning', phonetic: '' };
+            const targetSlice = teachSliceFor(scenarioData.vocabulary, vocabIndex);
             const taughtVocab = scenarioData.vocabulary.map(v => `${v.word} (${v.meaning})`).join(', ');
 
             if (levelId === 'zero' && !isReviewMode) {
                 // Instant template — content is 100% known from curriculum, no AI call needed
                 const charName = activeCharacter?.name || 'Miko';
-                const instantGreeting = buildTeachingLine(
-                    targetWordObj,
+                const instantGreeting = buildTeachingStep(
+                    targetSlice,
                     `Hey there! I'm ${charName}, your friendly guide. 🐾`
                 );
                 setMessages([{ role: 'assistant', content: instantGreeting }]);
@@ -1215,9 +1275,11 @@ export default function Chat() {
                containing the words the target needs. Levenshtein alone accepted
                "Emiti" for "Idhi emiti?" at exactly 0.500. */
             const hasExpectation = Boolean(promptedPhrase || reviewExpectedWord || phraseExpectedCorrect);
+            const expectedForEcho = promptedPhrase || reviewExpectedWord || phraseExpectedCorrect;
+            const echoedTutor = hasExpectation
+                && tutorModelled(actual, lastAssistant?.content, expectedForEcho);
             const hasCorrectMatch = hasExpectation
-                && matchRatio >= threshold
-                && matchCoverage >= COVERAGE_FLOOR;
+                && (echoedTutor || (matchRatio >= threshold && matchCoverage >= COVERAGE_FLOOR));
             const isLastScenarioStep = currentInScenario === 14 && hasCorrectMatch;
 
             // -- 3. SCORE TRACKING & CORRECTIONS --
@@ -1239,8 +1301,8 @@ export default function Chat() {
                the model paraphrases. Idempotent server-side, so a word taught in
                more than one lesson keeps its existing schedule. */
             if (hasCorrectMatch && isCurrentlyTeaching) {
-                const taught = scenarioDataForMatch.vocabulary?.[currentInScenario];
-                if (taught?.word) {
+                for (const taught of teachSliceFor(scenarioDataForMatch.vocabulary, currentInScenario)) {
+                    if (!taught?.word) continue;
                     recordTaughtWord({
                         lang: safeLang,
                         word: taught.word,
@@ -1385,7 +1447,20 @@ export default function Chat() {
                         if (pr) setProgress(pr);
                         // Explains the answer just given, so it precedes the next prompt.
                         if (phraseItem.grammarNote) out.push({ role: 'system', content: `💡 ${phraseItem.grammarNote}` });
-                        out.push({ role: 'assistant', content: atBoundary ? nextUp() : `${praise} ${nextUp()}` });
+                        if (atBoundary) {
+                            /* The "Phrases done" banner lives in the AI path, which
+                               sits after this fast path's early return — so on the
+                               path that actually runs it never fired, while praise
+                               was suppressed here in anticipation of it. The last
+                               correct phrase was met with silence, then an
+                               unannounced jump into conversation. Announce it where
+                               the transition actually happens. */
+                            out.push({ role: 'assistant', content: praise });
+                            out.push({ role: 'system', content: '🎓 **Phrases done** — now real conversation.' });
+                            out.push({ role: 'assistant', content: nextUp() });
+                        } else {
+                            out.push({ role: 'assistant', content: `${praise} ${nextUp()}` });
+                        }
                     } else if (misses >= REVIEW_RETRY_LIMIT) {
                         const pr = await api.post('/api/progress/increment').catch(() => null);
                         if (pr) setProgress(pr);
@@ -1432,12 +1507,12 @@ export default function Chat() {
                 let teachResponse;
                 if (isContinueRequest) {
                     // Not an answer — re-present the current word without grading it.
-                    const current = vocab[currentInScenario];
-                    teachResponse = current
-                        ? buildTeachingLine(current, 'Sure — here it is again. 🐾')
+                    const current = teachSliceFor(vocab, currentInScenario);
+                    teachResponse = current.length
+                        ? buildTeachingStep(current, 'Sure — here it is again. 🐾')
                         : "Let's keep going!";
                 } else if (hasCorrectMatch && nextInScenario < 5) {
-                    teachResponse = buildTeachingLine(vocab[nextInScenario], `${praise} 🐾`);
+                    teachResponse = buildTeachingStep(teachSliceFor(vocab, nextInScenario), `${praise} 🐾`);
                 } else if (hasCorrectMatch) {
                     // Fifth word done — open the review quiz with its first question
                     // rather than handing off to the AI with nothing to ask.
@@ -1449,9 +1524,9 @@ export default function Chat() {
                         ? `What's the ${targetLangName} word for "${first.meaning}"?`
                         : `${drillPrompt(scenarioDataForMatch.phrases, 0) || "Let's build a sentence."}`;
                 } else {
-                    const current = vocab[currentInScenario];
-                    teachResponse = current
-                        ? `Not quite — here it is again. ${buildTeachingLine(current)}`
+                    const current = teachSliceFor(vocab, currentInScenario);
+                    teachResponse = current.length
+                        ? `Not quite — here it is again. ${buildTeachingStep(current)}`
                         : "Hmm, let's try that once more.";
                 }
 
@@ -1704,6 +1779,17 @@ export default function Chat() {
                 outgoing.push({ role: 'system', content: `💡 ${postAnswerGrammarNote}` });
             }
             outgoing.push({ role: 'assistant', content: storedResponse });
+            /* If the learner asked a question mid-drill, the model answered it —
+               but it does not reliably restate the task afterwards. Do it here so
+               they are never left without something to do. */
+            if (!hasCorrectMatch && (isCurrentlyInBasic || isCurrentlyInReview)) {
+                const task = isCurrentlyInBasic
+                    ? drillPrompt(scenarioDataForMatch.phrases, currentInScenario - 8)
+                    : (reviewItem?.meaning ? `What's the ${targetLangName} word for "${reviewItem.meaning}"?` : null);
+                if (task && !normalizeLatin(storedResponse).includes(normalizeLatin(task).slice(0, 24))) {
+                    outgoing.push({ role: 'assistant', content: `So — ${task}` });
+                }
+            }
             setMessages(prev => [...prev, ...outgoing]);
             setIsLoading(false); // Unblock UI
 
