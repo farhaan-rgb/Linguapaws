@@ -617,6 +617,24 @@ export default function Chat() {
         return misses > 0 ? 'hinted' : 'unaided';
     };
 
+    /* A grammar note is fixed text written about the exercise's canonical
+       answer — but the learner is credited for accepted variants too, so the
+       note routinely explains endings their sentence does not contain, and can
+       even correct a mistake they did not make. Lead with the difference when
+       there is one, so the note is about the sentence they actually produced. */
+    const noteForAnswer = (item, answer) => {
+        const note = item?.grammarNote || '';
+        if (!note || !answer || !item?.correct) return note;
+        const said = normalizeLatin(answer);
+        const target = normalizeLatin(item.correct);
+        if (!said || !target || said === target) return note;
+        const variants = (item.acceptable || []).map(normalizeLatin);
+        const lead = variants.includes(said)
+            ? `You said **${answer.trim()}** — that works too. The full form is **${item.correct}**.`
+            : `Close. The form to keep is **${item.correct}**.`;
+        return `${lead} ${note}`;
+    };
+
     /* Did the learner answer in a DIFFERENT language they've studied here?
        Every language block shares the same scenario and exercise ordering, so
        the same slot in another language is the same question — which makes this
@@ -1323,7 +1341,7 @@ export default function Chat() {
                     // from whatever is due at that point, not this session's set.
                     clearReviewSet(safeLang, scenarioIdxForMatch);
                 } else if (isCurrentlyTeaching && currentInScenario === 4) {
-                    setMessages(prev => [...prev, { role: 'system', content: '🎓 **Vocabulary complete** — all five words done. Quick memory check next.' }]);
+                    setMessages(prev => [...prev, { role: 'system', content: '🎓 **Vocabulary done** — now a quick check on a few of them.' }]);
                 } else if (isCurrentlyInReview && currentInScenario === 7) {
                     setMessages(prev => [...prev, { role: 'system', content: '🎓 **Review passed** — now let\'s build whole sentences.' }]);
                 }
@@ -1446,7 +1464,8 @@ export default function Chat() {
                         const pr = await api.post('/api/progress/increment').catch(() => null);
                         if (pr) setProgress(pr);
                         // Explains the answer just given, so it precedes the next prompt.
-                        if (phraseItem.grammarNote) out.push({ role: 'system', content: `💡 ${phraseItem.grammarNote}` });
+                        const noteText = noteForAnswer(phraseItem, text);
+                        if (noteText) out.push({ role: 'system', content: `💡 ${noteText}` });
                         if (atBoundary) {
                             /* The "Phrases done" banner lives in the AI path, which
                                sits after this fast path's early return — so on the
@@ -1555,10 +1574,10 @@ export default function Chat() {
             let postAnswerGrammarNote = '';
             if (isCurrentlyInBasic) {
                 const basicIdx = currentInScenario - 8;
-                postAnswerGrammarNote = scenarioDataForMatch.phrases?.[basicIdx]?.grammarNote || '';
+                postAnswerGrammarNote = noteForAnswer(scenarioDataForMatch.phrases?.[basicIdx], actual);
             } else if (isCurrentlyInConvo) {
                 const convoIdx = currentInScenario - 11;
-                postAnswerGrammarNote = scenarioDataForMatch.conversations?.[convoIdx]?.grammarNote || '';
+                postAnswerGrammarNote = noteForAnswer(scenarioDataForMatch.conversations?.[convoIdx], actual);
             }
             // Deliberately NOT handed to the model. It used to arrive as
             // "[GRAMMAR TIP to share: ...]" and get paraphrased — the same

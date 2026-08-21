@@ -1238,6 +1238,54 @@
       "replace": null,
       "expect": 1,
       "note": "I-1 inserted a new acceptable list but the object already had one on the next line, so the stale duplicate won and 'meeru ela' stopped being credited. Removes the duplicate key."
+    },
+    {
+      "id": "J-1",
+      "cls": "J",
+      "pri": "P1",
+      "scen": 1,
+      "status": "approved",
+      "kind": "raw",
+      "find": "*Bagunnanu* is two pieces joined: *baga* (\\\"well\\\") plus *unnanu* (\\\"I am\\\"), with the vowel shortening where they meet.",
+      "replace": "*Bagunnanu* is two pieces joined: *baga* (\\\"well\\\") plus *unnanu* (\\\"I am\\\") — the final vowel of *baga* drops away where they meet.",
+      "expect": 1,
+      "note": "The vowel is elided, not shortened; 'shortening' would give bagaunnanu."
+    },
+    {
+      "id": "J-2",
+      "cls": "J",
+      "pri": "P1",
+      "scen": 1,
+      "status": "approved",
+      "kind": "raw",
+      "find": "*unnaru* is “you are” for anyone you would call *meeru*. The ending carries the person, so it shifts with who you mean — a close friend gets *unnavu*. Dropping it, as in *Meeru ela*, is understandable but incomplete; the full question is *Meeru ela unnaru?*",
+      "replace": "*unnaru* is “you are” for anyone you would call *meeru* — and the same form doubles as the respectful “he is / she is / they are”, so listen for who is being talked about. The ending carries the person, so it shifts with who you mean: a close friend gets *unnavu*.",
+      "expect": 1,
+      "note": "Drops the stale clause scolding the learner for omitting unnaru (the target is now the full form, so the note fired on a correct answer). Also broadens the gloss: unnaru is equally the 3rd-person honorific, which a learner meets immediately."
+    },
+    {
+      "id": "J-3",
+      "cls": "J",
+      "pri": "P1",
+      "scen": 1,
+      "status": "approved",
+      "kind": "raw",
+      "find": "*Nenu* is optional here — the -nu ending already says \\\"I\\\". Putting it in, as in *Nenu bagunnanu, meeru?*, stresses who you mean: \\\"**I'm** fine, and you?\\\".",
+      "replace": "Telugu usually drops *nenu* — *bagunnanu* already means \\\"I am fine\\\" on its own. This sentence is the exception: setting yourself beside the other person is exactly the contrast Telugu marks with the pronoun, so *Nenu bagunnanu, meeru?* is the natural form here — \\\"**I'm** fine, and you?\\\".",
+      "expect": 1,
+      "note": "Old note pointed at a -nu ending absent from the accepted answer (bagunna), and called the pronoun optional in a contrastive frame where Telugu prefers it."
+    },
+    {
+      "id": "J-4",
+      "cls": "J",
+      "pri": "P1",
+      "scen": 1,
+      "status": "approved",
+      "kind": "prompt",
+      "find": "A friend greets you. Say hello and that you are fine.",
+      "replace": "A shopkeeper greets you. Say hello and that you are fine.",
+      "expect": 1,
+      "note": "Namaskaram and Meeru are both formal; with a friend they are stiff, and the informal nuvvu/unnavu forms are never taught. A shopkeeper makes the taught forms the correct choice."
     }
   ]
 }

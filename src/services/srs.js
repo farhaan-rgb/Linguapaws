@@ -83,16 +83,24 @@ export async function ensureReviewSet(lang, scenarioIdx, vocabulary = [], priori
     // genuinely nothing else the learner could be reviewing.
     if (set.length < REVIEW_SLOTS && vocabulary.length) {
         const taken = new Set(set.map((w) => w.word.toLowerCase()));
-        const wanted = new Set(priority.map((w) => String(w).toLowerCase()));
-        // Words the lesson's own drills are about to require come first. A real
-        // session quizzed three of five words and skipped the exact two the next
-        // task needed, which is a bad way to spend the only review slots there are.
+        /* Rank by WHEN the drills first need a word, not merely whether they do.
+           A well-built lesson uses all of its vocabulary, so a membership test
+           is a no-op on exactly the lessons it was meant to help — and where it
+           did bite it went the wrong way, handing Kannada L4's three slots to
+           `sari`/`illa`/`haudu` while skipping `beku` and `beda`, the words the
+           lesson is actually about. First-needed keeps the slots on whatever the
+           learner has to produce soonest. */
+        const rank = new Map();
+        priority.forEach((w, i) => {
+            const k = String(w).toLowerCase();
+            if (!rank.has(k)) rank.set(k, i);
+        });
+        const rankOf = (idx) => {
+            const k = (vocabulary[idx]?.word || '').toLowerCase();
+            return rank.has(k) ? rank.get(k) : Number.MAX_SAFE_INTEGER;
+        };
         const order = seededIndices(scenarioIdx, vocabulary.length, vocabulary.length)
-            .sort((a, b) => {
-                const pa = wanted.has((vocabulary[a]?.word || '').toLowerCase()) ? 0 : 1;
-                const pb = wanted.has((vocabulary[b]?.word || '').toLowerCase()) ? 0 : 1;
-                return pa - pb;
-            });
+            .sort((a, b) => rankOf(a) - rankOf(b));
         for (const idx of order) {
             if (set.length >= REVIEW_SLOTS) break;
             const item = vocabulary[idx];

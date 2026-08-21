@@ -26,14 +26,14 @@ export const CURRICULUM = {
             ],
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskaram, nenu bagunnanu", meaning: "Hello, I am fine", hint: "Hello + I + fine", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"],
-                  grammarNote: "*Bagunnanu* is two pieces joined: *baga* (\"well\") plus *unnanu* (\"I am\"), with the vowel shortening where they meet. That is why there is no separate word for \"am\" — and why the clipped *bagunna* you hear in fast speech still means the same thing." },
+                  grammarNote: "*Bagunnanu* is two pieces joined: *baga* (\"well\") plus *unnanu* (\"I am\") — the final vowel of *baga* drops away where they meet. That is why there is no separate word for \"am\" — and why the clipped *bagunna* you hear in fast speech still means the same thing." },
                 { prompt: "Ask 'How are you?'", correct: "Meeru ela unnaru", meaning: "How are you?", hint: "You + how + are?", acceptable: ["meeru ela unnaru?", "meeru ela", "ela unnaru", "ela unnaru?"],
-                  grammarNote: "*Unnaru* is the verb “are”: *unnanu* is “I am” (the ending you already met inside *bagunnanu*), and *unnaru* is “you are” for anyone you would call *meeru*. The ending carries the person, so it shifts with who you mean — a close friend gets *unnavu*. Dropping it, as in *Meeru ela*, is understandable but incomplete; the full question is *Meeru ela unnaru?*" },
+                  grammarNote: "*Unnaru* is the verb “are”: *unnanu* is “I am” (the ending you already met inside *bagunnanu*), and *unnaru* is “you are” for anyone you would call *meeru* — and the same form doubles as the respectful “he is / she is / they are”, so listen for who is being talked about. The ending carries the person, so it shifts with who you mean: a close friend gets *unnavu*." },
                 { prompt: "Say 'I am fine, and you?'", correct: "Nenu bagunnanu, meeru?", meaning: "I am fine, and you?", hint: "I + fine + you?", acceptable: ["nenu bagunna, meeru?", "bagunnanu, meeru?", "bagunna, meeru?"],
-                  grammarNote: "*Nenu* is optional here — the -nu ending already says \"I\". Putting it in, as in *Nenu bagunnanu, meeru?*, stresses who you mean: \"**I'm** fine, and you?\"." }
+                  grammarNote: "Telugu usually drops *nenu* — *bagunnanu* already means \"I am fine\" on its own. This sentence is the exception: setting yourself beside the other person is exactly the contrast Telugu marks with the pronoun, so *Nenu bagunnanu, meeru?* is the natural form here — \"**I'm** fine, and you?\"." }
             ],
             conversations: [
-                { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskaram, nenu bagunnanu", meaning: "Hello, I am fine", hint: "Basic greeting + state", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"],
+                { prompt: "A shopkeeper greets you. Say hello and that you are fine.", correct: "Namaskaram, nenu bagunnanu", meaning: "Hello, I am fine", hint: "Basic greeting + state", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"],
                   grammarNote: "Swap that -nu ending and the subject changes: *bagunnaru* means \"you are fine\". Same word, different ending, different person — you will meet this pattern on every Telugu verb." },
                 { prompt: "Ask Miko how she is doing.", correct: "Miko, meeru ela", meaning: "Miko, how are you?", hint: "Name + you + how?",
                   acceptable: ["miko, meeru ela unnaru?", "miko meeru ela unnaru", "miko, meeru ela unnaru", "miko meeru ela unnaru?"],
