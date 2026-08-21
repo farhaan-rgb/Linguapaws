@@ -191,7 +191,7 @@ async function turn(s, said) {
                 recordTaught(s, slice);
                 push('assistant', E.buildTeachingStep(slice, `${p} 🐾`));
             } else {
-                push('system', '🎓 **Vocabulary complete** — all five words done. Quick memory check next.');
+                push('system', `🎓 **Vocabulary done** — ${vocab.length} words. Quick memory check next.`);
                 s.reviewSet = buildReviewSet(s);
                 push('assistant', `What's the ${s.lang} word for "${s.reviewSet[0].meaning}"?`);
             }
@@ -305,12 +305,30 @@ async function turn(s, said) {
         }
         return out;
     }
+    // Same two-miss cap as every other stage. Without it the checker waits for a
+    // target utterance indefinitely while the model chats, and the learner sits
+    // at the same step with nothing telling them why.
+    if (item && misses >= E.REVIEW_RETRY_LIMIT && !isQuestion && !isAck) {
+        s.step += 1;
+        const next = E.drillPrompt(lesson.conversations, cIdx + 1);
+        if (next) push('assistant', `It's **${item.correct}**. We'll come back to this — ${next}`);
+        else {
+            push('assistant', `It's **${item.correct}**. That's the scenario done — nicely handled.`);
+            push('system', '✨ **Scenario complete.**');
+            const learned = Object.values(s.vocab).map(v => `${v.word} — ${v.meaning}`);
+            push('system', `📋 **You can now say:** ${learned.join(' · ')}`);
+        }
+        return out;
+    }
+
+    const known = (lesson.vocabulary || []).map(v => `${v.word} (${v.meaning})`).join(', ');
     const reply = await askModel(
         conversationalRules(s.lang),
         s.messages.concat([{ role: 'user', content: said }]),
-        `[The learner is attempting: "${item?.prompt}". Target: "${item?.correct}". Do NOT reveal it. React in character and re-prompt.]`,
+        `[The learner knows ONLY these ${s.lang} words: ${known}. Use no others — not even with a translation in parentheses. Stay on the scenario: "${lesson.scenario}". They are attempting: "${item?.prompt}". Do NOT state the target sentence. Never write square brackets or placeholders. If they say they do not know, give them the answer and move on.]`,
     );
     push('assistant', reply || '[conversation step — not simulated]');
+    push('assistant', `So — ${E.drillPrompt(lesson.conversations, cIdx)}`);
     return out;
 }
 

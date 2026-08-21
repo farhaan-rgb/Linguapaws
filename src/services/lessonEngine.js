@@ -205,6 +205,11 @@ export const buildTeachingStep = (slice, opener = '') => {
     return `${opener}${opener ? ' ' : ''}${lead}. ${lastBody} Your turn — say **${last.word}**${phon}`;
 };
 
+/** Every word a teaching step put on screen — a doubled step shows two but the
+    bold instruction names only one, so the other was shown and never practised.
+    Saying either back counts. */
+export const wordsOfferedBy = (slice = []) => (slice || []).filter(w => w?.word).map(w => w.word);
+
 export const extractPromptedPhrase = (text) => {
     if (!text) return null;
     const bold = text.match(/\*\*(.*?)\*\*/g);

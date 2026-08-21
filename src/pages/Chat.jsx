@@ -1252,8 +1252,17 @@ export default function Chat() {
             let matchCoverage = 0;   // fraction of the target's words actually produced
 
             if (isCurrentlyTeaching && promptedPhrase) {
+                /* A step that shows two words names only one in the instruction,
+                   so the other is on screen but never practised. Accept either. */
+                const offered = engine.wordsOfferedBy(
+                    teachSliceFor(scenarioDataForMatch.vocabulary, currentInScenario));
+                const teachVariants = [
+                    ...altsFor(promptedPhrase),
+                    ...offered.filter(w => w !== promptedPhrase),
+                    ...offered.flatMap(w => altsFor(w)),
+                ];
                 ({ ratio: matchRatio, coverage: matchCoverage } =
-                    scoreAgainst(actual, promptedPhrase, altsFor(promptedPhrase)));
+                    scoreAgainst(actual, promptedPhrase, teachVariants));
                 displayPhrase = promptedPhrase;
             } else if (isCurrentlyInReview) {
                 const round = currentInScenario - 5;
@@ -1613,6 +1622,40 @@ export default function Chat() {
                 }
                 setIsLoading(false);
                 return;
+            }
+
+            /* -- CONVERSATION RETRY CAP: steps 12-15.
+               Every other stage advances after two misses; this one did not, so
+               the checker could wait indefinitely for a target utterance while
+               the model carried on a pleasant unrelated conversation. Silent
+               non-progress reads as a broken app. */
+            if (isCurrentlyInConvo && !hasCorrectMatch && !isContinueRequest
+                && !isHelpRequest && !looksLikeQuestion(text)) {
+                const convoIdx = currentInScenario - 11;
+                const convoItem = scenarioDataForMatch.conversations?.[convoIdx];
+                if (convoItem && consecutiveMisses(messages) >= REVIEW_RETRY_LIMIT) {
+                    const pr = await api.post('/api/progress/increment').catch(() => null);
+                    if (pr) setProgress(pr);
+                    const next = drillPrompt(scenarioDataForMatch.conversations, convoIdx + 1);
+                    const out = [{
+                        role: 'assistant',
+                        content: next
+                            ? `It's **${convoItem.correct}**. We'll come back to this — ${next}`
+                            : `It's **${convoItem.correct}**. That's the scenario done — nicely handled.`,
+                    }];
+                    if (!next) out.push({ role: 'system', content: '✨ **Scenario complete.**' });
+                    setMessages(prev => [...prev, ...out]);
+                    if (!isMuted && isMounted.current) {
+                        const audioUrl = await aiService.generateSpeech(
+                            buildSpeechText(out[0].content), resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+                        if (audioUrl && isMounted.current) {
+                            audioRef.current.src = audioUrl;
+                            audioRef.current.play().catch(() => {});
+                        }
+                    }
+                    setIsLoading(false);
+                    return;
+                }
             }
 
             // Build grammarNote for post-answer feedback (only shown AFTER correct answer)
