@@ -35,3 +35,4 @@ backend/.env.bak.*
 
 # Curriculum edit backups
 *.js.bak.*
+.lesson-sim-state.json

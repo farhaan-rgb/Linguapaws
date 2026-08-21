@@ -516,6 +516,64 @@ SHADOW PRACTICE:
         }
     }
 
+    /**
+     * One sentence on why THIS wrong answer is wrong — the adaptive half of
+     * tutoring, without handing the model any control over the lesson.
+     *
+     * The drill stages stopped calling the model at all because it kept
+     * deciding things it should not: inflating glosses, mis-grading, and
+     * handing over answers it had been told to withhold. Grading and the next
+     * prompt therefore stay with the app; the model is asked for a diagnosis
+     * and nothing else, and the answer is verified before anyone sees it.
+     *
+     * Returns null whenever the reply cannot be trusted, so the caller falls
+     * back to the curriculum's static hint — today's behaviour as a floor.
+     *
+     * @returns {Promise<string|null>}
+     */
+    async diagnoseAttempt({ answer, target, acceptable = [], prompt, hint,
+                            targetLangName = 'English', nativeLangName = 'English' }) {
+        if (!answer || !target) return null;
+
+        const system = `You are a ${targetLangName} tutor helping a beginner whose native language is ${nativeLangName}.
+The learner was asked: "${prompt}"
+The correct answer is: "${target}"${hint ? `\nThe structure is: ${hint}` : ''}
+They said: "${answer}"
+
+Write ONE short sentence (max 20 words) in ${nativeLangName} that tells them what is missing or wrong in THEIR attempt, so they can fix it themselves.
+
+HARD RULES:
+- NEVER write the correct answer, or any part of it, in ${targetLangName}. Not as an example, a tip, or a "native touch".
+- Describe what is missing rather than supplying it — "the verb at the end is missing", "that is the word for 'you', not 'how'", "close, but one sound is off".
+- If they used a word from a different language, say which language.
+- No greeting, no praise, no follow-up question. One sentence only.`;
+
+        try {
+            const data = await api.post('/api/ai/chat', {
+                messages: [{ role: 'system', content: system }],
+                options: { temperature: 0.3, max_tokens: 60, generateAudio: false },
+            });
+            const reply = (data?.content || '').trim().replace(/^["']|["']$/g, '');
+            if (!reply || reply.length > 220) return null;
+
+            /* The instruction not to reveal the answer has been given before and
+               ignored before, so it is checked rather than trusted. Any leak of
+               the target — or of an accepted variant — voids the diagnosis. */
+            const strip = (s) => String(s).toLowerCase().normalize('NFD')
+                .replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9]+/g, '');
+            const haystack = strip(reply);
+            const forbidden = [target, ...acceptable]
+                .flatMap(t => String(t).split(/[\s,.?!]+/))
+                .map(strip)
+                .filter(w => w.length >= 4);
+            if (forbidden.some(w => haystack.includes(w))) return null;
+
+            return reply;
+        } catch {
+            return null; // offline or the model is down — the static hint still works
+        }
+    }
+
     async getSuggestions(targetLangName = 'English') {
         try {
             const data = await api.post('/api/ai/chat', {

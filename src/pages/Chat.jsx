@@ -10,6 +10,7 @@ import { characters as defaultCharacters } from '../data/characters';
 import { useTranslation } from '../hooks/useTranslation';
 import { getStoredJSON, setStoredJSON } from '../utils/storage';
 import { CURRICULUM, AVAILABLE_LANGUAGES, isLanguageAvailable } from '../services/curriculum';
+import * as engine from '../services/lessonEngine';
 import {
     getReviewSet,
     ensureReviewSet,
@@ -749,9 +750,17 @@ export default function Chat() {
     useEffect(() => {
         const lesson = CURRICULUM[safeLang]?.[currentScenarioIdx];
         const vocabulary = lesson?.vocabulary || [];
-        // words this lesson's own drills are about to require — reviewed first
-        const priority = [...(lesson?.phrases || []), ...(lesson?.conversations || [])]
-            .flatMap(it => String(it.correct || '').toLowerCase().match(/[a-z]+/g) || []);
+        /* Least-practised first. A word that shared a teaching step with another
+           was never asked for on its own, and later words have had fewer turns
+           since. The previous rule ("words the drills need") matched everything
+           in lesson 1, so the quiz tested the three words the learner already
+           had cold and skipped the two they had just met. */
+        const priority = [];
+        for (let step = engine.TEACH_STEPS - 1; step >= 0; step--) {
+            const slice = engine.teachSliceFor(lesson?.vocabulary || [], step);
+            slice.slice(0, -1).forEach(v => priority.push(v.word));   // never asked for alone
+            if (slice.length) priority.push(slice[slice.length - 1].word);
+        }
         ensureReviewSet(safeLang, currentScenarioIdx, vocabulary, priority);
     }, [safeLang, currentScenarioIdx]);
 
@@ -1420,7 +1429,16 @@ export default function Chat() {
                             ? `${shown} We'll come back to that one. ${firstPhrase2 || ''}`.trim()
                             : `${shown} We'll come back to it later — ${nextQuestion()}`;
                     } else {
-                        reviewResponse = `Not quite. What's the word for "${currentMeaning}"?`;
+                        const diagnosis = await aiService.diagnoseAttempt({
+                            answer: text,
+                            target: reviewExpectedWord,
+                            prompt: `What's the ${targetLangName} word for "${currentMeaning}"?`,
+                            targetLangName,
+                            nativeLangName: nativeLang?.name || 'English',
+                        });
+                        reviewResponse = diagnosis
+                            ? `Not quite. ${diagnosis} What's the word for "${currentMeaning}"?`
+                            : `Not quite. What's the word for "${currentMeaning}"?`;
                     }
 
                     setMessages(prev => [...prev, { role: 'assistant', content: reviewResponse }]);
@@ -1489,11 +1507,23 @@ export default function Chat() {
                             scenarioIdx: scenarioIdxForMatch, section: 'phrases', itemIdx: phraseIdx,
                         });
                         const hint = phraseItem.hint ? ` Hint: ${phraseItem.hint}.` : '';
+                        /* A diagnosis of this attempt if one can be trusted,
+                           otherwise the curriculum's fixed hint. */
+                        const diagnosis = otherLang ? null : await aiService.diagnoseAttempt({
+                            answer: text,
+                            target: phraseItem.correct,
+                            acceptable: phraseItem.acceptable,
+                            prompt: phraseItem.prompt,
+                            hint: phraseItem.hint,
+                            targetLangName,
+                            nativeLangName: nativeLang?.name || 'English',
+                        });
+                        const lead = otherLang
+                            ? `That's ${otherLang}, not ${safeLang} — a good answer to the wrong question. In ${safeLang}:${hint}`
+                            : (diagnosis ? `Not quite. ${diagnosis}` : `Not quite.${hint}`);
                         out.push({
                             role: 'assistant',
-                            content: otherLang
-                                ? `That's ${otherLang}, not ${safeLang} — a good answer to the wrong question. In ${safeLang}:${hint} ${drillPrompt(scenarioDataForMatch.phrases, phraseIdx)}`
-                                : `Not quite.${hint} ${drillPrompt(scenarioDataForMatch.phrases, phraseIdx)}`,
+                            content: `${lead} ${drillPrompt(scenarioDataForMatch.phrases, phraseIdx)}`,
                         });
                     }
 
@@ -1518,7 +1548,14 @@ export default function Chat() {
                "you want to ask 'What is this?' ... say Emiti" — a gloss inflated
                into a sentence the single word does not cover. Same reason the
                review path is templated. */
-            if (isCurrentlyTeaching) {
+            /* Unlike the review and phrase paths, this one had no escape hatch:
+               a learner who said "I don't know" during vocabulary was graded
+               wrong and shown the same word again, with no way to reach the
+               model. Asking for help is not a wrong answer. */
+            const teachIsQuestion = isCurrentlyTeaching && !hasCorrectMatch
+                && (isHelpRequest || looksLikeQuestion(text));
+
+            if (isCurrentlyTeaching && !teachIsQuestion) {
                 const vocab = scenarioDataForMatch.vocabulary || [];
                 const PRAISE = ['Good.', 'Correct.', 'Right.', 'Yes.'];
                 const praise = PRAISE[currentRepeats % PRAISE.length];
@@ -1544,8 +1581,16 @@ export default function Chat() {
                         : `${drillPrompt(scenarioDataForMatch.phrases, 0) || "Let's build a sentence."}`;
                 } else {
                     const current = teachSliceFor(vocab, currentInScenario);
+                    const wanted = current[0]?.word;
+                    const diagnosis = wanted ? await aiService.diagnoseAttempt({
+                        answer: text,
+                        target: wanted,
+                        prompt: `Say the ${targetLangName} word for "${current[0]?.meaning || ''}"`,
+                        targetLangName,
+                        nativeLangName: nativeLang?.name || 'English',
+                    }) : null;
                     teachResponse = current.length
-                        ? `Not quite — here it is again. ${buildTeachingStep(current)}`
+                        ? `Not quite.${diagnosis ? ` ${diagnosis}` : ''} Here it is again. ${buildTeachingStep(current)}`
                         : "Hmm, let's try that once more.";
                 }
 
