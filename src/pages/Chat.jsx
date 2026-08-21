@@ -532,8 +532,26 @@ export default function Chat() {
         return n;
     };
 
-    /** Did the previous turn hand the learner the answer? */
-    const answerWasRevealed = (text) => /the answer (was|is)/i.test(text || '');
+    /* Did the previous turn hand the learner the answer? Tested by looking for
+       the expected answer itself rather than for a form of words — the earlier
+       version only recognised this component's own "The answer was X" template,
+       so when the model volunteered the answer ("The Kannada phrase for 'I am
+       fine' is 'Naanu chennagiddini'") the parrot that followed was banked as a
+       real recall. */
+    const answerWasRevealed = (text, expected) => {
+        const haystack = normalizeLatin(text || '');
+        if (!haystack) return false;
+        if (/the answer (was|is)|it'?s \*\*/i.test(text || '')) return true;
+        const needle = normalizeLatin(expected || '');
+        return Boolean(needle) && needle.length >= 4 && haystack.includes(needle);
+    };
+
+    /** How much help this answer needed — drives how far the word climbs. */
+    const gradeOutcome = ({ correct, misses, revealed }) => {
+        if (!correct) return 'missed';
+        if (revealed) return 'revealed';
+        return misses > 0 ? 'hinted' : 'unaided';
+    };
 
     /* A learner talking to the tutor rather than answering it.
        The signal is that they switched to ENGLISH, not that the text ends in a
@@ -1245,7 +1263,7 @@ export default function Chat() {
 
                 if (!isLearnerQuestion) {
                     const misses = consecutiveMisses(messages);
-                    const revealed = answerWasRevealed(lastAssistantContent);
+                    const revealed = answerWasRevealed(lastAssistantContent, reviewExpectedWord);
 
                     /* Feed the outcome back into the ladder — but a correct answer
                        typed straight after being shown the answer is a parrot, not
@@ -1255,7 +1273,11 @@ export default function Chat() {
                         recordReview({
                             lang: safeLang,
                             word: reviewExpectedWord,
-                            wasCorrect: Boolean(hasCorrectMatch) && !revealed,
+                            outcome: gradeOutcome({
+                                correct: Boolean(hasCorrectMatch),
+                                misses,
+                                revealed,
+                            }),
                             meaning: reviewItem?.meaning,
                             scenario: scenarioDataForMatch.scenario,
                         });

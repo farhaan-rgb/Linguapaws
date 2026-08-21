@@ -30,6 +30,7 @@ const learnedWordSchema = new mongoose.Schema(
         dueAt: { type: Date, default: Date.now },
         reviews: { type: Number, default: 0 },
         lapses: { type: Number, default: 0 },
+        lastOutcome: { type: String },   // 'unaided' | 'hinted' | 'revealed' | 'missed'
         lastReviewedAt: { type: Date },
     },
     { timestamps: true }

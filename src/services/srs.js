@@ -133,14 +133,19 @@ export async function recordTaughtWord({ lang, word, meaning, scenario }) {
     }
 }
 
-/** Record a review outcome and let the server reschedule the word. */
-export async function recordReview({ lang, word, wasCorrect, meaning, scenario }) {
+/**
+ * Record a review outcome and let the server reschedule the word.
+ * `outcome` is how much help was needed: 'unaided' | 'hinted' | 'revealed' |
+ * 'missed'. A bare boolean still works but cannot distinguish a cold recall
+ * from one dragged out of a hint, which is the signal worth having.
+ */
+export async function recordReview({ lang, word, outcome, wasCorrect, meaning, scenario }) {
     if (!lang || !word) return null;
     try {
         return await api.post('/api/progress/review', {
             lang,
             word,
-            wasCorrect,
+            ...(outcome ? { outcome } : { wasCorrect }),
             meaning,
             scenario,
         });

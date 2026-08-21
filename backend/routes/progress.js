@@ -99,9 +99,12 @@ router.get('/due', async (req, res) => {
 // POST /api/progress/review — record a review outcome and reschedule
 // Body: { word, lang, wasCorrect, meaning?, scenario? }
 router.post('/review', async (req, res) => {
-    const { word, lang, wasCorrect } = req.body;
-    if (!word || !lang || typeof wasCorrect !== 'boolean') {
-        return res.status(400).json({ error: 'word, lang and wasCorrect (boolean) are required' });
+    const { word, lang, wasCorrect, outcome } = req.body;
+    // `outcome` carries how much help was needed ('unaided' | 'hinted' |
+    // 'revealed' | 'missed'); `wasCorrect` is the older boolean form.
+    const graded = outcome !== undefined ? outcome : wasCorrect;
+    if (!word || !lang || (typeof wasCorrect !== 'boolean' && typeof outcome !== 'string')) {
+        return res.status(400).json({ error: 'word, lang and one of outcome (string) or wasCorrect (boolean) are required' });
     }
 
     const wordKey = keyOf(word);
@@ -123,12 +126,15 @@ router.post('/review', async (req, res) => {
     });
 
     const now = new Date();
-    const { box, dueAt } = nextSchedule(target.box, wasCorrect, now);
+    const scheduled = nextSchedule(target.box, graded, now);
 
-    target.box = box;
-    target.dueAt = dueAt;
+    target.box = scheduled.box;
+    target.dueAt = scheduled.dueAt;
     target.reviews = (target.reviews || 0) + 1;
-    if (!wasCorrect) target.lapses = (target.lapses || 0) + 1;
+    if (scheduled.outcome === 'missed' || scheduled.outcome === 'revealed') {
+        target.lapses = (target.lapses || 0) + 1;
+    }
+    target.lastOutcome = scheduled.outcome;
     target.lastReviewedAt = now;
 
     await target.save();
@@ -140,6 +146,7 @@ router.post('/review', async (req, res) => {
         dueAt: target.dueAt,
         reviews: target.reviews,
         lapses: target.lapses,
+        outcome: scheduled.outcome,
     });
 });
 

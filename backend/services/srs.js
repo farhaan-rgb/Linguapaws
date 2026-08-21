@@ -33,18 +33,41 @@ function intervalMinutes(box) {
 }
 
 /**
+ * How much help the learner needed. A bare "correct" throws away the most
+ * informative signal there is: recalling a word cold and dragging it out after
+ * a hint are not the same thing, and scheduling them identically means revision
+ * time keeps going to words the learner already knows.
+ *
+ *   unaided   recalled with no help          -> climbs two rungs
+ *   hinted    recalled after a hint or miss  -> climbs one rung
+ *   revealed  answered after being shown it  -> back to the bottom (a parrot,
+ *                                               not a recall)
+ *   missed    not recalled                   -> back to the bottom
+ */
+const OUTCOMES = ['unaided', 'hinted', 'revealed', 'missed'];
+
+const STEP = { unaided: 2, hinted: 1 };
+
+/** Accepts the old boolean too; true maps to the conservative 'hinted'. */
+function normaliseOutcome(outcome) {
+    if (typeof outcome === 'boolean') return outcome ? 'hinted' : 'missed';
+    return OUTCOMES.includes(outcome) ? outcome : 'missed';
+}
+
+/**
  * Where a word goes after being tested.
  *
- * @param {number}  box        the box it was in
- * @param {boolean} wasCorrect whether the learner recalled it
- * @param {Date}    now
- * @returns {{ box: number, dueAt: Date }}
+ * @param {number} box                   the box it was in
+ * @param {string|boolean} outcome       see OUTCOMES above
+ * @param {Date}   now
+ * @returns {{ box: number, dueAt: Date, outcome: string }}
  */
-function nextSchedule(box, wasCorrect, now = new Date()) {
-    if (!wasCorrect) return { box: 0, dueAt: now };
+function nextSchedule(box, outcome, now = new Date()) {
+    const kind = normaliseOutcome(outcome);
+    if (kind === 'missed' || kind === 'revealed') return { box: 0, dueAt: now, outcome: kind };
 
-    const promoted = Math.min(clampBox(box) + 1, MAX_BOX);
-    return { box: promoted, dueAt: addMinutes(now, LADDER_MINUTES[promoted]) };
+    const promoted = Math.min(clampBox(box) + STEP[kind], MAX_BOX);
+    return { box: promoted, dueAt: addMinutes(now, LADDER_MINUTES[promoted]), outcome: kind };
 }
 
 /** Where a word starts the first time it is taught. */
@@ -54,6 +77,7 @@ function initialSchedule(now = new Date()) {
 
 module.exports = {
     LADDER_MINUTES,
+    OUTCOMES,
     MAX_BOX,
     intervalMinutes,
     nextSchedule,
