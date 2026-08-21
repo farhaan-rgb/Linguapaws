@@ -201,7 +201,10 @@ export const buildTeachingStep = (slice, opener = '') => {
         ? last.teach.replace('{w}', `**${last.word}**`)
         : `"${last.meaning}" is **${last.word}**`;
     const lastBody = /[.?!]$/.test(lastRaw) ? lastRaw : `${lastRaw}.`;
-    const phon = last.phonetic ? `\n<phonetic>${last.phonetic}</phonetic>` : '';
+    // every word in the step, not just the last — the others were shown with no
+    // pronunciation and then quizzed first
+    const phon = words.filter(w => w.phonetic)
+        .map(w => `\n<phonetic>${w.word}: ${w.phonetic}</phonetic>`).join('');
     return `${opener}${opener ? ' ' : ''}${lead}. ${lastBody} Your turn — say **${last.word}**${phon}`;
 };
 
@@ -242,6 +245,10 @@ export const drillPrompt = (items, idx) => {
 
 export const REVIEW_RETRY_LIMIT = 2;
 
+/** Every stage must include one of these when it rejects an answer, or
+    consecutiveMisses cannot see the miss and the retry cap never fires. The
+    conversation stage emitted none of them, so it could reject forever. */
+export const MISS_MARKER = 'Not quite';
 const MISS_RE = /Not quite|The answer (was|is)|try again/i;
 const ADVANCED_RE = /Spot on|Exactly|Great job|Perfect|Correct|Good\.|Right\.|Yes\.|come back|💡|🎓/i;
 

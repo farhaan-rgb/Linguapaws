@@ -327,8 +327,9 @@ async function turn(s, said) {
         s.messages.concat([{ role: 'user', content: said }]),
         `[The learner knows ONLY these ${s.lang} words: ${known}. Use no others — not even with a translation in parentheses. Stay on the scenario: "${lesson.scenario}". They are attempting: "${item?.prompt}". Do NOT state the target sentence. Never write square brackets or placeholders. If they say they do not know, give them the answer and move on.]`,
     );
-    push('assistant', reply || '[conversation step — not simulated]');
-    push('assistant', `So — ${E.drillPrompt(lesson.conversations, cIdx)}`);
+    if (reply) push('assistant', reply);
+    const hint = item?.hint ? ` Hint: ${item.hint}.` : '';
+    push('assistant', `${E.MISS_MARKER}.${hint} ${E.drillPrompt(lesson.conversations, cIdx)}`);
     return out;
 }
 

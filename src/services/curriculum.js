@@ -686,7 +686,7 @@ export const CURRICULUM = {
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskara, naanu chennagiddini", meaning: "Hello, I am fine", hint: "Basic greeting", acceptable: ["namaskara, chennagiddini", "namaskara chennagiddini"] },
-                { prompt: "Ask Miko how she is doing.", correct: "Miko, neevu hegiddeera?", acceptable: ["miko, neevu hege iddeera?", "miko, neevu hegiddira?", "miko, hegiddeera?"], meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Ask Miko how she is doing.", correct: "Miko, neevu hegiddeera?", acceptable: ["miko, neevu hege iddeera?", "miko, neevu hegiddira?", "miko, hegiddeera?", "neevu hegiddeera?", "hegiddeera?", "hege iddeera?", "neevu hege iddeera?", "miko, hegiddiri?"], meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
                 { prompt: "Someone asks 'Neevu hegiddeera?'. Answer 'Naanu chennagiddini'.", correct: "Naanu chennagiddini", meaning: "I am fine", hint: "Direct answer", acceptable: ["chennagiddini"] },
                 { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskara, naanu chennagiddini, neevu hegiddeera?", acceptable: ["namaskara, naanu chennagiddini, neevu hege iddeera?", "namaskara naanu chennagiddini neevu hegiddeera?", "namaskara, chennagiddini, neevu hegiddeera?", "namaskara, naanu chennagiddini, neevu hegiddira?"], meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
             ]

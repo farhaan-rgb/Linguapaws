@@ -1624,6 +1624,22 @@ export default function Chat() {
                 return;
             }
 
+            /* The conversation stage used to reject silently, so consecutiveMisses
+               never counted the miss and the cap below could not fire. Emit the
+               marker and the curriculum's hint, like every other stage. */
+            if (isCurrentlyInConvo && !hasCorrectMatch && !isContinueRequest
+                && !isHelpRequest && !looksLikeQuestion(text)) {
+                const ci = currentInScenario - 11;
+                const ci_item = scenarioDataForMatch.conversations?.[ci];
+                if (ci_item && consecutiveMisses(messages) < REVIEW_RETRY_LIMIT) {
+                    const h = ci_item.hint ? ` Hint: ${ci_item.hint}.` : '';
+                    setMessages(prev => [...prev, { role: 'assistant',
+                        content: `${engine.MISS_MARKER}.${h} ${drillPrompt(scenarioDataForMatch.conversations, ci)}` }]);
+                    setIsLoading(false);
+                    return;
+                }
+            }
+
             /* -- CONVERSATION RETRY CAP: steps 12-15.
                Every other stage advances after two misses; this one did not, so
                the checker could wait indefinitely for a target utterance while
