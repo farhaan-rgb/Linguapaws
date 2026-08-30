@@ -1937,8 +1937,11 @@ export default function Chat() {
             const spokenNote = (postAnswerGrammarNote && hasCorrectMatch)
                 ? engine.spokenFormOfNote(postAnswerGrammarNote)
                 : '';
+            // Same order the screen uses: note, then the stage change, then what
+            // comes next. The banner used to be read out first, so the audio
+            // announced the lesson was over before explaining the last answer.
             const speechText = buildSpeechText(
-                [transitionBanner, spokenNote, responseWithoutMeta].filter(Boolean).join(' '));
+                [spokenNote, transitionBanner, responseWithoutMeta].filter(Boolean).join(' '));
 
             if (!storedResponse || !speechText) {
                 throw new Error("Empty AI response generated; falling back to error message.");
