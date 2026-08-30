@@ -478,8 +478,7 @@ reading Telugu script; the difference between what we have and what we should
 have is a credential and a voice name, not a budget line.
 
 Blending the recommendation across the course as it stands — Telugu and Odiya
-carry sixty of the eighty-four lessons — gives roughly **$0.033 per
-learner-lesson**.
+carry sixty of the eighty-one lessons — gives **$0.036 per learner-lesson**.
 
 ### Monthly
 
@@ -487,8 +486,8 @@ At one lesson per active learner per day:
 
 | Daily active learners | Lessons/month | Recommended stack | Azure-everywhere | Today |
 |---|---|---|---|---|
-| 1,000 | 30,000 | **≈ $990** (₹94,000) | ≈ $690 (₹66,000) | ≈ $1,260 |
-| 10,000 | 300,000 | **≈ $9,900** (₹944,000) | ≈ $6,900 (₹658,000) | ≈ $12,600 |
+| 1,000 | 30,000 | **≈ $1,050** (₹100,000) | ≈ $685 (₹65,000) | ≈ $1,265 |
+| 10,000 | 300,000 | **≈ $10,700** (₹1,020,000) | ≈ $6,850 (₹653,000) | ≈ $12,650 |
 
 Google's first million TTS characters each month are free, which covers about 830
 lessons — visible at 1,000 DAL as a few percent, invisible at 10,000. Azure's
