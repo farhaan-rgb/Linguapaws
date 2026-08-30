@@ -56,10 +56,21 @@ export default function ShadowCard({ phrase, character }) {
             try {
                 const buffer = await blob.arrayBuffer();
                 const base64 = bufferToBase64(buffer);
+                /* `language:` was the field name here for as long as this
+                   surface has existed and `/api/ai/transcribe` has never read
+                   it — it takes `targetLang` / `expectingTargetLang`. So every
+                   shadowing attempt in every language was transcribed as
+                   English, and the pronunciation score was computed against
+                   whatever English words the recogniser could find in Telugu
+                   audio. Same shape of defect as asking Deepgram nova-2 for
+                   Telugu: a language parameter that goes nowhere and no error
+                   anywhere to say so. */
                 const { text: transcript } = await api.post('/api/ai/transcribe', {
                     audioBase64: base64,
                     mimeType: blob.type || 'audio/webm',
-                    language: targetLang?.id || null,
+                    targetLang,
+                    expectingTargetLang: true,
+                    targetText: phrase,
                 });
                 if (!transcript?.trim()) { setPhase('idle'); return; }
                 const feedback = await api.post('/api/ai/pronunciation', {

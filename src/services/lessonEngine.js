@@ -11,6 +11,8 @@
  * passed in rather than closed over.
  */
 
+import { toLatin, hasBrahmicScript, latinVariants } from '../../shared/transliterate.js';
+
 /* ── Normalisation ─────────────────────────────────────────────────────── */
 
 export const splitGraphemes = (value) => {
@@ -34,13 +36,57 @@ export const normalizePhrase = (value) => {
 
 export const normalizeLatin = (value) => {
     if (!value) return '';
-    return value
+    /* The safety net under the whole hearing path. Every recogniser we can
+       reach returns Indic languages in their own script (measured 2026-08-30 —
+       see shared/transliterate.js), and the `[^a-z0-9]` strip below deletes an
+       entire Kannada answer down to the empty string. So a correct spoken
+       `ನಮಸ್ಕಾರ` scored 0 against `Namaskara` and the learner was told to say it
+       again.
+       This is a no-op on Latin input — the guard is a code-point scan and the
+       curriculum is romanised throughout — so nothing that worked before
+       changes. The transcript is normally romanised at the boundary in
+       `backend/routes/ai.js`, where the target is known and the best of the
+       candidate spellings can be chosen; this catches every other route in. */
+    const src = hasBrahmicScript(value) ? toLatin(value) : value;
+    return src
         .toLowerCase()
         .normalize('NFD')
         .replace(/\p{Diacritic}/gu, '')
         .replace(/[^a-z0-9[\]()]+/g, ' ')   // brackets kept for [Place] wildcards
         .replace(/\s+/g, ' ')
         .trim();
+};
+
+/**
+ * The romanisation of `text` that best fits what this screen actually asked
+ * for. Returns `text` unchanged when there is nothing to romanise.
+ *
+ * The ambiguity being resolved is real and belongs to the alphabet, not to the
+ * learner: `ठीक` is `thik` or `theek`, `ਤੁਸੀਂ` is `tusi` or `tusin`, `কেমন` is
+ * `keman` or `kemon`, and the ten courses use both sides. Rather than teach the
+ * matcher to blur i against e — which is the distinction Dravidian deixis is
+ * built on, and which this file has been burned by before — the candidates are
+ * enumerated in `shared/transliterate.js` and scored here against the target the
+ * lesson already knows.
+ *
+ * Deterministic: same transcript plus same target gives the same answer, always.
+ * When nothing scores, the primary romanisation is returned, so the learner sees
+ * Latin they can read and edit rather than a script the course never showed them.
+ */
+export const pickRomanisation = (text, expected, variants = [], lexicon = new Map()) => {
+    if (!hasBrahmicScript(text)) return String(text || '');
+    const candidates = latinVariants(text);
+    if (!expected) return candidates[0];
+    const targets = [expected, ...(variants || [])].filter(Boolean);
+    let best = null;
+    for (const cand of candidates) {
+        for (const target of targets) {
+            const r = scoreAnswer(cand, target, variants, lexicon);
+            const rank = (r.accepted ? 2 : 0) + r.ratio;
+            if (!best || rank > best.rank) best = { rank, cand };
+        }
+    }
+    return best ? best.cand : candidates[0];
 };
 
 export const levenshtein = (a, b) => {

@@ -91,9 +91,39 @@ export const VOICE = {
     typeInstead: 'or type it',
 };
 
+/** The four ways the microphone is simply not going to work on this device.
+ *  They are facts about the setup, not about one recording, so they stand until
+ *  something changes — and the answer really is "type it". Everything else is
+ *  one lost attempt and is worth another go. */
+export const MIC_BLOCKED_KINDS = ['unsupported', 'none', 'denied', 'offline'];
+
+/** The fifth one, which is not about this device at all: no speech-recognition
+ *  vendor the app is wired to covers this language. Odiya is the case — thirty
+ *  lessons, and neither Deepgram nor any OpenAI transcription model accepts the
+ *  language at any code spelling (probed 2026-08-30; see shared/asr.js). Kept
+ *  apart from the four above because those are worth re-testing when the learner
+ *  changes something and this one is not: nothing they can do will fix it. */
+export const NO_ASR_KIND = 'nolang';
+
+/** What a discarded recording was. Kept separate from the way out, because the
+ *  way out depends on whether the learner already has an answer standing. */
+const ATTEMPT_TROUBLE = {
+    empty:  'Nothing came through that time.',
+    failed: 'Could not make that out.',
+};
+
 /** Something went wrong with the microphone or the transcriber. `lang` is the
- *  language being learned, used only where naming it helps. */
-export function voiceTrouble(kind, lang = '') {
+ *  language being learned, used only where naming it helps.
+ *
+ *  `hasAnswer` is the one that earns its keep. A rejected transcript does not
+ *  empty the box, so telling somebody who is already holding a right answer to
+ *  "say it once more, or type it" talks them out of an answer that would have
+ *  passed — it reads as *the box is empty and this is your problem to solve*.
+ *  When there is text standing, the message says the recording was dropped and
+ *  points at the button that would settle the screen. `action` is that button's
+ *  own label, because "tap Check" on a screen whose button says Lock it in is
+ *  an instruction for a control that is not there. */
+export function voiceTrouble(kind, lang = '', { hasAnswer = false, action = 'Check' } = {}) {
     const language = lang || 'the language';
     switch (kind) {
         case 'unsupported':
@@ -104,13 +134,41 @@ export function voiceTrouble(kind, lang = '') {
             return "The mic is blocked. Allow it in the address bar, or type your answer.";
         case 'offline':
             return 'Speaking needs a connection, and there is none right now. Type it instead.';
+        case NO_ASR_KIND:
+            /* Never "try again". A learner told to speak more clearly at a
+               language nothing can transcribe will keep trying until they quit,
+               and conclude their accent is the problem. Name the limit, say it
+               is ours, point at the thing that works. */
+            return `Speech recognition does not support ${language} yet — that is us, not you. Type your answer and carry on.`;
+        case 'wronglang':
+            /* The recogniser answered in a different language from the one the
+               lesson is in. It has happened two distinct ways in this stack
+               already, so it gets its own sentence: the learner should try
+               again, but they should not be left thinking their pronunciation
+               was the problem. */
+            return `The recogniser answered in the wrong language there, not ${language}. Say it once more, or type it.`;
+        case 'script': {
+            /* This used to fire on every Indic transcript, which is to say on
+               every correct spoken answer a learner ever gave: the recognisers
+               all return their own script and the course is romanised. Those are
+               transliterated now (shared/transliterate.js) and never reach here.
+               What is left is a script the table cannot romanise — Urdu's
+               Arabic, which does not write the short vowels a romanisation would
+               have to guess. */
+            const what = `That one came back in ${language} script, which could not be spelled out.`;
+            return hasAnswer
+                ? `${what} Your answer below still stands — tap ${action}, or say it again.`
+                : `${what} Say it once more, or type it.`;
+        }
         case 'empty':
-            return "Nothing came through. Hold the phone closer and try again — or type it.";
-        case 'script':
-            return `That came back written in ${language} script, and this lesson checks the spelled-out form. Say it once more, or type it.`;
         case 'failed':
-        default:
-            return "Could not make that out. Try once more, or type it.";
+        default: {
+            const what = ATTEMPT_TROUBLE[kind] || ATTEMPT_TROUBLE.failed;
+            if (hasAnswer) return `${what} Your answer below still stands — tap ${action}, or say it again.`;
+            return kind === 'empty'
+                ? `${what} Hold the phone closer and try again — or type it.`
+                : `${what} Try once more, or type it.`;
+        }
     }
 }
 

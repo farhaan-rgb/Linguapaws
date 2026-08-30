@@ -8,6 +8,7 @@ import Home from '../pages/Home';
 import ModeToggle from '../components/ModeToggle';
 import { AuthProvider } from '../contexts/AuthContext';
 import { CURRICULUM } from '../services/curriculum';
+import { findLanguage } from '../../shared/languages.js';
 import { aiService } from '../services/ai';
 import { buildLessonSteps } from '../services/stepPlan';
 import { ensureReviewSet } from '../services/srs';
@@ -28,8 +29,16 @@ const params = new URLSearchParams(location.search);
 const lang = params.get('lang') || 'Telugu';
 const scenario = params.get('scenario') || '0';
 
+/* The real thing out of the real table, not a guess. This used to build the id
+   as `lang.slice(0,2)` and hardcode `code: 'te-IN'`, which meant Kannada was
+   previewed as id `ka` — not a language any of the app's lookups know — and
+   every language was spoken by a Telugu voice. `asrLadder` reads that id, so
+   the preview was reporting "speech recognition does not support Kannada" on a
+   screen where the real app is fine. A harness that lies about the state is
+   worse than no harness. */
+const targetLang = findLanguage(lang) || { id: 'te', name: lang, code: 'te-IN' };
 localStorage.setItem('linguapaws_target_lang', JSON.stringify({
-    name: lang, id: lang.slice(0, 2).toLowerCase(), code: 'te-IN',
+    name: lang, id: targetLang.id, code: targetLang.code,
 }));
 /* Home redirects to onboarding unless these are all set. */
 localStorage.setItem('linguapaws_native_lang', JSON.stringify({ name: 'English', code: 'en' }));
@@ -47,7 +56,14 @@ if (params.get('mode')) localStorage.setItem('linguapaws_learn_mode', params.get
      ?answer=speak|type   which answer mode the lesson opens in
      ?voice=listening     mid-recording
      ?voice=heard         a transcript landed in the box
+     ?voice=native        a transcript in the target's own script, which the app
+                          romanises on the way in — the ordinary Indic case
      ?voice=denied|none|offline|script|failed|empty   the ways it goes wrong
+
+   `script` returns Urdu's Arabic on purpose. Brahmic script is transliterated
+   now rather than refused, so an Indic string no longer reaches that state —
+   an abjad, which a romanisation would have to guess the vowels of, is what is
+   actually left of it.
 */
 const voiceState = params.get('voice');
 if (params.get('answer') || voiceState) {
@@ -87,9 +103,20 @@ if (voiceState) {
         stop() { this.state = 'inactive'; (this.on.stop || []).forEach(f => f()); }
     };
 
+    /* Its own script, per language — a Telugu string on a Kannada lesson would
+       be testing the wrong transliteration table. */
+    const NATIVE_SCRIPT = {
+        Telugu: 'నమస్కారం, నేను బాగున్నాను',
+        Kannada: 'ನಮಸ್ಕಾರ, ನಾನು ಚೆನ್ನಾಗಿದ್ದೇನೆ',
+        Hindi: 'नमस्ते, मैं ठीक हूँ',
+        Tamil: 'வணக்கம், நான் நலம்',
+    };
     aiService.transcribeAudio = async (blob, native, target, expecting, expected) => {
         if (voiceState === 'failed') return { error: 'Transcription failed: stub' };
-        if (voiceState === 'script') return { text: 'నమస్కారం, నేను బాగున్నాను' };
+        if (voiceState === 'script') return { text: 'نمستے، میں ٹھیک ہوں' };
+        if (voiceState === 'native') {
+            return { text: NATIVE_SCRIPT[lang] || NATIVE_SCRIPT.Telugu };
+        }
         return { text: params.get('heard') || expected || 'Namaskaram' };
     };
 }
@@ -135,6 +162,7 @@ const setValue = (input, value) => {
 
 /* The voice driver runs after whichever driver put us on this screen. */
 window.__driverBusy = false;
+window.__typeBusy = false;
 
 const jumpTo = parseInt(params.get('step') ?? '', 10);
 if (!Number.isNaN(jumpTo) && jumpTo > 0) {
@@ -271,6 +299,24 @@ if (!Number.isNaN(pressN)) {
     }, 640);
 }
 
+/* `?type=…` puts an answer in the box once the other drivers have finished, and
+   before the microphone driver below runs. That order is the whole point: it is
+   the state the Kannada report was in — an answer already standing when a
+   recording is rejected — and no amount of clicking reaches it, because the only
+   way to get text into that box is to type it or to be heard. */
+const typeText = params.get('type');
+if (typeText !== null) {
+    window.__typeBusy = true;
+    const tick = setInterval(() => {
+        if (window.__driverBusy) return;
+        const input = box();
+        if (!input || input.disabled) return;
+        setValue(input, typeText);
+        window.__typeBusy = false;
+        clearInterval(tick);
+    }, 90);
+}
+
 /* The microphone, once whichever driver put us on this screen has finished.
    One tap starts it; the states that need a transcript take a second tap to
    stop and hand the stub blob to the stubbed transcriber. */
@@ -280,7 +326,7 @@ if (voiceState) {
     const taps = ['listening', 'denied', 'none', 'offline'].includes(voiceState) ? 1 : 2;
     let done = 0;
     const tick = setInterval(() => {
-        if (window.__driverBusy) return;
+        if (window.__driverBusy || window.__typeBusy) return;
         if (done >= taps) return clearInterval(tick);
         const m = mic();
         if (!m || m.disabled) return;

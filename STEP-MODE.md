@@ -130,26 +130,63 @@ browser's recording light on behind the learner. The stream is released the
 moment a recording stops, and again when the lesson unmounts.
 
 Every way it goes wrong has a line and a way forward — no microphone, blocked
-permission, offline, nothing recorded, transcription failed, and a transcript
-that comes back in the target's own script (the course is romanised and
-`scoreAnswer` normalises Latin, so native script is unscoreable rather than
-wrong). All amber, all in `praise.voiceTrouble`. The four that mean the mic is
-not going to work on this device also **bring the spelling back** and put the
-cursor in the box.
+permission, offline, nothing recorded, transcription failed, a language nothing
+in the stack can transcribe, and a transcript in a script the romanisation table
+cannot spell out. All amber, all in `praise.voiceTrouble`. The ones that mean
+speaking is not going to work here put the cursor in the box and stop the
+placeholder offering a microphone that will not answer.
+
+### A rejected recording does not empty the box
+
+`voiceTrouble` takes `hasAnswer`, and the line is built at **render** rather than
+stored on the voice state, because whether there is an answer standing changes
+under the learner's fingers.
+
+This is a bug that was live: a Kannada learner had `Namaste` in the box — a
+listed `alt` for `Namaskara`, which `scoreAnswer` accepts — sitting underneath an
+amber note about a *different*, discarded transcript, telling them to say it
+again or type it. Pressing Check would have passed. A message written for an
+empty box was being shown to somebody holding a right answer, and it read as
+*this is your problem to solve*.
+
+So: a discarded recording leaves the box exactly as it was, and the note says so
+— it names the standing answer and points at the button that would settle the
+screen, by that button's own label (`Check` under the box, `Lock it in` inside
+the revealed panel). Emptying the box on a new recording was the other candidate
+and it is worse in every branch: a successful retry overwrites the text anyway,
+and a failed one — the entire reason this comes up — would have destroyed
+something the learner had, which in the reported case was an accepted answer.
+Tapping the mic is an offer to replace an answer, not an instruction to bin one.
+
+Because the line is computed at render it also tracks typing: "nothing came
+through, or type it" turns into "your answer below still stands — tap Check" the
+moment there is something to stand on.
 
 ## Hear it, then say it
 
 A teaching screen speaks its word on arrival, unasked — the listen-and-repeat
 loop, at the one moment the learner has nothing else to do. On the sound switch,
-like everything else.
+like everything else. **This is the whole of listen-first on a teach screen.**
 
-The spelling is hidden **only in speak mode**, behind one tap. Hiding it from
-someone who has to *type* the word back swaps the task the screen is grading for
-a much harder one — transliterating an unfamiliar language by ear — and the
-accepted-spelling machinery (`spellingNote`, the `alt` lists) assumes they saw
-it. Someone saying it back needs no spelling at all, so there it is a real
-listen-and-repeat. The meaning stays visible in both: you should know what you
-are producing.
+The word itself is never hidden. It used to be, in speak mode, behind a *Show the
+spelling* tap, and that was wrong for three reasons:
+
+- **A teach screen is first exposure.** Its job is to introduce a word, the
+  course is written in romanised Latin, and the sound-to-spelling mapping is a
+  large part of what is being taught. Masking the word and its phonetic at the
+  moment of introduction leaves "Hello" and an audio clip, which is not a lesson.
+- **Masking is a recall aid, and this is not a recall moment.** "Say it without
+  looking" already has a home: the review screens at steps 6–8 prompt with the
+  meaning and never show the word at all. The mask was running that drill three
+  screens early, at the one moment it cost teaching.
+- **It contradicted itself.** The unmasking condition covered only the device
+  troubles, so on a `script`, `empty` or `failed` transcript the word stayed
+  blurred while the note underneath said "or type it". Whatever else changes,
+  this rule holds: **never offer typing as the fallback while the word to be
+  typed is hidden.**
+
+The meaning stays visible, as it always did: you should know what you are
+producing.
 
 ## One key
 
@@ -188,9 +225,15 @@ cannot be reached by clicking alone.
 - `?lock=N` — wrong twice, then types the revealed answer back
 - `?bounce=N` — misses screen N, clears it, then clears N+1: the recovery line
 - `?answer=speak|type` — which answer mode the lesson opens in
-- `?voice=listening|heard|denied|none|offline|script|failed|empty` — the voice
-  states, with `getUserMedia`, `MediaRecorder` and `transcribeAudio` stubbed so
-  the real page code runs against them
+- `?voice=listening|heard|native|denied|none|offline|script|failed|empty` — the
+  voice states, with `getUserMedia`, `MediaRecorder` and `transcribeAudio`
+  stubbed so the real page code runs against them. `native` returns the target's
+  own script and is the ordinary Indic case; `script` returns Urdu's Arabic,
+  which is what is left of the unromanisable one.
+- `?type=…` — puts an answer in the box after the other drivers finish and
+  **before** the microphone driver, so `?voice=script&type=Namaste` reproduces
+  the report: a right answer standing when a recording is rejected. There is no
+  other way in — the only ways text reaches that box are typing and being heard.
 - `?enter=N` — plays N screens with **no clicks at all**: type, Enter, Enter
 - `?press=N` — taps Enter N times once the other drivers finish, e.g.
   `?lock=9&press=1` locks the revealed answer in and moves on without Continue

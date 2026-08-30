@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     X, Volume2, VolumeX, Lightbulb, MessageCircle, ArrowRight, Check, Flame,
-    Mic, Square, Keyboard, Eye,
+    Mic, Square, Keyboard,
 } from 'lucide-react';
 
 import { CURRICULUM, isLanguageAvailable } from '../services/curriculum';
@@ -18,6 +18,8 @@ import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { aiService } from '../services/ai';
 import { speakInBrowser, waitForVoices } from '../services/speech';
 import { getLangCode } from '../../shared/languages.js';
+import { hasBrahmicScript, isNonLatinScript } from '../../shared/transliterate.js';
+import { isUnhearable } from '../../shared/asr.js';
 import RichText from '../components/RichText';
 import Burst from '../components/Burst';
 
@@ -33,13 +35,27 @@ const MIC_SUPPORTED = typeof navigator !== 'undefined'
     && typeof MediaRecorder !== 'undefined';
 
 /** The course is written in romanised Latin — `Namaskaram`, not `నమస్కారం` —
- *  and `scoreAnswer` normalises Latin. A transcript that comes back in the
- *  target script is not wrong, it is unscoreable, and marking a learner down
- *  for the transcriber's choice of alphabet would be the one unfair miss on
- *  this surface. Caught before it reaches the box. */
-const hasLatin = (text) => /[a-z]/i.test(String(text || ''));
+ *  and `scoreAnswer` normalises Latin. This screen used to *reject* a transcript
+ *  that came back in the target's own script, on the reasoning that it was
+ *  unscoreable rather than wrong.
+ *
+ *  It was the wrong call, and it cost a real learner a real answer. Every
+ *  recogniser we can reach returns Indic languages in their own script — that is
+ *  the normal case, not the exception — so a Kannada learner who said
+ *  *Namaskara* correctly was told "say it once more" for the alphabet the
+ *  transcriber chose. It is romanised now, by a table, in `shared/transliterate.js`.
+ *
+ *  What is left of the old check is the honest remainder: a script the table
+ *  cannot romanise, which today means Urdu's Arabic, an abjad that does not
+ *  write the vowels a romanisation would need. */
+const isUnromanisable = (text) => isNonLatinScript(text) && !hasBrahmicScript(text);
 
-const IDLE_VOICE = { status: 'idle', kind: null, trouble: null };
+/** The trouble *kind*, never the sentence. The sentence depends on whether the
+ *  learner already has an answer standing in the box, which only the screen
+ *  knows and which changes as they type — so it is built at render, where both
+ *  facts are in hand. Storing it here is what let a message about an empty box
+ *  survive into a state where the box was not empty. */
+const IDLE_VOICE = { status: 'idle', kind: null };
 
 /* ── Pieces ─────────────────────────────────────────────────────────────── */
 
@@ -268,13 +284,11 @@ function MilestoneBanner({ milestone }) {
 /** `won` turns the card the learner is looking at into the celebration, rather
  *  than printing the same word a second time underneath it.
  *
- *  `masked` is the listen-first path, and it is only ever set in speak mode.
- *  Hiding the spelling from someone who has to *type* the word back would swap
- *  the task the screen is testing for a much harder one — transliterating an
- *  unfamiliar script by ear — and the accepted-spelling machinery assumes they
- *  saw it. Someone saying it back needs no spelling at all, so there it is a
- *  real listen-and-repeat and the letters are one tap away. */
-function WordCard({ wordObj, onSpeak, compact = false, won = false, masked = false, onUnmask }) {
+ *  This card used to blur its own word in speak mode. It does not any more: a
+ *  teach screen is first exposure, and the whole of what it has to give is the
+ *  word, its romanised spelling and its sound together. See the note on the
+ *  arrival speech below. */
+function WordCard({ wordObj, onSpeak, compact = false, won = false }) {
     return (
         <div style={{
             position: 'relative',
@@ -298,17 +312,14 @@ function WordCard({ wordObj, onSpeak, compact = false, won = false, masked = fal
                     <Check size={15} strokeWidth={3.4} />
                 </span>
             )}
-            <p aria-hidden={masked ? 'true' : undefined}
-                style={{
-                    fontFamily: 'var(--font-display)', fontSize: compact ? 20 : 30, fontWeight: 800,
-                    margin: 0, lineHeight: 1.15, wordBreak: 'break-word',
-                    transition: 'font-size 0.25s, filter 0.35s',
-                    filter: masked ? 'blur(11px)' : 'none',
-                    userSelect: masked ? 'none' : 'auto',
-                }}>
+            <p style={{
+                fontFamily: 'var(--font-display)', fontSize: compact ? 20 : 30, fontWeight: 800,
+                margin: 0, lineHeight: 1.15, wordBreak: 'break-word',
+                transition: 'font-size 0.25s',
+            }}>
                 {wordObj.word}
             </p>
-            {wordObj.phonetic && !compact && !masked && (
+            {wordObj.phonetic && !compact && (
                 <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: '6px 0 0', letterSpacing: 0.4 }}>
                     {wordObj.phonetic}
                 </p>
@@ -323,21 +334,8 @@ function WordCard({ wordObj, onSpeak, compact = false, won = false, masked = fal
                 }}>
                     {wordObj.meaning}
                 </span>
-                {/* With the spelling hidden the audio is not an extra, it is
-                    the whole prompt — so it is sized like one. */}
-                <SpeakButton text={wordObj.word} onSpeak={onSpeak}
-                    size={compact ? 30 : (masked ? 48 : 38)} />
+                <SpeakButton text={wordObj.word} onSpeak={onSpeak} size={compact ? 30 : 38} />
             </div>
-            {masked && (
-                <button onClick={onUnmask}
-                    style={{
-                        margin: '12px auto 0', display: 'flex', alignItems: 'center', gap: 6,
-                        background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                        fontSize: 12.5, fontWeight: 700, color: 'var(--accent-purple)',
-                    }}>
-                    <Eye size={13} /> Show the spelling
-                </button>
-            )}
         </div>
     );
 }
@@ -470,9 +468,15 @@ function SuccessPanel({ step, reward, onSpeak, phonetic, hero = true }) {
  *  once. A lesson that ends a screen on failure teaches the failure. */
 function RevealPanel({
     step, line, onSpeak, locked, lockText, setLockText, onLockIn, lockMiss,
-    lockRef, answerMode, voice, onListen,
+    lockRef, answerMode, voice, onListen, langName,
 }) {
     const meaning = step.kind === 'drill' ? step.drill?.meaning : null;
+    /* This panel's button says Lock it in, not Check, so it names its own. */
+    const troubleNote = voice.kind
+        ? praise.voiceTrouble(voice.kind, langName, {
+            hasAnswer: !!lockText.trim(), action: 'Lock it in',
+        })
+        : '';
     return (
         <div style={{
             borderRadius: 'var(--radius-lg)', padding: '18px', textAlign: 'center',
@@ -554,9 +558,9 @@ function RevealPanel({
                                 Lock it in
                             </button>
                         </div>
-                        {voice.trouble && (
+                        {troubleNote && (
                             <p style={{ margin: '8px 0 0', fontSize: 12.5, lineHeight: 1.5, color: '#b45309' }}>
-                                {voice.trouble}
+                                {troubleNote}
                             </p>
                         )}
                         {lockMiss && (
@@ -578,7 +582,7 @@ function RevealPanel({
 
 function StepScreen({
     step, lexicon, onSpeak, onSettled, onMiss, onLockIn, onAdvance, isLast,
-    answerMode, onAnswerMode, voice, onListen,
+    answerMode, onAnswerMode, voice, onListen, langName,
 }) {
     const inputRef = useRef(null);
     const lockRef = useRef(null);
@@ -597,25 +601,29 @@ function StepScreen({
     const [lockText, setLockText] = useState('');
     const [locked, setLocked] = useState(false);
     const [lockMiss, setLockMiss] = useState(false);
-    /** Speak mode only: the spelling starts hidden and one tap brings it back. */
-    const [unmasked, setUnmasked] = useState(false);
     /** A transcript has landed in the box and the learner should look at it. */
     const [heard, setHeard] = useState(false);
 
     const speakMode = answerMode === 'speak';
     const drill = step.kind === 'drill' ? step.drill : null;
     const settled = phase === 'correct' || phase === 'revealed';
-    /* The four ways the microphone is simply not going to work on this device.
-       Anything else — a mumble, a failed transcription — is worth another go. */
-    const micBlocked = ['unsupported', 'none', 'denied', 'offline'].includes(voice.kind);
+    /* The ways speaking is simply not going to work here. The first four are
+       about this device; `nolang` is about the language itself — no vendor we
+       are wired to can transcribe Odiya at all, and offering a learner a
+       microphone that cannot possibly work is worse than not offering one.
+       All of them put the cursor in the box and stop the placeholder pretending
+       the microphone is still an option. */
+    const micBlocked = [...praise.MIC_BLOCKED_KINDS, praise.NO_ASR_KIND].includes(voice.kind);
 
-    /* Only the speak path. Someone typing the word back would have to
-       transliterate it by ear, which is a harder task than the one the screen
-       is grading — and every accepted `alt` spelling assumes they saw it.
-       So the moment the mic turns out not to work, the spelling comes back:
-       a hidden word plus a dead microphone is the one combination on this
-       surface that could strand somebody. */
-    const masked = speakMode && step.kind === 'teach' && !unmasked && !settled && !micBlocked;
+    /* The sentence under the box, built here rather than stored, because it
+       depends on whether there is already an answer standing — and that changes
+       under the learner's fingers. A rejected recording leaves the box exactly
+       as it was, so a message written for an empty box ("say it once more, or
+       type it") was being shown to people holding an answer that would have
+       passed. It now names the standing answer and points at Check. */
+    const troubleNote = voice.kind
+        ? praise.voiceTrouble(voice.kind, langName, { hasAnswer: !!answer.trim() })
+        : '';
 
     /* Popping the keyboard at somebody who chose to answer out loud is the
        small rudeness that makes a mode feel unfinished. */
@@ -626,10 +634,21 @@ function StepScreen({
         if (phase === 'revealed' && !speakMode) lockRef.current?.focus();
     }, [phase, speakMode]);
 
-    /* Hear it before you read it. A teaching screen says the word on arrival,
-       unasked — the listen-and-repeat loop the rest of the app runs on, at the
-       one moment the learner has nothing else to do. Tied to the same sound
-       switch as everything else, so a muted lesson stays muted. */
+    /* A teaching screen says the word on arrival, unasked — the listen-and-repeat
+       loop the rest of the app runs on, at the one moment the learner has nothing
+       else to do. Tied to the same sound switch as everything else, so a muted
+       lesson stays muted.
+
+       This is the whole of the listen-first idea on a teach screen, and it used
+       to be paired with blurring the word until the learner asked for it. The
+       blur is gone. A teach screen is *first exposure*: its job is to introduce
+       a word, the course is written in romanised Latin, and the sound-to-spelling
+       mapping is a large part of what is being taught — hide the spelling and
+       the phonetic at the moment of introduction and what is left is "Hello" and
+       an audio clip. Saying it without looking is a recall task and it already
+       has a home three screens later: the review steps prompt with the meaning
+       and never show the word at all. Speaking the word unasked keeps the ear
+       first; taking the letters away only cost the teaching. */
     useEffect(() => {
         if (step.kind !== 'teach' || !fx.isFxOn()) return undefined;
         const t = setTimeout(() => onSpeak(step.expected), 520);
@@ -718,7 +737,18 @@ function StepScreen({
     const listen = useCallback(() => {
         onListen({
             expected: step.expected,
+            variants: step.variants,
             prompt: step.prompt || `Say ${step.expected}`,
+            /* A recording in flight is not a transcript, so the "that is what I
+               heard" note goes; the answer itself stays. Emptying the box here
+               was tried and is wrong in every branch that matters: the retry
+               succeeds and overwrites it anyway, and the retry fails — which is
+               the whole reason we are talking about this — having destroyed
+               something the learner had. In the Kannada report the text it would
+               have destroyed was `Namaste`, an accepted answer. Tapping the mic
+               is an offer to replace an answer, not an instruction to bin one.
+               What was actually wrong there was the message above it. */
+            onStart: () => setHeard(false),
             onText: (text) => {
                 setAnswer(text);
                 setHeard(true);
@@ -730,7 +760,9 @@ function StepScreen({
     const listenLock = useCallback(() => {
         onListen({
             expected: step.expected,
+            variants: step.variants,
             prompt: step.prompt || `Say ${step.expected}`,
+            onStart: () => setLockMiss(false),
             onText: (text) => { setLockText(text); setLockMiss(false); },
         });
     }, [onListen, step]);
@@ -792,13 +824,10 @@ function StepScreen({
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {step.slice.map(w => (
                                 <WordCard key={w.word} wordObj={w} onSpeak={onSpeak}
-                                    won={phase === 'correct'}
-                                    masked={masked} onUnmask={() => setUnmasked(true)} />
+                                    won={phase === 'correct'} />
                             ))}
                         </div>
-                        {/* The teaching note spells the word out mid-sentence,
-                            which would undo the mask on the card above it. */}
-                        {step.slice.some(w => w.teach) && !settled && !masked && (
+                        {step.slice.some(w => w.teach) && !settled && (
                             <div className="card" style={{ padding: 14, marginTop: 12 }}>
                                 {step.slice.filter(w => w.teach).map(w => (
                                     <p key={w.word} style={{ margin: '0 0 6px', fontSize: 14, lineHeight: 1.6 }}>
@@ -809,9 +838,7 @@ function StepScreen({
                         )}
                         {!settled && (
                             <p style={{ margin: '16px 0 0', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
-                                Your turn — say {masked
-                                    ? 'it back'
-                                    : step.slice.map(w => w.word).join(', then ')}
+                                Your turn — say {step.slice.map(w => w.word).join(', then ')}
                             </p>
                         )}
                     </>
@@ -866,7 +893,7 @@ function StepScreen({
                                 locked={locked} lockText={lockText} setLockText={setLockText}
                                 onLockIn={lockIn} lockMiss={lockMiss}
                                 lockRef={lockRef} answerMode={answerMode}
-                                voice={voice} onListen={listenLock}
+                                voice={voice} onListen={listenLock} langName={langName}
                             />
                         </div>
                     )}
@@ -910,7 +937,7 @@ function StepScreen({
                                         transition: 'border-color 0.2s',
                                     }}
                                 />
-                                {speakMode && heard && !voice.trouble && (
+                                {speakMode && heard && !troubleNote && (
                                     <p style={{
                                         margin: '8px 2px 0', fontSize: 12.5, lineHeight: 1.5,
                                         color: 'var(--text-secondary)',
@@ -918,7 +945,7 @@ function StepScreen({
                                         {praise.VOICE.heard}
                                     </p>
                                 )}
-                                {voice.trouble && <TroubleNote>{voice.trouble}</TroubleNote>}
+                                {troubleNote && <TroubleNote>{troubleNote}</TroubleNote>}
                             </div>
                         </>
                     )}
@@ -1101,10 +1128,10 @@ export default function Steps() {
     /* The language object stored by the picker carries `id`, `name` and
        `native`. This used to read `speechCode || code`, two fields it has never
        had, so `lang` was never set and every word on this surface was read by
-       whatever voice the machine booted with — which on a speak-mode screen,
-       where the spelling is hidden and the audio *is* the prompt, is the entire
-       lesson. The code now comes from `shared/languages.js`, the same table the
-       server resolves against.
+       whatever voice the machine booted with — which on a teach screen, where the
+       word is spoken on arrival and the audio is half of what is being taught, is
+       half the lesson. The code now comes from `shared/languages.js`, the same
+       table the server resolves against.
 
        Worth knowing before judging what comes out: the curriculum is romanised
        Latin — `Namaskaram`, not `నమస్కారం` — so a device Telugu voice is being
@@ -1121,6 +1148,22 @@ export default function Steps() {
         } catch { /* no speech synthesis — the phonetic line still carries it */ }
     }, [langCode, targetLang]);
 
+    /* Say it before they try, not after. A learner whose language nothing can
+       transcribe should not have to press a microphone, wait for a round trip
+       and read a failure to find that out. `micBlocked` covers `nolang`, so the
+       cursor goes to the box and the placeholder stops offering a microphone
+       that is never going to answer.
+
+       Derived rather than set in an effect: it is a fact about the language the
+       lesson opened with, so it is true on the first render instead of one paint
+       later, and there is no second copy of it to fall out of step. A real
+       failure still wins — `voice.kind` is empty until something goes wrong. */
+    const noEars = useMemo(() => !!targetLang && isUnhearable(targetLang), [targetLang]);
+    const shownVoice = useMemo(
+        () => (noEars && !voice.kind ? { ...voice, kind: praise.NO_ASR_KIND } : voice),
+        [noEars, voice],
+    );
+
     /* Chrome hands back an empty voice list on first call and fills it in
        asynchronously. A teaching screen speaks on arrival, which is early
        enough to lose the race, so the list is warmed once when the lesson
@@ -1136,10 +1179,8 @@ export default function Steps() {
     /** Start listening, or stop and transcribe. Every failure below leaves the
      *  learner on the same screen with the text box still under the mic — that
      *  is the rule this surface has never broken and is not about to. */
-    const listen = useCallback(async ({ expected, prompt, onText }) => {
-        const trouble = (kind) => setVoice({
-            status: 'idle', kind, trouble: praise.voiceTrouble(kind, langName),
-        });
+    const listen = useCallback(async ({ expected, variants, prompt, onText, onStart }) => {
+        const trouble = (kind) => setVoice({ status: 'idle', kind });
 
         if (isRecording) {
             setVoice({ ...IDLE_VOICE, status: 'working' });
@@ -1148,21 +1189,39 @@ export default function Steps() {
             if (!blob || !blob.size) return trouble('empty');
             if (navigator.onLine === false) return trouble('offline');
             /* The step knows its own answer, which is more than chat can tell
-               the transcriber — it hints Whisper and lets the backend snap a
+               the transcriber — it hints the engine and lets the backend snap a
                phonetically close reading onto the spelling the course uses. */
             const result = await aiService.transcribeAudio(
                 blob, nativeLang, targetLang, true, expected, prompt,
             ) || {};
+            /* No vendor in the stack can hear this language. Not a mumble, not
+               a bad connection — nothing the learner does will fix it, so the
+               screen says so once and hands them the keyboard. */
+            if (result.reason === 'unsupported_language') return trouble(praise.NO_ASR_KIND);
+            if (result.reason === 'untranslatable_script') return trouble('script');
+            /* The engine changed languages on us mid-request. Not the learner's
+               fault and not something they can say more clearly to fix, so it
+               is its own line rather than "could not make that out". */
+            if (result.reason === 'wrong_language') return trouble('wronglang');
             const text = String(result.text || '').trim();
             if (!text) return trouble(result.error ? 'failed' : 'empty');
-            if (!hasLatin(text)) return trouble('script');
+            /* Belt and braces. The server romanises with the same table, but a
+               transcript that reaches here still in a script the course never
+               taught is unreadable to this learner and unscoreable by the
+               engine — so it is romanised here too, choosing the spelling that
+               fits what this screen actually asked for. */
+            if (isUnromanisable(text)) return trouble('script');
+            const shown = hasBrahmicScript(text)
+                ? engine.pickRomanisation(text, expected, variants, lexicon)
+                : text;
             setVoice(IDLE_VOICE);
-            onText(text);
+            onText(shown);
             return undefined;
         }
 
         if (!MIC_SUPPORTED) return trouble('unsupported');
         if (navigator.onLine === false) return trouble('offline');
+        if (onStart) onStart();
         setVoice({ ...IDLE_VOICE, status: 'opening' });
         const stream = await prepare();
         if (!stream) {
@@ -1179,7 +1238,7 @@ export default function Steps() {
         await startRecording();
         setVoice({ ...IDLE_VOICE, status: 'listening' });
         return undefined;
-    }, [isRecording, startRecording, stopRecording, prepare, langName, nativeLang, targetLang]);
+    }, [isRecording, startRecording, stopRecording, prepare, nativeLang, targetLang, lexicon]);
 
     /* Leaving mid-recording must not leave the mic open. */
     useEffect(() => () => { stopRecording(true); }, [stopRecording]);
@@ -1377,8 +1436,9 @@ export default function Steps() {
                     isLast={index === steps.length - 1}
                     answerMode={answerMode}
                     onAnswerMode={chooseAnswerMode}
-                    voice={voice}
+                    voice={shownVoice}
                     onListen={listen}
+                    langName={langName}
                 />
             </div>
         </div>

@@ -6,6 +6,8 @@ const requireAuth = require('../middleware/auth');
 /* One table for both halves of the app. `require()` of an ESM file is
    synchronous from Node 22.12 — see `engines` in backend/package.json. */
 const { findLanguage, getGoogleVoice } = require('../../shared/languages.js');
+const { asrLadder } = require('../../shared/asr.js');
+const { romanise, SCRIPT_BY_LANGUAGE } = require('../../shared/transliterate.js');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -392,6 +394,24 @@ function isUsableCorrection(corrected, rawText) {
 }
 
 // POST /api/ai/transcribe
+/*
+ * The hearing path, and the two things it now refuses to do.
+ *
+ * 1. It will not guess a language. `asrLadder` (shared/asr.js) holds which
+ *    engine covers which language, probed against the live APIs rather than
+ *    remembered, and a language nothing covers gets an explicit refusal —
+ *    `error: 'unsupported_language'` — instead of a confident transcript in
+ *    whichever language the recogniser felt like. Odiya is that case today, and
+ *    it is thirty lessons of the course.
+ *
+ * 2. It will not let a language model choose the alphabet. Every engine returns
+ *    Indic languages in their own script and the course is romanised, so
+ *    something has to transliterate. That used to be the gpt-4o-mini corrector
+ *    below, which — run five times on the same Kannada transcript with the same
+ *    prompt on 2026-08-30 — returned native script three times and "Namaste"
+ *    twice. Romanisation is now a table (shared/transliterate.js) and the
+ *    corrector never sees native script at all.
+ */
 router.post('/transcribe', async (req, res) => {
     try {
         const { audioBase64, mimeType = 'audio/webm', nativeLang = null, targetLang = null, expectingTargetLang = false, targetText = null, contextPrompt = null } = req.body;
@@ -412,105 +432,155 @@ router.post('/transcribe', async (req, res) => {
         const nativeLangName = nativeLang?.name || null;
         const targetLangName = targetLang?.name || null;
 
+        /* Which language are we actually listening for, and can anything hear
+           it? Both halves of that question are answered before a byte of audio
+           leaves this process. */
+        const listeningFor = (expectingTargetLang ? targetLangId : nativeLangId) || 'en';
+        const listeningName = (expectingTargetLang ? targetLangName : nativeLangName)
+            || findLanguage(listeningFor)?.name || listeningFor;
+        const ladder = asrLadder(listeningFor);
+
+        if (!ladder.length) {
+            /* The Deepgram-Hindi precedent, refused. Returning some other
+               language's transcript here would be graded, would fail, and would
+               tell the learner they had said it wrong. */
+            console.warn(
+                `[transcribe] NO ASR COVERAGE for "${listeningName}" (${listeningFor}). `
+                + 'No Deepgram model and no OpenAI transcription model accepts this '
+                + 'language; see shared/asr.js. Refusing rather than guessing.'
+            );
+            return res.json({
+                text: null,
+                error: 'unsupported_language',
+                language: listeningName,
+                languageId: listeningFor,
+            });
+        }
+
         let rawText = null;
         let usedEngine = 'none';
+        let usedModel = null;
+        const attempts = [];
 
-        // --- PHASE 1: Try Deepgram (Primary) ---
-        // nova-3 language coverage (verified against GET /v1/models). nova-2 did NOT
-        // support te/kn/ta/mr/bn/gu, and the old code silently decoded them as Hindi —
-        // so a Telugu or Kannada learner was transcribed in the wrong language.
-        // Odia ('or') is unsupported by every Deepgram model, so it skips to Whisper.
-        const deepgramSupported = new Set([
-            'en','es','fr','de','hi','pt','ja','nl','it','zh','sv','pl','ru','tr','ko',
-            'uk','ro','id','cs','da','no','ms','ca','fi','bg','sk','el','hu','vi','th','ar',
-            // added by nova-3:
-            'te','kn','ta','mr','bn','gu','pa','ur','ne','fa','he','af','et','hr','hy',
-            'ka','lt','lv','mk','sl','sr','tl','bs','be',
-        ]);
-        const requestedDeepgramLang = (expectingTargetLang ? targetLangId : nativeLangId) || 'en';
-        const deepgramLang = requestedDeepgramLang;
-        // Never substitute a different language: if Deepgram can't do this one, fall
-        // through to Whisper rather than returning confidently wrong text.
-        const deepgramUsable = deepgramSupported.has(deepgramLang);
-        if (!deepgramUsable) {
-            console.warn(`[deepgram] no model covers "${deepgramLang}" - skipping to Whisper`);
-        }
-        if (process.env.DEEPGRAM_API_KEY && deepgramUsable) {
+        for (const rung of ladder) {
+            if (rung.engine === 'deepgram' && !process.env.DEEPGRAM_API_KEY) continue;
+            const startedAt = Date.now();
             try {
-                const deepgramClient = getDeepgram();
-                const { result, error } = await deepgramClient.listen.prerecorded.transcribeFile(
-                    buffer,
-                    {
-                        model: 'nova-3',
-                        language: deepgramLang,
-                        smart_format: true,
-                        punctuate: true,
-                        // Search for the specific phrase if provided (high accuracy boost)
-                        ...(targetText ? { search: [targetText.toLowerCase()] } : {}),
-                        // If we're expecting target language, boost common phonetic patterns
-                        ...(expectingTargetLang ? { filler_words: false } : {})
-                    }
-                );
-
-                if (error) throw error;
-
-                rawText = result?.results?.channels[0]?.alternatives[0]?.transcript;
-                if (rawText) usedEngine = 'deepgram';
-            } catch (dgErr) {
-                console.warn('[deepgram] transcription failed, falling back to Whisper —', dgErr.name + ': ' + dgErr.message);
+                if (rung.engine === 'deepgram') {
+                    const { result, error } = await getDeepgram().listen.prerecorded.transcribeFile(
+                        buffer,
+                        {
+                            model: rung.model,
+                            language: rung.code,
+                            smart_format: true,
+                            punctuate: true,
+                            /* A phrase hint, where the screen knows its own
+                               answer. Only useful when the target is spelled the
+                               way the engine writes it, which for an Indic
+                               language it is not — kept because it costs nothing
+                               and helps on the English turns. */
+                            ...(targetText ? { search: [String(targetText).toLowerCase()] } : {}),
+                            ...(expectingTargetLang ? { filler_words: false } : {}),
+                        }
+                    );
+                    if (error) throw error;
+                    rawText = (result?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '').trim();
+                } else {
+                    const file = await OpenAI.toFile(buffer, `audio.${ext}`, { type: mimeType });
+                    const prompt = expectingTargetLang && targetLangName
+                        ? `The user is speaking ${targetLangName}.${targetText ? ` The expected phrase is: ${targetText}` : ''}`
+                        : (nativeLangName ? `The user is speaking ${nativeLangName} or English.` : undefined);
+                    const transcription = await getClient().audio.transcriptions.create({
+                        file,
+                        model: rung.model,
+                        language: rung.code,
+                        ...(prompt ? { prompt } : {}),
+                    });
+                    rawText = (transcription.text || '').trim();
+                }
+            } catch (err) {
+                attempts.push(`${rung.engine}/${rung.model} threw ${err.name}: ${err.message}`);
+                rawText = null;
+                continue;
             }
+
+            const ms = Date.now() - startedAt;
+            if (rawText) {
+                usedEngine = rung.engine;
+                usedModel = rung.model;
+                console.log(`[transcribe] ${rung.engine}/${rung.model} ${rung.code} ${ms}ms`);
+                break;
+            }
+            /* A successful call that heard nothing. Worth a line: it is
+               indistinguishable from silence at the microphone otherwise, and
+               Deepgram does return an empty string with confidence 0.000 on
+               audio that another engine transcribes cleanly. */
+            attempts.push(`${rung.engine}/${rung.model} returned empty after ${ms}ms`);
         }
 
-        // --- PHASE 2: Fallback to OpenAI Whisper ---
         if (!rawText) {
-            try {
-                const file = await OpenAI.toFile(buffer, `audio.${ext}`, { type: mimeType });
-
-                // Languages where forcing Whisper's language param reliably helps.
-                // Indian languages spoken as transliteration (te, kn, ml, etc.) do better with
-                // auto-detect + prompt, so they are intentionally excluded here.
-                const supportedByWhisper = new Set([
-                    'hi', 'mr', 'ta', 'ur', 'en',
-                    'fr', 'es', 'de', 'it', 'pt', 'ja', 'ko', 'zh',
-                    'ne', 'ar', 'ru', 'tr', 'pl', 'nl', 'sv', 'th', 'vi',
-                ]);
-
-                let whisperLang;
-                if (expectingTargetLang && supportedByWhisper.has(targetLangId)) {
-                    whisperLang = targetLangId;
-                } else if (!expectingTargetLang && supportedByWhisper.has(nativeLangId)) {
-                    whisperLang = nativeLangId;
-                }
-
-                let prompt;
-                if (expectingTargetLang && targetLangName) {
-                    prompt = `The user is speaking ${targetLangName}. Focus on target language accuracy. ${targetText ? `The expected phrase is: ${targetText}` : ''}`;
-                } else if (nativeLangName) {
-                    prompt = `The user is speaking ${nativeLangName} or English.`;
-                }
-
-                const transcription = await getClient().audio.transcriptions.create({
-                    file,
-                    model: 'whisper-1',
-                    ...(whisperLang ? { language: whisperLang } : {}),
-                    ...(prompt ? { prompt } : {}),
-                });
-
-                rawText = (transcription.text || '').trim();
-                if (rawText) usedEngine = 'whisper';
-            } catch (wErr) {
-                console.error('Whisper fallback also failed:', wErr.message);
-            }
+            if (attempts.length) console.warn('[transcribe] nothing heard —', attempts.join('; '));
+            return res.json({ text: null, engine: usedEngine, attempts });
         }
 
-        if (!rawText) return res.json({ text: null });
+        /* ── Alphabet ──
+           Deterministic, table-driven, and done before anything else touches the
+           text. `romanise` returns the script it found, the native form (kept so
+           the client can show what was actually heard) and every candidate
+           spelling; the client picks among them with the target in hand. */
+        const roman = romanise(rawText);
+        const nativeForm = roman.romanised ? roman.native : null;
 
-        // If we have both language contexts, use a quick GPT pass to verify/correct
-        // the transcription. This catches cases where Whisper mishears speech in one
-        // language as another (e.g. Telugu "miru ela unnaru" → English "Look how they are").
-        if (nativeLangName && targetLangName) {
-            const likelyLang = expectingTargetLang ? targetLangName : nativeLangName;
-            const otherLang = expectingTargetLang ? nativeLangName : targetLangName;
+        /* ── Did it answer in the wrong language? ──
+           The one failure this stack keeps producing. `nova-2` decoded Telugu
+           as Hindi; `gpt-4o-transcribe` accepts `language=te` and returns
+           Kannada anyway (both measured — VOICE-STACK.md §2). Romanising that
+           silently would hand the grader fluent-looking Latin from a language
+           the learner was not speaking, and the learner would be told they got
+           it wrong.
+           A script is a cheap, reliable check on this: we know what script the
+           target language is written in, and if a non-Latin transcript is in a
+           different one, the engine has changed languages on us. Hindi and
+           Marathi share Devanagari, which is fine — that is a real ambiguity in
+           the writing system, not an engine error. */
+        const expectedScript = SCRIPT_BY_LANGUAGE[listeningFor] || null;
+        if (roman.romanised && expectedScript && roman.script !== expectedScript) {
+            console.warn(
+                `[transcribe] WRONG SCRIPT: asked ${usedEngine}/${usedModel} for `
+                + `${listeningName} (expects ${expectedScript}) and it returned `
+                + `${roman.script}: ${JSON.stringify(roman.native)}. Not romanising — `
+                + 'a transcript in another language is a mishearing, not an answer.'
+            );
+            return res.json({
+                text: null, error: 'wrong_language', native: roman.native,
+                script: roman.script, language: listeningName, engine: usedEngine,
+            });
+        }
+
+        if (roman.romanised) {
+            console.log(`[transcribe] ${roman.script} script romanised: ${JSON.stringify(roman.native)} -> ${JSON.stringify(roman.text)}`);
+            rawText = roman.text;
+        } else if (!roman.translatable) {
+            /* Letters, but not Latin and not a script the table covers — Urdu's
+               Arabic script is the real case, and an abjad cannot be romanised
+               without inventing the vowels it does not write. Say so; do not
+               guess. */
+            console.warn(`[transcribe] transcript is in a script we cannot romanise: ${JSON.stringify(rawText)}`);
+            return res.json({
+                text: null, error: 'untranslatable_script', native: rawText,
+                language: listeningName, engine: usedEngine,
+            });
+        }
+
+        /* ── The corrector ──
+           Only ever sees Latin now. Its job used to include transliteration and
+           it was not deterministic at it; what is left is the thing it is
+           actually good for — catching an engine that heard a target-language
+           phrase as a native-language one, e.g. Telugu "miru ela unnaru" coming
+           back as English "Look how they are". Skipped entirely on a romanised
+           transcript, where the table has already produced the right answer and
+           a model can only spoil it. */
+        if (nativeLangName && targetLangName && !roman.romanised) {
             try {
                 const corrected = await generateWithFallback([
                     {
@@ -519,17 +589,17 @@ router.post('/transcribe', async (req, res) => {
 The user is learning ${targetLangName} and their native language is ${nativeLangName}.
 They will ONLY speak in one of these two languages: ${nativeLangName} or ${targetLangName}.
 ${expectingTargetLang
-                                ? `The user was asked to repeat a ${targetLangName} phrase, so they most likely spoke in ${targetLangName} (possibly romanized/transliterated).`
+                                ? `The user was asked to repeat a ${targetLangName} phrase, so they most likely spoke in ${targetLangName}, romanized into the Latin alphabet.`
                                 : `The user is replying conversationally, so they could be speaking in either ${nativeLangName} or ${targetLangName}.`}
 
-A speech-to-text engine produced the following transcript. Your job:
-1. If the transcript is romanized ${targetLangName} (e.g. transliterated into Latin script), that is VALID — return it as-is. Do NOT convert it to ${nativeLangName}.
-2. CRITICAL: If the transcript is in ${nativeLangName} but the user was expected to speak in ${targetLangName}, check if the transcript looks like a translation or a phonetic mishearing of an likely ${targetLangName} phrase. If so, return the likely ${targetLangName} phrase instead (in native script if possible, or transliterated if that's what was produced).
-3. If the user was specifically asked to say '${targetText}', and the transcript sounds phonetically similar to '${targetText}', return exactly '${targetText}'.
-4. The user is responding to this context from the tutor: "${contextPrompt}". Use this context to resolve ambiguities. For example, if the transcript sounds like a plausible answer to the tutor's prompt but is phonetically messy, favor the logical ${targetLangName} response.
-5. If the transcript is clearly valid ${nativeLangName} or ${targetLangName}, return it as-is.
-6. If the transcript appears to be in a DIFFERENT language (neither ${nativeLangName} nor ${targetLangName}), try to figure out what the user actually said in ${targetLangName} or ${nativeLangName} based on phonetic similarity.
-7. Keep your response EXTREMELY short — return ONLY the text, nothing else.`
+A speech-to-text engine produced the following transcript, already in the Latin alphabet. Your job:
+1. ALWAYS reply in the Latin alphabet. Never reply in ${targetLangName} script — the app cannot read it.
+2. If the transcript is romanized ${targetLangName}, that is VALID — return it as-is. Do NOT translate it into ${nativeLangName}.
+3. If the transcript is in ${nativeLangName} but the user was expected to speak ${targetLangName}, and it looks like a phonetic mishearing of a likely ${targetLangName} phrase, return that ${targetLangName} phrase, romanized.
+4. If the user was asked to say '${targetText}', and the transcript sounds phonetically similar to '${targetText}', return exactly '${targetText}'.
+5. The tutor's prompt was: "${contextPrompt}". Use it only to resolve genuine ambiguity.
+6. If the transcript is already clearly valid ${nativeLangName} or ${targetLangName}, return it unchanged.
+7. Return ONLY the text, nothing else.`
                     },
                     { role: 'user', content: rawText }
                 ], {
@@ -552,7 +622,22 @@ A speech-to-text engine produced the following transcript. Your job:
             }
         }
 
-        res.json({ text: rawText });
+        /* A corrector that answered in native script anyway — it has done it
+           before — is romanised rather than believed. */
+        const finalRoman = romanise(rawText);
+        if (finalRoman.romanised) rawText = finalRoman.text;
+
+        res.json({
+            text: rawText,
+            /* What the client needs to pick the best spelling and to show the
+               learner what was actually heard. */
+            variants: roman.romanised ? roman.variants : undefined,
+            native: nativeForm,
+            script: roman.script || undefined,
+            engine: usedEngine,
+            model: usedModel,
+            language: listeningName,
+        });
     } catch (error) {
         const errorDetail = error?.response?.data?.error?.message || error?.message || 'Unknown error';
         console.error('Transcription Detailed Error:', errorDetail);

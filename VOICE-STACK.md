@@ -278,6 +278,101 @@ Two more measured findings from the same session that the code should know:
   same Telugu clip. A language parameter that is accepted and disregarded is more
   dangerous than one that errors.
 
+### The alphabet — the defect that was actually losing answers
+
+Everything above is about *which words* come back. The bug a learner reported on
+2026-08-30 was about **which alphabet**, and it was costing correct answers on
+every Indic language in the product.
+
+The learner started Kannada from zero, hit the first speaking prompt
+(`Namaskara`, glossed "Hello"), and said it. The box filled with `Namaste`. They
+said it again, correctly, and the screen showed an amber note — *"That came back
+written in Kannada script, and this lesson checks the spelled-out form. Say it
+once more, or type it."* — above a box **still holding the stale `Namaste`**.
+
+Three separate defects, one screenshot.
+
+**a. No recogniser can be asked for Latin.** Measured against the live APIs on
+2026-08-30, on Google's own published `kn-IN-Chirp3-HD-Achernar` sample:
+
+| engine | `language` | returned |
+|---|---|---|
+| Deepgram `nova-3` | `kn` | `ಮೇಘ ಯಂತ್ರ ಕಲಿಕೆಯೊಂದಿಗೆ …` (conf 0.954) |
+| OpenAI `gpt-transcribe` | `kn` | `ಮೇಘ ಯಂತ್ರ ಕಲಿಕೆಯೊಂದಿಗೆ …` |
+| OpenAI `whisper-1` | `kn` | `ಮೇಗಾಯಂದ್ರ ಕಳಿಕೆಯೋಂದಿಗೆ …` |
+
+The only romanised Indic code any vendor offers is Deepgram's `hi-Latn`. There
+is no `kn-Latn`, `te-Latn` or `or-Latn`. So native script is the **normal** case
+for a correct spoken answer, and the course is romanised throughout —
+`normalizeLatin` strips everything outside `[a-z0-9]`, which reduces a whole
+Kannada answer to the empty string. `Steps.jsx` caught that and refused it. It
+was refusing the ordinary case.
+
+**b. The romanising was being done by an LLM, non-deterministically.** The
+`gpt-4o-mini` corrector in `backend/routes/ai.js` was, in practice, the
+transliterator. Run five times against the production prompt, transcript
+`ನಮಸ್ತೆ`, target `Namaskara` (2026-08-30):
+
+```
+"ನಮಸ್ಕಾರ"  "ನಮಸ್ಕಾರ"  "ನಮಸ್ಕಾರ"  "Namaste"  "Namaste"
+```
+
+Three times the script the app rejects, twice a romanisation. That single line
+reproduces both halves of the report: attempt one romanised (to the wrong word,
+because Deepgram had misheard `ನಮಸ್ಕಾರ` as `ನಮಸ್ತೆ`), attempt two came back as
+script and was thrown away. **The learner's second attempt was correct and was
+discarded.**
+
+**c. The box was never cleared.** `onText` was only called on success, and
+nothing reset `answer` when a new recording started — so a failed retry left the
+previous transcript on screen looking like the current one.
+
+### What shipped
+
+- `shared/transliterate.js` — a deterministic Indic→Latin table. The nine Brahmic
+  blocks are laid out in parallel in Unicode (one every 0x80, same letter at the
+  same offset), so one offset table romanises Devanagari, Bengali, Gurmukhi,
+  Gujarati, Odia, Tamil, Telugu, Kannada and Malayalam. It targets the *course's*
+  romanisation, not ISO 15919: `ṇamaskāra` is more correct and scores worse.
+- Where the ten courses disagree with each other — Hindi `Theek` against Marathi
+  `Mi` for the same long ī, Bengali writing both `Namaskar` and `Kemon` in one
+  lesson — the ambiguity is enumerated as candidate spellings and the *matcher*
+  picks, with the target in hand. The matcher itself was not loosened by one
+  character. `namaste` is still rejected for `Namaskara`.
+- `shared/asr.js` — the coverage table, probed rather than remembered, with
+  `node tools/stt-check.mjs --probe` to re-derive it.
+- The route walks that ladder, and a language with no rung gets
+  `error: 'unsupported_language'` **before any audio is sent**. Odiya is that
+  language: 30 lessons, no ears.
+- A wrong-script guard: we know what script each language is written in, so a
+  non-Latin transcript in the wrong one is a language substitution and is
+  refused rather than romanised into plausible-looking Latin.
+- `tools/stt-check.mjs` — 35 round-trip cases across nine scripts, four negative
+  controls, and a regression gate proving the romanisation is inert on all 1,240
+  Latin strings in the curriculum.
+
+Two round-trip cases are knowingly unreachable and are printed as such: Punjabi
+`ਸਤਿ` → `sati` where the course writes `Sat`, and Malayalam `സുഖം` → `sukham`
+where the course writes `Sugam`. Both are the course romanising a different sound
+from the one the script writes; no table bridges that. One lesson each.
+
+### Measured latency of the hearing path
+
+Same 1.6 s Kannada clip, 6 runs each, this machine, 2026-08-30:
+
+| engine | min | median | max |
+|---|---|---|---|
+| OpenAI `gpt-transcribe` | 645 ms | 812 ms | 1025 ms |
+| Deepgram `nova-3` | 870 ms | 1227 ms | 1688 ms |
+| OpenAI `whisper-1` | 1302 ms | 3718 ms | 6501 ms |
+
+Deepgram was the widest-varying of the three across the session (870 ms to
+7850 ms on identical input) and returned an **empty** transcript with confidence
+0.000, six times out of six, on one clip that ends mid-word — while
+`gpt-transcribe` transcribed the same bytes correctly every time. That is a
+mid-word-cut artifact rather than a proven short-utterance failure, and it is
+worth knowing because step mode's utterances are single words.
+
 ### Biasing: the lever that can help and the lever that cannot
 
 Deepgram's `keyterm` prompting works on `nova-3` monolingual and multilingual and
@@ -463,6 +558,28 @@ interpolated in, so about 9,600 input and 320 output tokens per lesson.
 
 I am costing 1,200 characters of TTS and 64 seconds of ASR per lesson.
 
+#### What the hearing half costs, and what the alphabet fix took off it
+
+64 seconds is 1.067 minutes, so per learner-lesson, ASR alone:
+
+| | per lesson | 30-lesson course |
+|---|---|---|
+| Deepgram `nova-3` batch @ $0.0043/min | $0.0046 | $0.138 |
+| OpenAI `gpt-transcribe` @ $0.0045/min | $0.0048 | $0.144 |
+| OpenAI `whisper-1` @ $0.006/min | $0.0064 | $0.192 |
+| the `gpt-4o-mini` corrector, 16 calls | $0.0016 | $0.049 |
+
+The corrector was **26% of the hearing bill** and it was mostly being spent on
+transliteration it did non-deterministically. It is now skipped entirely whenever
+the transcript arrives in a native script — which, for the eight Indic courses,
+is nearly every spoken turn. So the hearing half of a Telugu learner's whole
+30-lesson course costs about **$0.14**, down from **$0.19**, and the part that
+was removed is the part that was producing the bug.
+
+For scale: 5,000 learners each finishing all 30 Telugu lessons is about $690 of
+ASR, against $945 before. Neither number is what decides the subscription price;
+the TTS side above is roughly ten times larger.
+
 ### Per lesson
 
 | Stack | TTS | ASR | Corrector | **Total** |
@@ -573,18 +690,25 @@ only after 1–4, but it is where the next two seconds live.
 
 ## Bugs found along the way
 
-Not fixed — recorded. Ordered by how much damage they do.
+Recorded, and marked **FIXED** where a later pass closed them. Ordered by how
+much damage they do.
 
 1. **`resolveLanguageCode('Odiya')` returns `'en-IN'`.** `backend/routes/ai.js:38`;
    language name at `src/pages/LearnLanguageSelect.jsx:19`. Latent while Google
    is unconfigured; ships a wrong-language voice the moment it is configured.
 2. **The corrector is instructed to snap the transcript to the target.**
-   `backend/routes/ai.js:461`. Closes the loop between the grader's question and
-   its answer.
-3. **Odiya has no ASR anywhere in the stack.** Deepgram rejects `language=or` with
-   a hard 400; Whisper has no Odia and the API rejects `or`/`ory`/`ori`; so do
-   `gpt-transcribe` and both `gpt-4o-transcribe` variants. Every Odiya attempt is
-   Whisper on auto-detect against a model that has never seen the language.
+   `backend/routes/ai.js`. Closes the loop between the grader's question and
+   its answer. Still true, and now narrower: the corrector only ever sees Latin
+   text, because transliteration moved to a table. It was doing both jobs and
+   was not deterministic at either.
+3. **Odiya has no ASR anywhere in the stack.** — **half FIXED.** Still true of the
+   vendors: no Deepgram model of any generation lists `or`, and `gpt-transcribe`
+   rejects all six spellings tried (`or`, `ori`, `ory`, `or-IN`, `odia`,
+   `oriya`). What is fixed is the behaviour: it no longer falls through to
+   Whisper auto-detect and return confident text in a guessed language. The route
+   refuses with `unsupported_language` before sending audio, and both surfaces
+   say so in words that do not blame the learner. **Odiya still cannot be spoken
+   to.** Thirty lessons. This is the largest open hole in the product.
 4. **Chirp 3: HD is unreachable as the call is written.** No `voice.name`, and
    `ssmlGender: 'NEUTRAL'` is not offered for these locales. Credentials alone buy
    a Standard voice.
@@ -604,10 +728,24 @@ Not fixed — recorded. Ordered by how much damage they do.
    Harmless, and the most promising unused signal in the file.
 9. **Two divergent copies of the TTS text builder.** `Chat.jsx:291` versus
    `backend/routes/ai.js:229`.
-10. **`whisper-1` would 400 on `language=te`** if the hand-maintained
-    `supportedByWhisper` set ever gained it. The comment above that set explains
-    the exclusions as a quality judgement; for Telugu, Bengali, Malayalam,
-    Punjabi and Odia the API simply refuses the code.
+10. **`whisper-1` would 400 on `language=te`** — **FIXED.** The hand-maintained
+    `supportedByWhisper` set is gone; `shared/asr.js` carries the probed truth
+    and `tools/stt-check.mjs --probe` re-derives it.
+12. **Malayalam was falling through to Whisper auto-detect** — **FIXED.** It is on
+    no Deepgram nova model and `whisper-1` rejects `ml`, so every Malayalam
+    attempt was transcribed by a model told nothing about the language. Same
+    class as the Deepgram-Hindi substitution and equally invisible.
+    `gpt-transcribe` accepts `ml` and now carries it.
+13. **Both shadowing surfaces sent a language field the route has never read** —
+    **FIXED.** `src/pages/ShadowPractice.jsx` and `src/components/ShadowCard.jsx`
+    posted `{ language: targetLang.id }`; `/api/ai/transcribe` takes `targetLang`
+    and `expectingTargetLang`. So every shadowing attempt in every language was
+    transcribed as English, and the pronunciation score was computed against
+    whatever English the recogniser could find in Telugu audio.
+14. **A spoken answer in native script was deleted on the chat path** — **FIXED.**
+    `Chat.jsx` ran `stripTargetScript` over voice input, which removed the target
+    script rather than romanising it: a pure-script transcript lost its entire
+    content and a mixed one kept only the loanwords.
 11. **`filler_words: false` is passed to `nova-3`.** Deepgram documents filler-word
     identification as a reason to stay on `nova-2`. Probably a no-op; **unverified**.
 
@@ -629,3 +767,491 @@ no keys for any of them in this repo. Every vendor latency figure other than the
 three in the table in §1 is the vendor's own published claim. And nobody has yet
 done the thing the charter asks for and this document cannot substitute for:
 played a Telugu lesson, and an Odiya one, with sound on, and listened.
+
+---
+
+# 7. Can we avoid paying for TTS at all?
+
+**Telugu and Kannada only. Checked and measured 2026-08-30.** No code was
+changed in this round. Dollar figures use the same $1 = ₹95.39 as the rest of
+this document.
+
+The question from Farhaan was narrow: before creating a Google Cloud credential
+and turning on billing, is something free good enough for our two Dravidian
+flagships? The answer turned out not to be about vendors at all.
+
+## 7.0 The finding that should be read first
+
+**The entire target-language audio of the Telugu course is 4,488 characters, and
+of the Kannada course 1,223.** Counted from `CURRICULUM` — every distinct
+`vocabulary[].word`, `phrases[].correct` and `conversations[].correct` across
+all 30 Telugu and 10 Kannada lessons, deduplicated: 339 distinct Telugu strings
+and 113 distinct Kannada ones, 452 in total, **5,711 characters together**.
+
+Synthesising all of it, once, on the most expensive voice Google sells for these
+languages, costs **$0.17**. Google gives away the first million characters every
+month. The whole course is *half a percent* of one month's free allowance. You
+could re-render both courses in all thirty Chirp 3 voices, every month, for ever,
+and never reach the paid tier.
+
+The reason the TTS bill looks like a per-learner cost today is that the app
+re-synthesises the same 452 fixed strings at runtime, once per learner per
+encounter, for ever. It is not buying anything with that. And measured across
+**245 completed lesson runs in `.lesson-sim/`** with `buildSpeechText`'s rules
+applied to every assistant turn:
+
+| | Measured |
+|---|---|
+| Spoken utterances per lesson | 21.0 |
+| Spoken characters per lesson | 1,054 |
+| — of which is target-language (the bolded phrase) | **59 chars, 5.6%** |
+| — of which is English tutor prose | 995 chars, 94.4% |
+| Distinct spoken strings across 245 runs | 1,917 of 5,137 → **62.7% would hit a cache** |
+
+That 1,054 sits comfortably beside the 1,092 median this document recorded from
+190 runs in §5, so the two counts agree.
+
+**Ninety-four percent of what the app pays to synthesise is English**, and every
+Android and iOS device on earth already has a good English voice that costs
+nothing. The remaining 5.6% is drawn from a fixed set of 452 strings.
+
+So the honest answer to "can I avoid paying for TTS" is **yes, permanently, at
+any scale** — and the route is not a free vendor. It is:
+
+1. **Pre-render the 452 target-language clips** as static audio and ship them.
+   One-time, $0.17, on the best voice available. Zero marginal cost per learner.
+2. **Let the device speak the English** through `speechSynthesis`, which
+   `src/services/speech.js` already does well.
+
+Both of those also fix a quality bug, which is the point of §7.5.
+
+## 7.1 The Android browser path
+
+This is the one already shipped, and the one I can say least about with
+certainty. **Neither Farhaan nor I can run an Android device.** Everything below
+is documentation plus downloadable samples. This Mac has no Telugu or Kannada
+voice at all — `say -v '?'` lists 176 voices whose only Indic entries are `Lekha`
+(hi_IN) and `Rishi` (en_IN) — so the `te-IN`/`kn-IN` browser path cannot be
+exercised here even in principle.
+
+### Are Android's voices the same models as Google Cloud's?
+
+**No. They are separate catalogues from separate lineages, and the widespread
+belief that they are the same comes from a Wikipedia article that conflates two
+different Google products.** That article
+([Speech Recognition & Synthesis](https://en.wikipedia.org/wiki/Speech_Recognition_%26_Synthesis),
+checked 2026-08-30) describes the Android app and then says "Google Cloud
+Text-to-Speech is powered by WaveNet" — a true sentence about a different
+product, sitting in a paragraph about the phone. Do not rely on it, and I would
+not have caught it if I had answered from intuition.
+
+The evidence that they are distinct:
+
+- **Different inventory counts.** Google's own Android post says "All 421 voices
+  in 67 languages have been upgraded with a new voice model and synthesizer"
+  ([Android Developers Blog, Sept 2022](https://android-developers.googleblog.com/2022/09/listen-to-our-major-text-to-speech-upgrades-for-64-bit-devices.html),
+  checked 2026-08-30). Google Cloud advertises 380+ voices in 75+ languages.
+  Neither number is a subset of the other.
+- **Different naming schemes.** Cloud voices are `te-IN-Standard-A` and
+  `te-IN-Chirp3-HD-Achernar` (verified by grepping Google's full voice list,
+  below). Android voices are internal three-letter codes exposed as
+  `<locale>-x-<code>-local` / `-network`. The sample files attached to that
+  Android blog post are named `hic_new.wav`, `hic_old.wav`, `sfg_revised.wav`,
+  `iog_revised.wav` — `hic` is the Hindi Android voice, and `sfg`/`iog` are the
+  long-familiar en-US Android voice codes. Google's Android and Cloud
+  catalogues do not share a single voice name.
+- **Different delivery.** Android's local voices are downloadable packs that run
+  offline on the phone; Chirp 3: HD is a server-side model Google's own pricing
+  page describes as "Powered by our cutting-edge LLMs"
+  ([Cloud TTS pricing](https://cloud.google.com/text-to-speech/pricing), checked
+  2026-08-30). A phone is not running that offline. Android additionally offers
+  *network* voices per locale, which need connectivity and are better than the
+  local ones — so "the Android voice" is not even one thing.
+
+### What Android actually ships for te-IN and kn-IN
+
+**Unverified, and I could not close it.** I probed Google's sample host for
+Telugu and Kannada equivalents of the Hindi clip — fourteen guesses at
+`https://dl.google.com/android/tts/android_dev_blog/<code>.wav` — and every one
+returned 404. Hindi is the only Indic Android voice Google has published a
+sample of. Whether `te-IN` and `kn-IN` have on-device packs of the same
+generation as `hi-IN`, or only network voices, or a 2016-era parametric pack
+nobody has refreshed, **is not answerable from documentation** and is exactly
+what §7.6 asks Farhaan to find out.
+
+What I could measure is the Hindi one, as a proxy, on the same Deepgram scale as
+everything else (see §7.4): the pre-2022 Android Hindi voice and the post-2022
+one both transcribe perfectly, at 0.996 and 0.994. Which tells us the voices are
+intelligible and tells us nothing about which is nicer — see the warning in §7.4
+about what this measurement is worth.
+
+The Sept 2022 post does not name the synthesis architecture. It says only "a new
+voice model and synthesizer" and "clearer, more natural voices". Google's
+published research on its own mobile TTS runs from LSTM-RNN parametric
+synthesis ([Zen et al., 2016](https://research.google/pubs/pub45379)) to fully
+neural on-device Tacotron+WaveRNN systems. **Which of those is in the te-IN pack
+on a 2026 phone is not documented anywhere I could find.** I am not going to
+guess, and the charter is right that a guess here is the expensive kind.
+
+### The one thing that is certain
+
+`src/services/speech.js` already handles the Android form correctly — `pickVoice`
+normalises `te_IN` to `te-IN` before matching, which is the underscore form
+Android reports. And when no voice is installed it refuses to speak on the chat
+path rather than substituting the system default. So the shipped code is ready
+for whatever the phone turns out to have. The gap is knowledge, not code.
+
+## 7.2 The free options, verified
+
+Farhaan's sketch was mostly right about which candidates to consider and wrong
+about most of them being usable. Corrections in bold.
+
+| Option | Telugu | Kannada | Licence / terms | Free limit | Verdict |
+|---|---|---|---|---|---|
+| **Google Cloud Chirp 3: HD** | ✅ 30 voices | ✅ 30 voices | commercial | **1M chars/month, recurring** | **the answer** |
+| Google Standard | ✅ 4 voices | ✅ 4 voices | commercial | 4M chars/month, recurring | free fallback |
+| Google WaveNet | **— none** | ✅ 4 voices | commercial | 4M chars/month (shared SKU) | Kannada only |
+| **Azure Neural F0** | ✅ 2 voices | ✅ 2 voices | commercial | **0.5M chars/month, recurring** | real, second account |
+| Sarvam Bulbul v3 | ✅ `te-IN` | ✅ `kn-IN` | commercial | **₹100 one-time ≈ 33,000 chars** | ~31 lessons, then paid |
+| HF Inference API | — | — | — | **$0.10/month credits** | **dead — see below** |
+| Meta MMS-TTS | ✅ `tel` | ✅ `kan` | **CC-BY-NC-4.0** | self-host | **non-commercial — excluded** |
+| Indic-Parler-TTS | ✅ | ✅ | Apache-2.0, gated | self-host | usable, heavy |
+| AI4Bharat IndicF5 | ✅ | ✅ | **MIT** (not Apache), gated | self-host | usable, heavy |
+| Piper | ✅ 3 voices | **— none** | MIT engine / mixed data | self-host | **no Kannada** |
+| edge-tts | ✅ `te-IN-ShrutiNeural` | ✅ `kn-IN-SapnaNeural` | **client impersonation** | — | **eval only, never ship** |
+
+Sources and the corrections behind each row, all checked 2026-08-30:
+
+**Google's free tier is the headline and it is recurring.** The pricing page
+states it plainly: "You must enable billing to use Text-to-Speech, and will be
+automatically charged if your usage exceeds the number of free characters
+allowed **per month**". Chirp 3: HD is "0 to 1 million characters" free then $30/1M;
+Standard and WaveNet share SKU `9D01-5995-B545` at "0 to 4 million characters"
+free then $4/1M; Neural2 1M then $16/1M; Studio 1M then $160/1M
+([Cloud TTS pricing](https://cloud.google.com/text-to-speech/pricing)). The
+allowances are per-SKU, so 1M Chirp 3 characters *and* 4M Standard/WaveNet
+characters are free in the same month. **A credit card is required even to use
+the free tier** — that is the one real cost of this route, and it is not money.
+
+**Telugu has no WaveNet voice; Kannada does.** Re-verified by grepping Google's
+full voice list: `te-IN` returns 30 Chirp3-HD and 4 Standard and nothing else;
+`kn-IN` returns 30 Chirp3-HD, 4 Standard and 4 WaveNet
+([supported voices](https://cloud.google.com/text-to-speech/docs/list-voices-and-types)).
+So Telugu's cheap tier is `te-IN-Standard-A`, the voice this document has now
+twice measured dropping the first half of its own sample sentence.
+
+**Azure's free tier is real and recurring**: 0.5M characters/month for neural
+TTS, plus 5 audio hours/month of speech-to-text, both monthly rather than a
+12-month trial
+([Azure Speech pricing](https://azure.microsoft.com/en-us/pricing/details/cognitive-services/speech-services/)).
+
+**Sarvam's free tier is credits, not an allowance.** ₹100 of one-time signup
+credit ([Sarvam pricing](https://docs.sarvam.ai/api/getting-started/pricing.md)),
+and at ₹30/10,000 characters that is 33,333 characters — about **31 lessons at
+today's 1,054 characters each**, once, and then it is the most expensive option
+in the table. It is a trial, not a free tier.
+
+**Hugging Face is dead as a free path, twice over.** Free accounts get **$0.10 of
+inference credits per month** and PRO accounts $2.00
+([Inference Providers pricing](https://huggingface.co/docs/inference-providers/pricing)).
+Ten cents is not a tier. And it does not matter, because *no* Indic TTS model is
+actually served: I queried the HF API directly for `facebook/mms-tts-tel`,
+`facebook/mms-tts-kan`, `ai4bharat/indic-parler-tts` and `ai4bharat/IndicF5`, and
+all four return an empty `inferenceProviderMapping`. The model pages say it
+outright — "This model isn't deployed by any Inference Provider." Serving these
+means renting a GPU, which is §7.3, not calling a free API.
+
+**MMS-TTS is non-commercial and that is disqualifying.** Both
+`facebook/mms-tts-tel` and `facebook/mms-tts-kan` carry `cc-by-nc-4.0` in their
+card metadata, confirmed via the HF API rather than read off a badge. It is a
+lovely little model — 36M parameters, and §7.3 has real numbers for it — and we
+cannot ship it in a paid product.
+
+**IndicF5 is MIT, not Apache-2.0.** A web search told me Apache; the HF API says
+`license: mit`. This is why the charter says to check. Both it and
+Indic-Parler-TTS (genuinely `apache-2.0`) are `gated: auto` — you must accept
+terms while signed in, though approval is automatic rather than a human review.
+Worth knowing before someone scripts a download in CI and it 401s.
+
+**Piper has Telugu and no Kannada at all**, which for a course with 10 Kannada
+lessons is the whole story. Its three `te_IN` voices also differ in provenance in
+a way that matters: `padmavathi` and `venkatesh` are trained on
+`ai4bharat/indicvoices_r` under **CC-BY-4.0** — genuinely commercial with
+attribution — while `maya` is trained on the IIT-Madras IndicTTS database whose
+licence is a PDF at `iitm.ac.in` that **did not resolve when I fetched it**. That
+licence is **unverified** and must be read before `maya` is used for anything.
+Note also that the current runtime, `piper-tts` 1.7.0, is **GPL-3.0-or-later**,
+where the original Piper was MIT.
+
+**edge-tts should never ship, and the reason is not a judgement call.** Reading
+its own constants: it posts to `speech.platform.bing.com/consumer/speech/
+synthesize/readaloud` with a hardcoded `TRUSTED_CLIENT_TOKEN`, a spoofed
+`Mozilla/5.0 ... Edg/143.0.0.0` User-Agent, `Sec-CH-UA` headers claiming to be
+Microsoft Edge 143, and `Origin: chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold`
+— the Edge Read Aloud extension. That is not an API with generous terms; it is a
+consumer endpoint being impersonated, and it can be shut off in an afternoon. It
+is an excellent evaluation tool, it produced half the audio in §7.4, and it is
+the same underlying Azure neural voices we can buy legitimately for $15/1M.
+
+**One free option worth adding that was not on the list: caching.** It is not a
+vendor and it beats all of them — §7.0.
+
+## 7.3 Self-hosting, and where the crossover actually is
+
+I benchmarked what I could actually run rather than estimating. MMS-TTS is
+excluded by licence, but it is the fastest realistic architecture and therefore
+the best case for self-hosting, so its numbers are the *optimistic* bound:
+
+| Model | Params | Hardware | Time to synthesise | Audio | Speed |
+|---|---|---|---|---|---|
+| MMS-TTS Telugu (VITS) | 36M | M1 Pro, 10 threads | 0.567 s | 2.91 s | **5.1× realtime** |
+| MMS-TTS Kannada (VITS) | 36M | M1 Pro, 10 threads | 0.586 s | 3.46 s | **5.9× realtime** |
+| MMS-TTS Telugu | 36M | M1 Pro, **1 thread** | 0.681 s | 2.80 s | **4.1× realtime** |
+
+Measured 2026-08-30, best of three runs each, `torch` 2.13.0. **A single CPU core
+runs a VITS-class Indic voice at four times realtime** — no GPU needed. That is
+genuinely surprising and it is faster than the 2.8 s round trip this document
+measured for OpenAI `tts-1-hd`.
+
+But the two models we may actually license are not VITS. Indic-Parler-TTS is
+**938M parameters** and autoregressive; IndicF5 is **351M** and flow-matching
+with a reference-audio prompt. Both want a GPU. I could not benchmark either:
+Indic-Parler needs a GPU this machine does not have, and Piper's macOS wheel is
+broken — it has the build machine's path baked into the compiled espeak-ng
+(`/Users/runner/work/piper1-gpl/...`) and ignores the `espeak_data_dir` argument
+entirely, so it cannot phonemise on this platform. **Their quality and latency
+are unverified.**
+
+### The crossover
+
+Google Chirp 3: HD costs $30/1M characters with the first 1M free each month. At
+the measured 1,054 characters per lesson, a month of TTS for *N* lessons costs
+`max(0, N × 1054 − 1,000,000) × $30/1,000,000`. Setting that equal to the cost of
+a box running 24/7:
+
+| Box | $/hr | $/month | Break-even vs Chirp 3: HD |
+|---|---|---|---|
+| RunPod RTX A4000, community | $0.17 | $124 | 4,870 lessons/mo = **162 learners/day** |
+| RunPod L4, secure cloud | $0.39 | $285 | 9,962 lessons/mo = **332 learners/day** |
+| GCP `g2-standard-4` (L4), on-demand | $0.707 | $516 | 17,268 lessons/mo = **576 learners/day** |
+
+GPU prices from [getdeploying L4 comparison](https://getdeploying.com/gpus/nvidia-l4)
+and [RunPod pricing](https://docs.runpod.io/serverless/pricing), checked
+2026-08-30, at one lesson per learner per day.
+
+**So: below roughly 300 daily learners, self-hosting is simply more expensive
+than paying Google.** Call the range 160–580 depending on how cheap and how
+unreliable a box you are willing to accept; a single spot instance in a community
+cloud with no redundancy is not what a production course runs on, and doubling it
+for a second box moves the crossover to ~660/day.
+
+And every one of those numbers ignores the engineering. Three days of setup, a
+container, a health check, a queue and somebody's pager is worth more than the
+$285/month it saves at the crossover point.
+
+**With the pre-rendering from §7.0, the crossover disappears entirely**, because
+the bill it would have to beat is $0.17 one time. Self-hosting Telugu and Kannada
+TTS is not a decision this product should be making.
+
+## 7.4 The A/B, and an honest warning about what it measures
+
+Same method as last round: put audio through Deepgram `nova-3` and report the
+transcript and confidence. **This is a proxy for intelligibility, not for whether
+a voice sounds like a warm tutor.** It cannot hear warmth, pacing, or whether a
+child would want to listen to it for twenty minutes.
+
+And this round it saturated, which is worth stating loudly:
+
+| Telugu (`language=te`) | Deepgram heard | Conf. |
+|---|---|---|
+| `te-IN-Chirp3-HD-Achernar` (Google sample) | clean Telugu | 0.984 |
+| `te-IN-Standard-A` (Google sample, same sentence) | **first half missing** | 0.848 |
+| Azure `te-IN-ShrutiNeural` via edge-tts, native script | exact | **0.996** |
+| **MMS-TTS `tel`, 36M params, 16 kHz** | exact | **0.989** |
+
+| Kannada (`language=kn`) | Deepgram heard | Conf. |
+|---|---|---|
+| `kn-IN-Chirp3-HD-Achernar` (Google sample) | clean Kannada | 0.954 |
+| **`kn-IN-Standard-A` (Google sample)** | clean Kannada | **0.986** |
+| Azure `kn-IN-SapnaNeural` via edge-tts, native script | exact | 0.947 |
+| **MMS-TTS `kan`, 36M params, 16 kHz** | near-exact | **0.984** |
+
+| Hindi — Android proxy (`language=hi`) | Deepgram heard | Conf. |
+|---|---|---|
+| Android on-device `hic`, **pre-2022** | exact | 0.996 |
+| Android on-device `hic`, **post-2022** | exact | 0.994 |
+| `hi-IN-Standard-A` / `Wavenet-A` / `Chirp3-HD` | exact | 0.997 / 0.997 / 0.998 |
+
+**A 36-million-parameter open model at 16 kHz scored higher than Chirp 3: HD, and
+Kannada Standard-A beat Kannada Chirp 3: HD by three points.** Neither of those
+means what it would appear to mean. Deepgram is telling us that every candidate
+here clears the intelligibility bar comfortably and that it cannot rank them.
+Anyone who cites these numbers as a quality ranking — including a future me
+reading this document — is misreading them. The Telugu Standard-A row at 0.848 is
+the only one carrying real signal, because dropping half a sentence is a defect an
+ASR *can* see.
+
+**The consequence: the choice between these voices cannot be made from a
+terminal.** It has to be made by ear, which is §7.6, and that is not a formality.
+
+Two integrity notes from building this table. Google's published samples for
+`hi-IN-Standard-A` and `hi-IN-Neural2-A` are **byte-identical** (same MD5) — do
+not trust every sample WAV on that page to be distinct; the te-IN and kn-IN
+Standard/Chirp3 pairs are genuinely different files, so last round's finding
+stands. And all Deepgram figures here were run twice and were stable to
+±0.001.
+
+## 7.5 The finding that outranks the whole vendor question
+
+The step curriculum is romanised Latin. There is no native script in
+`CURRICULUM` at all — the Telugu word is stored as `"Namaskaram"`, never
+`"నమస్కారం"`. So I tested what a real Indic neural voice does when handed the
+Latin string, against the same voice handed the native script. Same voice, same
+word, only the orthography changes:
+
+| Word | Script | Deepgram heard | Conf. |
+|---|---|---|---|
+| ಹೇಗಿದ್ದೀರಿ ("how are you") | **native** | ಹೇಗಿದ್ದೀರಿ ✅ | **0.901** |
+| `hegiddeeri` | **Latin** | ಹಿಧ್ಯದಿವೆ ❌ | **0.324** |
+| మీరు ఎలా ఉన్నారు | native | మీరు ఎలా ఉన్నారు ✅ | 0.863 |
+| `meeru ela unnaru` | Latin | మీరు ఎలా ఉన్నారు ✅ | 0.944 |
+
+Telugu survives romanisation. **Kannada does not.** And it is not a marginal
+degradation — it is a specific, reproducible mispronunciation. The Kannada voice
+reads Latin `ge` as an English soft *g*, so `hegiddeeri` comes out closer to
+"hejidiri". I then ran the six most frequent Kannada words in our own course
+through `kn-IN-SapnaNeural` exactly as the curriculum stores them:
+
+| Course word | Meaning | Heard as (kn) | Conf. | Heard as (en) |
+|---|---|---|---|---|
+| `Hege` | how | ಈಜ್ | **0.512** | "Peach" |
+| `Chennagide` | it is good | ಚನ್ನಜಯದ | **0.554** | "Chennajiva" |
+| `Hoovugalu` | flowers | ಹೂವಿಗಾಲೆ | **0.400** | "Huvigallu" |
+| `Snehitaru` | friends | ಸ್ನೇಹಚಾರು | **0.419** | "Snehutaru" |
+| `Olleya` | good | ಒಳ್ಳೆಯ ✅ | 0.776 | "Olea" |
+| `Yelli` | where | ಎಲ್ಲಿ ✅ | 0.784 | "Yili" |
+
+**Four of the six most common Kannada words in the course are mispronounced by a
+correct, current, native Kannada neural voice, because of how we store them.**
+A beginner hears "heh-jay" and repeats "heh-jay". The engine is not the problem.
+
+This reframes the entire round. Upgrading from a free voice to a paid one buys
+much less than adding native script to the curriculum, and no vendor on the
+market — free or paid, Chirp 3 or Azure or a self-hosted GPU — fixes `Hege`.
+Adding a native-script field is the single highest-value change available to the
+audio of this product, it is content work rather than voice work, and it belongs
+to whoever owns `CURRICULUM`. Filed here because it was found here.
+
+It also happens to be nearly free: 5,711 characters of native script for both
+courses, which is the same 5,711 characters §7.0 wants to pre-render.
+
+## 7.6 The five-minute test on Farhaan's own phone
+
+I cannot do this and it is the only part that settles anything. Sound on.
+
+**1. Install the voice packs.** On stock Android: **Settings → System →
+Languages & input → Text-to-speech output**. On Samsung: **Settings → General
+management → Text-to-speech**. Confirm *Preferred engine* is **Speech
+Recognition & Synthesis** (Google), tap the **gear** beside it, then **Install
+voice data** → **Telugu (తెలుగు)** and **Kannada (ಕನ್ನಡ)** → download. Note
+whether each language offers a choice of voices and whether any is marked as
+needing a network connection — **that answer is the thing §7.1 could not
+establish, and you are the only one who can report it.**
+
+While you are there, hit the **Play** / *Listen to an example* button for each.
+That is Android's own voice reading its own sample, and it is the cleanest
+possible impression of the voice before our content complicates it.
+
+**2. Serve the app to the phone.** The dev server currently running is bound to
+localhost, so the phone cannot reach it. In a **second** terminal — leave the
+running one alone:
+
+```
+cd "/Users/farhaaan/Documents/AI Projects/language learning AG"
+npm run dev -- --host --port 5174
+```
+
+Then on the phone, on the same Wi-Fi, open:
+
+```
+http://192.168.1.3:5174/preview.html?lang=Telugu&scenario=0
+http://192.168.1.3:5174/preview.html?lang=Kannada&scenario=0
+```
+
+`preview.html` is the dev harness — no sign-in, no backend, and it runs the real
+`Steps` code against the real `speakInBrowser`, so what you hear is what a
+learner hears. (The harness used to seed a hardcoded `code: 'te-IN'` and an id
+of `lang.slice(0,2)`, giving Kannada the id `ka`. The TTS path survived it
+because `getLangCode` keys off `name`, but it was fixed in `src/dev/preview.jsx`
+on 2026-08-30 while this section was being written, so both languages now
+resolve from the real table. The test is trustworthy.)
+
+**3. What you will hear, and what to judge.** The words are romanised —
+`Namaskaram`, not `నమస్కారం`. Per §7.5 that is fine in Telugu and **not** fine in
+Kannada. So:
+
+- **Kannada, listen for the letter g.** The lesson-1 words include `Hege` and
+  `Chennagide`. If they come out "heh-jay" and "chenna-jee-day" rather than
+  "hay-gay" and "chen-naa-gi-day", you have confirmed §7.5 by ear and the
+  curriculum needs native script before anything else gets bought.
+- **Telugu, listen for vowel length.** `meeru`, `unnaru` — the long vowels are
+  what romanisation loses first.
+- **Both: is it a person or a machine?** This is the judgement Deepgram cannot
+  make and the reason §7.4 refuses to rank the voices. Would a beginner listen to
+  this for twenty minutes?
+- **Does the English sound Indian or American?** Ninety-four percent of the audio
+  is English scaffolding. If a `te-IN` voice is reading it, the English will sound
+  odd; if the system default is reading it, the Telugu will. Notice which.
+
+**4. If a language has no voice pack**, open Chrome's console via
+`chrome://inspect` from the Mac and look for the line `speech.js` already logs:
+`[speech] this device has no te-IN voice installed`. That is the answer too, and
+it is the case where the browser path costs nothing because it does nothing.
+
+## 7.7 The recommendation
+
+**Yes, Farhaan can skip paying for TTS — but he should still create the Google
+credential, because the free tier is where the good voice lives.**
+
+Concretely:
+
+1. **Create the Google Cloud credential and enable billing.** It costs nothing.
+   1,000,000 Chirp 3: HD characters per month, recurring, is **949 lessons per
+   month at today's 1,054 characters each** — and the Standard/WaveNet SKU adds a
+   separate 4M, and an Azure F0 account adds another 0.5M. Roughly **5,200 free
+   lessons a month across the three**, before anyone is asked for a rupee. The
+   only cost of the free tier is a card on file and a billing alert.
+2. **Pre-render the 452 target-language clips** on Chirp 3: HD and ship them as
+   static audio. $0.17, once, inside the free tier. After that the target-language
+   audio of the course is free for ever, at any number of learners, and it is on
+   the best voice in the table rather than the cheapest.
+3. **Let the device speak the English 94%.** `speech.js` already does this well.
+4. **Do not self-host.** It never pays below ~300 daily learners, and with (2) it
+   never pays at all.
+5. **Do not ship edge-tts.** Evaluation only. It is impersonating a browser.
+6. **Fix the Kannada romanisation before buying any voice.** §7.5. No vendor
+   fixes `Hege`.
+
+### When does "free" stop being true?
+
+- **The moment the conversation path stops being English.** Free stays true
+  because the LLM-generated 94% is English and the target-language 6% is fixed.
+  If the tutor starts improvising Telugu sentences outside the 452, that audio
+  is novel, cannot be pre-rendered, and goes back on the meter at $0.036 per
+  lesson.
+- **Above ~950 lessons/month, if pre-rendering is not done.** That is about 32
+  daily learners. The free tier is generous but it is not infinite, and step 2 is
+  what makes it irrelevant.
+- **If the course grows a lot.** 5,711 characters is two languages and 40
+  lessons. All ten languages at Telugu's density would be perhaps 45,000
+  characters — still $1.35, still nothing. Pre-rendering scales.
+- **If Google changes the free tier.** It is a published, recurring monthly
+  allowance today (checked 2026-08-30) and it has been stable for years, but it
+  is a vendor's gift and not a contract. Pre-rendered files, once made, do not
+  care.
+
+The uncomfortable summary: this round went looking for a free vendor and found
+that the app's TTS bill is almost entirely self-inflicted, and that its worst
+audio problem — `Hege` read as "heh-jay" — costs nothing to fix and no amount of
+money would have fixed.
+

@@ -321,9 +321,32 @@ SHADOW PRACTICE:
                 try {
                     const response = await api.post('/api/ai/transcribe', payload);
                     if (!response.text) {
-                        return { error: 'No transcription text returned from the engine.' };
+                        /* The server distinguishes "nothing was said" from "no
+                           engine on earth can hear this language", and the
+                           learner needs to be told two different things. Passed
+                           through rather than flattened into one error string —
+                           a learner told to speak more clearly at a language
+                           nothing supports will keep trying forever. */
+                        if (response.error) {
+                            return {
+                                error: response.error,
+                                reason: response.error,
+                                language: response.language || null,
+                                native: response.native || null,
+                            };
+                        }
+                        return { error: 'No transcription text returned from the engine.', reason: 'empty' };
                     }
-                    return { text: response.text };
+                    return {
+                        text: response.text,
+                        /* Candidate romanisations of the same utterance, when it
+                           came back in the target's own script. The caller knows
+                           what the screen asked for and picks among them. */
+                        variants: response.variants || null,
+                        native: response.native || null,
+                        script: response.script || null,
+                        engine: response.engine || null,
+                    };
                 } catch (err) {
                     lastError = err;
                     console.warn(`Transcription attempt ${attempt + 1} failed:`, err.message);

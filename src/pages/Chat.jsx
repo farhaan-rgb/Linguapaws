@@ -11,6 +11,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { getStoredJSON, setStoredJSON } from '../utils/storage';
 import { CURRICULUM, AVAILABLE_LANGUAGES, isLanguageAvailable } from '../services/curriculum';
 import * as engine from '../services/lessonEngine';
+import { toLatin, hasBrahmicScript } from '../../shared/transliterate.js';
 import {
     getReviewSet,
     ensureReviewSet,
@@ -878,9 +879,18 @@ export default function Chat() {
                         }
                     }
                 } else {
-                    const detail = result?.error || "I couldn't quite catch that.";
+                    /* "Could you try again?" is the wrong thing to say about a
+                       language no vendor in the stack can transcribe — it reads
+                       as a comment on the learner's accent and they will keep
+                       trying. Odiya is that language today; see shared/asr.js. */
+                    const noEars = result?.reason === 'unsupported_language';
+                    const detail = noEars
+                        ? `Speech recognition does not support ${result.language || targetLang?.name || 'this language'} yet — that is us, not you.`
+                        : (result?.error || "I couldn't quite catch that.");
                     const prefix = activeCharacter?.id === 'miko' ? "Meow... " : "";
-                    const errorMsg = `${prefix}${detail} Could you try again? 😿`;
+                    const errorMsg = noEars
+                        ? `${prefix}${detail} Type your answer and we will carry on. 💬`
+                        : `${prefix}${detail} Could you try again? 😿`;
                     setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
                     setCallStatus('idle');
                 }
@@ -1142,13 +1152,15 @@ export default function Chat() {
 
     const handleSend = async (text, isVoice = false) => {
         if (!text) return;
-        // Voice STT sometimes mixes native script — strip it, but only if Latin chars remain
-        if (isVoice && hasTargetScript(text)) {
-            const stripped = stripTargetScript(text).trim();
-            if ((stripped.match(/[\p{L}\p{N}]/gu) || []).length >= 2) {
-                text = stripped;
-            }
-            // else: pure native script input — keep as-is so guard doesn't fire on leftover punctuation
+        /* A spoken answer that came back in the target's own script.
+           This used to DELETE the script — `stripTargetScript` — which on a
+           pure-script transcript threw the whole answer away and on a mixed one
+           kept only the loanwords. Both are the same defect step mode had: the
+           recognisers all return their own script, so the normal case for a
+           correct spoken answer was being destroyed on the way to the grader.
+           Romanised now, by the same table the server uses. */
+        if (isVoice && hasBrahmicScript(text)) {
+            text = toLatin(text);
         }
 
         const userMessageIndex = messages.length; // Store index for this user message
@@ -2117,9 +2129,18 @@ export default function Chat() {
                 if (text) {
                     handleSend(text, true);
                 } else {
-                    const detail = result?.error || "I couldn't quite catch that.";
+                    /* "Could you try again?" is the wrong thing to say about a
+                       language no vendor in the stack can transcribe — it reads
+                       as a comment on the learner's accent and they will keep
+                       trying. Odiya is that language today; see shared/asr.js. */
+                    const noEars = result?.reason === 'unsupported_language';
+                    const detail = noEars
+                        ? `Speech recognition does not support ${result.language || targetLang?.name || 'this language'} yet — that is us, not you.`
+                        : (result?.error || "I couldn't quite catch that.");
                     const prefix = activeCharacter?.id === 'miko' ? "Meow... " : "";
-                    const errorMsg = `${prefix}${detail} Could you try again? 😿`;
+                    const errorMsg = noEars
+                        ? `${prefix}${detail} Type your answer and we will carry on. 💬`
+                        : `${prefix}${detail} Could you try again? 😿`;
                     setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
 
                     if (!isMuted && isMounted.current) {
