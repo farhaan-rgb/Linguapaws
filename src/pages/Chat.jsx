@@ -1830,7 +1830,17 @@ export default function Chat() {
                     const targetConvo = scenarioDataForMatch.conversations?.[convoIdx];
                     if (targetConvo) {
                         const acceptableStr = targetConvo.acceptable?.length ? ` Also accept (as 100% correct): ${targetConvo.acceptable.join(', ')}.` : '';
-                        metaNote += `\n[NEXT: CONVO MODE. Target translation: "${targetConvo.correct}".${acceptableStr} Set the scene naturally and prompt: "${targetConvo.prompt}". Let the user figure it out from context and previously learned words. Weave the hint "${targetConvo.hint}" conversationally — no equations like "X + Y". NEVER say "try", "give it a try", or "give it a go". ${engine.antiFabricationRule(targetConvo.correct, taughtSoFar)} Match → success:true. Else → success:false.]`;
+                        /* "WITHOUT revealing the translation" was on the phrase
+                           branch and missing here, and the model used the gap.
+                           A round-K learner's last two conversation steps read
+                           "Respond with Naanu chennagiddeeni!" and "...say
+                           Namaskara, naanu chennagiddeeni, neevu hegiddeera?" —
+                           the target printed inside the prompt, turning the two
+                           hardest steps of the lesson into dictation. The whole
+                           point of this stage is production without the answer
+                           in view, so the prohibition is spelled out rather than
+                           implied by "let the user figure it out". */
+                        metaNote += `\n[NEXT: CONVO MODE. Target translation: "${targetConvo.correct}".${acceptableStr} Set the scene naturally and prompt: "${targetConvo.prompt}". NEVER write the target translation, any accepted variant, or any part of one, in your message — not as an instruction, an example, or a reminder. Do NOT write "say X", "respond with X" or "tell them X" where X is the answer or any piece of it. The learner must produce it from the scene and from words they already know; a prompt that contains the answer teaches nothing. Weave the hint "${targetConvo.hint}" conversationally — no equations like "X + Y". NEVER say "try", "give it a try", or "give it a go". ${engine.antiFabricationRule(targetConvo.correct, taughtSoFar)} Match → success:true. Else → success:false.]`;
                     }
                 }
             }
