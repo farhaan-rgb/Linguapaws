@@ -2164,9 +2164,16 @@ export default function Chat() {
                                 const extras = guides.map(g => `\n    Pronunciation: ${g}`).join('');
 
                                 const badge = corrections[idx]
-                                    ? `\n    [Close! Spelled: ${corrections[idx].expected}]` : '';
+                                    ? (corrections[idx].narrowed
+                                        ? `\n    [Spelling: ${corrections[idx].said} → ${corrections[idx].expected}]`
+                                        : `\n    [Close! Spelled: ${corrections[idx].expected}]`)
+                                    : '';
+                                /* Labelled for what it measures. "Match" read as a
+                                   grade; it is the distance from the canonical
+                                   answer, and an accepted variant scoring 80 is
+                                   fully correct rather than four-fifths correct. */
                                 const score = matchScores[idx] !== undefined
-                                    ? `\n    [Match: ${matchScores[idx]}%]` : '';
+                                    ? `\n    [vs canonical: ${matchScores[idx]}%]` : '';
 
                                 clean = stripTargetScript(clean)
                                     .replace(/<phonetic>.*?<\/phonetic>/gi, '')
