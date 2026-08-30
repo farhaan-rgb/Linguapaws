@@ -728,9 +728,22 @@ export default function Chat() {
         });
     };
 
-    // Resolve the active character — fall back to Miko when none is selected
+    /* Resolve the active character — fall back to Miko when none is selected.
+       Merged field-by-field over the built-in definition rather than used as-is:
+       a character round-tripped through storage or the API arrives carrying id,
+       name and trait but no `image`, `color` or `voice`, and the header then
+       rendered the 👤 placeholder next to the name "Miko, Friendly Cat Coach"
+       while /characters/miko_premium.jpg sat unused. Nullish and empty fields
+       defer to the definition; anything genuinely set still wins. */
     const mikoCharacter = defaultCharacters.find(c => c.id === 'miko');
-    const resolvedCharacter = activeCharacter || mikoCharacter;
+    const resolvedCharacter = useMemo(() => {
+        if (!activeCharacter) return mikoCharacter;
+        const base = defaultCharacters.find(c => c.id === activeCharacter.id);
+        if (!base) return activeCharacter;
+        const set = Object.fromEntries(
+            Object.entries(activeCharacter).filter(([, v]) => v !== null && v !== undefined && v !== ''));
+        return { ...base, ...set };
+    }, [activeCharacter, mikoCharacter]);
 
     const toggleMute = () => {
         const newMuted = !isMuted;
