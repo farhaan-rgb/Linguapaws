@@ -364,7 +364,16 @@ const bestWindowRatio = (actual, expected) => {
    "the 'I' is already inside them" — then the drill rejected the bare
    *Cheyalenu* the tutor had just taught. Rather than adding an `acceptable` entry
    to a hundred drills, the dropped-pronoun form is generated. */
-const PRONOUNS = ['nenu', 'meeru'];
+/* Kannada was missing from this list, and every Kannada lesson is built on the
+   same dropped-pronoun rule its own grammar notes teach. A round-K learner who
+   wrote `Namaskara, chennagiddeeni` — the exact form the note underneath calls
+   "just as correct, and what you will hear most often" — got a "Close! Spelled"
+   badge naming the long form, because no dropped-*naanu* variant existed to
+   match against. Three of the four badges in that transcript were this.
+   Telugu first, then Kannada; both mark the subject in the verb ending.
+   Hindi and Odia are deliberately absent — neither drops the subject freely,
+   so generating a pronoun-less variant there would accept a wrong answer. */
+const PRONOUNS = ['nenu', 'meeru', 'naanu', 'neevu', 'neenu', 'naavu'];
 
 /* Dropped from wherever it sits, not just the front. A time word often leads —
    *Eeroju nenu cheyalenu* — and stripping only a leading pronoun meant
