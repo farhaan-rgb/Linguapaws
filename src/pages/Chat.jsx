@@ -1357,23 +1357,32 @@ export default function Chat() {
                announce it. A learner who only listens got no warning that the
                format had changed from repeating words to being quizzed on them —
                these banners were printed and never spoken, like the notes. */
+            /* HELD, not pushed. These used to render the moment the answer was
+               graded — before the AI call — while the 💡 note explaining that same
+               answer is pushed after it. A round-K learner finished step 15 and
+               read "Scenario Mastered! Moving to the next challenge..." and THEN
+               got the coaching on the answer that had just earned it, which reads
+               as the app talking over itself. The note comes first in both the
+               transcript and the audio; the banner announces what happens next,
+               so it belongs after the thing it is reacting to. */
             let transitionBanner = '';
+            let stageBanner = null;
             if (hasCorrectMatch) {
                 const activeScenario = scenarioDataForMatch.scenario || 'Learning';
                 if (isLastScenarioStep) {
                     setLevelUpToast(`🏆 Scenario Complete: ${activeScenario}!`);
                     setTimeout(() => setLevelUpToast(null), 5000);
                     transitionBanner = 'Scenario complete — you have finished all fifteen steps.';
-                    setMessages(prev => [...prev, { role: 'system', content: '✨ **Scenario Mastered!** You\'ve completed all 15 steps. Moving to the next challenge...' }]);
+                    stageBanner = '✨ **Scenario Mastered!** You\'ve completed all 15 steps. Moving to the next challenge...';
                     // Lesson done — drop its cached triplet so a replay rebuilds
                     // from whatever is due at that point, not this session's set.
                     clearReviewSet(safeLang, scenarioIdxForMatch);
                 } else if (isCurrentlyTeaching && currentInScenario === 4) {
                     transitionBanner = 'Vocabulary done — now a quick check on a few of them.';
-                    setMessages(prev => [...prev, { role: 'system', content: '🎓 **Vocabulary done** — now a quick check on a few of them.' }]);
+                    stageBanner = '🎓 **Vocabulary done** — now a quick check on a few of them.';
                 } else if (isCurrentlyInReview && currentInScenario === 7) {
                     transitionBanner = 'Review passed — now we build whole sentences.';
-                    setMessages(prev => [...prev, { role: 'system', content: '🎓 **Review passed** — now let\'s build whole sentences.' }]);
+                    stageBanner = '🎓 **Review passed** — now let\'s build whole sentences.';
                 }
             }
 
