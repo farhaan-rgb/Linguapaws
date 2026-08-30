@@ -122,7 +122,9 @@ const ATTEMPT_TROUBLE = {
  *  When there is text standing, the message says the recording was dropped and
  *  points at the button that would settle the screen. `action` is that button's
  *  own label, because "tap Check" on a screen whose button says Lock it in is
- *  an instruction for a control that is not there. */
+ *  an instruction for a control that is not there. The box is named, not
+ *  pointed at — it sits above this line on the answer screen and above it again
+ *  in the revealed panel, so "your answer below" was pointing the wrong way. */
 export function voiceTrouble(kind, lang = '', { hasAnswer = false, action = 'Check' } = {}) {
     const language = lang || 'the language';
     switch (kind) {
@@ -157,14 +159,14 @@ export function voiceTrouble(kind, lang = '', { hasAnswer = false, action = 'Che
                have to guess. */
             const what = `That one came back in ${language} script, which could not be spelled out.`;
             return hasAnswer
-                ? `${what} Your answer below still stands — tap ${action}, or say it again.`
+                ? `${what} The answer in the box still stands — tap ${action}, or say it again.`
                 : `${what} Say it once more, or type it.`;
         }
         case 'empty':
         case 'failed':
         default: {
             const what = ATTEMPT_TROUBLE[kind] || ATTEMPT_TROUBLE.failed;
-            if (hasAnswer) return `${what} Your answer below still stands — tap ${action}, or say it again.`;
+            if (hasAnswer) return `${what} The answer in the box still stands — tap ${action}, or say it again.`;
             return kind === 'empty'
                 ? `${what} Hold the phone closer and try again — or type it.`
                 : `${what} Try once more, or type it.`;

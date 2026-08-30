@@ -152,7 +152,8 @@ empty box was being shown to somebody holding a right answer, and it read as
 So: a discarded recording leaves the box exactly as it was, and the note says so
 — it names the standing answer and points at the button that would settle the
 screen, by that button's own label (`Check` under the box, `Lock it in` inside
-the revealed panel). Emptying the box on a new recording was the other candidate
+the revealed panel). The box is named rather than pointed at: it sits *above*
+the note in both places, so "your answer below" was pointing the wrong way. Emptying the box on a new recording was the other candidate
 and it is worse in every branch: a successful retry overwrites the text anyway,
 and a failed one — the entire reason this comes up — would have destroyed
 something the learner had, which in the reported case was an accepted answer.
