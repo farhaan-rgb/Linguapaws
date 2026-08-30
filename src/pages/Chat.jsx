@@ -1971,6 +1971,9 @@ export default function Chat() {
             if (postAnswerGrammarNote && hasCorrectMatch) {
                 outgoing.push({ role: 'system', content: `💡 ${postAnswerGrammarNote}` });
             }
+            // Held back above so it lands after the note about the answer that
+            // earned it, rather than interrupting it.
+            if (stageBanner) outgoing.push({ role: 'system', content: stageBanner });
             outgoing.push({ role: 'assistant', content: storedResponse });
             /* If the learner asked a question mid-drill, the model answered it —
                but it does not reliably restate the task afterwards. Do it here so
