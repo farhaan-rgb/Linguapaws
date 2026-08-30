@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     X, Volume2, VolumeX, Lightbulb, MessageCircle, ArrowRight, Check, Flame,
+    Mic, Square, Keyboard, Eye,
 } from 'lucide-react';
 
 import { CURRICULUM, isLanguageAvailable } from '../services/curriculum';
@@ -12,12 +13,31 @@ import { ensureReviewSet, recordTaughtWord, recordReview } from '../services/srs
 import { getStoredJSON } from '../utils/storage';
 import { api } from '../services/api';
 import * as fx from '../utils/feedbackFx';
+import { getAnswerMode, setAnswerMode } from '../utils/learnMode';
+import { useAudioRecorder } from '../hooks/useAudioRecorder';
+import { aiService } from '../services/ai';
 import RichText from '../components/RichText';
 import Burst from '../components/Burst';
 
 const MAX_SCENARIO_IDX = 29;
 /** 15 successful turns per lesson — the same cycle Chat.jsx walks. */
 const CYCLE_SIZE = 15;
+
+/** Whether this browser can hand the app a microphone at all. Checked once,
+ *  because the answer never changes mid-lesson, and used to decide whether the
+ *  Speak option is offered as a real choice or as an explanation. */
+const MIC_SUPPORTED = typeof navigator !== 'undefined'
+    && !!navigator.mediaDevices?.getUserMedia
+    && typeof MediaRecorder !== 'undefined';
+
+/** The course is written in romanised Latin — `Namaskaram`, not `నమస్కారం` —
+ *  and `scoreAnswer` normalises Latin. A transcript that comes back in the
+ *  target script is not wrong, it is unscoreable, and marking a learner down
+ *  for the transcriber's choice of alphabet would be the one unfair miss on
+ *  this surface. Caught before it reaches the box. */
+const hasLatin = (text) => /[a-z]/i.test(String(text || ''));
+
+const IDLE_VOICE = { status: 'idle', kind: null, trouble: null };
 
 /* ── Pieces ─────────────────────────────────────────────────────────────── */
 
@@ -77,6 +97,106 @@ function SpeakButton({ text, onSpeak, size = 38 }) {
             }}>
             <Volume2 size={Math.round(size * 0.45)} />
         </button>
+    );
+}
+
+/* ── Answering ─────────────────────────────────────────────────────────────
+   The rest of the app is voice-first and this surface was not, so a learner who
+   wanted to say a word had to type it instead. The choice is now explicit,
+   remembered, and — the part that matters — reversible on every screen: the
+   text box is mounted underneath the microphone in speak mode too, so a denied
+   permission, a dead mic or a failed transcription is an inconvenience and
+   never a wall.                                                             */
+
+function AnswerModeSwitch({ mode, onChange }) {
+    const seg = (id, Icon, label, spoken) => {
+        const on = mode === id;
+        return (
+            <button
+                key={id} onClick={() => onChange(id)}
+                aria-pressed={on} aria-label={spoken}
+                style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '5px 11px', borderRadius: 99, border: 'none', cursor: 'pointer',
+                    background: on ? '#fff' : 'transparent',
+                    boxShadow: on ? '0 2px 8px -3px rgba(88,28,135,0.4)' : 'none',
+                    color: on ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                    fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12,
+                    transition: 'background 0.2s, color 0.2s',
+                }}>
+                <Icon size={13} /> {label}
+            </button>
+        );
+    };
+    return (
+        <div role="group" aria-label="How to answer"
+            style={{
+                display: 'inline-flex', gap: 2, padding: 3, borderRadius: 99,
+                background: 'rgba(168,85,247,0.09)',
+            }}>
+            {seg('type', Keyboard, 'Type', 'Answer by typing')}
+            {seg('speak', Mic, 'Speak', 'Answer out loud')}
+        </div>
+    );
+}
+
+/** The microphone itself. One control, four states, and the label says which —
+ *  a mic that silently changes colour leaves the learner guessing whether it
+ *  is listening, which is the fastest way to lose a recording. */
+function MicRow({ status, onTap, heard = false, tone = 'purple' }) {
+    /* Inside the revealed panel everything is amber, and a purple control in
+       the middle of it reads as belonging to a different screen. */
+    const amber = tone === 'amber';
+    const listening = status === 'listening';
+    const busy = status === 'working' || status === 'opening';
+    const label = listening ? praise.VOICE.listening
+        : status === 'working' ? praise.VOICE.working
+            : status === 'opening' ? praise.VOICE.opening
+                : heard ? praise.VOICE.again
+                    : praise.VOICE.idle;
+    return (
+        <button
+            onClick={onTap} disabled={busy}
+            aria-label={listening ? 'Stop recording' : 'Record your answer'}
+            style={{
+                width: '100%', padding: '14px 16px', borderRadius: 'var(--radius-md)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                cursor: busy ? 'default' : 'pointer', boxSizing: 'border-box',
+                border: listening ? 'none'
+                    : `2px solid ${amber ? 'rgba(245,158,11,0.42)' : 'rgba(168,85,247,0.35)'}`,
+                background: listening
+                    ? (amber ? 'linear-gradient(90deg,#f59e0b,#f97316)' : 'var(--primary-gradient)')
+                    : '#fff',
+                color: listening ? '#fff' : (amber ? '#b45309' : 'var(--accent-purple)'),
+                fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15,
+                opacity: busy ? 0.65 : 1,
+                transition: 'background 0.25s, color 0.25s, border-color 0.25s, opacity 0.2s',
+            }}>
+            <span className={listening ? 'mic-live' : undefined}
+                style={{
+                    width: 26, height: 26, borderRadius: 99, flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: listening ? 'rgba(255,255,255,0.22)'
+                        : (amber ? 'rgba(245,158,11,0.15)' : 'rgba(168,85,247,0.12)'),
+                }}>
+                {listening ? <Square size={11} fill="currentColor" /> : <Mic size={14} />}
+            </span>
+            {label}
+        </button>
+    );
+}
+
+/** Amber, like every other setback on this surface. Never red, and never
+ *  without the way out. */
+function TroubleNote({ children }) {
+    return (
+        <p style={{
+            margin: '9px 0 0', padding: '9px 12px', borderRadius: 12, fontSize: 12.5,
+            lineHeight: 1.5, color: '#78350f', background: 'rgba(245,158,11,0.1)',
+            border: '1px solid rgba(245,158,11,0.24)', animation: 'pop-in 0.3s ease-out',
+        }}>
+            {children}
+        </p>
     );
 }
 
@@ -144,8 +264,15 @@ function MilestoneBanner({ milestone }) {
 }
 
 /** `won` turns the card the learner is looking at into the celebration, rather
- *  than printing the same word a second time underneath it. */
-function WordCard({ wordObj, onSpeak, compact = false, won = false }) {
+ *  than printing the same word a second time underneath it.
+ *
+ *  `masked` is the listen-first path, and it is only ever set in speak mode.
+ *  Hiding the spelling from someone who has to *type* the word back would swap
+ *  the task the screen is testing for a much harder one — transliterating an
+ *  unfamiliar script by ear — and the accepted-spelling machinery assumes they
+ *  saw it. Someone saying it back needs no spelling at all, so there it is a
+ *  real listen-and-repeat and the letters are one tap away. */
+function WordCard({ wordObj, onSpeak, compact = false, won = false, masked = false, onUnmask }) {
     return (
         <div style={{
             position: 'relative',
@@ -169,13 +296,17 @@ function WordCard({ wordObj, onSpeak, compact = false, won = false }) {
                     <Check size={15} strokeWidth={3.4} />
                 </span>
             )}
-            <p style={{
-                fontFamily: 'var(--font-display)', fontSize: compact ? 20 : 30, fontWeight: 800,
-                margin: 0, lineHeight: 1.15, wordBreak: 'break-word', transition: 'font-size 0.25s',
-            }}>
+            <p aria-hidden={masked ? 'true' : undefined}
+                style={{
+                    fontFamily: 'var(--font-display)', fontSize: compact ? 20 : 30, fontWeight: 800,
+                    margin: 0, lineHeight: 1.15, wordBreak: 'break-word',
+                    transition: 'font-size 0.25s, filter 0.35s',
+                    filter: masked ? 'blur(11px)' : 'none',
+                    userSelect: masked ? 'none' : 'auto',
+                }}>
                 {wordObj.word}
             </p>
-            {wordObj.phonetic && !compact && (
+            {wordObj.phonetic && !compact && !masked && (
                 <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: '6px 0 0', letterSpacing: 0.4 }}>
                     {wordObj.phonetic}
                 </p>
@@ -190,8 +321,21 @@ function WordCard({ wordObj, onSpeak, compact = false, won = false }) {
                 }}>
                     {wordObj.meaning}
                 </span>
-                <SpeakButton text={wordObj.word} onSpeak={onSpeak} size={compact ? 30 : 38} />
+                {/* With the spelling hidden the audio is not an extra, it is
+                    the whole prompt — so it is sized like one. */}
+                <SpeakButton text={wordObj.word} onSpeak={onSpeak}
+                    size={compact ? 30 : (masked ? 48 : 38)} />
             </div>
+            {masked && (
+                <button onClick={onUnmask}
+                    style={{
+                        margin: '12px auto 0', display: 'flex', alignItems: 'center', gap: 6,
+                        background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                        fontSize: 12.5, fontWeight: 700, color: 'var(--accent-purple)',
+                    }}>
+                    <Eye size={13} /> Show the spelling
+                </button>
+            )}
         </div>
     );
 }
@@ -322,7 +466,10 @@ function SuccessPanel({ step, reward, onSpeak, phonetic, hero = true }) {
 /** The second miss. Deliberately not red and deliberately not the end of the
  *  screen: the answer is handed over, and the learner is invited to type it
  *  once. A lesson that ends a screen on failure teaches the failure. */
-function RevealPanel({ step, line, onSpeak, locked, lockText, setLockText, onLockIn, lockMiss }) {
+function RevealPanel({
+    step, line, onSpeak, locked, lockText, setLockText, onLockIn, lockMiss,
+    lockRef, answerMode, voice, onListen,
+}) {
     const meaning = step.kind === 'drill' ? step.drill?.meaning : null;
     return (
         <div style={{
@@ -365,10 +512,24 @@ function RevealPanel({ step, line, onSpeak, locked, lockText, setLockText, onLoc
                 ) : (
                     <>
                         <p style={{ margin: '0 0 9px', fontSize: 12.5, color: 'var(--text-secondary)' }}>
-                            Write it out once — that is how it stops being someone else's word.
+                            {praise.LOCK_IN_PROMPT[answerMode === 'speak' ? 'speak' : 'type']}
                         </p>
+                        {/* The point of this box is that the screen ends on
+                            something the learner did. Which hand they do it
+                            with is theirs to choose, so speak mode gets the mic
+                            here too — with the text box still under it. */}
+                        {answerMode === 'speak' && (
+                            <div style={{ marginBottom: 8 }}>
+                                <MicRow status={voice.status} onTap={onListen}
+                                    tone="amber" heard={!!lockText} />
+                            </div>
+                        )}
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input
+                                ref={lockRef}
+                                /* Enter belongs to this box while the cursor is
+                                   in it: here it locks in, it does not skip on. */
+                                data-lock-box="1"
                                 value={lockText}
                                 onChange={e => setLockText(e.target.value)}
                                 onKeyDown={e => { if (e.key === 'Enter') onLockIn(); }}
@@ -391,9 +552,14 @@ function RevealPanel({ step, line, onSpeak, locked, lockText, setLockText, onLoc
                                 Lock it in
                             </button>
                         </div>
+                        {voice.trouble && (
+                            <p style={{ margin: '8px 0 0', fontSize: 12.5, lineHeight: 1.5, color: '#b45309' }}>
+                                {voice.trouble}
+                            </p>
+                        )}
                         {lockMiss && (
                             <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#b45309' }}>
-                                Almost — copy it exactly as it is written above.
+                                Almost — {answerMode === 'speak' ? 'say' : 'copy'} it exactly as it is written above.
                             </p>
                         )}
                     </>
@@ -408,8 +574,12 @@ function RevealPanel({ step, line, onSpeak, locked, lockText, setLockText, onLoc
    retry count and the revealed answer all reset by remount. No effect needed,
    and no way for one screen's state to bleed into the next.                  */
 
-function StepScreen({ step, lexicon, onSpeak, onSettled, onMiss, onLockIn, onAdvance, isLast }) {
+function StepScreen({
+    step, lexicon, onSpeak, onSettled, onMiss, onLockIn, onAdvance, isLast,
+    answerMode, onAnswerMode, voice, onListen,
+}) {
     const inputRef = useRef(null);
+    const lockRef = useRef(null);
     const [answer, setAnswer] = useState('');
     /** answering | retry | correct | revealed */
     const [phase, setPhase] = useState('answering');
@@ -425,11 +595,44 @@ function StepScreen({ step, lexicon, onSpeak, onSettled, onMiss, onLockIn, onAdv
     const [lockText, setLockText] = useState('');
     const [locked, setLocked] = useState(false);
     const [lockMiss, setLockMiss] = useState(false);
+    /** Speak mode only: the spelling starts hidden and one tap brings it back. */
+    const [unmasked, setUnmasked] = useState(false);
+    /** A transcript has landed in the box and the learner should look at it. */
+    const [heard, setHeard] = useState(false);
 
-    useEffect(() => { inputRef.current?.focus(); }, []);
-
+    const speakMode = answerMode === 'speak';
     const drill = step.kind === 'drill' ? step.drill : null;
     const settled = phase === 'correct' || phase === 'revealed';
+    /* The four ways the microphone is simply not going to work on this device.
+       Anything else — a mumble, a failed transcription — is worth another go. */
+    const micBlocked = ['unsupported', 'none', 'denied', 'offline'].includes(voice.kind);
+
+    /* Only the speak path. Someone typing the word back would have to
+       transliterate it by ear, which is a harder task than the one the screen
+       is grading — and every accepted `alt` spelling assumes they saw it.
+       So the moment the mic turns out not to work, the spelling comes back:
+       a hidden word plus a dead microphone is the one combination on this
+       surface that could strand somebody. */
+    const masked = speakMode && step.kind === 'teach' && !unmasked && !settled && !micBlocked;
+
+    /* Popping the keyboard at somebody who chose to answer out loud is the
+       small rudeness that makes a mode feel unfinished. */
+    useEffect(() => {
+        if (!speakMode || micBlocked) inputRef.current?.focus();
+    }, [speakMode, micBlocked]);
+    useEffect(() => {
+        if (phase === 'revealed' && !speakMode) lockRef.current?.focus();
+    }, [phase, speakMode]);
+
+    /* Hear it before you read it. A teaching screen says the word on arrival,
+       unasked — the listen-and-repeat loop the rest of the app runs on, at the
+       one moment the learner has nothing else to do. Tied to the same sound
+       switch as everything else, so a muted lesson stays muted. */
+    useEffect(() => {
+        if (step.kind !== 'teach' || !fx.isFxOn()) return undefined;
+        const t = setTimeout(() => onSpeak(step.expected), 520);
+        return () => clearTimeout(t);
+    }, [step.kind, step.expected, onSpeak]);
 
     /* Say the answer back the moment it is right. The learner produced it in
        text; hearing it is the half of the reward that text cannot give. Tied to
@@ -507,6 +710,65 @@ function StepScreen({ step, lexicon, onSpeak, onSettled, onMiss, onLockIn, onAdv
         onLockIn();
     }, [lockText, locked, step, lexicon, onLockIn]);
 
+    /* The transcript lands in the same box the typist uses, and it is not
+       checked for them. A mis-hearing must never be able to spend one of the
+       two tries this screen allows. */
+    const listen = useCallback(() => {
+        onListen({
+            expected: step.expected,
+            prompt: step.prompt || `Say ${step.expected}`,
+            onText: (text) => {
+                setAnswer(text);
+                setHeard(true);
+                setPhase(p => (p === 'retry' ? 'answering' : p));
+            },
+        });
+    }, [onListen, step]);
+
+    const listenLock = useCallback(() => {
+        onListen({
+            expected: step.expected,
+            prompt: step.prompt || `Say ${step.expected}`,
+            onText: (text) => { setLockText(text); setLockMiss(false); },
+        });
+    }, [onListen, step]);
+
+    /* ── One key drives the screen ──
+       Enter checks an answer, and Enter moves on once the screen has settled.
+       The second half needs a document listener rather than the input's own
+       handler: a settled screen replaces the box with the panel, so there is no
+       mounted input left to receive the keypress and Continue could only be
+       clicked. (Before that it was replaced by `disabled`, which does not
+       deliver key events either — so Enter has never advanced this surface.) */
+    const settledAt = useRef(0);
+    useEffect(() => { if (settled) settledAt.current = Date.now(); }, [settled]);
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.key !== 'Enter' || e.repeat || e.isComposing) return;
+            if (e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+            const el = e.target;
+            /* A focused button already turns Enter into a click. Handling it
+               here as well would fire twice and skip a screen. */
+            if (el?.closest?.('button')) return;
+            /* The revealed screen's own box owns Enter: there it locks in, and
+               that is the action the screen is asking for. */
+            if (el?.dataset?.lockBox) return;
+            if (settled) {
+                /* Two quick presses — check, then advance — would spend the
+                   celebration before it has been read. */
+                if (Date.now() - settledAt.current < 500) return;
+                e.preventDefault();
+                onAdvance();
+                return;
+            }
+            e.preventDefault();
+            if (voice.status === 'listening') listen();
+            else check();
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [settled, check, onAdvance, listen, voice.status]);
+
     const tone = phase === 'correct'
         ? { bg: '#ecfdf5', btn: 'linear-gradient(90deg,#059669,#10b981)' }
         : phase === 'revealed'
@@ -528,10 +790,13 @@ function StepScreen({ step, lexicon, onSpeak, onSettled, onMiss, onLockIn, onAdv
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {step.slice.map(w => (
                                 <WordCard key={w.word} wordObj={w} onSpeak={onSpeak}
-                                    won={phase === 'correct'} />
+                                    won={phase === 'correct'}
+                                    masked={masked} onUnmask={() => setUnmasked(true)} />
                             ))}
                         </div>
-                        {step.slice.some(w => w.teach) && !settled && (
+                        {/* The teaching note spells the word out mid-sentence,
+                            which would undo the mask on the card above it. */}
+                        {step.slice.some(w => w.teach) && !settled && !masked && (
                             <div className="card" style={{ padding: 14, marginTop: 12 }}>
                                 {step.slice.filter(w => w.teach).map(w => (
                                     <p key={w.word} style={{ margin: '0 0 6px', fontSize: 14, lineHeight: 1.6 }}>
@@ -542,7 +807,9 @@ function StepScreen({ step, lexicon, onSpeak, onSettled, onMiss, onLockIn, onAdv
                         )}
                         {!settled && (
                             <p style={{ margin: '16px 0 0', fontWeight: 700, fontFamily: 'var(--font-display)' }}>
-                                Your turn — say {step.slice.map(w => w.word).join(', then ')}
+                                Your turn — say {masked
+                                    ? 'it back'
+                                    : step.slice.map(w => w.word).join(', then ')}
                             </p>
                         )}
                     </>
@@ -596,27 +863,62 @@ function StepScreen({ step, lexicon, onSpeak, onSettled, onMiss, onLockIn, onAdv
                                 step={step} line={revealLine} onSpeak={onSpeak}
                                 locked={locked} lockText={lockText} setLockText={setLockText}
                                 onLockIn={lockIn} lockMiss={lockMiss}
+                                lockRef={lockRef} answerMode={answerMode}
+                                voice={voice} onListen={listenLock}
                             />
                         </div>
                     )}
 
                     {!settled && (
-                        <div key={shake} className={shake ? 'nudge' : undefined}>
-                            <input
-                                ref={inputRef}
-                                value={answer}
-                                onChange={e => { setAnswer(e.target.value); if (phase === 'retry') setPhase('answering'); }}
-                                onKeyDown={e => { if (e.key === 'Enter') check(); }}
-                                placeholder={step.kind === 'teach' ? 'Type it back…' : 'Type your answer…'}
-                                style={{
-                                    width: '100%', padding: '15px 16px',
-                                    borderRadius: 'var(--radius-md)', fontSize: 16, fontFamily: 'var(--font-main)',
-                                    border: `2px solid ${phase === 'retry' ? '#f59e0b' : 'rgba(168,85,247,0.18)'}`,
-                                    background: '#fff', outline: 'none', boxSizing: 'border-box',
-                                    transition: 'border-color 0.2s',
-                                }}
-                            />
-                        </div>
+                        <>
+                            <div style={{
+                                display: 'flex', justifyContent: 'flex-end', marginBottom: 9,
+                            }}>
+                                <AnswerModeSwitch mode={answerMode} onChange={onAnswerMode} />
+                            </div>
+                            <div key={shake} className={shake ? 'nudge' : undefined}>
+                                {/* The microphone is the answer in speak mode —
+                                    and the box below it is still there, in every
+                                    state, including every way the mic can fail. */}
+                                {speakMode && (
+                                    <div style={{ marginBottom: 9 }}>
+                                        <MicRow status={voice.status} onTap={listen} heard={heard} />
+                                    </div>
+                                )}
+                                <input
+                                    ref={inputRef}
+                                    value={answer}
+                                    onChange={e => {
+                                        setAnswer(e.target.value);
+                                        setHeard(false);
+                                        if (phase === 'retry') setPhase('answering');
+                                    }}
+                                    /* "or type it" only while speaking is
+                                       actually on offer. Once the mic is out of
+                                       the picture this box is the answer, not
+                                       the alternative to it. */
+                                    placeholder={speakMode && !micBlocked
+                                        ? praise.VOICE.typeInstead
+                                        : (step.kind === 'teach' ? 'Type it back…' : 'Type your answer…')}
+                                    style={{
+                                        width: '100%', padding: '15px 16px',
+                                        borderRadius: 'var(--radius-md)', fontSize: 16, fontFamily: 'var(--font-main)',
+                                        border: `2px solid ${phase === 'retry' ? '#f59e0b' : 'rgba(168,85,247,0.18)'}`,
+                                        background: '#fff', outline: 'none', boxSizing: 'border-box',
+                                        transition: 'border-color 0.2s',
+                                    }}
+                                />
+                                {speakMode && heard && !voice.trouble && (
+                                    <p style={{
+                                        margin: '8px 2px 0', fontSize: 12.5, lineHeight: 1.5,
+                                        color: 'var(--text-secondary)',
+                                    }}>
+                                        {praise.VOICE.heard}
+                                    </p>
+                                )}
+                                {voice.trouble && <TroubleNote>{voice.trouble}</TroubleNote>}
+                            </div>
+                        </>
                     )}
                 </div>
 
@@ -703,7 +1005,11 @@ export default function Steps() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
-    const targetLang = getStoredJSON('linguapaws_target_lang', {});
+    /* Read once. `getStoredJSON` hands back a fresh object every call, and an
+       unmemoised one changes the identity of `speak` on every render — which is
+       enough to keep re-arming the auto-play timer on a teaching screen. */
+    const targetLang = useMemo(() => getStoredJSON('linguapaws_target_lang', {}), []);
+    const nativeLang = useMemo(() => getStoredJSON('linguapaws_native_lang', {}), []);
     const langName = targetLang?.name;
     const lessons = useMemo(
         () => (isLanguageAvailable(langName) ? CURRICULUM[langName] : []),
@@ -757,6 +1063,19 @@ export default function Steps() {
     const [milestone, setMilestone] = useState(null);
     const [soundOn, setSoundOn] = useState(fx.isFxOn);
 
+    /* ── The voice path ──
+       One recorder for the whole lesson rather than one per screen: a fresh
+       hook per step would open a MediaStream on every screen and drop it on the
+       next, leaving the browser's recording light on behind the learner. The
+       stream is released the moment a recording stops, so the mic is only live
+       while it is listening. */
+    /* Destructured, not held as an object: the hook returns a fresh one every
+       render, and a dependency that changes every render would tear down the
+       cleanup below — stopping the recording the learner had just started. */
+    const { isRecording, startRecording, stopRecording, prepare } = useAudioRecorder();
+    const [answerMode, setAnswerModeState] = useState(getAnswerMode);
+    const [voice, setVoice] = useState(IDLE_VOICE);
+
     const step = steps[index] || null;
 
     /* Build the run: review slots from the SRS queue, everything else straight
@@ -787,6 +1106,63 @@ export default function Steps() {
             window.speechSynthesis.speak(u);
         } catch { /* no speech synthesis — the phonetic line still carries it */ }
     }, [targetLang]);
+
+    const chooseAnswerMode = useCallback((mode) => {
+        setAnswerMode(mode);
+        setAnswerModeState(mode);
+        setVoice(IDLE_VOICE);
+    }, []);
+
+    /** Start listening, or stop and transcribe. Every failure below leaves the
+     *  learner on the same screen with the text box still under the mic — that
+     *  is the rule this surface has never broken and is not about to. */
+    const listen = useCallback(async ({ expected, prompt, onText }) => {
+        const trouble = (kind) => setVoice({
+            status: 'idle', kind, trouble: praise.voiceTrouble(kind, langName),
+        });
+
+        if (isRecording) {
+            setVoice({ ...IDLE_VOICE, status: 'working' });
+            let blob = null;
+            try { blob = await stopRecording(true); } catch { blob = null; }
+            if (!blob || !blob.size) return trouble('empty');
+            if (navigator.onLine === false) return trouble('offline');
+            /* The step knows its own answer, which is more than chat can tell
+               the transcriber — it hints Whisper and lets the backend snap a
+               phonetically close reading onto the spelling the course uses. */
+            const result = await aiService.transcribeAudio(
+                blob, nativeLang, targetLang, true, expected, prompt,
+            ) || {};
+            const text = String(result.text || '').trim();
+            if (!text) return trouble(result.error ? 'failed' : 'empty');
+            if (!hasLatin(text)) return trouble('script');
+            setVoice(IDLE_VOICE);
+            onText(text);
+            return undefined;
+        }
+
+        if (!MIC_SUPPORTED) return trouble('unsupported');
+        if (navigator.onLine === false) return trouble('offline');
+        setVoice({ ...IDLE_VOICE, status: 'opening' });
+        const stream = await prepare();
+        if (!stream) {
+            /* Denied and absent are different problems with different fixes,
+               and telling someone to allow a microphone they do not own is
+               worse than saying nothing. */
+            let kind = 'denied';
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                if (!devices.some(d => d.kind === 'audioinput')) kind = 'none';
+            } catch { /* keep 'denied' — it is the likelier of the two */ }
+            return trouble(kind);
+        }
+        await startRecording();
+        setVoice({ ...IDLE_VOICE, status: 'listening' });
+        return undefined;
+    }, [isRecording, startRecording, stopRecording, prepare, langName, nativeLang, targetLang]);
+
+    /* Leaving mid-recording must not leave the mic open. */
+    useEffect(() => () => { stopRecording(true); }, [stopRecording]);
 
     const award = useCallback((n) => {
         tally.current.points += n;
@@ -860,6 +1236,7 @@ export default function Steps() {
     const handleLockIn = useCallback(() => award(praise.LOCK_IN_POINTS), [award]);
 
     const handleAdvance = useCallback(() => {
+        setVoice(IDLE_VOICE);
         wordsTaughtBy(step).forEach(w => {
             setBanked(prev => prev.some(b => b.word === w.word) ? prev : [...prev, w]);
             recordTaughtWord({
@@ -978,6 +1355,10 @@ export default function Steps() {
                     onLockIn={handleLockIn}
                     onAdvance={handleAdvance}
                     isLast={index === steps.length - 1}
+                    answerMode={answerMode}
+                    onAnswerMode={chooseAnswerMode}
+                    voice={voice}
+                    onListen={listen}
                 />
             </div>
         </div>
@@ -1186,10 +1567,17 @@ function StepStyles() {
             @keyframes nudge    { 0%,100% { transform: translateX(0); }
                                   25% { transform: translateX(-5px); }
                                   75% { transform: translateX(5px); } }
+            /* The mic is the only control on this surface that is doing
+               something while the learner waits, so it is the only one that
+               keeps moving. The word "Listening" carries it on its own when
+               motion is off. */
+            @keyframes mic-live { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.55); }
+                                  70% { box-shadow: 0 0 0 9px rgba(255,255,255,0); } }
             .step-in { animation: step-in 0.22s cubic-bezier(0.22,1,0.36,1); }
             .nudge   { animation: nudge 0.28s ease-in-out; }
+            .mic-live{ animation: mic-live 1.5s ease-out infinite; }
             @media (prefers-reduced-motion: reduce) {
-                .step-in, .nudge, [style*="animation"] { animation: none !important; }
+                .step-in, .nudge, .mic-live, [style*="animation"] { animation: none !important; }
             }
         `}</style>
     );

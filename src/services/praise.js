@@ -72,6 +72,55 @@ export const revealLineFor = (seed = 0) => pick(REVEAL_LINES, seed);
  *  most motivating thing a learner can be told is that they recovered. */
 export const RECOVERY_LINE = 'Back on it.';
 
+/* ── Answering out loud ────────────────────────────────────────────────────
+   Speaking is the mode the rest of the app is built around, and the one thing
+   it must never do is strand somebody. Every line here ends with a way
+   forward, and every state below still has a text box under it — so a learner
+   whose microphone is broken, denied, or simply not there is never on a screen
+   they cannot leave.                                                        */
+
+export const VOICE = {
+    idle:      'Tap and say it',
+    opening:   'Opening the mic…',
+    listening: 'Listening — tap when you are done',
+    working:   'Working out what you said…',
+    again:     'Say it again',
+    /** Shown under the box the transcript landed in. The learner checks it,
+     *  we do not — a mis-hearing must not be able to spend one of their tries. */
+    heard:     'That is what I heard. Fix it if I got it wrong, then check.',
+    typeInstead: 'or type it',
+};
+
+/** Something went wrong with the microphone or the transcriber. `lang` is the
+ *  language being learned, used only where naming it helps. */
+export function voiceTrouble(kind, lang = '') {
+    const language = lang || 'the language';
+    switch (kind) {
+        case 'unsupported':
+            return "This browser will not give the app a microphone. Type your answer for now.";
+        case 'none':
+            return 'No microphone found. Plug one in, or type your answer.';
+        case 'denied':
+            return "The mic is blocked. Allow it in the address bar, or type your answer.";
+        case 'offline':
+            return 'Speaking needs a connection, and there is none right now. Type it instead.';
+        case 'empty':
+            return "Nothing came through. Hold the phone closer and try again — or type it.";
+        case 'script':
+            return `That came back written in ${language} script, and this lesson checks the spelled-out form. Say it once more, or type it.`;
+        case 'failed':
+        default:
+            return "Could not make that out. Try once more, or type it.";
+    }
+}
+
+/** The invitation on the revealed screen. The point is the same in both modes:
+ *  the screen ends on something the learner did, not on the miss. */
+export const LOCK_IN_PROMPT = {
+    type:  "Write it out once — that is how it stops being someone else's word.",
+    speak: "Say it once with it in front of you — that is how it stops being someone else's word.",
+};
+
 /* ── What they actually just did ───────────────────────────────────────────
    The clause under the verdict. This is the part that makes the moment mean
    something: "Perfect." is a sticker, "A full sentence — four words, in

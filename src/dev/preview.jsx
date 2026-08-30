@@ -8,6 +8,7 @@ import Home from '../pages/Home';
 import ModeToggle from '../components/ModeToggle';
 import { AuthProvider } from '../contexts/AuthContext';
 import { CURRICULUM } from '../services/curriculum';
+import { aiService } from '../services/ai';
 import { buildLessonSteps } from '../services/stepPlan';
 import { ensureReviewSet } from '../services/srs';
 
@@ -27,11 +28,71 @@ const params = new URLSearchParams(location.search);
 const lang = params.get('lang') || 'Telugu';
 const scenario = params.get('scenario') || '0';
 
-localStorage.setItem('linguapaws_target_lang', JSON.stringify({ name: lang, code: 'te-IN' }));
+localStorage.setItem('linguapaws_target_lang', JSON.stringify({
+    name: lang, id: lang.slice(0, 2).toLowerCase(), code: 'te-IN',
+}));
 /* Home redirects to onboarding unless these are all set. */
 localStorage.setItem('linguapaws_native_lang', JSON.stringify({ name: 'English', code: 'en' }));
 localStorage.setItem('linguapaws_level', JSON.stringify({ id: 'conversational' }));
 if (params.get('mode')) localStorage.setItem('linguapaws_learn_mode', params.get('mode'));
+
+
+/* ── The voice path ────────────────────────────────────────────────────────
+   Headless Chrome has no microphone and the transcriber needs a signed-in
+   backend, so every state of the speak path — listening, heard, and each of
+   the four ways it can fail — is unreachable by clicking. Stubbed here rather
+   than in the page: `getUserMedia`, `MediaRecorder` and `transcribeAudio` are
+   replaced, and the real Steps code runs against them unchanged.
+
+     ?answer=speak|type   which answer mode the lesson opens in
+     ?voice=listening     mid-recording
+     ?voice=heard         a transcript landed in the box
+     ?voice=denied|none|offline|script|failed|empty   the ways it goes wrong
+*/
+const voiceState = params.get('voice');
+if (params.get('answer') || voiceState) {
+    localStorage.setItem('linguapaws_answer_mode',
+        params.get('answer') === 'type' ? 'type' : 'speak');
+}
+
+if (voiceState) {
+    const track = { kind: 'audio', stop() {} };
+    const stream = { active: true, getTracks: () => [track] };
+    const md = navigator.mediaDevices;
+    md.getUserMedia = async () => {
+        if (voiceState === 'denied' || voiceState === 'none') {
+            throw new DOMException('Permission denied', 'NotAllowedError');
+        }
+        return stream;
+    };
+    md.enumerateDevices = async () =>
+        (voiceState === 'none' ? [] : [{ kind: 'audioinput', deviceId: 'stub' }]);
+    if (voiceState === 'offline') {
+        Object.defineProperty(navigator, 'onLine', { get: () => false, configurable: true });
+    }
+
+    window.MediaRecorder = class {
+        static isTypeSupported() { return true; }
+        constructor() { this.state = 'inactive'; this.mimeType = 'audio/webm'; this.on = {}; }
+        addEventListener(k, f) { (this.on[k] = this.on[k] || []).push(f); }
+        removeEventListener(k, f) { this.on[k] = (this.on[k] || []).filter(x => x !== f); }
+        start() {
+            this.state = 'recording';
+            // ?voice=empty is the learner who tapped the mic and said nothing.
+            if (voiceState === 'empty') return;
+            setTimeout(() => this.ondataavailable?.({
+                data: new Blob(['stub-audio'], { type: 'audio/webm' }),
+            }), 20);
+        }
+        stop() { this.state = 'inactive'; (this.on.stop || []).forEach(f => f()); }
+    };
+
+    aiService.transcribeAudio = async (blob, native, target, expecting, expected) => {
+        if (voiceState === 'failed') return { error: 'Transcription failed: stub' };
+        if (voiceState === 'script') return { text: 'నమస్కారం, నేను బాగున్నాను' };
+        return { text: params.get('heard') || expected || 'Namaskaram' };
+    };
+}
 
 const screen = params.get('screen');
 
@@ -72,11 +133,16 @@ const setValue = (input, value) => {
     input.dispatchEvent(new Event('input', { bubbles: true }));
 };
 
+/* The voice driver runs after whichever driver put us on this screen. */
+window.__driverBusy = false;
+
 const jumpTo = parseInt(params.get('step') ?? '', 10);
 if (!Number.isNaN(jumpTo) && jumpTo > 0) {
     let done = 0;
+    window.__driverBusy = true;
+    const stop = () => { window.__driverBusy = false; clearInterval(tick); };
     const tick = setInterval(() => {
-        if (done >= jumpTo) return clearInterval(tick);
+        if (done >= jumpTo) return stop();
         const button = cta();
         const input = box();
         if (!button) return;
@@ -103,6 +169,7 @@ if (winTo !== null && winTo !== undefined) {
        ?bounce it is the one before, so the screen we stop on is the recovery. */
     const wrongAt = bounce !== null ? Number(bounce) : target;
 
+    window.__driverBusy = true;
     (async () => {
         const lessonsFor = CURRICULUM[lang] || [];
         const lesson = lessonsFor[Number(scenario)];
@@ -113,11 +180,12 @@ if (winTo !== null && winTo !== undefined) {
         const expected = buildLessonSteps(lesson, reviewSet, lessonsFor).map(s => s.expected);
 
         let at = 0, wrongsLeft = wrongs;
+        const stop = () => { window.__driverBusy = false; clearInterval(tick); };
         const tick = setInterval(() => {
             const button = cta();
             const input = box();
             if (!button) return;
-            if (at > target) return clearInterval(tick);
+            if (at > target) return stop();
 
             if (button.textContent.trim() !== 'Check') {
                 if (at !== target) { button.click(); at++; return; }
@@ -129,13 +197,13 @@ if (winTo !== null && winTo !== undefined) {
                     if (!input.value) return setValue(input, expected[at] || '.');
                     lockBtn.click();
                 }
-                return clearInterval(tick);
+                return stop();
             }
             if (!input) return;
             if (at === wrongAt && wrongsLeft > 0) {
                 if (!input.value) return setValue(input, 'zzz nonsense');
                 button.click(); wrongsLeft--;
-                if (!wrongsLeft && !recovering && !locking && bounce === null) clearInterval(tick);
+                if (!wrongsLeft && !recovering && !locking && bounce === null) stop();
                 return;
             }
             /* Set it whenever it is not already the answer — after a miss the
@@ -146,6 +214,79 @@ if (winTo !== null && winTo !== undefined) {
             button.click();
         }, 110);
     })();
+}
+
+/* ── The keyboard on its own ───────────────────────────────────────────────
+   `?enter=N` plays N screens with no clicks at all: the answer is typed, Enter
+   checks it, and a second Enter moves on. Landing on screen N is the proof —
+   before this, Enter could not settle a screen (the input was `disabled`, and
+   a disabled input receives no key events) and could not advance one either
+   (the settled screen has no input mounted at all). */
+const enterTo = parseInt(params.get('enter') ?? '', 10);
+if (!Number.isNaN(enterTo)) {
+    window.__driverBusy = true;
+    const press = () => (document.activeElement || document.body).dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+
+    (async () => {
+        const lessonsFor = CURRICULUM[lang] || [];
+        const lesson = lessonsFor[Number(scenario)];
+        const reviewSet = await ensureReviewSet(
+            lang, Number(scenario), lesson.vocabulary || [],
+            (lesson.phrases || []).flatMap(p => String(p.correct || '').split(/\s+/)),
+        ).catch(() => null);
+        const expected = buildLessonSteps(lesson, reviewSet, lessonsFor).map(s => s.expected);
+
+        let at = 0;
+        const tick = setInterval(() => {
+            if (at >= enterTo) { window.__driverBusy = false; return clearInterval(tick); }
+            const button = cta();
+            const input = box();
+            if (!button) return;
+            if (button.textContent.trim() === 'Check') {
+                if (!input) return;
+                const want = expected[at] || '.';
+                if (input.value !== want) return setValue(input, want);
+                return press();
+            }
+            press();
+            at++;
+        }, 620); /* longer than the guard that stops a double Enter from
+                    spending the celebration before it has been read */
+    })();
+}
+
+/* `?press=N` taps Enter N times once the other drivers are done — the way to
+   check that Enter reaches a screen no input is mounted on. `?lock=9&press=1`
+   locks the revealed answer in and then moves on without touching Continue. */
+const pressN = parseInt(params.get('press') ?? '', 10);
+if (!Number.isNaN(pressN)) {
+    let left = pressN;
+    const tick = setInterval(() => {
+        if (window.__driverBusy) return;
+        if (left <= 0) return clearInterval(tick);
+        (document.activeElement || document.body).dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+        left--;
+    }, 640);
+}
+
+/* The microphone, once whichever driver put us on this screen has finished.
+   One tap starts it; the states that need a transcript take a second tap to
+   stop and hand the stub blob to the stubbed transcriber. */
+if (voiceState) {
+    const mic = () => [...document.querySelectorAll('button')].find(b =>
+        /Record your answer|Stop recording/.test(b.getAttribute('aria-label') || ''));
+    const taps = ['listening', 'denied', 'none', 'offline'].includes(voiceState) ? 1 : 2;
+    let done = 0;
+    const tick = setInterval(() => {
+        if (window.__driverBusy) return;
+        if (done >= taps) return clearInterval(tick);
+        const m = mic();
+        if (!m || m.disabled) return;
+        m.click();
+        done++;
+    }, 280);
 }
 
 /* The toggle on its own. Home itself needs a real signed-in session — its

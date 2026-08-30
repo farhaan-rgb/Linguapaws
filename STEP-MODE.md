@@ -105,6 +105,64 @@ fails if any one of them has no verdict, nothing to say about what the learner
 did, or nothing to offer on a miss. It found five single-word drills celebrating
 with an empty string.
 
+## Answering out loud
+
+The rest of the app is voice-first and this surface was not, so `Type ⇄ Speak`
+sits above the answer box, remembered in `linguapaws_answer_mode`. Speak mode
+mounts the microphone **above** the text box, not instead of it — the box is
+present in every state, including every state where the mic has failed, because
+a learner who cannot get a microphone working must never be stuck on a screen.
+
+The path is chat's, reused: `useAudioRecorder` → `aiService.transcribeAudio`.
+Two differences that matter here.
+
+- **A step knows its own answer,** so `targetText` is `step.expected` rather
+  than a phrase scraped out of the tutor's last message. The backend snaps a
+  phonetically close reading onto the spelling the course actually uses.
+- **The transcript is not checked for the learner.** It lands in the box, still
+  editable, and they press Check. A mis-hearing must not be able to spend one of
+  the two tries the screen allows — the streak dies on the first miss, and one
+  lost to Whisper is a miss the learner did not make.
+
+One recorder for the whole lesson, not one per screen: a hook per step would
+open a `MediaStream` on each screen and drop it on the next, leaving the
+browser's recording light on behind the learner. The stream is released the
+moment a recording stops, and again when the lesson unmounts.
+
+Every way it goes wrong has a line and a way forward — no microphone, blocked
+permission, offline, nothing recorded, transcription failed, and a transcript
+that comes back in the target's own script (the course is romanised and
+`scoreAnswer` normalises Latin, so native script is unscoreable rather than
+wrong). All amber, all in `praise.voiceTrouble`. The four that mean the mic is
+not going to work on this device also **bring the spelling back** and put the
+cursor in the box.
+
+## Hear it, then say it
+
+A teaching screen speaks its word on arrival, unasked — the listen-and-repeat
+loop, at the one moment the learner has nothing else to do. On the sound switch,
+like everything else.
+
+The spelling is hidden **only in speak mode**, behind one tap. Hiding it from
+someone who has to *type* the word back swaps the task the screen is grading for
+a much harder one — transliterating an unfamiliar language by ear — and the
+accepted-spelling machinery (`spellingNote`, the `alt` lists) assumes they saw
+it. Someone saying it back needs no spelling at all, so there it is a real
+listen-and-repeat. The meaning stays visible in both: you should know what you
+are producing.
+
+## One key
+
+Enter checks an answer, and Enter moves on once the screen has settled. The
+second half needs a `keydown` listener on the document rather than the input's
+own handler, because a settled screen *replaces* the box with the panel and
+there is no mounted input left to receive the keypress. (Before that it was
+replaced by `disabled`, which does not deliver key events either — so Enter had
+never advanced this surface.) Guards, all of which cost a screen if missing: a
+focused button already turns Enter into a click and must not be handled twice;
+the revealed panel's own box owns Enter, where it locks in; and 500ms after a
+screen settles, so a fast double-press cannot spend the celebration unread.
+
 ## Switching
 
 `How you learn` is the first card on Home — `Step by step ⇄ Chat`, stored in
@@ -129,15 +187,22 @@ cannot be reached by clicking alone.
 - `?recover=N` — wrong once, then right
 - `?lock=N` — wrong twice, then types the revealed answer back
 - `?bounce=N` — misses screen N, clears it, then clears N+1: the recovery line
-- `?type=<answer>` — types an answer on the screen it lands on and checks it
+- `?answer=speak|type` — which answer mode the lesson opens in
+- `?voice=listening|heard|denied|none|offline|script|failed|empty` — the voice
+  states, with `getUserMedia`, `MediaRecorder` and `transcribeAudio` stubbed so
+  the real page code runs against them
+- `?enter=N` — plays N screens with **no clicks at all**: type, Enter, Enter
+- `?press=N` — taps Enter N times once the other drivers finish, e.g.
+  `?lock=9&press=1` locks the revealed answer in and moves on without Continue
 - `?screen=toggle&mode=steps|chat` — the mode switch
 
 Not part of `npm run build`; vite only builds `index.html`.
 
 ## Not done yet
 
-- **Text input only.** The chat's voice path (`useAudioRecorder` + Whisper) is
-  not wired into step screens.
+- **No pronunciation feedback.** A spoken answer is transcribed and then graded
+  as text, so *how* it was said is not assessed —
+  `POST /api/ai/pronunciation` exists and is not called from here.
 - **Paws and streaks end with the lesson.** They are honest about that on the
   summary. Carrying them across lessons needs a server counter that does not
   exist yet — `/api/progress` tracks successful repeats and nothing else.
