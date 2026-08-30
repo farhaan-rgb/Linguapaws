@@ -42,6 +42,36 @@ several testers can be mid-lesson at once. Steps 12-15 go through the model; wit
 `OPENAI_API_KEY` in `backend/.env` that happens for real, otherwise those turns
 are marked as not simulated.
 
+## Playing the step surface
+
+`lesson-sim` plays the chat. The course has a second surface — the fifteen
+screens of `Steps.jsx` — and a learner picks between them on the home screen, so
+half the product was untestable by this protocol until `step-sim` existed.
+
+```
+node tools/step-sim.mjs --session me --reset --lang Telugu --scenario 0
+node tools/step-sim.mjs --session me --say "Namaskaram"
+node tools/step-sim.mjs --session me --hint      # only where the screen offers one
+node tools/step-sim.mjs --session me --next      # once a screen is settled
+node tools/step-sim.mjs --session me --status
+```
+
+It runs `stepPlan.buildLessonSteps` for the run, `lessonEngine.scoreAnswer` for
+every accept, `explainMiss` for every miss and `praise` for what the screen says
+about it — the same modules the app renders from, so a finding is a finding
+about the product. It writes the state file in the shape `lesson-sim` writes,
+which is what lets `leak-check` read a step-mode transcript unchanged.
+
+It marks the channel the same way, and the marks are worth watching here: step
+mode speaks the target and **nothing else**. Every grammar note, spelling note
+and verdict clause is `👁` screen-only, where chat speaks its notes aloud. A
+tester judging by ear is judging a different lesson on each surface.
+
+**Session names are shared between the two simulators and reusing one
+overwrites the other tester's transcript** — and, worse, inherits their banked
+vocabulary, so the review slots silently change. `ls .lesson-sim/` before
+picking one.
+
 ## Running a round with simulated learners
 
 A model playing a beginner is useful because it will report confusion in the
@@ -96,6 +126,16 @@ transcript.
 The general lesson is worth keeping: **check what the product actually delivers to
 the user, not what the code produces.** Everything upstream of that can be
 correct while the learner receives none of it.
+
+## Doing all of this with agents
+
+`../AGENTS.md` describes four user-level agents that encode this protocol —
+`linguapaws-tester-telugu` and `linguapaws-tester-kannada` play rounds by these
+rules and publish their own `leak-check` output; `linguapaws-dev` and
+`linguapaws-design` fix what the rounds find. They are available from any tab.
+The tester files are generated from `../agents/tester-template.md` and
+installed by `../agents/install.sh`; edit the sources in `agents/`, not the
+installed copies.
 
 ## Do not patch mid-round
 
