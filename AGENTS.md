@@ -1,6 +1,6 @@
 # The agent fleet
 
-Four agents in `~/.claude/agents/`, which is a **user-level** directory — they
+Five agents in `~/.claude/agents/`, which is a **user-level** directory — they
 are available from any tab, in any project, not only when a session is open in
 this repo. Each one `cd`s here itself.
 
@@ -12,10 +12,11 @@ reverts anything changed in place.
 |---|---|
 | `linguapaws-dev` | code — the engine, the SRS, both lesson surfaces, the backend, the tools |
 | `linguapaws-design` | screens, motion, the reward layer, UI copy |
+| `linguapaws-voice` | TTS, ASR, pronunciation scoring, mic capture, speech-vendor choice |
 | `linguapaws-tester-telugu` | playing the Telugu course as someone who does not speak it |
 | `linguapaws-tester-kannada` | the same, in Kannada |
 
-Dev and design are **one agent each, not one per language**, because the React
+Dev, design and voice are **one agent each, not one per language**, because the React
 code and the visual design are language-agnostic — only content differs. Pass
 the language when it matters: *"fix the Kannada review step"*.
 
@@ -77,4 +78,8 @@ capabilities:
   and engine fixes were not reaching learners at all.
 - **Design** does not design from the source. It runs the preview harness and
   looks at the screen, because a judgement made by reading JSX is a guess.
+- **Voice** applies the same rule to sound: it plays the lesson and listens
+  before it says a voice is right. It also never answers a vendor question from
+  memory — speech model lineups change monthly, so every claim carries a URL and
+  the date it was checked.
 - Nobody patches mid-round. Freeze the tree, run the round, then fix.

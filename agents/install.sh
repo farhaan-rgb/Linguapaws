@@ -14,7 +14,7 @@ HERE=${0:a:h}
 DEST=~/.claude/agents
 mkdir -p $DEST
 
-cp "$HERE/linguapaws-dev.md" "$HERE/linguapaws-design.md" $DEST/
+cp "$HERE/linguapaws-dev.md" "$HERE/linguapaws-design.md" "$HERE/linguapaws-voice.md" $DEST/
 
 tester() {  # tester <Language> <slug> <lesson-count> <example range>
     sed -e "s/__LANG__/$1/g" -e "s/__SLUG__/$2/g" -e "s/__COUNT__/$3/g" -e "s/__EG__/$4/g" \
@@ -25,6 +25,7 @@ tester() {  # tester <Language> <slug> <lesson-count> <example range>
 echo "installed to $DEST:"
 echo "  linguapaws-dev"
 echo "  linguapaws-design"
+echo "  linguapaws-voice"
 tester Telugu  telugu  30 "7 to 9"
 tester Kannada kannada 10 "4 to 6"
 # Odiya has 30 lessons and Hindi 5 — uncomment when you want them playtested.
