@@ -305,7 +305,11 @@ export default function Chat() {
             .replace(/\\\*/g, '')                            // Strip escaped asterisks \*
             .replace(/\*\*/g, '')                            // Strip double asterisks (bold)
             .replace(/\*/g, '')                             // Strip single asterisks (italic)
-            .replace(/[\p{Extended_Pictographic}\p{Emoji_Component}]/gu, '') // Strip emojis via Unicode property
+            /* NOT \p{Emoji_Component}: it matches ASCII digits, being what keycap
+               emoji are built from, so this quietly deleted every number from the
+               spoken text — "6 words" was said as "words", "lesson 10" as
+               "lesson". Pictographs and variation selectors only. */
+            .replace(/[\p{Extended_Pictographic}\uFE0F\u20E3]/gu, '')
             .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')  // Supplementary emoji block fallback
             .replace(/[\u2600-\u27BF\uFE00-\uFE0F]/g, ''); // Misc symbols + variation selectors
 
@@ -395,72 +399,20 @@ export default function Chat() {
        rather than squeaking through on string distance.                     */
     const COVERAGE_FLOOR = 0.7;
 
-    /* Every accepted variant of a word maps to the form the curriculum teaches,
-       so a synonym means the same thing at every step rather than only in
-       vocabulary recall. Built from the `alt` lists. */
-    const SYNONYMS = useMemo(() => {
-        const map = new Map();
-        for (const lesson of CURRICULUM[safeLang] || []) {
-            for (const v of lesson.vocabulary || []) {
-                if (!v.word || !Array.isArray(v.alt)) continue;
-                const canonical = v.word.toLowerCase();
-                for (const a of v.alt) map.set(String(a).toLowerCase(), canonical);
-            }
-        }
-        return map;
-    }, [safeLang]);
+    /* The matcher lives in lessonEngine.js and is shared with the offline
+       harness. This page used to carry its own copy of the synonym map, the
+       person-ending guard, tokenCoverage and the scoring — which is exactly the
+       drift the engine file exists to prevent: fixes made against playtest
+       findings landed in the engine and never reached the learner. The lexicon
+       carries both the alt->canonical synonyms and the set of real course words,
+       so the typo tolerance cannot quietly equate two different taught verbs. */
+    const LEXICON = useMemo(() => engine.buildLexicon(CURRICULUM[safeLang] || []), [safeLang]);
 
-    const canonical = (token) => SYNONYMS.get(token) || token;
-
-    /* Telugu and Kannada mark the subject in the verb ending, so a one-character
-       difference at the end of a word is usually a different PERSON, not a typo:
-       bagunnanu is "I am fine", bagunnaru is "you are fine", chesanu is "I did",
-       chesaru is "you did". The typo tolerance below would treat those as the
-       same word, quietly erasing the one distinction these lessons exist to
-       teach. Refuse to forgive an edit that swaps one person ending for another
-       on an otherwise identical stem. */
-    const PERSON_ENDINGS = ['nu', 'ru', 'vu', 'du', 'di', 'mu', 'ni', 'ri', 'ra', 'va'];
-
-    const differsOnlyByPersonEnding = (a, b) => {
-        if (a.length < 4 || b.length < 4) return false;
-        const ea = a.slice(-2), eb = b.slice(-2);
-        if (ea === eb) return false;
-        if (!PERSON_ENDINGS.includes(ea) || !PERSON_ENDINGS.includes(eb)) return false;
-        return a.slice(0, -2) === b.slice(0, -2);
-    };
-
-    const tokenCoverage = (actual, expected) => {
-        const said = normalizeLatin(actual).split(' ').filter(Boolean);
-        const need = normalizeLatin(expected).split(' ').filter(Boolean);
-        if (!need.length) return 1;
-
-        const pool = [...said];
-        let hits = 0;
-        for (const token of need) {
-            // [Place] / (name) wildcards count as satisfied — similarityRatioLatin
-            // already treats them as free, so the gate must agree.
-            if (/[[\]()]/.test(token)) { hits++; continue; }
-            const want = canonical(token);
-            const i = pool.findIndex(raw => {
-                const s = canonical(raw);
-                return s === want
-                    // tolerate a one-character slip, but only on words long enough
-                    // that a single edit isn't most of the word — and never when the
-                    // slip is a swapped person ending
-                    || (Math.max(s.length, want.length) >= 4
-                        && levenshtein(s, want) <= 1
-                        && !differsOnlyByPersonEnding(s, want));
-            });
-            if (i !== -1) { hits++; pool.splice(i, 1); }
-        }
-        return hits / need.length;
-    };
+    const tokenCoverage = (actual, expected) => engine.tokenCoverage(actual, expected, LEXICON);
 
     /** Best coverage across the canonical answer and any accepted variants. */
     const bestCoverage = (actual, expected, acceptable = []) =>
-        [expected, ...acceptable]
-            .filter(Boolean)
-            .reduce((best, variant) => Math.max(best, tokenCoverage(actual, variant)), 0);
+        engine.scoreAnswer(actual, expected, acceptable, LEXICON).coverage;
 
     /* ── Teaching line ─────────────────────────────────────────────────────
        Built from the curriculum, never authored by the model. The prompt used
@@ -483,19 +435,13 @@ export default function Chat() {
         return vocabulary.slice(from, Math.max(to, from + 1));
     };
 
-    const buildTeachingLine = (wordObj, opener = '') => {
-        if (!wordObj?.word) return null;
-        // An authored `teach` line explains the word but does not ask for it, so
-        // it must close with the same direct instruction the plain template
-        // carries — otherwise the learner is left reading grammar with no idea
-        // it is their turn, and the app sits waiting. The last bold span is what
-        // the answer matcher expects, and both spans are the same word.
-        const body = wordObj.teach
-            ? `${wordObj.teach.replace('{w}', `**${wordObj.word}**`)} Your turn — say **${wordObj.word}**`
-            : `To say "${wordObj.meaning}", say **${wordObj.word}**`;
-        const phon = wordObj.phonetic ? `\n<phonetic>${wordObj.phonetic}</phonetic>` : '';
-        return `${opener}${opener ? ' ' : ''}${body}${phon}`;
-    };
+    /* Both teaching-line builders live in lessonEngine.js and are shared with
+       the offline harness. This page carried its own copies, which is how a
+       placeholder bug — `String.replace` substitutes only the FIRST match — sat in
+       four places at once and showed a learner a literal `{w}` on screen. The
+       matcher was duplicated the same way and had to be collapsed for the same
+       reason; there is no second copy of either now. */
+    const buildTeachingLine = (wordObj, opener = '') => engine.buildTeachingLine(wordObj, opener);
 
     /* ── Review slots ──────────────────────────────────────────────────────
        Steps 5–7 of each 15-step lesson used to quiz three of the *current*
@@ -506,25 +452,7 @@ export default function Chat() {
 
     /** One teaching message for a whole slice. The final bold span is the word
         the learner is asked for, which is what the answer matcher reads. */
-    const buildTeachingStep = (slice, opener = '') => {
-        const words = (slice || []).filter(w => w?.word);
-        if (!words.length) return null;
-        if (words.length === 1) return buildTeachingLine(words[0], opener);
-
-        const lead = words.slice(0, -1).map(w => {
-            const body = w.teach
-                ? w.teach.replace('{w}', `**${w.word}**`)
-                : `"${w.meaning}" is **${w.word}**`;
-            return body.replace(/\.$/, '');
-        }).join('. ');
-        const last = words[words.length - 1];
-        const lastRaw = last.teach
-            ? last.teach.replace('{w}', `**${last.word}**`)
-            : `"${last.meaning}" is **${last.word}**`;
-        const lastBody = /[.?!]$/.test(lastRaw) ? lastRaw : `${lastRaw}.`;
-        const phon = last.phonetic ? `\n<phonetic>${last.phonetic}</phonetic>` : '';
-        return `${opener}${opener ? ' ' : ''}${lead}. ${lastBody} Your turn — say **${last.word}**${phon}`;
-    };
+    const buildTeachingStep = (slice, opener = '') => engine.buildTeachingStep(slice, opener);
 
     /* Accepted spoken variants of a taught word, from the curriculum's `alt`.
        Lets the drill demand the form that shows the morphology (Bagunnanu, where
@@ -544,13 +472,8 @@ export default function Chat() {
     };
 
     /** Best string-similarity and token-coverage across a target and its variants. */
-    const scoreAgainst = (actual, expected, variants = []) => {
-        const all = [expected, ...variants].filter(Boolean);
-        return {
-            ratio: all.reduce((b, v) => Math.max(b, similarityRatioLatin(actual, v)), 0),
-            coverage: all.reduce((b, v) => Math.max(b, tokenCoverage(actual, v)), 0),
-        };
-    };
+    const scoreAgainst = (actual, expected, variants = []) =>
+        engine.scoreAnswer(actual, expected, variants, LEXICON);
 
     /* How many times in a row the learner has just missed the current review
        word. Derived from the message log rather than component state so it
@@ -607,8 +530,12 @@ export default function Chat() {
         const wantTokens = e.split(' ').filter(Boolean);
         if (saidTokens.length < wantTokens.length - 1) return false;
         // must overlap the real answer, so echoing the English hint fails
+        /* Same guards the engine applies: `illi`/`alli` are one edit apart and mean
+           here and there, so this door must not reopen what the matcher closed. */
         return saidTokens.some(x => wantTokens.some(y =>
-            x === y || (Math.max(x.length, y.length) >= 4 && levenshtein(x, y) <= 1)));
+            x === y || (Math.max(x.length, y.length) >= 4 && levenshtein(x, y) <= 1
+                && !engine.differsOnlyByPersonEnding(x, y)
+                && !engine.differsOnlyByDeicticInitial(x, y))));
     };
 
     /** How much help this answer needed — drives how far the word climbs. */
@@ -1202,6 +1129,11 @@ export default function Chat() {
         const isContinueRequest = CONTINUE_WORDS.has(
             (text || '').trim().toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, ' ').trim()
         );
+        /* The escape hatch. When the tutor concedes a gap it offers 'Say "skip"
+           and I will give you the answer and move us on' — and "skip" was then
+           graded as a wrong answer, leaving the learner on the same step with the
+           promise unkept. Handled here, before any grading. */
+        const isSkipRequest = engine.isSkipRequest(text);
 
         // Track user's words (only track words longer than 3 characters)
         const userWords = isContinueRequest ? null : text.match(/[\p{L}]{2,}/gu);
@@ -1250,26 +1182,40 @@ export default function Chat() {
             let reviewExpectedWord = null;
             let reviewItem = null;   // { word, meaning, source } when in a review step
             let matchCoverage = 0;   // fraction of the target's words actually produced
+            let matchAccepted = false;  // the engine's verdict, shared with the harness
+            /* Hoisted out of the teaching branch: the "Close! Spelled" badge below
+               needs the SAME target and variants the grader used. It was measuring
+               against `promptedPhrase`, which is only the LAST bold word of the
+               step, so a learner who correctly said the fused `Hegiddeera` for the
+               two-word step Hege + Iddeera was accepted and then shown
+               "Close! Spelled: Iddeera" — advice to write half the answer. */
+            let teachWanted = null;
+            let teachAccepted = [];
 
             if (isCurrentlyTeaching && promptedPhrase) {
-                /* A step that shows two words names only one in the instruction,
-                   so the other is on screen but never practised. Accept either. */
-                const offered = engine.wordsOfferedBy(
-                    teachSliceFor(scenarioDataForMatch.vocabulary, currentInScenario));
+                /* A step that shows two words asks for BOTH — `expectedForTeachStep`
+                   is the one place that decides what the step wants, shared with the
+                   offline harness. Accepting just one of them let a learner be told
+                   "Correct" and then quizzed on a word they had never produced. */
+                const slice = teachSliceFor(scenarioDataForMatch.vocabulary, currentInScenario);
+                const wanted = engine.expectedForTeachStep(slice) || promptedPhrase;
+                teachWanted = wanted;
                 const teachVariants = [
-                    ...altsFor(promptedPhrase),
-                    ...offered.filter(w => w !== promptedPhrase),
-                    ...offered.flatMap(w => altsFor(w)),
-                ];
-                ({ ratio: matchRatio, coverage: matchCoverage } =
-                    scoreAgainst(actual, promptedPhrase, teachVariants));
-                displayPhrase = promptedPhrase;
+                    ...engine.teachStepVariants(slice),
+                    ...(engine.wordsOfferedBy(slice).length > 1
+                        ? []
+                        : [...altsFor(promptedPhrase), ...engine.wordsOfferedBy(slice).flatMap(w => altsFor(w))]),
+                ].filter(Boolean);
+                teachAccepted = teachVariants;
+                ({ ratio: matchRatio, coverage: matchCoverage, accepted: matchAccepted } =
+                    scoreAgainst(actual, wanted, teachVariants));
+                displayPhrase = wanted;
             } else if (isCurrentlyInReview) {
                 const round = currentInScenario - 5;
                 reviewItem = reviewItemAt(scenarioIdxForMatch, round, scenarioDataForMatch.vocabulary);
                 reviewExpectedWord = reviewItem?.word || null;
                 if (reviewExpectedWord) {
-                    ({ ratio: matchRatio, coverage: matchCoverage } =
+                    ({ ratio: matchRatio, coverage: matchCoverage, accepted: matchAccepted } =
                         scoreAgainst(actual, reviewExpectedWord, altsFor(reviewExpectedWord)));
                     displayPhrase = reviewExpectedWord;
                 }
@@ -1278,15 +1224,8 @@ export default function Chat() {
                 const basicItem = scenarioDataForMatch.phrases?.[basicIdx];
                 phraseExpectedCorrect = basicItem?.correct || null;
                 if (phraseExpectedCorrect) {
-                    const acceptables = basicItem?.acceptable || [];
-                    const bestAltScore = acceptables.reduce((best, alt) =>
-                        Math.max(best, similarityRatioLatin(actual, alt)), 0);
-                    if (bestAltScore >= 0.8) {
-                        matchRatio = 1.0;
-                    } else {
-                        matchRatio = Math.max(similarityRatioLatin(actual, phraseExpectedCorrect), bestAltScore);
-                    }
-                    matchCoverage = bestCoverage(actual, phraseExpectedCorrect, acceptables);
+                    ({ ratio: matchRatio, coverage: matchCoverage, accepted: matchAccepted } =
+                        scoreAgainst(actual, phraseExpectedCorrect, basicItem?.acceptable || []));
                     displayPhrase = phraseExpectedCorrect;
                 }
             } else if (isCurrentlyInConvo) {
@@ -1294,15 +1233,8 @@ export default function Chat() {
                 const convoItem = scenarioDataForMatch.conversations?.[convoIdx];
                 phraseExpectedCorrect = convoItem?.correct || null;
                 if (phraseExpectedCorrect) {
-                    const acceptables = convoItem?.acceptable || [];
-                    const bestAltScore = acceptables.reduce((best, alt) =>
-                        Math.max(best, similarityRatioLatin(actual, alt)), 0);
-                    if (bestAltScore >= 0.8) {
-                        matchRatio = 1.0;
-                    } else {
-                        matchRatio = Math.max(similarityRatioLatin(actual, phraseExpectedCorrect), bestAltScore);
-                    }
-                    matchCoverage = bestCoverage(actual, phraseExpectedCorrect, acceptables);
+                    ({ ratio: matchRatio, coverage: matchCoverage, accepted: matchAccepted } =
+                        scoreAgainst(actual, phraseExpectedCorrect, convoItem?.acceptable || []));
                     displayPhrase = phraseExpectedCorrect;
                 }
             }
@@ -1314,19 +1246,78 @@ export default function Chat() {
             const expectedForEcho = promptedPhrase || reviewExpectedWord || phraseExpectedCorrect;
             const echoedTutor = hasExpectation
                 && tutorModelled(actual, lastAssistant?.content, expectedForEcho);
+            /* The verdict comes from the engine, so every fix made against a
+               playtest finding — the vowel-length typo asymmetry, commentary
+               appended to a correct answer, Telugu's optional subject pronoun,
+               refusing to equate two different taught verbs — applies here and
+               in the harness identically. `threshold` still applies where the
+               caller has raised the bar above the engine's default. */
             const hasCorrectMatch = hasExpectation
-                && (echoedTutor || (matchRatio >= threshold && matchCoverage >= COVERAGE_FLOOR));
+                && (echoedTutor || (matchAccepted && matchRatio >= threshold));
             const isLastScenarioStep = currentInScenario === 14 && hasCorrectMatch;
 
             // -- 3. SCORE TRACKING & CORRECTIONS --
             let expectedCorrectionStr = null;
-            if (isCurrentlyTeaching) expectedCorrectionStr = promptedPhrase;
+            if (isCurrentlyTeaching) expectedCorrectionStr = teachWanted || promptedPhrase;
             else if (isCurrentlyInReview) expectedCorrectionStr = reviewExpectedWord;
             else expectedCorrectionStr = phraseExpectedCorrect;
 
+            /* -- SKIP: the escape hatch, honoured before any grading --
+               The tutor offers it by name when it concedes a gap ('Say "skip" and
+               I will give you the answer and move us on'), and it did nothing:
+               "skip" was graded as a wrong answer and the learner stayed on the
+               step. Show the answer, count the step, move on — the word comes back
+               through the spaced-repetition queue on its own, which is what
+               "we'll come back to it" has always meant here. */
+            if (isSkipRequest && expectedCorrectionStr) {
+                const progressRes = await api.post('/api/progress/increment').catch(() => null);
+                if (progressRes) setProgress(progressRes);
+                /* "That one will come back later" is a promise about the
+                   spaced-repetition ladder, and nothing was telling the ladder.
+                   A skip is a lapse — the strongest signal there is that the word
+                   is not known — so it is recorded as one and the scheduler brings
+                   it back. Word-level stages only; a whole sentence is not a
+                   ladder item. */
+                if (isCurrentlyTeaching || isCurrentlyInReview) {
+                    recordReview({
+                        lang: safeLang,
+                        word: expectedCorrectionStr,
+                        outcome: 'missed',
+                        meaning: reviewItem?.meaning,
+                        scenario: scenarioDataForMatch.scenario,
+                    });
+                }
+                const skipped = {
+                    role: 'assistant',
+                    content: `No problem — it's **${expectedCorrectionStr}**. That one will come back later.`,
+                };
+                setMessages(prev => [...prev, skipped]);
+                if (!isMuted && isMounted.current) {
+                    const audioUrl = await aiService.generateSpeech(
+                        buildSpeechText(skipped.content),
+                        resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+                    if (audioUrl && isMounted.current) {
+                        audioRef.current.src = audioUrl;
+                        audioRef.current.play().catch(() => {});
+                    }
+                }
+                setIsLoading(false);
+                return;
+            }
+
             if (hasCorrectMatch) {
                 setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(matchRatio * 100) }));
-                if (matchRatio < 0.95 && expectedCorrectionStr) {
+                /* Gated on `spellingNote`, not on a raw ratio. The ratio drops
+                   below 0.95 for any accepted VARIANT — a dropped pronoun, the
+                   run-together form the lesson itself calls correct — and the badge
+                   then told a learner they had misspelled something they had spelled
+                   fine. `spellingNote` returns '' when there is nothing worth saying,
+                   which is exactly the question the badge is asking. */
+                const spellHint = expectedCorrectionStr
+                    ? engine.spellingNote(text, expectedCorrectionStr,
+                        isCurrentlyTeaching ? teachAccepted : [], LEXICON)
+                    : '';
+                if (spellHint) {
                    setCorrections(prev => ({ ...prev, [userMessageIndex]: { expected: expectedCorrectionStr, ratio: matchRatio } }));
                 }
             }
@@ -1348,19 +1339,27 @@ export default function Chat() {
                 }
             }
 
-            // -- 4. TRANSITION SYSTEM MESSAGES (fire before AI call, based on current state) --
+            /* -- 4. TRANSITION SYSTEM MESSAGES (fire before AI call) --
+               Held in `transitionBanner` as well as displayed, so the voice can
+               announce it. A learner who only listens got no warning that the
+               format had changed from repeating words to being quizzed on them —
+               these banners were printed and never spoken, like the notes. */
+            let transitionBanner = '';
             if (hasCorrectMatch) {
                 const activeScenario = scenarioDataForMatch.scenario || 'Learning';
                 if (isLastScenarioStep) {
                     setLevelUpToast(`🏆 Scenario Complete: ${activeScenario}!`);
                     setTimeout(() => setLevelUpToast(null), 5000);
+                    transitionBanner = 'Scenario complete — you have finished all fifteen steps.';
                     setMessages(prev => [...prev, { role: 'system', content: '✨ **Scenario Mastered!** You\'ve completed all 15 steps. Moving to the next challenge...' }]);
                     // Lesson done — drop its cached triplet so a replay rebuilds
                     // from whatever is due at that point, not this session's set.
                     clearReviewSet(safeLang, scenarioIdxForMatch);
                 } else if (isCurrentlyTeaching && currentInScenario === 4) {
+                    transitionBanner = 'Vocabulary done — now a quick check on a few of them.';
                     setMessages(prev => [...prev, { role: 'system', content: '🎓 **Vocabulary done** — now a quick check on a few of them.' }]);
                 } else if (isCurrentlyInReview && currentInScenario === 7) {
+                    transitionBanner = 'Review passed — now we build whole sentences.';
                     setMessages(prev => [...prev, { role: 'system', content: '🎓 **Review passed** — now let\'s build whole sentences.' }]);
                 }
             }
@@ -1368,8 +1367,10 @@ export default function Chat() {
             // -- 5. META-NOTE CONSTRUCTION (uses optimistic +1 so AI gets the right next step) --
             const optimisticNextRepeats = hasCorrectMatch ? currentRepeats + 1 : currentRepeats;
             const nextInScenario = optimisticNextRepeats % CYCLE_SIZE;
-            const HELP_WORDS = ["don't know", "dont know", "i don't know", "idk", "how", "how?", "help", "hint", "tell me", "show me", "not sure", "what", "what?", "confused", "no idea", "repeat", "again", "what part", "not clear"];
-            const isHelpRequest = HELP_WORDS.some(h => (text || '').trim().toLowerCase().includes(h));
+            /* Shared with the offline harness, and matched on word boundaries:
+               the inline substring version found "hint" inside the Telugu word
+               *Thinte* and read a correct answer as a request for help. */
+            const isHelpRequest = engine.isHelpRequest(text);
             const lastAssistantContent = lastAssistant?.content || '';
             const lastWasFailure = lastAssistantContent.includes('Not quite') || lastAssistantContent.includes('try again') || lastAssistantContent.includes('not quite');
 
@@ -1438,7 +1439,11 @@ export default function Chat() {
                             ? `${shown} We'll come back to that one. ${firstPhrase2 || ''}`.trim()
                             : `${shown} We'll come back to it later — ${nextQuestion()}`;
                     } else {
-                        const diagnosis = await aiService.diagnoseAttempt({
+                        /* The grader knows why it refused — ask it before the
+                           model, whose version named the wrong part of the word in
+                           five of thirteen misses and once invented a meaning. */
+                        const diagnosis = engine.explainMiss(text, reviewExpectedWord, altsFor(reviewExpectedWord), LEXICON)
+                            || await aiService.diagnoseAttempt({
                             answer: text,
                             target: reviewExpectedWord,
                             prompt: `What's the ${targetLangName} word for "${currentMeaning}"?`,
@@ -1452,7 +1457,9 @@ export default function Chat() {
 
                     setMessages(prev => [...prev, { role: 'assistant', content: reviewResponse }]);
                     if (!isMuted && isMounted.current) {
-                        const audioUrl = await aiService.generateSpeech(reviewResponse, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+                        // The "Vocabulary done" banner fires on this path too.
+                        const reviewSpeech = [transitionBanner, reviewResponse].filter(Boolean).join(' ');
+                        const audioUrl = await aiService.generateSpeech(reviewSpeech, resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
                         if (audioUrl && isMounted.current) {
                             audioRef.current.src = audioUrl;
                             audioRef.current.play().catch(() => {});
@@ -1490,23 +1497,23 @@ export default function Chat() {
                     if (hasCorrectMatch) {
                         const pr = await api.post('/api/progress/increment').catch(() => null);
                         if (pr) setProgress(pr);
-                        // Explains the answer just given, so it precedes the next prompt.
+                        /* Verdict, then why, then what's next — the order a
+                           teacher speaks in, and now the order of the audio too.
+                           The note used to be printed BEFORE the verdict and never
+                           spoken at all, so the learner heard "Perfect! Ask 'How
+                           are you?'" while the explanation of what they had just
+                           done scrolled past in silence. */
                         const noteText = noteForAnswer(phraseItem, text);
+                        out.push({ role: 'assistant', content: praise });
                         if (noteText) out.push({ role: 'system', content: `💡 ${noteText}` });
                         if (atBoundary) {
                             /* The "Phrases done" banner lives in the AI path, which
                                sits after this fast path's early return — so on the
-                               path that actually runs it never fired, while praise
-                               was suppressed here in anticipation of it. The last
-                               correct phrase was met with silence, then an
-                               unannounced jump into conversation. Announce it where
-                               the transition actually happens. */
-                            out.push({ role: 'assistant', content: praise });
+                               path that actually runs it never fired. Announce it
+                               where the transition actually happens. */
                             out.push({ role: 'system', content: '🎓 **Phrases done** — now real conversation.' });
-                            out.push({ role: 'assistant', content: nextUp() });
-                        } else {
-                            out.push({ role: 'assistant', content: `${praise} ${nextUp()}` });
                         }
+                        out.push({ role: 'assistant', content: nextUp() });
                     } else if (misses >= REVIEW_RETRY_LIMIT) {
                         const pr = await api.post('/api/progress/increment').catch(() => null);
                         if (pr) setProgress(pr);
@@ -1518,7 +1525,9 @@ export default function Chat() {
                         const hint = phraseItem.hint ? ` Hint: ${phraseItem.hint}.` : '';
                         /* A diagnosis of this attempt if one can be trusted,
                            otherwise the curriculum's fixed hint. */
-                        const diagnosis = otherLang ? null : await aiService.diagnoseAttempt({
+                        const diagnosis = otherLang ? null
+                            : (engine.explainMiss(text, phraseItem.correct, phraseItem.acceptable || [], LEXICON)
+                            || await aiService.diagnoseAttempt({
                             answer: text,
                             target: phraseItem.correct,
                             acceptable: phraseItem.acceptable,
@@ -1526,7 +1535,7 @@ export default function Chat() {
                             hint: phraseItem.hint,
                             targetLangName,
                             nativeLangName: nativeLang?.name || 'English',
-                        });
+                        }));
                         const lead = otherLang
                             ? `That's ${otherLang}, not ${safeLang} — a good answer to the wrong question. In ${safeLang}:${hint}`
                             : (diagnosis ? `Not quite. ${diagnosis}` : `Not quite.${hint}`);
@@ -1537,7 +1546,9 @@ export default function Chat() {
                     }
 
                     setMessages(prev => [...prev, ...out]);
-                    const spoken = out.filter(m => m.role === 'assistant').map(m => m.content).join(' ');
+                    /* Feedback included. Filtering to `assistant` here is what made
+                       every grammar note and stage banner silent. */
+                    const spoken = [transitionBanner, engine.speechForTurn(out)].filter(Boolean).join(' ');
                     if (!isMuted && isMounted.current && spoken) {
                         const audioUrl = await aiService.generateSpeech(buildSpeechText(spoken), resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
                         if (audioUrl && isMounted.current) {
@@ -1577,7 +1588,12 @@ export default function Chat() {
                         ? buildTeachingStep(current, 'Sure — here it is again. 🐾')
                         : "Let's keep going!";
                 } else if (hasCorrectMatch && nextInScenario < 5) {
-                    teachResponse = buildTeachingStep(teachSliceFor(vocab, nextInScenario), `${praise} 🐾`);
+                    /* Name the spelling when the answer was accepted but not
+                       exact. A forgiven typo that goes unmentioned teaches the
+                       typo — testers left the lesson believing "Bagunanu". */
+                    const wantedNow = teachSliceFor(vocab, currentInScenario)[0]?.word;
+                    const spell = engine.spellingNote(text, wantedNow);
+                    teachResponse = buildTeachingStep(teachSliceFor(vocab, nextInScenario), `${praise}${spell} 🐾`);
                 } else if (hasCorrectMatch) {
                     // Fifth word done — open the review quiz with its first question
                     // rather than handing off to the AI with nothing to ask.
@@ -1590,14 +1606,29 @@ export default function Chat() {
                         : `${drillPrompt(scenarioDataForMatch.phrases, 0) || "Let's build a sentence."}`;
                 } else {
                     const current = teachSliceFor(vocab, currentInScenario);
-                    const wanted = current[0]?.word;
-                    const diagnosis = wanted ? await aiService.diagnoseAttempt({
+                    /* Diagnose against the SAME target the grader judged, not just
+                       the step's first word. A two-word step was graded on both
+                       words and then explained against `current[0]` with no
+                       variants, so a learner who said only the first word was
+                       compared to exactly what they had typed, `explainMiss` found
+                       nothing to report, and the model filled the silence with an
+                       invented "close, but one sound is off" — a pronunciation
+                       fault, on a step where the real problem was a missing word.
+                       With the right target it says what is actually true: "the
+                       word for 'Are you (polite)' is missing." */
+                    const wanted = engine.expectedForTeachStep(current) || current[0]?.word;
+                    const wantedVariants = [
+                        ...engine.teachStepVariants(current),
+                        ...engine.wordsOfferedBy(current).flatMap(w => altsFor(w)),
+                    ];
+                    const diagnosis = wanted ? (engine.explainMiss(text, wanted, wantedVariants, LEXICON)
+                        || await aiService.diagnoseAttempt({
                         answer: text,
                         target: wanted,
                         prompt: `Say the ${targetLangName} word for "${current[0]?.meaning || ''}"`,
                         targetLangName,
                         nativeLangName: nativeLang?.name || 'English',
-                    }) : null;
+                    })) : null;
                     teachResponse = current.length
                         ? `Not quite.${diagnosis ? ` ${diagnosis}` : ''} Here it is again. ${buildTeachingStep(current)}`
                         : "Hmm, let's try that once more.";
@@ -1611,7 +1642,7 @@ export default function Chat() {
                 setMessages(prev => [...prev, { role: 'assistant', content: teachResponse }]);
                 if (!isMuted && isMounted.current) {
                     const audioUrl = await aiService.generateSpeech(
-                        buildSpeechText(teachResponse),
+                        buildSpeechText([transitionBanner, teachResponse].filter(Boolean).join(' ')),
                         resolvedCharacter?.voice || 'alloy',
                         targetLang?.name || null
                     );
@@ -1662,8 +1693,10 @@ export default function Chat() {
                     if (!next) out.push({ role: 'system', content: '✨ **Scenario complete.**' });
                     setMessages(prev => [...prev, ...out]);
                     if (!isMuted && isMounted.current) {
+                        // Whole turn, not just out[0] — the completion banner was mute.
                         const audioUrl = await aiService.generateSpeech(
-                            buildSpeechText(out[0].content), resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+                            buildSpeechText([transitionBanner, engine.speechForTurn(out)].filter(Boolean).join(' ')),
+                            resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
                         if (audioUrl && isMounted.current) {
                             audioRef.current.src = audioUrl;
                             audioRef.current.play().catch(() => {});
@@ -1731,6 +1764,13 @@ export default function Chat() {
             }
 
             const activeScenarioLabel = scenarioDataForMatch.scenario || 'Learning';
+            /* Everything the course has taught up to and including this lesson.
+               The model is allowed these words and nothing else, so it cannot
+               reach for a form the learner has never seen. */
+            const taughtSoFar = (CURRICULUM[targetLangName] || [])
+                .slice(0, scenarioIdxForMatch + 1)
+                .flatMap(l => (l.vocabulary || []).map(v => v.word))
+                .filter(Boolean);
             // For SUCCESS: evalNote goes as a system-role override (highest authority, AI cannot ignore it).
             // For FAILURE: evalNote stays in the user message as before.
             const systemOverride = (hasCorrectMatch || isLastScenarioStep) ? evalNote : null;
@@ -1748,7 +1788,7 @@ export default function Chat() {
                     // not a standalone English utterance now carry an authored line
                     // the model must reproduce verbatim.
                     const authored = wordObj.teach
-                        ? ` Use EXACTLY this wording, with the word in bold: "${wordObj.teach.replace('{w}', `**${wordObj.word}**`)}" Then tell them to say it. Do NOT paraphrase and do NOT expand the meaning.`
+                        ? ` Use EXACTLY this wording, with the word in bold: "${wordObj.teach.replaceAll('{w}', `**${wordObj.word}**`)}" Then tell them to say it. Do NOT paraphrase and do NOT expand the meaning.`
                         : ` Vary the scene you build around each word — a question, a mini-story, or something the user already said — but never state a meaning broader than the single word: "${wordObj.meaning}" is the whole of it. Always close with a direct instruction to say the word ("... say **${wordObj.word}**") so the user knows it is their turn.`;
                     metaNote += `\n[NEXT: TEACH word **${wordObj.word}** (${wordObj.meaning}).${authored} NEVER say "try", "give it a try", or "give it a go".]`;
                 } else if (nextInScenario < 8) {
@@ -1761,14 +1801,14 @@ export default function Chat() {
                     const targetPhrase = scenarioDataForMatch.phrases?.[phraseIdx];
                     if (targetPhrase) {
                         const acceptableStr = targetPhrase.acceptable?.length ? ` Also accept (as 100% correct): ${targetPhrase.acceptable.join(', ')}.` : '';
-                        metaNote += `\n[NEXT: BASIC PHRASE. Target translation: "${targetPhrase.correct}".${acceptableStr} Prompt the user: "${targetPhrase.prompt}" WITHOUT revealing the translation up front. Do NOT give ANY part of the answer — not even as an example or tip. Weave the hint naturally into conversation — do NOT write equations like "Think of it as X + Y" or "X + Y + Z". Phrase it conversationally like a real tutor. NEVER say "try", "give it a try", or "give it a go". Match → success:true. Else → success:false.]`;
+                        metaNote += `\n[NEXT: BASIC PHRASE. Target translation: "${targetPhrase.correct}".${acceptableStr} Prompt the user: "${targetPhrase.prompt}" WITHOUT revealing the translation up front. Weave the hint naturally into conversation — do NOT write equations like "Think of it as X + Y" or "X + Y + Z". Phrase it conversationally like a real tutor. NEVER say "try", "give it a try", or "give it a go". ${engine.antiFabricationRule(targetPhrase.correct, taughtSoFar)} Match → success:true. Else → success:false.]`;
                     }
                 } else {
                     const convoIdx = nextInScenario - 11;
                     const targetConvo = scenarioDataForMatch.conversations?.[convoIdx];
                     if (targetConvo) {
                         const acceptableStr = targetConvo.acceptable?.length ? ` Also accept (as 100% correct): ${targetConvo.acceptable.join(', ')}.` : '';
-                        metaNote += `\n[NEXT: CONVO MODE. Target translation: "${targetConvo.correct}".${acceptableStr} Set the scene naturally and prompt: "${targetConvo.prompt}". Do NOT reveal ANY part of the translation — not even as an example, tip, or "native touch". Let the user figure it out entirely from context and previously learned words. Weave the hint "${targetConvo.hint}" conversationally — no equations like "X + Y". NEVER say "try", "give it a try", or "give it a go". Match → success:true. Else → success:false.]`;
+                        metaNote += `\n[NEXT: CONVO MODE. Target translation: "${targetConvo.correct}".${acceptableStr} Set the scene naturally and prompt: "${targetConvo.prompt}". Let the user figure it out from context and previously learned words. Weave the hint "${targetConvo.hint}" conversationally — no equations like "X + Y". NEVER say "try", "give it a try", or "give it a go". ${engine.antiFabricationRule(targetConvo.correct, taughtSoFar)} Match → success:true. Else → success:false.]`;
                     }
                 }
             }
@@ -1866,9 +1906,17 @@ export default function Chat() {
                 .replace(/<word>(.*?)<\/word>/g, '$1')
                 .replace(/<shadow>(.*?)<\/shadow>/gs, '$1')
                 .trim();
-            // Build TTS text: strips <phonetic> (no double-reading) and substitutes
-            // native script from <tts> tags for authentic pronunciation
-            const speechText = buildSpeechText(responseWithoutMeta);
+            /* Build TTS text: strips <phonetic> (no double-reading) and substitutes
+               native script from <tts> tags for authentic pronunciation.
+               The grammar note leads, because it explains the answer the learner
+               has just given and the model's reply already contains the NEXT
+               prompt. It used to be displayed and never spoken, so the audio went
+               from the verdict straight to the next task. */
+            const spokenNote = (postAnswerGrammarNote && hasCorrectMatch)
+                ? engine.spokenFormOfNote(postAnswerGrammarNote)
+                : '';
+            const speechText = buildSpeechText(
+                [transitionBanner, spokenNote, responseWithoutMeta].filter(Boolean).join(' '));
 
             if (!storedResponse || !speechText) {
                 throw new Error("Empty AI response generated; falling back to error message.");
@@ -2084,12 +2132,28 @@ export default function Chat() {
                 <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
+                        /* Everything the learner can SEE, not just the two speaking
+                           roles. The pronunciation guides and the "Close! Spelled"
+                           badge are rendered from separate state, so a copied
+                           transcript silently dropped them — and they are exactly
+                           what someone debugging a lesson needs, which meant
+                           screenshotting the page to report anything about them. */
                         const transcript = messages
                             .map((m, idx) => {
                                 if (m.role !== 'user' && m.role !== 'assistant' && m.role !== 'system') return null;
                                 const label = m.role === 'assistant' ? 'Tutor' : m.role === 'system' ? 'System' : 'Learner';
 
                                 let clean = m.role === 'user' ? (userTransliterations[idx] || m.content) : m.content;
+
+                                const guides = [];
+                                String(clean).replace(/<phonetic>(.*?)<\/phonetic>/gis,
+                                    (_, g) => { guides.push(g.trim()); return ''; });
+                                const extras = guides.map(g => `\n    Pronunciation: ${g}`).join('');
+
+                                const badge = corrections[idx]
+                                    ? `\n    [Close! Spelled: ${corrections[idx].expected}]` : '';
+                                const score = matchScores[idx] !== undefined
+                                    ? `\n    [Match: ${matchScores[idx]}%]` : '';
 
                                 clean = stripTargetScript(clean)
                                     .replace(/<phonetic>.*?<\/phonetic>/gi, '')
@@ -2101,7 +2165,8 @@ export default function Chat() {
                                     .replace(/\*\*(.*?)\*\*/g, '$1')
                                     .replace(/\*(.*?)\*/g, '$1')
                                     .trim();
-                                return `${label}: ${clean}`;
+                                if (!clean && !extras && !badge && !score) return null;
+                                return `${label}: ${clean}${extras}${badge}${score}`;
                             })
                             .filter(Boolean)
                             .join('\n');

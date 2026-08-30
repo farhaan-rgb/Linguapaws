@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Home from './pages/Home';
 import Chat from './pages/Chat';
+import Steps from './pages/Steps';
 import WordHistory from './pages/WordHistory';
 import LanguageSelect from './pages/LanguageSelect';
 import LearnLanguageSelect from './pages/LearnLanguageSelect';
@@ -78,6 +79,7 @@ function AppRoutes() {
       <Route path="/select-language" element={<ProtectedRoute><LanguageSelect /></ProtectedRoute>} />
       <Route path="/learn-language" element={<ProtectedRoute><LearnLanguageSelect /></ProtectedRoute>} />
       <Route path="/chat" element={<ProtectedRoute><ErrorBoundary><Chat /></ErrorBoundary></ProtectedRoute>} />
+      <Route path="/steps" element={<ProtectedRoute><ErrorBoundary><Steps /></ErrorBoundary></ProtectedRoute>} />
       <Route path="/history" element={<ProtectedRoute><WordHistory /></ProtectedRoute>} />
       <Route path="/dictionary" element={<ProtectedRoute><Dictionary /></ProtectedRoute>} />
       <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />

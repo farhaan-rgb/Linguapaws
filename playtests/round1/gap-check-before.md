@@ -1,0 +1,148 @@
+# Telugu — 30 lessons, cumulative gap check
+
+## Blocked drills: easiest accepted answer still needs an untaught word (70)
+
+- L3 (phrase) "Say 'Go there'" → `Akkada vellandi` — missing: **vellandi**
+- L3 (conversation) "Tell someone to go there." → `Akkada vellandi` — missing: **vellandi**
+- L3 (conversation) "Say 'I go home'. Start with 'I' (Nenu)." → `Nenu intiki velthanu` — missing: **velthanu**
+- L6 (phrase) "Ask 'Who is this?'" → `Ithanu evaru?` — missing: **ithanu**
+- L7 (phrase) "Say 'Two friends'" → `Rendu snehithulu` — missing: **snehithulu**
+- L7 (conversation) "Miko asks how many books. Say 'Three books'." → `Moodu pusthakalu` — missing: **pusthakalu**
+- L7 (conversation) "Tell Miko 'I have one sister' (using Naaku oka akka undi)." → `Naaku oka akka undi` — missing: **undi**
+- L8 (phrase) "Say 'Many books' (Chala pusthakalu)" → `Chala pusthakalu` — missing: **chala**
+- L8 (conversation) "Tell Miko you have many friends." → `Naaku chala mandi snehithulu unnaru` — missing: **chala, mandi, unnaru**
+- L8 (conversation) "Say 'I don't want these houses'." → `Ee illu oddu` — missing: **ee**
+- L9 (phrase) "Say 'A little water'" → `Konchem neeru` — missing: **konchem**
+- L9 (conversation) "Say 'That is bad'." → `Adhi bagoledu` — missing: **bagoledu**
+- L10 (conversation) "Say 'This meal is good'." → `Ee bhojanam bagundi` — missing: **ee, bagundi**
+- L12 (phrase) "Say 'Yesterday I did'" → `Ninna nenu chesanu` — missing: **chesanu**
+- L12 (conversation) "Say 'I will do it tomorrow'." → `Nenu repu chestanu` — missing: **chestanu**
+- L12 (conversation) "Ask if they are going today" → `Eeroju meeru velthunnara?` — missing: **velthunnara**
+- L12 (conversation) "Say 'I ate yesterday'." → `Nenu ninna thinnanu` — missing: **thinnanu**
+- L14 (phrase) "Say 'I will see you'" → `Nenu mimmalni chustanu` — missing: **mimmalni**
+- L14 (conversation) "Say 'I will see that movie'." → `Nenu aa cinema chustanu` — missing: **aa**
+- L14 (conversation) "Final check: 'I will eat soon'." → `Nenu tharuvatha tintanu` — missing: **tharuvatha**
+- L15 (phrase) "Ask 'Why are you going?'" → `Meeru enduku velthunnaru?` — missing: **velthunnaru**
+- L15 (phrase) "Say 'Because I like it'" → `Endukante naaku ishtam` — missing: **endukante**
+- L15 (conversation) "Say 'I don't know why'." → `Naaku enduku ani teliyadu` — missing: **ani, teliyadu**
+- L16 (phrase) "Ask 'How to do?'" → `Ela cheyali?` — missing: **cheyali**
+- L16 (phrase) "Say 'Go slowly'" → `Mellaga vellandi` — missing: **vellandi**
+- L16 (conversation) "Ask Miko how to eat this." → `Idhi ela thinali?` — missing: **thinali**
+- L16 (conversation) "Tell someone to do it quickly." → `Tvaraga cheyandi` — missing: **cheyandi**
+- L16 (conversation) "Say 'I am very happy'." → `Nenu chala santhoshamga unnanu` — missing: **chala, unnanu**
+- L16 (conversation) "Ask 'How is your friend?'." → `Mee snehithudu ela unnaru?` — missing: **unnaru**
+- L18 (phrase) "Say 'I am sleeping'" → `Nenu nidra potunnanu` — missing: **nidra, potunnanu**
+- L18 (conversation) "Tell Miko you are waking up now." → `Nenu ippudu melukonnanu` — missing: **melukonnanu**
+- L18 (conversation) "Say 'I have work today'." → `Naaku eeroju pani undi` — missing: **undi**
+- L18 (conversation) "Say 'I will sleep later'." → `Nenu tharuvatha nidra potanu` — missing: **tharuvatha, nidra, potanu**
+- L18 (conversation) "Ask Miko 'Did you eat?' (simple)." → `Meeru thinnara?` — missing: **thinnara**
+- L19 (conversation) "Say 'I want new clothes'." → `Kotha batta kaavali` — missing: **kotha**
+- L20 (phrase) "Say 'Today was good'" → `Eeroju bagundi` — missing: **bagundi**
+- L20 (phrase) "Say 'I am happy today'" → `Eeroju nenu santhoshamga unnanu` — missing: **unnanu**
+- L20 (phrase) "Say 'I remember you'" → `Naaku meeru gurthunnaru` — missing: **gurthunnaru**
+- L20 (conversation) "Miko asks about your day. Say 'It was good'." → `Eeroju bagundi` — missing: **bagundi**
+- L20 (conversation) "Final check: Say hello, I am very happy." → `Namaskaram, nenu chala santhoshamga unnanu` — missing: **chala, unnanu**
+- L21 (conversation) "Tell Miko 'Go with him'." → `Ayana tho vellandi` — missing: **vellandi**
+- L21 (conversation) "Say 'Under the big tree'." → `Pedda chettu kindha` — missing: **chettu**
+- L22 (phrase) "Say 'I can't go'" → `Nenu vellalenu` — missing: **vellalenu**
+- L22 (phrase) "Say 'I can speak Telugu'" → `Nenu Telugu matladagalanu` — missing: **matladagalanu**
+- L22 (conversation) "Tell someone 'I can't come today'." → `Eeroju nenu raalenu` — missing: **raalenu**
+- L22 (conversation) "Say 'I can see that'." → `Nenu adhi chudagalanu` — missing: **chudagalanu**
+- L22 (conversation) "Final check: 'I can't do this now'." → `Nenu ippudu idhi cheyalenu` — missing: **cheyalenu**
+- L23 (conversation) "Say 'I must see Miko today'." → `Eeroju nenu Miko chudali` — missing: **chudali**
+- L24 (conversation) "Say 'I want to go but I have work'." → `Nenu vellali kani naaku pani undi` — missing: **undi**
+- L24 (conversation) "Say 'Because I'm happy'." → `Endukante nenu santhoshamga unnanu` — missing: **unnanu**
+- L25 (conversation) "Tell Miko 'If you are happy, I am happy'." → `Meeru santhoshamga unte, nenu santhoshamga untanu` — missing: **untanu**
+- L25 (conversation) "Say 'If there is water, I will drink'." → `Neeru unte nenu thaganu` — missing: **thaganu**
+- L25 (conversation) "Say 'If you want, take it'." → `Meeku kaavalante theeskondi` — missing: **kaavalante, theeskondi**
+- L25 (conversation) "Final check: 'If tomorrow comes...'" → `Repu vaste` — missing: **vaste**
+- L26 (phrase) "Say 'I am tired'" → `Naaku alupuga undi` — missing: **undi**
+- L26 (phrase) "Say 'Are you angry?'" → `Meeru kopamga unnara?` — missing: **unnara**
+- L26 (phrase) "Say 'Don't be sad'" → `Badha padoddu` — missing: **padoddu**
+- L26 (conversation) "Miko asks how you feel. Say 'I am happy'." → `Nenu santhoshamga unnanu` — missing: **unnanu**
+- L26 (conversation) "Say 'I am very tired today'." → `Eeroju naaku chala alupuga undi` — missing: **chala, undi**
+- L26 (conversation) "Point to a sad friend: 'He is sad'." → `Ayana badhaga unnaru` — missing: **unnaru**
+- L27 (phrase) "Say 'Hundred rupees' (Vanda rupayalu)" → `Vanda rupayalu` — missing: **rupayalu**
+- L27 (conversation) "Ask the price of something in thousands." → `Veyi rupayalu?` — missing: **rupayalu**
+- L27 (conversation) "Ask 'Do you have money?'" → `Mee daggara dabbulu unnaya?` — missing: **unnaya**
+- L28 (phrase) "Say 'It's very hot today' (Eeroju chala enda)" → `Eeroju chala enda` — missing: **chala**
+- L28 (conversation) "Miko asks about the weather. Say 'It is raining' (Vana paduthundi)." → `Vana paduthundi` — missing: **vana, paduthundi**
+- L28 (conversation) "Final check: 'Hot weather today'." → `Eeroju vaathavaranam chala vediga undi` — missing: **vaathavaranam, chala, undi**
+- L30 (phrase) "Say 'I am speaking happily'" → `Nenu santhoshamga matladuthunnanu` — missing: **matladuthunnanu**
+- L30 (phrase) "Say 'This is my last one' (Idhi naa aakhari)" → `Idhi naa aakhari` — missing: **aakhari**
+- L30 (conversation) "Say 'I am very happy today'." → `Eeroju nenu chala santhoshamga unnanu` — missing: **chala, unnanu**
+- L30 (conversation) "Tell someone 'I am from Hyderabad and I grew up there'." → `Nenu Hyderabad nundi, nenu akkada perigaanu` — missing: **nundi**
+
+## Needs an unseen ending on a taught stem (11)
+
+- L7 (phrase) "Say 'One book'" → `Oka pusthakam` — oka (stem: okati)
+- L11 (conversation) "Tell someone 'I am going home now'." → `Nenu ippudu intiki velthunnanu` — intiki (stem: inti)
+- L12 (phrase) "Say 'Tomorrow one hour'" → `Repu oka ganta` — oka (stem: okati)
+- L13 (phrase) "Say 'I went home'" → `Nenu intiki vellanu` — intiki (stem: inti)
+- L14 (conversation) "Tell someone 'I will go home tomorrow'." → `Nenu repu intiki velthanu` — intiki (stem: inti)
+- L19 (conversation) "Miko asks your favorite color. Say 'I like red'." → `Naaku erupu ishtam` — naaku (stem: naa)
+- L19 (conversation) "Ask 'Which color is that?' (simple)." → `Adhi em rangu?` — em (stem: emiti)
+- L20 (conversation) "Tell Miko 'I am going to work now'." → `Nenu ippudu paniki velthunnanu` — paniki (stem: pani)
+- L23 (conversation) "Miko says it's late. Say 'I must go home now'." → `Nenu ippudu intiki vellali` — intiki (stem: inti)
+- L26 (conversation) "Tell someone you are not scared." → `Naaku bhayam ledu` — naaku (stem: naa)
+- L27 (conversation) "Say 'That costs one lakh'." → `Adhi oka laksha` — oka (stem: okati)
+
+## Untaught words ranked by how many drills they block
+
+- `chala` — 8 drill(s)
+- `undi` — 6 drill(s)
+- `unnanu` — 6 drill(s)
+- `vellandi` — 4 drill(s)
+- `unnaru` — 3 drill(s)
+- `bagundi` — 3 drill(s)
+- `ee` — 2 drill(s)
+- `tharuvatha` — 2 drill(s)
+- `nidra` — 2 drill(s)
+- `rupayalu` — 2 drill(s)
+- `velthanu` — 1 drill(s)
+- `ithanu` — 1 drill(s)
+- `snehithulu` — 1 drill(s)
+- `pusthakalu` — 1 drill(s)
+- `mandi` — 1 drill(s)
+- `konchem` — 1 drill(s)
+- `bagoledu` — 1 drill(s)
+- `chesanu` — 1 drill(s)
+- `chestanu` — 1 drill(s)
+- `velthunnara` — 1 drill(s)
+- `thinnanu` — 1 drill(s)
+- `mimmalni` — 1 drill(s)
+- `aa` — 1 drill(s)
+- `velthunnaru` — 1 drill(s)
+- `endukante` — 1 drill(s)
+- `ani` — 1 drill(s)
+- `teliyadu` — 1 drill(s)
+- `cheyali` — 1 drill(s)
+- `thinali` — 1 drill(s)
+- `cheyandi` — 1 drill(s)
+- `potunnanu` — 1 drill(s)
+- `melukonnanu` — 1 drill(s)
+- `potanu` — 1 drill(s)
+- `thinnara` — 1 drill(s)
+- `kotha` — 1 drill(s)
+- `gurthunnaru` — 1 drill(s)
+- `chettu` — 1 drill(s)
+- `vellalenu` — 1 drill(s)
+- `matladagalanu` — 1 drill(s)
+- `raalenu` — 1 drill(s)
+- `chudagalanu` — 1 drill(s)
+- `cheyalenu` — 1 drill(s)
+- `chudali` — 1 drill(s)
+- `untanu` — 1 drill(s)
+- `thaganu` — 1 drill(s)
+- `kaavalante` — 1 drill(s)
+- `theeskondi` — 1 drill(s)
+- `vaste` — 1 drill(s)
+- `unnara` — 1 drill(s)
+- `padoddu` — 1 drill(s)
+- `unnaya` — 1 drill(s)
+- `vana` — 1 drill(s)
+- `paduthundi` — 1 drill(s)
+- `vaathavaranam` — 1 drill(s)
+- `matladuthunnanu` — 1 drill(s)
+- `aakhari` — 1 drill(s)
+- `nundi` — 1 drill(s)
