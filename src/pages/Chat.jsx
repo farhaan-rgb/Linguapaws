@@ -75,6 +75,13 @@ export default function Chat() {
     const [levelUpToast, setLevelUpToast] = useState(null);
     const [userTransliterations, setUserTransliterations] = useState({});
     const [matchScores, setMatchScores] = useState({});
+    /* The scenario the learner has just finished, held so the header keeps
+       naming it while its closing messages are still on screen. `progress`
+       increments the instant step 15 is graded, so the header used to flip to
+       "Scenario 2: The 'What' & 'This/That' — 0/5" above a conversation still
+       showing scenario 1's mastery banner and its last grammar note. Cleared on
+       the learner's next message, which is when they have actually moved on. */
+    const [completedScenarioHold, setCompletedScenarioHold] = useState(null);
     const [sentenceSuccesses, setSentenceSuccesses] = useState({});
     // Progress bar state (loaded from DB)
     const [progress, setProgress] = useState({ level: 'zero', levelLabel: 'Beginner', successfulRepeats: 0, needed: 100, nextLevelLabel: 'Basic' });
@@ -1125,6 +1132,8 @@ export default function Chat() {
 
         const userMessageIndex = messages.length; // Store index for this user message
         setMessages(prev => [...prev, { role: 'user', content: text }]);
+        // They have moved on — let the header follow the real progress again.
+        setCompletedScenarioHold(null);
 
         // Scenarios advance automatically, but learners still type "continue"/"next"
         // out of habit (an older prompt invited it). Treat that as a nudge to move
@@ -1318,6 +1327,10 @@ export default function Chat() {
                 return;
             }
 
+            /* Hoisted: the verdict the model is given further down needs to know
+               whether this was exact, an accepted variant, or a spelling slip. */
+            let spellDiff = null;
+            let canonicalRatio = 1;
             if (hasCorrectMatch) {
                 /* `matchRatio` is the best ratio across EVERY accepted variant, so
                    it reads 1.0 whenever any accepted form matched exactly — which
@@ -1327,10 +1340,10 @@ export default function Chat() {
                    column useless for exactly the debugging it exists for. The
                    number worth having is the distance from the CANONICAL answer:
                    that is what varies, and what says how far off a variant was. */
-                setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(100 * (
-                    expectedCorrectionStr
-                        ? engine.similarityRatioLatin(text, expectedCorrectionStr)
-                        : matchRatio)) }));
+                canonicalRatio = expectedCorrectionStr
+                    ? engine.similarityRatioLatin(text, expectedCorrectionStr)
+                    : matchRatio;
+                setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(canonicalRatio * 100) }));
                 /* Gated on `spellingDiff`, not on a raw ratio. The ratio drops
                    below 0.95 for any accepted VARIANT — a dropped pronoun, the
                    run-together form the lesson itself calls correct — and the badge
@@ -1339,7 +1352,7 @@ export default function Chat() {
                    saying, which is exactly the question the badge is asking, and
                    when there IS something it names the one wrong word rather than
                    restating the sentence. */
-                const spellDiff = expectedCorrectionStr
+                spellDiff = expectedCorrectionStr
                     ? engine.spellingDiff(text, expectedCorrectionStr,
                         isCurrentlyTeaching ? teachAccepted : [], LEXICON)
                     : null;
@@ -1387,6 +1400,7 @@ export default function Chat() {
                     setTimeout(() => setLevelUpToast(null), 5000);
                     transitionBanner = 'Scenario complete — you have finished all fifteen steps.';
                     stageBanner = '✨ **Scenario Mastered!** You\'ve completed all 15 steps. Moving to the next challenge...';
+                    setCompletedScenarioHold({ idx: scenarioIdxForMatch, scenario: activeScenario });
                     // Lesson done — drop its cached triplet so a replay rebuilds
                     // from whatever is due at that point, not this session's set.
                     clearReviewSet(safeLang, scenarioIdxForMatch);
@@ -1761,11 +1775,40 @@ export default function Chat() {
 
             let evalNote = '';
             if (isLastScenarioStep) {
-                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user nailed the final challenge of the scenario! CELEBRATE warmly and congratulate them for mastering this topic! Do NOT introduce any new words yet. Tell them the next scenario has already unlocked and they can simply keep chatting to begin it. Do NOT mention any button, and do NOT tell them to type anything specific - there is no such control in the app.${grammarFeedback}]`;
+                /* The old wording ordered a CELEBRATION of "mastering this topic"
+                   and promised the learner they could "simply keep chatting" — so
+                   one scaffolded scenario closed with "you've done an amazing job
+                   mastering the greetings" followed by "just keep chatting and
+                   we'll see where the conversation takes us", one message before
+                   another fifteen-step drill began. Both halves were false: they
+                   have met these words once, and what comes next is structured,
+                   not open chat. Warm and accurate beats effusive and wrong. */
+                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user finished the last step of the scenario. Congratulate them warmly but honestly, in one or two sentences: name what they can now DO (open a conversation, ask and answer this question) rather than calling it mastery — they have met these words once, and the course will bring them back. Do NOT say "mastered", "amazing", "incredible" or "perfect". Do NOT introduce any new words yet. Tell them the next scenario is ready and starts as soon as they reply — make clear it is another guided set of steps, NOT free conversation. Do NOT mention any button, and do NOT tell them to type anything specific - there is no such control in the app.${grammarFeedback}]`;
             } else if (hasCorrectMatch) {
                 const matchDetail = displayPhrase ? `matched "${displayPhrase}"` : 'was correct';
-                const fuzzyCorrection = (matchRatio < 0.95 && expectedCorrectionStr) ? `![CRITICAL GRAMMAR/SPELLING ERROR: The user said "${actual}" but the formal/correct target is "${expectedCorrectionStr}". You MUST explicitly point out their missing word or spelling mistake before praising them!]` : '';
-                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user ${matchDetail}. ${fuzzyCorrection} Acknowledge with ONE flat word and no exclamation mark, rotating "Good." / "Correct." / "Right." / "Yes." — save real enthusiasm for the end of a stage, or it stops meaning anything. Do NOT repeat the meaning or translation back to the user — they already know it. Just acknowledge and move on.${grammarFeedback} NEVER preview or reference the next target phrase in your current response. Do NOT evaluate again.]`;
+                /* Gated on the spelling diff, not on a raw ratio. `matchRatio <
+                   0.95` is true of every accepted VARIANT — a dropped pronoun, a
+                   fused form the lesson itself calls correct — so this ordered the
+                   model to announce a "CRITICAL GRAMMAR/SPELLING ERROR" in answers
+                   that were entirely right. Same false positive the badge had, from
+                   the same cause. */
+                const fuzzyCorrection = spellDiff
+                    ? `[SPELLING: the learner wrote "${spellDiff.said}" where the course spells it "${spellDiff.expected}". Name that ONE word briefly and move on. Their answer was accepted — do not call it wrong.]`
+                    : '';
+                /* The verdict has to carry information. Rotating four
+                   interchangeable words meant "Right." followed a flawless answer
+                   and a corrected one alike, so the learner could not tell from
+                   the verdict which had happened and learned to skip it. Three
+                   outcomes, three registers — and crucially the app must not call
+                   an accepted variant "close", which is the thing it kept doing
+                   one line before defending that same answer as correct. */
+                const isVariantAnswer = !spellDiff && expectedCorrectionStr && canonicalRatio < 0.95;
+                const verdictRule = spellDiff
+                    ? `Acknowledge that they got it, in one short phrase, then give the spelling note above and nothing more.`
+                    : (isVariantAnswer
+                        ? `The learner used a shorter or different form than the course's canonical answer and it is FULLY correct — the course accepts it. Confirm it as correct in one short phrase. Do NOT call it "close", "almost", or nearly right, do NOT restate the longer form as if it were a correction, and do NOT suggest they should have said something else.`
+                        : `Acknowledge with ONE flat word and no exclamation mark, rotating "Good." / "Correct." / "Right." / "Yes." — save real enthusiasm for the end of a stage, or it stops meaning anything.`);
+                evalNote = `[SYSTEM: SUCCESS CONFIRMED. The user ${matchDetail}. ${fuzzyCorrection} ${verdictRule} Do NOT repeat the meaning or translation back to the user — they already know it. Just acknowledge and move on.${grammarFeedback} NEVER preview or reference the next target phrase in your current response. Do NOT evaluate again.]`;
             } else if (isContinueRequest) {
                 evalNote = `[SYSTEM: The user is asking to move on, not answering. Do NOT grade or correct their message, and do NOT say they were wrong. Briefly acknowledge and present the next challenge for this scenario.]`;
             } else if (isCurrentlyInReview) {
@@ -2151,12 +2194,21 @@ export default function Chat() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: '20px',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        position: 'relative'
                     }}>
-                        {resolvedCharacter?.image ? (
-                            <img src={resolvedCharacter.image} alt={resolvedCharacter.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                            resolvedCharacter?.icon || '👤'
+                        {/* The emoji sits underneath rather than instead of the
+                            image, so a path that 404s degrades to the coach's face
+                            instead of a broken-image glyph. 🐱, not 👤 — the
+                            placeholder for a cat coach was a grey person. */}
+                        <span style={{ position: 'absolute' }}>{resolvedCharacter?.icon || '🐱'}</span>
+                        {resolvedCharacter?.image && (
+                            <img
+                                src={resolvedCharacter.image}
+                                alt={resolvedCharacter.name}
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'relative' }}
+                            />
                         )}
                     </div>
                     <div>
@@ -2311,16 +2363,21 @@ export default function Chat() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                             <span style={{ fontSize: '11px', fontWeight: '700', color: '#7c3aed' }}>
                                 {(() => {
+                                    if (completedScenarioHold) {
+                                        const n = completedScenarioHold.idx + 1;
+                                        return `Scenario ${n}: ${completedScenarioHold.scenario}`;
+                                    }
                                     const r = progress.successfulRepeats || 0;
                                     const stageNum = Math.min(Math.floor(r / 15) + 1, 30);
-                                    
+
                                     const scenarioLabel = CURRICULUM[safeLang]?.[stageNum - 1]?.scenario || `Scenario ${stageNum}`;
-                                    
+
                                     return `Scenario ${stageNum}: ${scenarioLabel}`;
                                 })()}
                             </span>
                             <span style={{ fontSize: '11px', color: '#94a3b8' }}>
                                 {(() => {
+                                    if (completedScenarioHold) return 'Complete · 15/15';
                                     const r = progress.successfulRepeats || 0;
                                     if (r >= 450) return 'Fluent Mode';
                                     const inS = r % 15;
@@ -2343,6 +2400,7 @@ export default function Chat() {
                                 initial={{ width: 0 }}
                                 animate={{
                                     width: `${(() => {
+                                        if (completedScenarioHold) return 100;
                                         const r = (progress.successfulRepeats || 0) % 15;
                                         if (r < 5) return (r / 5) * 100;
                                         if (r < 8) return ((r - 5) / 3) * 100;
@@ -3024,13 +3082,18 @@ export default function Chat() {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     background: resolvedCharacter?.color || '#fef3c7',
-                                    fontSize: '48px'
+                                    fontSize: '48px',
+                                    position: 'relative'
                                 }}
                             >
-                                {resolvedCharacter?.image ? (
-                                    <img src={resolvedCharacter.image} alt={resolvedCharacter.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                    resolvedCharacter?.icon || '👤'
+                                <span style={{ position: 'absolute' }}>{resolvedCharacter?.icon || '🐱'}</span>
+                                {resolvedCharacter?.image && (
+                                    <img
+                                        src={resolvedCharacter.image}
+                                        alt={resolvedCharacter.name}
+                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'relative' }}
+                                    />
                                 )}
                             </motion.div>
                         </div>
