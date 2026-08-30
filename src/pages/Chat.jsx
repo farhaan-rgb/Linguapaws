@@ -2430,8 +2430,24 @@ export default function Chat() {
                                         alignItems: 'center',
                                         gap: '4px'
                                     }}>
-                                        <span>Close! Spelled:</span>
-                                        <span style={{ color: '#d97706', fontSize: '12px' }}>{corrections[i].expected}</span>
+                                        {/* The one word that is wrong, with an arrow
+                                            to the one that is right. Restating the
+                                            whole sentence — which is what this used
+                                            to do — puts two near-identical six-word
+                                            strings side by side and makes the learner
+                                            find the difference themselves. */}
+                                        <span>{corrections[i].narrowed ? 'Spelling:' : 'Close! Spelled:'}</span>
+                                        {corrections[i].narrowed ? (
+                                            <>
+                                                <span style={{ textDecoration: 'line-through', opacity: 0.65 }}>
+                                                    {corrections[i].said}
+                                                </span>
+                                                <span aria-hidden="true">→</span>
+                                                <span style={{ color: '#d97706', fontSize: '12px' }}>{corrections[i].expected}</span>
+                                            </>
+                                        ) : (
+                                            <span style={{ color: '#d97706', fontSize: '12px' }}>{corrections[i].expected}</span>
+                                        )}
                                     </div>
                                 )}
 
