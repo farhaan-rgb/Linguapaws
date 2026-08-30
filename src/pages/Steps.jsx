@@ -16,6 +16,8 @@ import * as fx from '../utils/feedbackFx';
 import { getAnswerMode, setAnswerMode } from '../utils/learnMode';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { aiService } from '../services/ai';
+import { speakInBrowser, waitForVoices } from '../services/speech';
+import { getLangCode } from '../../shared/languages.js';
 import RichText from '../components/RichText';
 import Burst from '../components/Burst';
 
@@ -1096,16 +1098,34 @@ export default function Steps() {
         return () => { cancelled = true; };
     }, [lesson, langName, scenarioIdx, lessons]);
 
+    /* The language object stored by the picker carries `id`, `name` and
+       `native`. This used to read `speechCode || code`, two fields it has never
+       had, so `lang` was never set and every word on this surface was read by
+       whatever voice the machine booted with — which on a speak-mode screen,
+       where the spelling is hidden and the audio *is* the prompt, is the entire
+       lesson. The code now comes from `shared/languages.js`, the same table the
+       server resolves against.
+
+       Worth knowing before judging what comes out: the curriculum is romanised
+       Latin — `Namaskaram`, not `నమస్కారం` — so a device Telugu voice is being
+       handed a transliteration, not its own script. When the device has no
+       voice for the language, `speakInBrowser` speaks anyway and warns once
+       rather than going silent, because there is nothing else on this screen to
+       carry the word. */
+    const langCode = useMemo(() => getLangCode(targetLang), [targetLang]);
     const speak = useCallback((text) => {
         try {
-            const u = new SpeechSynthesisUtterance(text);
-            const code = targetLang?.speechCode || targetLang?.code;
-            if (code) u.lang = code;
-            u.rate = 0.85;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(u);
+            speakInBrowser(text, langCode || 'en-IN', {
+                rate: 0.85, requireVoice: false, lang: targetLang,
+            });
         } catch { /* no speech synthesis — the phonetic line still carries it */ }
-    }, [targetLang]);
+    }, [langCode, targetLang]);
+
+    /* Chrome hands back an empty voice list on first call and fills it in
+       asynchronously. A teaching screen speaks on arrival, which is early
+       enough to lose the race, so the list is warmed once when the lesson
+       mounts. */
+    useEffect(() => { waitForVoices(); }, []);
 
     const chooseAnswerMode = useCallback((mode) => {
         setAnswerMode(mode);

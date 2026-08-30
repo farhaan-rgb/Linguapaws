@@ -1,4 +1,6 @@
 import { api } from './api';
+import { getLangCode } from '../../shared/languages.js';
+import { speakInBrowser, waitForVoices } from './speech';
 
 const MIKO_PROMPT = `You are Miko, a friendly cat persona who is a SPOKEN LANGUAGE TUTOR and coach.
 Your primary goal is to help the user improve their spoken target language through natural, engaging conversation.
@@ -254,49 +256,17 @@ SHADOW PRACTICE:
         }
     }
 
-    // Language name → BCP 47 code mapping for browser speechSynthesis
+    /* Language name → BCP 47 code. The table itself lives in
+       `shared/languages.js`, which the backend reads too, so the two sides
+       cannot disagree about what `Odiya` means again. */
     _getLangCode(targetLang) {
-        if (!targetLang) return null;
-        const key = String(targetLang).trim().toLowerCase();
-        const map = {
-            english: 'en-IN', en: 'en-IN',
-            hindi: 'hi-IN', hi: 'hi-IN',
-            telugu: 'te-IN', te: 'te-IN',
-            kannada: 'kn-IN', kn: 'kn-IN',
-            tamil: 'ta-IN', ta: 'ta-IN',
-            malayalam: 'ml-IN', ml: 'ml-IN',
-            bengali: 'bn-IN', bn: 'bn-IN',
-            gujarati: 'gu-IN', gu: 'gu-IN',
-            punjabi: 'pa-IN', pa: 'pa-IN',
-            marathi: 'mr-IN', mr: 'mr-IN',
-            urdu: 'ur-IN', ur: 'ur-IN',
-            odia: 'or-IN', or: 'or-IN',
-        };
-        return map[key] || null;
+        return getLangCode(targetLang);
     }
 
     // Try browser's native speechSynthesis. Returns true if it spoke, false otherwise.
     _tryBrowserTTS(text, langCode) {
-        if (!window.speechSynthesis || !langCode) return false;
-
-        const voices = window.speechSynthesis.getVoices();
-        // Find a voice matching the language code (e.g. te-IN, hi-IN)
-        const langPrefix = langCode.split('-')[0]; // e.g. 'te'
-        const voice = voices.find(v => v.lang === langCode)
-            || voices.find(v => v.lang.startsWith(langPrefix));
-
-        if (!voice) return false;
-
-        // Cancel any ongoing speech
-        window.speechSynthesis.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.voice = voice;
-        utterance.lang = langCode;
-        utterance.rate = 0.9;  // Slightly slower for learning
-        utterance.pitch = 1.0;
-        window.speechSynthesis.speak(utterance);
-        return true;
+        // Slightly slower than natural: this is a listen-and-repeat product.
+        return speakInBrowser(text, langCode, { rate: 0.9, pitch: 1.0 });
     }
 
     async generateSpeech(text, voice = 'alloy', targetLang = null) {
@@ -305,12 +275,7 @@ SHADOW PRACTICE:
             const langCode = this._getLangCode(targetLang);
             if (langCode) {
                 // Ensure voices are loaded (some browsers load them async)
-                if (window.speechSynthesis && window.speechSynthesis.getVoices().length === 0) {
-                    await new Promise(resolve => {
-                        window.speechSynthesis.onvoiceschanged = resolve;
-                        setTimeout(resolve, 500); // Timeout fallback
-                    });
-                }
+                await waitForVoices();
                 if (this._tryBrowserTTS(text, langCode)) {
                     return null; // Speech is playing natively, no URL needed
                 }

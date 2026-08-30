@@ -3,6 +3,9 @@ const OpenAI = require('openai');
 const { createClient } = require('@deepgram/sdk');
 const textToSpeech = require('@google-cloud/text-to-speech');
 const requireAuth = require('../middleware/auth');
+/* One table for both halves of the app. `require()` of an ESM file is
+   synchronous from Node 22.12 — see `engines` in backend/package.json. */
+const { findLanguage, getGoogleVoice } = require('../../shared/languages.js');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -19,54 +22,130 @@ const getDeepgram = () => {
     return deepgram;
 };
 
-let googleTtsClient;
+/* ── Which engine actually spoke ──
+   `getGoogleTtsClient()` returning null used to be indistinguishable in the
+   logs from Google working, so every request quietly landed on OpenAI
+   `tts-1-hd` — a model with no Telugu and no Odia voice — and nothing said so.
+   Absence of a credential now says which credential, once. A credential that is
+   present and broken, and any synthesis that fails, are errors. */
+let googleTtsClient = null;
+let googleCredsWarned = false;
+
+const MISSING_GOOGLE_CREDS = [
+    '[tts] Google Cloud TTS is OFF: neither GOOGLE_TTS_CREDENTIALS_JSON nor',
+    '[tts] GOOGLE_APPLICATION_CREDENTIALS is set in backend/.env.',
+    '[tts] Every non-English utterance will be synthesised by OpenAI tts-1-hd,',
+    '[tts] which has no Telugu, Kannada or Odia voice — it is an English voice',
+    '[tts] sounding out a script it does not know. See backend/.env.example.',
+].join('\n');
+
 const getGoogleTtsClient = () => {
     if (googleTtsClient) return googleTtsClient;
+
     const jsonCreds = process.env.GOOGLE_TTS_CREDENTIALS_JSON;
     if (jsonCreds) {
-        const credentials = JSON.parse(jsonCreds);
-        googleTtsClient = new textToSpeech.TextToSpeechClient({ credentials });
-        return googleTtsClient;
+        try {
+            const credentials = JSON.parse(jsonCreds);
+            googleTtsClient = new textToSpeech.TextToSpeechClient({ credentials });
+            console.log('[tts] Google Cloud TTS enabled via GOOGLE_TTS_CREDENTIALS_JSON'
+                + (credentials.client_email ? ` (${credentials.client_email})` : ''));
+            return googleTtsClient;
+        } catch (err) {
+            /* A malformed service-account JSON used to throw out of this
+               function and take the whole request with it. It is a
+               configuration error, and it is loud, but it is not fatal. */
+            console.error('[tts] GOOGLE_TTS_CREDENTIALS_JSON is set but unusable: '
+                + err.message + ' — falling back to OpenAI tts-1-hd.');
+            return null;
+        }
     }
+
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-        googleTtsClient = new textToSpeech.TextToSpeechClient();
-        return googleTtsClient;
+        try {
+            googleTtsClient = new textToSpeech.TextToSpeechClient();
+            console.log('[tts] Google Cloud TTS enabled via GOOGLE_APPLICATION_CREDENTIALS='
+                + process.env.GOOGLE_APPLICATION_CREDENTIALS);
+            return googleTtsClient;
+        } catch (err) {
+            console.error('[tts] GOOGLE_APPLICATION_CREDENTIALS is set but unusable: '
+                + err.message + ' — falling back to OpenAI tts-1-hd.');
+            return null;
+        }
+    }
+
+    if (!googleCredsWarned) {
+        googleCredsWarned = true;
+        console.warn(MISSING_GOOGLE_CREDS);
     }
     return null;
 };
 
-const resolveLanguageCode = (targetLang) => {
-    if (!targetLang) return 'en-IN';
-    const raw = typeof targetLang === 'string' ? targetLang : (targetLang.name || targetLang.id || '');
-    const key = String(raw).trim().toLowerCase();
-    const map = {
-        english: 'en-IN',
-        en: 'en-IN',
-        hindi: 'hi-IN',
-        hi: 'hi-IN',
-        telugu: 'te-IN',
-        te: 'te-IN',
-        kannada: 'kn-IN',
-        kn: 'kn-IN',
-        tamil: 'ta-IN',
-        ta: 'ta-IN',
-        malayalam: 'ml-IN',
-        ml: 'ml-IN',
-        bengali: 'bn-IN',
-        bn: 'bn-IN',
-        gujarati: 'gu-IN',
-        gu: 'gu-IN',
-        punjabi: 'pa-IN',
-        pa: 'pa-IN',
-        marathi: 'mr-IN',
-        mr: 'mr-IN',
-        urdu: 'ur-IN',
-        ur: 'ur-IN',
-        odia: 'or-IN',
-        or: 'or-IN'
-    };
-    return map[key] || 'en-IN';
+/* A line per engine-and-voice combination, once, so a session six months from
+   now can read the log and know what a learner actually heard. */
+const enginesSeen = new Set();
+const noteEngine = (line) => {
+    if (enginesSeen.has(line)) return;
+    enginesSeen.add(line);
+    console.log(`[tts] ${line}`);
 };
+
+/* The Node client returns a Buffer over gRPC and a base64 string over REST.
+   `Buffer.from(x, 'base64')` is right for both — it ignores the encoding
+   argument when handed a Buffer. The /chat branch used to do
+   `Buffer.from(x).toString('base64')`, which would have double-encoded the
+   REST shape into silence. */
+const googleAudioToBuffer = (audioContent) => Buffer.from(audioContent, 'base64');
+
+/**
+ * Synthesise with Google, or return null and say why.
+ *
+ * Returns a Buffer of MP3, or null when the caller should fall back to OpenAI.
+ * Never substitutes a neighbouring language's voice: a language Google cannot
+ * speak comes back null with a line in the log naming it.
+ */
+const synthesizeWithGoogle = async (text, targetLang) => {
+    const client = getGoogleTtsClient();
+    if (!client) return null;
+
+    const entry = findLanguage(targetLang);
+    /* English stays on OpenAI. The cast's voice identity — alloy, shimmer,
+       onyx, nova, fable per character — is an OpenAI concept and OpenAI is
+       genuinely good at English. Google is here because it is the only one of
+       the two that can speak Telugu or Kannada at all. */
+    if (!entry || entry.id === 'en') return null;
+
+    const voice = getGoogleVoice(entry);
+    if (!voice) {
+        noteEngine(`no Google voice exists for ${entry.name} (${entry.code}) at any tier — `
+            + 'falling back to OpenAI tts-1-hd, which cannot speak it either. '
+            + 'This language needs a second vendor; see VOICE-STACK.md.');
+        return null;
+    }
+
+    try {
+        const [response] = await client.synthesizeSpeech({
+            /* Chirp 3: HD voices are selectable by name only. `ssmlGender` alone
+               resolves to a Standard voice — `te-IN-Standard-A`, a 2016-era
+               voice at 2026 prices — and is omitted entirely here because a
+               gender that disagrees with the named voice is an API error.
+               Voice names verified against Google's published list on
+               2026-08-30; see shared/languages.js for the citation. */
+            input: { text },
+            voice: { languageCode: voice.code, name: voice.name },
+            audioConfig: { audioEncoding: 'MP3' },
+        });
+        noteEngine(`Google Chirp 3: HD — ${voice.name} for ${entry.name}`);
+        return googleAudioToBuffer(response.audioContent);
+    } catch (err) {
+        console.error(`[tts] Google synthesis FAILED for ${voice.name} (${entry.name}): `
+            + `${err.message} — falling back to OpenAI tts-1-hd, which has no ${entry.name} voice.`);
+        return null;
+    }
+};
+
+/** True only for English. Anything unrecognised is treated as non-English,
+ *  because guessing English is the failure mode this repo has already shipped. */
+const isEnglish = (targetLang) => findLanguage(targetLang)?.id === 'en';
 
 const buildGeminiPayload = (messages, options = {}) => {
     const systemText = messages
@@ -247,22 +326,16 @@ router.post('/chat', async (req, res) => {
                     ttsText = ttsText.replace(lastBold, nativeScript);
                 }
 
-                const googleClient = getGoogleTtsClient();
-                if (googleClient) {
-                    const targetLangToUse = options.targetLang || options.targetLanguage;
-                    const resolvedCode = resolveLanguageCode(targetLangToUse);
-
-                    const [ttsResponse] = await googleClient.synthesizeSpeech({
-                        input: { text: ttsText },
-                        voice: { languageCode: resolvedCode, ssmlGender: 'NEUTRAL' },
-                        audioConfig: { audioEncoding: 'MP3' }
-                    });
-                    audioContent = Buffer.from(ttsResponse.audioContent).toString('base64');
+                const targetLangToUse = options.targetLang || options.targetLanguage;
+                const googleAudio = await synthesizeWithGoogle(ttsText, targetLangToUse);
+                if (googleAudio) {
+                    audioContent = googleAudio.toString('base64');
                 } else {
-                    const targetLangToUse = options.targetLang || options.targetLanguage;
-                    const nonEnglish = targetLangToUse && targetLangToUse.toLowerCase() !== 'english';
+                    const model = isEnglish(targetLangToUse) ? 'tts-1' : 'tts-1-hd';
+                    noteEngine(`OpenAI ${model} — voice ${options.voice || 'alloy'} for `
+                        + `${findLanguage(targetLangToUse)?.name || targetLangToUse || 'unknown language'}`);
                     const mp3 = await getClient().audio.speech.create({
-                        model: nonEnglish ? 'tts-1-hd' : 'tts-1',
+                        model,
                         voice: options.voice || 'alloy',
                         input: ttsText
                     });
@@ -285,21 +358,15 @@ router.post('/speech', async (req, res) => {
     if (!text) return res.status(400).json({ error: 'text is required' });
 
     try {
-        const googleClient = getGoogleTtsClient();
-        if (googleClient) {
-            const languageCode = resolveLanguageCode(targetLang);
-            const [response] = await googleClient.synthesizeSpeech({
-                input: { text },
-                voice: { languageCode, ssmlGender: 'NEUTRAL' },
-                audioConfig: { audioEncoding: 'MP3' }
-            });
-            const buffer = Buffer.from(response.audioContent, 'base64');
+        const googleAudio = await synthesizeWithGoogle(text, targetLang);
+        if (googleAudio) {
             res.set('Content-Type', 'audio/mpeg');
-            return res.send(buffer);
+            return res.send(googleAudio);
         }
 
-        const nonEnglish = targetLang && targetLang.toLowerCase() !== 'english';
-        const model = nonEnglish ? 'tts-1-hd' : 'tts-1';
+        const model = isEnglish(targetLang) ? 'tts-1' : 'tts-1-hd';
+        noteEngine(`OpenAI ${model} — voice ${voice} for `
+            + `${findLanguage(targetLang)?.name || targetLang || 'unknown language'}`);
         const mp3 = await getClient().audio.speech.create({ model, voice, input: text });
         const buffer = Buffer.from(await mp3.arrayBuffer());
         res.set('Content-Type', 'audio/mpeg');
