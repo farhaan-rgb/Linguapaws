@@ -1306,19 +1306,32 @@ export default function Chat() {
             }
 
             if (hasCorrectMatch) {
-                setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(matchRatio * 100) }));
-                /* Gated on `spellingNote`, not on a raw ratio. The ratio drops
+                /* `matchRatio` is the best ratio across EVERY accepted variant, so
+                   it reads 1.0 whenever any accepted form matched exactly — which
+                   is most turns. Copied into a transcript it printed "Match: 100%"
+                   on all seventeen turns of a round-K session, including the four
+                   the same transcript flagged as misspelled, which makes the
+                   column useless for exactly the debugging it exists for. The
+                   number worth having is the distance from the CANONICAL answer:
+                   that is what varies, and what says how far off a variant was. */
+                setMatchScores(prev => ({ ...prev, [userMessageIndex]: Math.round(100 * (
+                    expectedCorrectionStr
+                        ? engine.similarityRatioLatin(text, expectedCorrectionStr)
+                        : matchRatio)) }));
+                /* Gated on `spellingDiff`, not on a raw ratio. The ratio drops
                    below 0.95 for any accepted VARIANT — a dropped pronoun, the
                    run-together form the lesson itself calls correct — and the badge
                    then told a learner they had misspelled something they had spelled
-                   fine. `spellingNote` returns '' when there is nothing worth saying,
-                   which is exactly the question the badge is asking. */
-                const spellHint = expectedCorrectionStr
-                    ? engine.spellingNote(text, expectedCorrectionStr,
+                   fine. `spellingDiff` returns null when there is nothing worth
+                   saying, which is exactly the question the badge is asking, and
+                   when there IS something it names the one wrong word rather than
+                   restating the sentence. */
+                const spellDiff = expectedCorrectionStr
+                    ? engine.spellingDiff(text, expectedCorrectionStr,
                         isCurrentlyTeaching ? teachAccepted : [], LEXICON)
-                    : '';
-                if (spellHint) {
-                   setCorrections(prev => ({ ...prev, [userMessageIndex]: { expected: expectedCorrectionStr, ratio: matchRatio } }));
+                    : null;
+                if (spellDiff) {
+                   setCorrections(prev => ({ ...prev, [userMessageIndex]: spellDiff }));
                 }
             }
 
