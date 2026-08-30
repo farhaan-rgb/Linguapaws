@@ -66,6 +66,24 @@ there has nothing to report except that the course ends.
 
 Edit the template, not the installed files, and re-run the installer.
 
+## Two agents, one tree
+
+There is no isolation between these agents — they share a working tree, and
+running two at once on the same files has already produced three distinct
+failures: work landing inside another agent's commit under a message that did
+not describe it, one agent silently reverting a line another had deliberately
+added, and an agent watching its own edits disappear and reappear mid-task.
+
+The durable half of the fix is on the caller, not the agents: **do not dispatch
+two agents onto the same files concurrently.** Voice and design both own parts
+of `Steps.jsx`; dev and design both own all of it. Run them in sequence, or give
+one of them a git worktree.
+
+The agents themselves now check `git log` and `git status` on entry and again
+before committing, report it when the head moves under them, and must name any
+peer's change they override — in the report *and* the commit message. That
+catches the damage after the fact. It does not prevent it.
+
 ## What each agent must not do
 
 The boundaries are in the agent files and they matter more than the

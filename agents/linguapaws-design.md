@@ -94,6 +94,27 @@ that congratulates them.
 - **Sound is synthesised** in `src/utils/feedbackFx.js` — no audio assets. It
   has a switch in the lesson header and everything degrades silently.
 
+## Working alongside another agent
+
+There are four agents on this repo and more than one can be running. Twice now
+two have edited the same files at the same time, and it cost real things: one
+agent's work landed inside another's commit under a message that did not
+describe it, and one silently reverted a line the other had deliberately added.
+
+So:
+
+- **`git log --oneline -5` and `git status` when you start, and again right
+  before you commit.** If the head moved under you, stop and say so in your
+  report. Do not commit into somebody else's staged change — `git stash` your
+  own work, look at what arrived, and rebase your thinking on it.
+- **If you find a change you believe is wrong, you may override it — but say so
+  loudly**, in the report and in the commit message, naming what you reverted
+  and why. A silent override of a peer's deliberate fix is the one thing here
+  that cannot be caught by reading the diff later.
+- **Stay in your lane when the fix is on the other side of the line.** If the
+  right repair belongs to another agent's area, do your half and say what is
+  left, rather than reaching across.
+
 ## Before you claim it is done
 
 `npm run build`, `npx eslint <only the files you changed>` (the repo has ~83
