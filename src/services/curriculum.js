@@ -34,13 +34,13 @@ export const CURRICULUM = {
                   grammarNote: "*Bagunnanu* is two pieces joined: *baga* (\"well\") plus *unnanu* (\"I am\") — the final vowel of *baga* drops away where they meet. That is why there is no separate word for \"am\" — and why the clipped *bagunna* you hear in fast speech still means the same thing." },
                 { prompt: "Ask 'How are you?'", correct: "Meeru ela unnaru", meaning: "How are you?", hint: "You + how + are?", acceptable: ["meeru ela unnaru?", "meeru ela", "ela unnaru", "ela unnaru?"],
                   grammarNote: "*Unnaru* is “you are”, and the ending is what carries the person. *Unnanu* is “I am” — the one hiding inside *bagunnanu* — while *unnaru* covers anyone you would call *meeru*. It doubles as the respectful “he is” and “she is”, and a close friend gets *unnavu*." },
-                { prompt: "Say 'I am fine, and you?'", correct: "Nenu bagunnanu, meeru?", meaning: "I am fine, and you?", hint: "I + fine + you?", acceptable: ["nenu bagunna, meeru?", "bagunnanu, meeru?", "bagunna, meeru?"],
+                { prompt: "Say 'I'm fine — you?'", correct: "Nenu bagunnanu, meeru?", meaning: "I am fine, and you?", hint: "I + fine + you?", acceptable: ["nenu bagunna, meeru?", "bagunnanu, meeru?", "bagunna, meeru?"],
                   grammarNote: "Telugu usually drops *nenu* — *bagunnanu* already means \"I am fine\" on its own. This sentence is the exception: setting yourself beside the other person is exactly the contrast Telugu marks with the pronoun, so *Nenu bagunnanu, meeru?* is the natural form here — \"**I'm** fine, and you?\"." }
             ],
             conversations: [
                 { prompt: "A shopkeeper greets you. Say hello and that you are fine.", correct: "Namaskaram, nenu bagunnanu", meaning: "Hello, I am fine", hint: "Basic greeting + state", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"],
                   grammarNote: "Swap that -nu ending and the subject changes: *bagunnaru* means \"you are fine\". Same word, different ending, different person — you will meet this pattern on every Telugu verb." },
-                { prompt: "Ask Miko how she is doing — start with her name.", correct: "Miko, meeru ela", meaning: "Miko, how are you?", hint: "Name + you + how + are?",
+                { prompt: "Ask Miko how they are doing — start with their name.", correct: "Miko, meeru ela", meaning: "Miko, how are you?", hint: "Name + you + how + are?",
                   acceptable: ["meeru ela unnaru?", "meeru ela", "ela unnaru?"],
                   acceptable: ["miko, meeru ela unnaru?", "miko meeru ela unnaru", "miko, meeru ela unnaru", "miko meeru ela unnaru?"],
                   grammarNote: "Leading with the name — *Miko, meeru ela...* — is as normal in Telugu as in English. Ending with *unnaru* gives you the polite full form." },
@@ -143,7 +143,7 @@ export const CURRICULUM = {
                 { prompt: "Say 'His story'", correct: "Ayana katha", meaning: "His story", hint: "His + story" }
             ],
             conversations: [
-                { prompt: "Introduce yourself — greet Miko and tell her your name.", correct: "Namaskaram, naa peru [name]", meaning: "Hello, my name is ...", hint: "Greeting + my + name + your name",
+                { prompt: "Introduce yourself — greet Miko and tell them your name.", correct: "Namaskaram, naa peru [name]", meaning: "Hello, my name is ...", hint: "Greeting + my + name + your name",
                   grammarNote: "Telugu needs no word for “is” here — *naa peru Ravi* is literally “my name Ravi”, and that is the whole sentence." },
                 { prompt: "Point at a book and say 'That is your book'.", correct: "Adhi mee pusthakam", meaning: "That is your book", hint: "That + your + book", acceptable: ["mee pusthakam"] },
                 { prompt: "Say 'I have a story'.", correct: "Naaku katha undi", meaning: "I have a story", hint: "To me + story + there is", acceptable: ["naaku oka katha undi"],
@@ -813,23 +813,23 @@ export const CURRICULUM = {
                   grammarNote: "*Chennagiddeeni* is a whole sentence on its own. Its -eeni ending is a verb ending that already tells you the subject is “I”, so *naanu* can be left out and nothing separate is needed for “am”. The matching “you” ending is the -eera in *iddeera*: change the ending, change who is being talked about." },
                 { prompt: "Ask 'How are you?' (formal)", correct: "Neevu hegiddeera?", meaning: "How are you?", hint: "You + how-are-you",
                   acceptable: ["neevu hege iddeera?", "hege iddeera?", "hegiddeera?", "neevu hegiddira?", "hegiddira?", "neevu hege iddira?", "hege iddira?", "neevu hegiddeera"],
-                  grammarNote: "*Hegiddeera* is the two words you already know — *hege* (“how”) and *iddeera* (“are you”) — run together. Kannada fuses them and you will hear it as one word, but saying them separately, *hege iddeera*, is equally correct and equally accepted. *Neevu* is optional too: the -eera ending already says “you”." },
-                { prompt: "Say 'I am fine, and you?'", correct: "Naanu chennagiddeeni, neevu?", meaning: "I am fine, and you?", hint: "I-am-fine + you?",
+                  grammarNote: "That is *hege* and *iddeera* fused, as promised — and *hege iddeera* said separately is equally correct. *Neevu* is optional here for the same reason *naanu* was: the -eera ending already says “you”." },
+                { prompt: "Say 'I'm fine — you?'", correct: "Naanu chennagiddeeni, neevu?", meaning: "I am fine, and you?", hint: "I-am-fine + you?",
                   acceptable: ["chennagiddeeni, neevu?", "naanu chennagiddeeni, matte neevu?", "chennagiddeeni matte neevu?", "chennagiddini, neevu?", "naanu chennagiddini, neevu?"],
                   grammarNote: "No word for “and” is needed here — Kannada just sets the two halves side by side. *Matte* (“and”) exists, but a bare *neevu?* is how this is really said. It is also the one place the pronoun earns its keep: setting yourself beside the other person is the contrast *naanu* marks." }
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskara, naanu chennagiddeeni", meaning: "Hello, I am fine", hint: "Hello + I-am-fine",
                   acceptable: ["namaskara, chennagiddeeni", "namaskara chennagiddeeni", "namaskara, naanu chennagiddini", "namaskara, chennagiddini"] },
-                { prompt: "Ask Miko how she is doing — start with her name.", correct: "Miko, neevu hegiddeera?", meaning: "Miko, how are you?", hint: "Name + you + how-are-you",
+                { prompt: "Ask Miko how they are doing — start with their name.", correct: "Miko, neevu hegiddeera?", meaning: "Miko, how are you?", hint: "Name + you + how-are-you",
                   acceptable: ["miko, neevu hege iddeera?", "miko, neevu hegiddira?", "miko, hegiddeera?", "miko hegiddeera", "miko, hege iddeera?", "neevu hegiddeera?", "hegiddeera?", "hege iddeera?", "neevu hege iddeera?", "miko, hegiddira?"],
                   grammarNote: "Leading with the name is as normal in Kannada as in English. Everything after it is the question you already built." },
                 { prompt: "Someone asks 'Neevu hegiddeera?'. Tell them you are fine.", correct: "Naanu chennagiddeeni", meaning: "I am fine", hint: "Direct answer",
                   acceptable: ["chennagiddeeni", "chennagiddini", "naanu chennagiddini"],
-                  grammarNote: "Answering, most people drop *naanu* altogether — *chennagiddeeni* already says who is fine. Kannada leaves out a pronoun whenever the verb ending has already told you the person, which is most of the time." },
+                  grammarNote: "Answering, most people drop *naanu* altogether — *chennagiddeeni* already says who is fine." },
                 { prompt: "Final check: say hello, say you are fine, and ask how they are.", correct: "Namaskara, naanu chennagiddeeni, neevu hegiddeera?", meaning: "Hello, I am fine, how are you?", hint: "Hello + I-am-fine + how-are-you",
                   acceptable: ["namaskara, naanu chennagiddeeni, neevu hege iddeera?", "namaskara naanu chennagiddeeni neevu hegiddeera?", "namaskara, chennagiddeeni, neevu hegiddeera?", "namaskara, chennagiddeeni, hegiddeera?", "namaskara, chennagiddeeni, hege iddeera?", "namaskara, naanu chennagiddeeni, hegiddeera?", "namaskara, naanu chennagiddeeni, neevu hegiddira?", "namaskara, chennagiddini, hegiddeera?", "namaskara, naanu chennagiddini, neevu hegiddeera?", "namaskara chennagiddeeni hegiddeera"],
-                  grammarNote: "That is the whole exchange in one breath. Both pronouns are optional, exactly as the notes said — *Namaskara, chennagiddeeni, hegiddeera?* is just as correct, and is what you will hear most often." }
+                  grammarNote: "That is the whole exchange in one breath. Dropping both pronouns — *Namaskara, chennagiddeeni, hegiddeera?* — is what you will hear most often." }
             ],
             farewell: "That is a real conversation — you can open and answer one now."
         },
@@ -939,7 +939,7 @@ export const CURRICULUM = {
                   acceptable: ["illa oota beda", "oota beda"],
                   grammarNote: "*Illa* is the general-purpose “no”: it also does “not” and “isn't”, and when it negates a sentence it goes at the end. Here it stands alone at the front, as a plain refusal, and *beda* carries the rest." },
                 { prompt: "Say 'I don't want that'.", correct: "Adu beda", meaning: "I don't want that", hint: "That + don't want" },
-                { prompt: "Miko brings you the water. Thank her.", correct: "Dhanyavada", meaning: "Thank you", hint: "One word",
+                { prompt: "Miko brings you the water. Thank them.", correct: "Dhanyavada", meaning: "Thank you", hint: "One word",
                   acceptable: ["dhanyavada miko", "dhanyavadagalu"] }
             ],
             farewell: "Asking for what you want, refusing what you don't, and saying thank you — that is most of a shop visit."
@@ -967,7 +967,7 @@ export const CURRICULUM = {
             conversations: [
                 { prompt: "Introduce yourself: 'Hello, my name is Ravi'.", correct: "Namaskara, nanna hesaru Ravi", meaning: "Hello, my name is Ravi", hint: "Hello + my + name + Ravi",
                   acceptable: ["namaskara nanna hesaru ravi", "nanna hesaru ravi"] },
-                { prompt: "Point at a book across the room and tell Miko: \u201cthat is your book\u201d (it belongs to her).", correct: "Adu nimma pustaka", meaning: "That is your book", hint: "That + your + book",
+                { prompt: "Point at a book across the room and tell Miko: \u201cthat is your book\u201d (it belongs to them).", correct: "Adu nimma pustaka", meaning: "That is your book", hint: "That + your + book",
                   grammarNote: "Watch which “your” an English prompt means. *Nimma* is the person you are TALKING TO — here, Miko. When a prompt says “your teacher” meaning the one who teaches YOU, the word is *nanna*, “my”." },
                 { prompt: "Point at your teacher and say 'her name', respectfully.", correct: "Avara hesaru", meaning: "Her name (respectful)", hint: "Respectful her + name",
                   acceptable: ["avara hesaru?"],
@@ -1149,11 +1149,11 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaste, main theek hoon", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
                 { prompt: "Ask 'How are you?' (formal)", correct: "Aap kaise hain?", meaning: "How are you?", hint: "You + how + are?" },
-                { prompt: "Say 'I am fine, and you?'", correct: "Main theek hoon, aap?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
+                { prompt: "Say 'I'm fine — you?'", correct: "Main theek hoon, aap?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaste, main theek hoon", meaning: "Hello, I am fine", hint: "Basic greeting" },
-                { prompt: "Ask Miko how she is doing.", correct: "Miko, aap kaise hain?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Ask Miko how they are doing.", correct: "Miko, aap kaise hain?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
                 { prompt: "Someone asks 'Aap kaise hain?'. Answer 'Main theek hoon'.", correct: "Main theek hoon", meaning: "I am fine", hint: "Direct answer" },
                 { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaste, main theek hoon, aap kaise hain?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
             ]
@@ -1256,11 +1256,11 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskara, mu bhala", meaning: "Hello, I am fine", hint: "Hello + I + fine" },
                 { prompt: "Ask 'How are you?' (formal)", correct: "Apana kemiti achhanti?", meaning: "How are you?", hint: "You + how + are?" },
-                { prompt: "Say 'I am fine, and you?'", correct: "Mu bhala, apana?", meaning: "I am fine, and you?", hint: "I + fine + you?" }
+                { prompt: "Say 'I'm fine — you?'", correct: "Mu bhala, apana?", meaning: "I am fine, and you?", hint: "I + fine + you?" }
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskara, mu bhala", meaning: "Hello, I am fine", hint: "Basic greeting" },
-                { prompt: "Ask Miko how she is doing.", correct: "Miko, apana kemiti achhanti?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Ask Miko how they are doing.", correct: "Miko, apana kemiti achhanti?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
                 { prompt: "Someone asks 'Apana kemiti achhanti?'. Answer 'Mu bhala'.", correct: "Mu bhala", meaning: "I am fine", hint: "Direct answer" },
                 { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskara, mu bhala, apana kemiti achhanti?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
             ]
@@ -1888,11 +1888,11 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Vanakkam, naan nalla irukken", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
                 { prompt: "Ask 'How are you?' (formal)", correct: "Neenga eppadi irukkeenga?", meaning: "How are you?", hint: "You + how + are?" },
-                { prompt: "Say 'I am fine, and you?'", correct: "Naan nalla irukken, neenga?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
+                { prompt: "Say 'I'm fine — you?'", correct: "Naan nalla irukken, neenga?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Vanakkam, naan nalla irukken", meaning: "Hello, I am fine", hint: "Basic greeting" },
-                { prompt: "Ask Miko how she is doing.", correct: "Miko, neenga eppadi irukkeenga?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Ask Miko how they are doing.", correct: "Miko, neenga eppadi irukkeenga?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
                 { prompt: "Someone asks 'Neenga eppadi irukkeenga?'. Answer 'Naan nalla irukken'.", correct: "Naan nalla irukken", meaning: "I am fine", hint: "Direct answer" },
                 { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Vanakkam, naan nalla irukken, neenga eppadi irukkeenga?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
             ]
@@ -1911,11 +1911,11 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskar, ami bhalo achi", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
                 { prompt: "Ask 'How are you?' (formal)", correct: "Apni kemon achen?", meaning: "How are you?", hint: "You + how + are?" },
-                { prompt: "Say 'I am fine, and you?'", correct: "Ami bhalo achi, apni?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
+                { prompt: "Say 'I'm fine — you?'", correct: "Ami bhalo achi, apni?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskar, ami bhalo achi", meaning: "Hello, I am fine", hint: "Basic greeting" },
-                { prompt: "Ask Miko how she is doing.", correct: "Miko, apni kemon achen?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Ask Miko how they are doing.", correct: "Miko, apni kemon achen?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
                 { prompt: "Someone asks 'Apni kemon achen?'. Answer 'Ami bhalo achi'.", correct: "Ami bhalo achi", meaning: "I am fine", hint: "Direct answer" },
                 { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskar, ami bhalo achi, apni kemon achen?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
             ]
@@ -1938,7 +1938,7 @@ export const CURRICULUM = {
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskar, mi thik ahe", meaning: "Hello, I am fine", hint: "Basic greeting" },
-                { prompt: "Ask Miko how she is doing.", correct: "Miko, tumhi kasa ahat?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Ask Miko how they are doing.", correct: "Miko, tumhi kasa ahat?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
                 { prompt: "Someone asks 'Tumhi kasa ahat?'. Answer 'Mi thik ahe'.", correct: "Mi thik ahe", meaning: "I am fine", hint: "Direct answer" },
                 { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskar, mi thik ahe, tumhi kasa ahat?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
             ]
@@ -1957,11 +1957,11 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskkaram, njan sugam-ayi irikkunnu", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
                 { prompt: "Ask 'How are you?' (formal)", correct: "Ningalude sugamano?", meaning: "How are you?", hint: "Your + fine?" },
-                { prompt: "Say 'I am fine, and you?'", correct: "Njan sugam-ayi irikkunnu, ningalo?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
+                { prompt: "Say 'I'm fine — you?'", correct: "Njan sugam-ayi irikkunnu, ningalo?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Namaskkaram, njan sugam-ayi irikkunnu", meaning: "Hello, I am fine", hint: "Basic greeting" },
-                { prompt: "Ask Miko how she is doing.", correct: "Miko, sugamano?", meaning: "Miko, are you fine?", hint: "Name + fine?" },
+                { prompt: "Ask Miko how they are doing.", correct: "Miko, sugamano?", meaning: "Miko, are you fine?", hint: "Name + fine?" },
                 { prompt: "Someone asks 'Sugamano?'. Answer 'Sugam' (Fine).", correct: "Sugam", meaning: "Fine", hint: "Direct answer" },
                 { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Namaskkaram, njan sugam-ayi irikkunnu, ningalku sugamano?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
             ]
@@ -1980,11 +1980,11 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Assalamu Alaikum, main theek hoon", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
                 { prompt: "Ask 'How are you?' (formal)", correct: "Aap kaise hain?", meaning: "How are you?", hint: "You + how + are?" },
-                { prompt: "Say 'I am fine, and you?'", correct: "Main theek hoon, aap?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
+                { prompt: "Say 'I'm fine — you?'", correct: "Main theek hoon, aap?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Assalamu Alaikum, main theek hoon", meaning: "Hello, I am fine", hint: "Basic greeting" },
-                { prompt: "Ask Miko how she is doing.", correct: "Miko, aap kaise hain?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Ask Miko how they are doing.", correct: "Miko, aap kaise hain?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
                 { prompt: "Someone asks 'Aap kaise hain?'. Answer 'Main theek hoon'.", correct: "Main theek hoon", meaning: "I am fine", hint: "Direct answer" },
                 { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Assalamu Alaikum, main theek hoon, aap kaise hain?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
             ]
@@ -2003,11 +2003,11 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Sat Sri Akaal, main theek haan", meaning: "Hello, I am fine", hint: "Hello + I + fine + am" },
                 { prompt: "Ask 'How are you?' (formal)", correct: "Tusi ki haal ho?", meaning: "How are you?", hint: "You + how + are?" },
-                { prompt: "Say 'I am fine, and you?'", correct: "Main theek haan, tusi?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
+                { prompt: "Say 'I'm fine — you?'", correct: "Main theek haan, tusi?", meaning: "I am fine, and you?", hint: "I + fine + am + you?" }
             ],
             conversations: [
                 { prompt: "A friend greets you. Say hello and that you are fine.", correct: "Sat Sri Akaal, main theek haan", meaning: "Hello, I am fine", hint: "Basic greeting" },
-                { prompt: "Ask Miko how she is doing.", correct: "Miko, tusi ki haal ho?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
+                { prompt: "Ask Miko how they are doing.", correct: "Miko, tusi ki haal ho?", meaning: "Miko, how are you?", hint: "Name + you + how + are?" },
                 { prompt: "Someone asks 'Tusi ki haal ho?'. Answer 'Main theek haan'.", correct: "Main theek haan", meaning: "I am fine", hint: "Direct answer" },
                 { prompt: "Final check: Say hello, I am fine, how are you?", correct: "Sat Sri Akaal, main theek haan, tusi ki haal ho?", meaning: "Hello, I am fine, how are you?", hint: "Full intro" }
             ]

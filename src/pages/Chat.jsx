@@ -1119,6 +1119,27 @@ export default function Chat() {
         setIsLoading(false);
     };
 
+    /* A note the learner has already been given in this scenario is not
+       teaching any more, it is wallpaper. Round-K's lesson 1 stated the
+       dropped-pronoun rule in five notes across eight steps; by the third the
+       learner has stopped reading, which costs the notes that DO carry
+       something new. Exact repeats only, so a differently-worded note is never
+       suppressed, and scoped to the current scenario — the same rule is worth
+       restating in a later lesson, just not four screens running. */
+    const noteAlreadyShown = (note) => {
+        if (!note) return false;
+        const key = (t) => String(t || '').replace(/^💡\s*/, '').replace(/\s+/g, ' ').trim().toLowerCase();
+        const target = key(note);
+        if (!target) return false;
+        let start = 0;
+        for (let i = messages.length - 1; i >= 0; i--) {
+            const c = String(messages[i].content || '');
+            if (messages[i].role === 'system' && c.includes('Scenario Mastered')) { start = i + 1; break; }
+        }
+        return messages.slice(start).some(m => m.role === 'system'
+            && String(m.content || '').startsWith('💡') && key(m.content) === target);
+    };
+
     const handleSend = async (text, isVoice = false) => {
         if (!text) return;
         // Voice STT sometimes mixes native script — strip it, but only if Latin chars remain
@@ -1554,7 +1575,7 @@ export default function Chat() {
                            done scrolled past in silence. */
                         const noteText = noteForAnswer(phraseItem, text);
                         out.push({ role: 'assistant', content: praise });
-                        if (noteText) out.push({ role: 'system', content: `💡 ${noteText}` });
+                        if (noteText && !noteAlreadyShown(noteText)) out.push({ role: 'system', content: `💡 ${noteText}` });
                         if (atBoundary) {
                             /* The "Phrases done" banner lives in the AI path, which
                                sits after this fast path's early return — so on the
@@ -2007,9 +2028,9 @@ export default function Chat() {
                has just given and the model's reply already contains the NEXT
                prompt. It used to be displayed and never spoken, so the audio went
                from the verdict straight to the next task. */
-            const spokenNote = (postAnswerGrammarNote && hasCorrectMatch)
-                ? engine.spokenFormOfNote(postAnswerGrammarNote)
-                : '';
+            const showNote = postAnswerGrammarNote && hasCorrectMatch
+                && !noteAlreadyShown(postAnswerGrammarNote);
+            const spokenNote = showNote ? engine.spokenFormOfNote(postAnswerGrammarNote) : '';
             // Same order the screen uses: note, then the stage change, then what
             // comes next. The banner used to be read out first, so the audio
             // announced the lesson was over before explaining the last answer.
@@ -2044,7 +2065,7 @@ export default function Chat() {
                stranded the explanation below a new question and read as two
                consecutive tutor messages. It goes first. */
             const outgoing = [];
-            if (postAnswerGrammarNote && hasCorrectMatch) {
+            if (showNote) {
                 outgoing.push({ role: 'system', content: `💡 ${postAnswerGrammarNote}` });
             }
             // Held back above so it lands after the note about the answer that

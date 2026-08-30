@@ -535,15 +535,18 @@ export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()
  *  as far as they knew, their spelling was the spelling. One tester only got it
  *  right afterwards because the word happened to still be on screen.
  *
- *  Returns a short correction to append to the praise, or '' when they had it
- *  exactly. Case and punctuation differences are not worth mentioning.
+ *  Returns `{ said, expected, narrowed }` naming the smallest true correction,
+ *  or null when they had it exactly. Case and punctuation differences are not
+ *  worth mentioning. `spellingNote` below renders this as a sentence; the chat
+ *  badge renders it as a before/after pair, which is why the pieces are
+ *  returned separately rather than pre-formatted.
  */
-export const spellingNote = (said, expected, variants = [], lexicon = new Map()) => {
-    if (!said || !expected) return '';
+export const spellingDiff = (said, expected, variants = [], lexicon = new Map()) => {
+    if (!said || !expected) return null;
     /* A [name] slot is the learner's own information. Offering "Namaskaram, naa
        peru [name]" as the correct spelling shows them a placeholder and, worse,
        fired on an answer that was entirely right. */
-    if (/[[\]()]/.test(expected)) return '';
+    if (/[[\]()]/.test(expected)) return null;
     const { synonyms } = asLexicon(lexicon);
     /* A learner who wrote *santhoshamga* where the sentence lists *santhosham*
        has applied a rule, not mistyped. Three real grammar rules reached testers
@@ -554,7 +557,7 @@ export const spellingNote = (said, expected, variants = [], lexicon = new Map())
     const canon = (text) => normalizeLatin(text).split(' ').filter(Boolean)
         .map(t => synonyms.get(t) || t).join(' ');
     const a = canon(said);
-    if (!a) return '';
+    if (!a) return null;
 
     /* Every form the learner could legitimately have produced, the dropped
        pronoun included. Round-4 testers were told "It is spelled X" five, two and
@@ -592,7 +595,7 @@ export const spellingNote = (said, expected, variants = [], lexicon = new Map())
     for (const form of forms) {
         const b = canon(form);
         if (!b) continue;
-        if (a === b || containsIntact(a, b)) return '';
+        if (a === b || containsIntact(a, b)) return null;
     }
 
     /* If every word the target needs is there EXACTLY, whatever else they wrote,
@@ -605,7 +608,7 @@ export const spellingNote = (said, expected, variants = [], lexicon = new Map())
     const saidTokens = new Set(a.split(' ').filter(Boolean));
     for (const form of forms) {
         const need = canon(form).split(' ').filter(Boolean);
-        if (need.length && need.every(t => saidTokens.has(t))) return '';
+        if (need.length && need.every(t => saidTokens.has(t))) return null;
     }
 
     /* Which form were they actually reaching for? The closest one — otherwise a
@@ -618,8 +621,48 @@ export const spellingNote = (said, expected, variants = [], lexicon = new Map())
     }
     // Too far from anything to be a spelling slip — that is a wrong answer, and
     // the grader has its own way of saying so.
-    if (!best || bestScore < 0.6) return '';
-    return ` Note the spelling: **${best}**.`;
+    if (!best || bestScore < 0.6) return null;
+
+    /* Narrow it to the word that is actually wrong. The badge used to print the
+       whole canonical sentence beside the whole answer — six words against six
+       words, differing by one letter — and left the learner to diff them by eye.
+       A learner who wrote `chennagideeni` inside an otherwise perfect sentence
+       needs to see `chennagideeni -> chennagiddeeni`, not the sentence twice.
+       Only when exactly one token is missing and exactly one is unaccounted for
+       is the pairing unambiguous; anything else falls back to the full form. */
+    const saidParts = normalizeLatin(said).split(' ').filter(Boolean);
+    const needParts = normalizeLatin(best).split(' ').filter(Boolean);
+    const saidHas = new Set(saidParts);
+    const needHas = new Set(needParts);
+    const missing = needParts.filter(t => !saidHas.has(t));
+    const extra = saidParts.filter(t => !needHas.has(t));
+    if (missing.length === 1 && extra.length === 1
+        && levenshtein(extra[0], missing[0]) <= 3) {
+        /* Shown back in the learner's own casing, not the normalised form. The
+           badge and the spelling note both display these, and "note the spelling:
+           bagunnanu" over a lesson that writes *Bagunnanu* is its own small lie
+           about the spelling. */
+        const asWritten = (source, token) => {
+            for (const raw of String(source).split(/\s+/)) {
+                if (normalizeLatin(raw) === token) {
+                    return raw.replace(/^[^\p{L}\p{N}]+/u, '').replace(/[^\p{L}\p{N}?!]+$/u, '');
+                }
+            }
+            return token;
+        };
+        return {
+            said: asWritten(said, extra[0]),
+            expected: asWritten(best, missing[0]),
+            narrowed: true,
+        };
+    }
+    return { said: said.trim(), expected: best, narrowed: false };
+};
+
+/** The same finding as a sentence, for the paths that append it to praise. */
+export const spellingNote = (said, expected, variants = [], lexicon = new Map()) => {
+    const d = spellingDiff(said, expected, variants, lexicon);
+    return d ? ` Note the spelling: **${d.expected}**.` : '';
 };
 
 /* ── Teaching steps ────────────────────────────────────────────────────────
