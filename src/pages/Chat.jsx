@@ -1835,8 +1835,15 @@ export default function Chat() {
                 }
             }
 
+            /* The one stage banner that was printed and never spoken. Its two
+               siblings above both set `transitionBanner` so the voice announces
+               the change of format; this one only pushed a message, so a learner
+               listening rather than reading went from sentence drills into
+               unprompted conversation with no warning that anything had changed.
+               Held like the others so it also lands after the note. */
             if (isCurrentlyInBasic && (nextInScenario === 11) && hasCorrectMatch) {
-                setMessages(prev => [...prev, { role: 'system', content: '🎓 **Phrases done** — now real conversation.' }]);
+                transitionBanner = 'Phrases done — now real conversation.';
+                stageBanner = '🎓 **Phrases done** — now real conversation.';
             }
 
             // Fire progress increment and AI response in parallel — no more sequential wait
