@@ -810,7 +810,7 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskara, naanu chennagiddeeni", meaning: "Hello, I am fine", hint: "Hello + I + I-am-fine",
                   acceptable: ["namaskara, chennagiddeeni", "namaskara chennagiddeeni", "namaskara, naanu chennagiddini", "namaskara, chennagiddini", "namaskara chennagiddini"],
-                  grammarNote: "*Chennagiddeeni* is a whole sentence on its own. Its -eeni ending is a verb ending that already tells you the subject is “I”, so *naanu* can be left out and nothing separate is needed for “am”. The matching “you” ending is the -eera in *iddeera*: change the ending, change who is being talked about." },
+                  grammarNote: "*Chennagiddeeni* is a whole sentence on its own. Its -eeni ending already tells you the subject is “I”, so *naanu* can be left out and nothing separate is needed for “am”. The matching “you” ending is the -eera in *iddeera*: change the ending, change who is being talked about." },
                 { prompt: "Ask 'How are you?' (formal)", correct: "Neevu hegiddeera?", meaning: "How are you?", hint: "You + how-are-you",
                   acceptable: ["neevu hege iddeera?", "hege iddeera?", "hegiddeera?", "neevu hegiddira?", "hegiddira?", "neevu hege iddira?", "hege iddira?", "neevu hegiddeera"],
                   grammarNote: "That is *hege* and *iddeera* fused, as promised — and *hege iddeera* said separately is equally correct. *Neevu* is optional here for the same reason *naanu* was: the -eera ending already says “you”." },

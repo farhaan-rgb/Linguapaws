@@ -174,7 +174,14 @@ if (!Number.isNaN(jumpTo) && jumpTo > 0) {
         const button = cta();
         const input = box();
         if (!button) return;
-        if (button.textContent.trim() !== 'Check') { button.click(); done++; return; }
+        if (button.textContent.trim() !== 'Check') {
+                /* A locked Continue is the note still printing itself out. Clicking it
+               is a no-op, but the counter used to advance anyway, so a walk past any
+               drill screen landed several screens short of the one asked for. Wait,
+               the way a learner has to. */
+            if (button.disabled) return;
+            button.click(); done++; return;
+        }
         // Answer whatever is on screen — wrongly — so the run can move on.
         if (input && !input.disabled && !input.value) return setValue(input, '.');
         button.click();
@@ -216,6 +223,7 @@ if (winTo !== null && winTo !== undefined) {
             if (at > target) return stop();
 
             if (button.textContent.trim() !== 'Check') {
+                if (button.disabled) return;   // see the note in the ?step driver
                 if (at !== target) { button.click(); at++; return; }
                 /* Settled on the screen we came for. The revealed panel has an
                    answer box of its own; ?lock fills it and stops there. */
@@ -277,6 +285,7 @@ if (!Number.isNaN(enterTo)) {
                 if (input.value !== want) return setValue(input, want);
                 return press();
             }
+            if (button.disabled) return;   // see the note in the ?step driver
             press();
             at++;
         }, 620); /* longer than the guard that stops a double Enter from

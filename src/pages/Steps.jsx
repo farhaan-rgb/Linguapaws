@@ -374,7 +374,7 @@ function PromptPanel({ children, sub, muted = false }) {
    true five minutes ago, and it is the reason the screen is worth reading
    rather than clicking past.                                                */
 
-function SuccessPanel({ step, reward, onSpeak, phonetic, hero = true }) {
+function SuccessPanel({ step, reward, onSpeak, phonetic, hero = true, focusSpan = null }) {
     const meaning = step.kind === 'drill' ? step.drill?.meaning : null;
     return (
         <div style={{
@@ -412,7 +412,24 @@ function SuccessPanel({ step, reward, onSpeak, phonetic, hero = true }) {
                         WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
                         wordBreak: 'break-word',
                     }}>
-                        {step.expected}
+                        {/* The gradient is clipped to the whole paragraph's text,
+                            so a nested span keeps its fill and only adds the rule
+                            underneath — which is the annotation. Splitting the
+                            answer into three coloured spans instead would restart
+                            the gradient at each boundary. */}
+                        {focusSpan ? (
+                            <>
+                                {step.expected.slice(0, focusSpan.start)}
+                                <span style={{
+                                    borderBottom: '3px solid rgba(124,58,237,0.55)',
+                                    borderRadius: 2,
+                                    paddingBottom: 1,
+                                }}>
+                                    {step.expected.slice(focusSpan.start, focusSpan.end)}
+                                </span>
+                                {step.expected.slice(focusSpan.end)}
+                            </>
+                        ) : step.expected}
                     </p>
                     {phonetic && (
                         <p style={{ margin: '5px 0 0', fontSize: 12.5, color: 'var(--text-secondary)', letterSpacing: 0.4 }}>
@@ -580,6 +597,86 @@ function RevealPanel({
    retry count and the revealed answer all reset by remount. No effect needed,
    and no way for one screen's state to bleed into the next.                  */
 
+/* ── The grammar note, as the points it is made of ──────────────────────────
+   The note used to render as one paragraph directly under the green tick, at
+   the exact moment the learner has been told they were right and Continue is
+   live. Five lines of unbroken prose there is five lines nobody reads, and the
+   notes are the part of this app that actually teaches.
+
+   So: one point per sentence, each led by the piece of the answer it is about,
+   revealed in turn — and the piece lights up in the sentence above as its point
+   lands, which is what makes it an annotation rather than a list. Continue stays
+   locked until the last one is out; the pending dots are what stop a locked
+   button reading as a broken one.
+
+   After the reveal finishes the points stay explorable: pointing at or tapping
+   one moves the underline back to its fragment.                              */
+
+function GrammarPoints({ points, revealed, activeIdx, onFocusPoint }) {
+    if (!points.length) return null;
+    const pending = revealed < points.length;
+    return (
+        <div style={{ marginTop: 2 }}>
+            {points.slice(0, revealed).map((pt, i) => {
+                const on = i === activeIdx;
+                return (
+                    <div
+                        key={i}
+                        onMouseEnter={() => onFocusPoint(i)}
+                        onClick={() => onFocusPoint(i)}
+                        style={{
+                            display: 'flex', gap: 9, alignItems: 'baseline',
+                            padding: '9px 10px',
+                            marginTop: i ? 3 : 0,
+                            borderRadius: 11,
+                            cursor: 'default',
+                            background: on ? 'rgba(124,58,237,0.07)' : 'transparent',
+                            transition: 'background 0.25s',
+                            animation: 'pop-in 0.34s cubic-bezier(0.22,1.2,0.36,1)',
+                        }}
+                    >
+                        {pt.focus ? (
+                            <span style={{
+                                flex: '0 0 auto',
+                                fontFamily: 'var(--font-display)', fontWeight: 800,
+                                fontSize: 12, lineHeight: 1.5,
+                                padding: '2px 8px', borderRadius: 99,
+                                color: on ? '#5b21b6' : '#6d28d9',
+                                background: on ? 'rgba(124,58,237,0.16)' : 'rgba(124,58,237,0.09)',
+                                whiteSpace: 'nowrap',
+                                transition: 'background 0.25s, color 0.25s',
+                            }}>
+                                {pt.focus}
+                            </span>
+                        ) : (
+                            <span style={{
+                                flex: '0 0 auto', width: 5, height: 5, borderRadius: 99,
+                                marginTop: 7, background: 'rgba(124,58,237,0.4)',
+                            }} />
+                        )}
+                        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>
+                            <RichText text={pt.text} />
+                        </p>
+                    </div>
+                );
+            })}
+            {pending && (
+                <div aria-hidden="true" style={{
+                    display: 'flex', gap: 4, padding: '11px 12px 3px',
+                }}>
+                    {[0, 1, 2].map(i => (
+                        <span key={i} style={{
+                            width: 5, height: 5, borderRadius: 99,
+                            background: 'rgba(124,58,237,0.45)',
+                            animation: `dot-pulse 1.05s ease-in-out ${i * 0.16}s infinite`,
+                        }} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function StepScreen({
     step, lexicon, onSpeak, onSettled, onMiss, onLockIn, onAdvance, isLast,
     answerMode, onAnswerMode, voice, onListen, langName,
@@ -603,10 +700,30 @@ function StepScreen({
     const [lockMiss, setLockMiss] = useState(false);
     /** A transcript has landed in the box and the learner should look at it. */
     const [heard, setHeard] = useState(false);
+    /** How many of the grammar note's points have been shown, and which one the
+     *  underline is currently sitting on (null = follow the newest). */
+    const [revealed, setRevealed] = useState(0);
+    const [activeIdx, setActiveIdx] = useState(null);
 
     const speakMode = answerMode === 'speak';
     const drill = step.kind === 'drill' ? step.drill : null;
     const settled = phase === 'correct' || phase === 'revealed';
+
+    const grammarNote = drill?.grammarNote;
+    const points = useMemo(
+        () => (grammarNote ? engine.grammarPoints(grammarNote) : []),
+        [grammarNote],
+    );
+    /* Locked while the note is still arriving. Without this the learner meets
+       Continue before the explanation has finished printing, and the fastest
+       way past a screen is always the one people take. */
+    const notesPending = phase === 'correct' && revealed < points.length;
+    /* The underline follows the newest point unless the learner has pointed at
+       an older one. */
+    const shownIdx = activeIdx != null ? activeIdx : revealed - 1;
+    const focusSpan = (phase === 'correct' && points[shownIdx])
+        ? engine.focusSpanIn(step.expected, points[shownIdx].focus)
+        : null;
     /* The ways speaking is simply not going to work here. The first four are
        about this device; `nolang` is about the language itself — no vendor we
        are wired to can transcribe Odiya at all, and offering a learner a
@@ -767,6 +884,20 @@ function StepScreen({
         });
     }, [onListen, step]);
 
+    /* Points arrive one at a time, paced by how much there is to read in the one
+       before — a nine-word point does not need the same beat as a thirty-word
+       one. No reset needed: the wrapper is keyed on the step index, so the whole
+       screen remounts and this starts at zero on its own. */
+    useEffect(() => {
+        if (phase !== 'correct' || revealed >= points.length) return undefined;
+        const prev = revealed === 0 ? null : points[revealed - 1].text;
+        const delay = prev
+            ? Math.min(2400, Math.max(900, 600 + prev.length * 11))
+            : 400;
+        const t = setTimeout(() => setRevealed(n => n + 1), delay);
+        return () => clearTimeout(t);
+    }, [phase, revealed, points]);
+
     /* ── One key drives the screen ──
        Enter checks an answer, and Enter moves on once the screen has settled.
        The second half needs a document listener rather than the input's own
@@ -791,6 +922,8 @@ function StepScreen({
                 /* Two quick presses — check, then advance — would spend the
                    celebration before it has been read. */
                 if (Date.now() - settledAt.current < 500) return;
+                // Enter must not walk past a note the button will not walk past.
+                if (notesPending) return;
                 e.preventDefault();
                 onAdvance();
                 return;
@@ -801,7 +934,7 @@ function StepScreen({
         };
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
-    }, [settled, check, onAdvance, listen, voice.status]);
+    }, [settled, check, onAdvance, listen, voice.status, notesPending]);
 
     const tone = phase === 'correct'
         ? { bg: '#ecfdf5', btn: 'linear-gradient(90deg,#059669,#10b981)' }
@@ -883,7 +1016,8 @@ function StepScreen({
                 <div style={{ marginTop: 14 }}>
                     {phase === 'correct' && (
                         <SuccessPanel step={step} reward={reward} onSpeak={onSpeak}
-                            phonetic={phonetic} hero={step.kind !== 'teach'} />
+                            phonetic={phonetic} hero={step.kind !== 'teach'}
+                            focusSpan={focusSpan} />
                     )}
 
                     {phase === 'revealed' && (
@@ -973,18 +1107,19 @@ function StepScreen({
 
                 {/* Spelling and grammar sit below the moment, where they can be
                     read at leisure — not inside the verdict, competing with it. */}
-                {phase === 'correct' && (note || drill?.grammarNote) && (
-                    <div className="card" style={{ padding: 13, marginTop: 12 }}>
+                {phase === 'correct' && (note || points.length > 0) && (
+                    <div className="card" style={{ padding: 11, marginTop: 12 }}>
                         {note && (
-                            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: '#b45309' }}>
+                            <p style={{ margin: '2px 2px 0', fontSize: 13, lineHeight: 1.55, color: '#b45309' }}>
                                 <RichText text={note.trim()} />
                             </p>
                         )}
-                        {drill?.grammarNote && (
-                            <p style={{ margin: note ? '8px 0 0' : 0, fontSize: 13, lineHeight: 1.6 }}>
-                                💡 <RichText text={drill.grammarNote} />
-                            </p>
-                        )}
+                        <GrammarPoints
+                            points={points}
+                            revealed={revealed}
+                            activeIdx={shownIdx}
+                            onFocusPoint={setActiveIdx}
+                        />
                     </div>
                 )}
 
@@ -1011,13 +1146,13 @@ function StepScreen({
                     )}
                     <button
                         onClick={settled ? onAdvance : check}
-                        disabled={!settled && !answer.trim()}
+                        disabled={(!settled && !answer.trim()) || notesPending}
                         style={{
                             width: '100%', padding: '15px', borderRadius: 'var(--radius-md)', border: 'none',
-                            cursor: (!settled && !answer.trim()) ? 'default' : 'pointer',
+                            cursor: ((!settled && !answer.trim()) || notesPending) ? 'default' : 'pointer',
                             background: tone ? tone.btn : 'var(--primary-gradient)',
                             color: '#fff', fontWeight: 800, fontSize: 15, fontFamily: 'var(--font-display)',
-                            opacity: (!settled && !answer.trim()) ? 0.4 : 1,
+                            opacity: ((!settled && !answer.trim()) || notesPending) ? 0.4 : 1,
                             transition: 'background 0.3s, opacity 0.2s',
                         }}>
                         {settled ? (isLast ? 'See how you did' : 'Continue') : 'Check'}
@@ -1628,6 +1763,8 @@ function StepStyles() {
         <style>{`
             @keyframes step-in  { from { transform: translateY(10px); } to { transform: none; } }
             @keyframes pop-in   { from { transform: scale(0.9); opacity: 0; } to { transform: none; opacity: 1; } }
+            @keyframes dot-pulse{ 0%,100% { opacity: 0.25; transform: scale(0.8); }
+                                  50%     { opacity: 1;    transform: scale(1); } }
             @keyframes panel-in { from { transform: translateY(8px) scale(0.97); opacity: 0; }
                                   to   { transform: none; opacity: 1; } }
             @keyframes tick-pop { 0% { transform: scale(0.2); opacity: 0; }

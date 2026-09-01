@@ -1748,3 +1748,89 @@ export const stageOf = (inScenario) => {
     if (inScenario < 11) return 'phrase';
     return 'converse';
 };
+
+/* ── Grammar notes, broken up ──────────────────────────────────────────────
+   A note is authored as one paragraph, and on the step screen it rendered as
+   one paragraph: five lines of unbroken prose under a green tick, at the exact
+   moment the learner has been told they were right and the Continue button is
+   live. Nobody reads it. The information is good — it is the part of the app
+   that actually teaches — so the fix is presentational: split it into the
+   points it already contains, and anchor each one to the piece of the answer
+   it is about.
+
+   Nothing here rewrites the curriculum. The notes already mark their
+   target-language fragments with *asterisks* (103 of the 108 do), and they are
+   already written as two or three self-contained sentences, so both the split
+   and the anchor can be read out of the existing text.                      */
+
+/** The fragment a sentence is ABOUT: an affix if it names one (`-eeni`),
+ *  otherwise the first emphasised term (`*naanu*`). Null when it names
+ *  neither, which is a point that stands on its own. */
+const focusOf = (sentence) => {
+    // `-eeni`, `-galu`, `-ge`: an ending quoted as an ending. Hyphen-led and
+    // never a hyphenated English word, so `non-obvious` is not a match.
+    const affix = /(?:^|[\s“"*(])(-[a-z]{1,8})\b/i.exec(sentence);
+    if (affix) return affix[1];
+    const emph = /\*([^*]+)\*/.exec(sentence);
+    if (emph) {
+        const t = emph[1].trim();
+        // A whole clause between asterisks is emphasis, not a term.
+        if (t && t.split(/\s+/).length <= 2) return t;
+    }
+    return null;
+};
+
+/** Drop a "X is ..." lead-in when X is the point's own focus, so the chip and
+ *  the sentence under it do not say the same word twice. Conservative: only a
+ *  bare linking verb, only at the very start, and the remainder has to be long
+ *  enough to still be a sentence. */
+const trimLeadIn = (sentence, focus) => {
+    if (!focus || focus.startsWith('-')) return sentence;
+    const esc = focus.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`^\\*?${esc}\\*?\\s+(?:is|means|are)\\s+`, 'i');
+    if (!re.test(sentence)) return sentence;
+    const rest = sentence.replace(re, '').trim();
+    if (rest.length < 12) return sentence;
+    return rest.charAt(0).toUpperCase() + rest.slice(1);
+};
+
+/** A grammar note as the points it is made of: `[{ focus, text }]`.
+ *  One point per sentence, in the order they were written. */
+export const grammarPoints = (note) => {
+    const raw = String(note || '').replace(NOTE_MARKERS, '').replace(/\s+/g, ' ').trim();
+    if (!raw) return [];
+    /* Split on a sentence end followed by something that can START one. The
+       lookahead is what keeps `hogu into hogi.` from splitting mid-thought and,
+       more to the point, keeps a decimal or an abbreviation intact. */
+    const sentences = raw.split(/(?<=[.!?])\s+(?=[A-Z“"*(])/).map(s => s.trim()).filter(Boolean);
+    return sentences.map((s) => {
+        const focus = focusOf(s);
+        return { focus, text: trimLeadIn(s, focus) };
+    });
+};
+
+/** Where a point's focus sits inside the answer, so the screen can underline
+ *  it: `{ start, end }` into `answer`, or null when the fragment is not in
+ *  this answer at all — `-eera` is explained on a screen whose answer has no
+ *  *iddeera* in it, and underlining nothing is better than underlining the
+ *  wrong thing. */
+export const focusSpanIn = (answer, focus) => {
+    const text = String(answer || '');
+    if (!text || !focus) return null;
+    if (focus.startsWith('-')) {
+        // An ending: match a word that ENDS with it, and underline just the tail.
+        const suffix = focus.slice(1).toLowerCase();
+        if (suffix.length < 2) return null;
+        const re = /[\p{L}]+/gu;
+        let m;
+        while ((m = re.exec(text)) !== null) {
+            const w = m[0].toLowerCase();
+            if (w.length > suffix.length && w.endsWith(suffix)) {
+                return { start: m.index + m[0].length - suffix.length, end: m.index + m[0].length };
+            }
+        }
+        return null;
+    }
+    const i = text.toLowerCase().indexOf(focus.toLowerCase());
+    return i === -1 ? null : { start: i, end: i + focus.length };
+};
