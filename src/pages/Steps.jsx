@@ -1165,9 +1165,26 @@ function StepScreen({
 
 /* ── The lesson ─────────────────────────────────────────────────────────── */
 
+/* The route element is the same for every lesson — App.jsx and the preview both
+   map /steps to this one component — so React Router keeps it MOUNTED when the
+   summary's "Next lesson" goes from /steps?scenario=0 to /steps?scenario=1. The
+   query changes and nothing else does. `resolvedIdx` below was seeded by a
+   `useState` initialiser, which runs once per mount, so the screen stayed on the
+   lesson that had just finished and the button read as dead.
+
+   Keyed on the scenario, so a different lesson is a different mount. That is
+   deliberately blunter than syncing `resolvedIdx` to the URL: `finished`,
+   `steps`, `index`, `banked`, `unaided`, `said` and `score` would all have to be
+   reset together, and a remount is the one way to be sure none of them is
+   missed. */
 export default function Steps() {
-    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const scenarioParam = searchParams.get('scenario');
+    return <Lesson key={scenarioParam ?? 'resume'} scenarioParam={scenarioParam} />;
+}
+
+function Lesson({ scenarioParam }) {
+    const navigate = useNavigate();
 
     /* Read once. `getStoredJSON` hands back a fresh object every call, and an
        unmemoised one changes the identity of `speak` on every render — which is
@@ -1180,7 +1197,7 @@ export default function Steps() {
         [langName],
     );
 
-    const urlScenario = searchParams.get('scenario');
+    const urlScenario = scenarioParam;
     const [resolvedIdx, setResolvedIdx] = useState(() => {
         const raw = parseInt(urlScenario ?? '', 10);
         return Number.isNaN(raw) ? null : Math.min(Math.max(raw, 0), MAX_SCENARIO_IDX);
@@ -1195,12 +1212,17 @@ export default function Steps() {
             let idx = 0;
             try {
                 const p = await api.get('/api/progress');
-                idx = Math.min(Math.floor((p?.successfulRepeats || 0) / CYCLE_SIZE), MAX_SCENARIO_IDX);
+                /* Clamped to what this language actually has, not to the
+                   thirty Telugu happens to carry. A Kannada learner past 150
+                   repeats resolved to scenario 11 and opened straight onto
+                   "No lesson here yet". */
+                const last = Math.max(0, lessons.length - 1);
+                idx = Math.min(Math.floor((p?.successfulRepeats || 0) / CYCLE_SIZE), last);
             } catch { idx = 0; }
             if (!cancelled) setResolvedIdx(idx);
         })();
         return () => { cancelled = true; };
-    }, [resolvedIdx]);
+    }, [resolvedIdx, lessons.length]);
 
     const scenarioIdx = resolvedIdx ?? 0;
     const lesson = lessons[scenarioIdx];
@@ -1507,6 +1529,7 @@ export default function Steps() {
             <Summary
                 lesson={lesson} steps={steps} banked={banked} unaided={unaided} said={said}
                 score={score} onSpeak={speak} scenarioIdx={scenarioIdx} navigate={navigate}
+                hasNext={scenarioIdx + 1 < lessons.length}
             />
         );
     }
@@ -1585,7 +1608,7 @@ export default function Steps() {
    summary that congratulates you for finishing is congratulating you for
    pressing Continue fifteen times.                                          */
 
-function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, scenarioIdx, navigate }) {
+function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, scenarioIdx, navigate, hasNext = true }) {
     const verdict = praise.summaryFor({
         unaided, total: steps.length, bestCombo: score.best,
     });
@@ -1730,10 +1753,24 @@ function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, scenari
                 ))}
             </section>
 
-            <button className="btn-primary" style={{ width: '100%', marginTop: 4 }}
-                onClick={() => navigate(`/steps?scenario=${Math.min(scenarioIdx + 1, MAX_SCENARIO_IDX)}`)}>
-                Next lesson <ArrowRight size={16} style={{ verticalAlign: -3 }} />
-            </button>
+            {/* `MAX_SCENARIO_IDX` is 29 because Telugu and Odiya have thirty
+                lessons. Kannada has ten and Hindi five, so clamping to it sent a
+                learner who finished the last Kannada lesson to scenario 11 and
+                the "No lesson here yet" screen — a dead end as the reward for
+                finishing a language. Offered only when there is somewhere to go. */}
+            {hasNext ? (
+                <button className="btn-primary" style={{ width: '100%', marginTop: 4 }}
+                    onClick={() => navigate(`/steps?scenario=${scenarioIdx + 1}`)}>
+                    Next lesson <ArrowRight size={16} style={{ verticalAlign: -3 }} />
+                </button>
+            ) : (
+                <p style={{
+                    margin: '10px 0 4px', textAlign: 'center', fontSize: 13.5,
+                    color: 'var(--text-secondary)', lineHeight: 1.6,
+                }}>
+                    That is the last lesson written so far — you have finished the course.
+                </p>
+            )}
             <button onClick={() => navigate(`/chat?scenario=${scenarioIdx}`)}
                 style={{
                     width: '100%', marginTop: 10, padding: '13px',
