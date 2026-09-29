@@ -1,0 +1,53 @@
+# Render blueprint — one web service that serves both the API and the built app.
+#
+# The backend serves ../dist (see backend/server.js), so there is a single
+# origin: no CORS to keep in sync, and one domain to authorise with Google
+# rather than two.
+#
+# Secrets are `sync: false` on purpose — they are entered in the Render
+# dashboard, never committed here. The values are the ones in backend/.env.
+services:
+  - type: web
+    name: linguapaws
+    runtime: node
+    plan: free
+    region: singapore          # closest to the users and to the Atlas cluster
+    branch: main
+    # Root install + frontend build, then backend deps without nodemon.
+    buildCommand: npm ci && npm run build && cd backend && npm ci --omit=dev
+    startCommand: node backend/server.js
+    healthCheckPath: /health
+    envVars:
+      # Render injects PORT itself; server.js already reads it.
+      - key: NODE_VERSION
+        value: 22.12.0
+      # Needed at BUILD time — Vite inlines it into the bundle.
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false
+      # Deliberately NOT set: VITE_API_URL. Left unset, a production build
+      # resolves the API base to '' — relative, same origin. Setting it would
+      # point the deployed app at whatever host it names.
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        sync: false
+      # Same-origin, so CORS never actually fires — set to the Render URL
+      # anyway so the header is honest if anything ever calls cross-origin.
+      - key: CLIENT_ORIGIN
+        sync: false
+      # Optional. Without it every non-English utterance is synthesised by
+      # OpenAI tts-1-hd, which has no Kannada or Telugu voice — an English
+      # voice sounding out the script. Not set locally either, so the
+      # deployment sounds exactly like your machine does today.
+      - key: GOOGLE_TTS_CREDENTIALS_JSON
+        sync: false
