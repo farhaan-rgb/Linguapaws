@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Send, Mic, Square, BookOpen, Globe, Edit3, Sparkles, Keyboard, Volume2, VolumeX, Phone, PhoneOff, Mic2, Copy, Check } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { aiService } from '../services/ai';
-import { api } from '../services/api';
+import { api, BASE_URL } from '../services/api';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { wordTracker } from '../services/wordTracker';
 import { characters as defaultCharacters } from '../data/characters';
@@ -911,7 +911,7 @@ export default function Chat() {
 
         // Warm up the backend on mount so Render free-tier cold starts happen
         // before the user sends their first message, not during it.
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/health`).catch(() => { });
+        fetch(`${BASE_URL}/health`).catch(() => { });
 
         // Reset mounted state — fixes React Strict Mode double-invocation bug
         isMounted.current = true;

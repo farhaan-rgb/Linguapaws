@@ -3,7 +3,13 @@
  * Automatically attaches the JWT from localStorage to every request.
  */
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+/* Same origin once deployed: the backend serves this bundle, so a relative
+   path reaches its own API and there is no second domain to authorise, no CORS
+   to configure and nothing to re-point when the deployment URL changes. Only
+   local development needs an absolute base, where Vite is on 5173 and the API
+   on 5000. `VITE_API_URL` still wins when it is set, for a split deployment. */
+export const BASE_URL = import.meta.env.VITE_API_URL
+    || (import.meta.env.DEV ? 'http://localhost:5000' : '');
 
 const getToken = () => localStorage.getItem('linguapaws_token');
 

@@ -3,6 +3,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { BASE_URL } from '../services/api';
 
 export default function Login() {
     const { signIn, signInAsGuest } = useAuth();
@@ -11,9 +12,12 @@ export default function Login() {
     const [isSigningIn, setIsSigningIn] = useState(false);
 
     useEffect(() => {
-        // Warm up backend to reduce cold-start login failures
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        fetch(`${baseUrl}/health`).catch(() => { });
+        /* Warm up backend to reduce cold-start login failures. Off the shared
+           base: this had its own copy of the fallback, so a deployed build
+           pinged the developer's localhost, the warm-up never reached the
+           server it was written for, and the cold start it exists to hide came
+           back — silently, because the fetch is deliberately swallowed. */
+        fetch(`${BASE_URL}/health`).catch(() => { });
     }, []);
 
     const handleSuccess = async (credentialResponse) => {
