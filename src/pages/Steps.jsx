@@ -12,6 +12,7 @@ import { buildLessonSteps, wordsTaughtBy, stepCaption } from '../services/stepPl
 import { ensureReviewSet, recordTaughtWord, recordReview } from '../services/srs';
 import { getStoredJSON } from '../utils/storage';
 import { api } from '../services/api';
+import { resumeIndex } from '../services/lessonResume';
 import * as fx from '../utils/feedbackFx';
 import { getAnswerMode, setAnswerMode } from '../utils/learnMode';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
@@ -24,8 +25,6 @@ import RichText from '../components/RichText';
 import Burst from '../components/Burst';
 
 const MAX_SCENARIO_IDX = 29;
-/** 15 successful turns per lesson — the same cycle Chat.jsx walks. */
-const CYCLE_SIZE = 15;
 
 /** Whether this browser can hand the app a microphone at all. Checked once,
  *  because the answer never changes mid-lesson, and used to decide whether the
@@ -1203,8 +1202,12 @@ function Lesson({ scenarioParam }) {
         return Number.isNaN(raw) ? null : Math.min(Math.max(raw, 0), MAX_SCENARIO_IDX);
     });
 
-    /* No scenario in the URL: pick up where the learner left off, from the same
-       server counter the chat increments. Lesson 1 when offline. */
+    /* No scenario in the URL: pick up where the learner left off in THIS
+       language — the lesson after the last one finished here, from the record
+       both surfaces write. `resumeIndex` clamps to what this language actually
+       has (a Kannada learner once resolved to scenario 11 of 10 and opened onto
+       "No lesson here yet") and falls back to the old shared repeat counter for
+       a language with no record yet. Lesson 1 when offline. */
     useEffect(() => {
         if (resolvedIdx !== null) return;
         let cancelled = false;
@@ -1212,17 +1215,12 @@ function Lesson({ scenarioParam }) {
             let idx = 0;
             try {
                 const p = await api.get('/api/progress');
-                /* Clamped to what this language actually has, not to the
-                   thirty Telugu happens to carry. A Kannada learner past 150
-                   repeats resolved to scenario 11 and opened straight onto
-                   "No lesson here yet". */
-                const last = Math.max(0, lessons.length - 1);
-                idx = Math.min(Math.floor((p?.successfulRepeats || 0) / CYCLE_SIZE), last);
+                idx = resumeIndex(p, langName, lessons.length);
             } catch { idx = 0; }
             if (!cancelled) setResolvedIdx(idx);
         })();
         return () => { cancelled = true; };
-    }, [resolvedIdx, lessons.length]);
+    }, [resolvedIdx, lessons.length, langName]);
 
     const scenarioIdx = resolvedIdx ?? 0;
     const lesson = lessons[scenarioIdx];
@@ -1479,8 +1477,19 @@ function Lesson({ scenarioParam }) {
                 lang: langName, word: w.word, meaning: w.meaning, scenario: scenarioIdx,
             }).catch(() => {});
         });
-        if (index + 1 >= steps.length) { setFinished(true); fx.playComplete(); }
-        else setIndex(i => i + 1);
+        if (index + 1 >= steps.length) {
+            setFinished(true);
+            fx.playComplete();
+            /* Reaching the summary is what "completed" means here — every
+               screen has either been answered or revealed after
+               REVIEW_RETRY_LIMIT misses, so there is no stricter bar that
+               would not also trap someone. Forward-only on the server, so
+               replaying an earlier lesson never moves resume backwards. */
+            if (langName) {
+                api.post('/api/progress/lesson-complete', { lang: langName, lessonIdx: scenarioIdx })
+                    .catch(() => {});
+            }
+        } else setIndex(i => i + 1);
     }, [step, index, steps.length, langName, scenarioIdx]);
 
     const toggleSound = () => {

@@ -26,6 +26,11 @@ const userSchema = new mongoose.Schema(
             native: String,
         },
         successfulRepeats: { type: Number, default: 0 },
+        // Highest lesson index completed, per course: { Telugu: 4, Kannada: 0 }.
+        // `successfulRepeats` is one counter across every language, so it cannot
+        // say where a learner is in any one of them; this can. Forward-only —
+        // see POST /api/progress/lesson-complete.
+        lessonProgress: { type: Map, of: Number, default: {} },
         learnedWords: [{ word: String, meaning: String, scenario: String }],
     },
     { timestamps: true }

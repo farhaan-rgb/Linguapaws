@@ -3,19 +3,17 @@ const User = require('../models/User');
 const LearnedWord = require('../models/LearnedWord');
 const requireAuth = require('../middleware/auth');
 const { nextSchedule, initialSchedule } = require('../services/srs');
+const { validateCompletion, completionUpdate, progressPayload } = require('../services/lessonProgress');
 
 const router = express.Router();
 router.use(requireAuth);
 
 const keyOf = (word) => String(word || '').toLowerCase().trim();
 
-// GET /api/progress — return repeat count + learned words
+// GET /api/progress — repeat count, learned words, and per-language lesson progress
 router.get('/', async (req, res) => {
     const user = await User.findById(req.user._id);
-    res.json({
-        successfulRepeats: user.successfulRepeats || 0,
-        learnedWords: user.learnedWords || []
-    });
+    res.json(progressPayload(user));
 });
 
 // POST /api/progress/increment — increment successful repeats
@@ -24,10 +22,29 @@ router.post('/increment', async (req, res) => {
     user.successfulRepeats = (user.successfulRepeats || 0) + 1;
     await user.save();
 
-    res.json({
-        successfulRepeats: user.successfulRepeats,
-        learnedWords: user.learnedWords || []
-    });
+    // The chat replaces its whole progress state with this response, so it has
+    // to carry `lessonProgress` too or the next increment would erase it there.
+    res.json(progressPayload(user));
+});
+
+// POST /api/progress/lesson-complete — record a finished lesson
+// Body: { lang, lessonIdx }
+//
+// Idempotent and forward-only: stores the highest lesson index completed in
+// that language. Resume is completed + 1, computed on the client, which knows
+// how many lessons the language has.
+router.post('/lesson-complete', async (req, res) => {
+    const parsed = validateCompletion(req.body);
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
+        completionUpdate(parsed.lang, parsed.lessonIdx),
+        { returnDocument: 'after' }
+    );
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    res.json(progressPayload(user));
 });
 
 // POST /api/progress/learn-word — record a word as taught and put it on the ladder

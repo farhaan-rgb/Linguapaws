@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Send, Mic, Square, BookOpen, Globe, Edit3, Sparkles, Keyboard, Volume2, VolumeX, Phone, PhoneOff, Mic2, Copy, Check } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { aiService } from '../services/ai';
 import { api, BASE_URL } from '../services/api';
+import { CYCLE_SIZE, scenarioIndexFor as resumeScenarioFor, mergeProgress, withLessonCompleted } from '../services/lessonResume';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { wordTracker } from '../services/wordTracker';
 import { characters as defaultCharacters } from '../data/characters';
@@ -19,19 +20,6 @@ import {
     recordTaughtWord,
     recordReview,
 } from '../services/srs';
-
-/** Steps per lesson: 5 teach · 3 review · 3 phrase-building · 4 conversation. */
-const CYCLE_SIZE = 15;
-const MAX_SCENARIO_IDX = 29;
-
-/** Which lesson a repeat count lands in, honouring the ?scenario= override. */
-const scenarioIndexFor = (repeats, override) => {
-    if (override !== null && override !== undefined && override !== '') {
-        const parsed = parseInt(override, 10);
-        if (!Number.isNaN(parsed)) return Math.min(Math.max(parsed, 0), MAX_SCENARIO_IDX);
-    }
-    return Math.min(Math.floor(repeats / CYCLE_SIZE), MAX_SCENARIO_IDX);
-};
 
 export default function Chat() {
     const navigate = useNavigate();
@@ -68,6 +56,11 @@ export default function Chat() {
     // language was taught a different one without ever being told.
     const languageReady = isLanguageAvailable(targetLangName);
     const safeLang = languageReady ? targetLangName : AVAILABLE_LANGUAGES[0];
+    /* Which lesson this conversation is on: the URL's ?scenario= if given,
+       otherwise the lesson after the last one finished in this language — the
+       same rule, from the same record, that the step surface resumes from. */
+    const scenarioIndexFor = (prog, override) =>
+        resumeScenarioFor(prog, safeLang, override, CURRICULUM[safeLang]?.length || 0);
 
     const [recalibrationToast, setRecalibrationToast] = useState(null);
     const [copyToast, setCopyToast] = useState(false);
@@ -85,7 +78,9 @@ export default function Chat() {
     const [completedScenarioHold, setCompletedScenarioHold] = useState(null);
     const [sentenceSuccesses, setSentenceSuccesses] = useState({});
     // Progress bar state (loaded from DB)
-    const [progress, setProgress] = useState({ level: 'zero', levelLabel: 'Beginner', successfulRepeats: 0, needed: 100, nextLevelLabel: 'Basic' });
+    const [progress, setProgressRaw] = useState({ level: 'zero', levelLabel: 'Beginner', successfulRepeats: 0, needed: 100, nextLevelLabel: 'Basic' });
+    /* Every server payload is merged, not swapped in: see `mergeProgress`. */
+    const setProgress = useCallback((next) => setProgressRaw(prev => mergeProgress(prev, next)), []);
     const scrollRef = useRef(null);
     const audioRef = useRef(new Audio());
     const hasGreeted = useRef(false);
@@ -672,15 +667,12 @@ export default function Chat() {
             }
         })();
         return () => { cancelled = true; };
-    }, [characterId, chatTopic]);
+    }, [characterId, chatTopic, setProgress]);   // setProgress is stable (useCallback, no deps)
 
     /* Build the review triplet for the current lesson ahead of time, so the
        answer matcher can read it synchronously when the learner reaches steps
        5–7 instead of racing a fetch mid-turn. */
-    const currentScenarioIdx = scenarioIndexFor(
-        progress?.successfulRepeats || 0,
-        searchParams.get('scenario')
-    );
+    const currentScenarioIdx = scenarioIndexFor(progress, searchParams.get('scenario'));
 
     useEffect(() => {
         const lesson = CURRICULUM[safeLang]?.[currentScenarioIdx];
@@ -941,7 +933,7 @@ export default function Chat() {
             else if (inScenario < 11) levelId = 'basic';
             else levelId = 'conversational';
 
-            const activeScenarioIdx = scenarioIndexFor(currentRepeats, searchParams.get('scenario'));
+            const activeScenarioIdx = scenarioIndexFor(progress, searchParams.get('scenario'));
             const scenarioData = (CURRICULUM[safeLang] && CURRICULUM[safeLang][activeScenarioIdx]) || { vocabulary: [] };
             const activeScenario = scenarioData.scenario || 'Learning';
             const vocabIndex = inScenario < 5 ? inScenario : 0;
@@ -1211,9 +1203,26 @@ export default function Chat() {
             const isCurrentlyInConvo = currentInScenario >= 11;
 
             const searchParamsVal = new URL(window.location.href).searchParams;
-            const scenarioIdxForMatch = scenarioIndexFor(currentRepeats, searchParamsVal.get('scenario'));
+            const scenarioIdxForMatch = scenarioIndexFor(progress, searchParamsVal.get('scenario'));
 
             const scenarioDataForMatch = CURRICULUM[safeLang]?.[scenarioIdxForMatch] || { vocabulary: [], phrases: [], conversations: [] };
+
+            /* What "completed" means in chat: the counter moving off step 15 of
+               this lesson — a correct last answer, a skip, or the AI-reported
+               fallback. All of them wrap the repeat counter to the next lesson's
+               step 0, so the lesson record has to move with it or the learner
+               would land back at step 1 of the lesson they just finished. Every
+               increment in this turn goes through here; only the one leaving
+               step 15 records anything, and the server keeps the maximum. */
+            const incrementProgress = () => api.post('/api/progress/increment').then(res => {
+                if (currentInScenario === CYCLE_SIZE - 1) {
+                    setProgressRaw(prev => withLessonCompleted(prev, safeLang, scenarioIdxForMatch));
+                    api.post('/api/progress/lesson-complete', { lang: safeLang, lessonIdx: scenarioIdxForMatch })
+                        .then(setProgress)
+                        .catch(() => {});
+                }
+                return res;
+            });
 
             // -- 2. EVALUATE USER INPUT (MATCHING) --
             const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
@@ -1325,7 +1334,7 @@ export default function Chat() {
                through the spaced-repetition queue on its own, which is what
                "we'll come back to it" has always meant here. */
             if (isSkipRequest && expectedCorrectionStr) {
-                const progressRes = await api.post('/api/progress/increment').catch(() => null);
+                const progressRes = await incrementProgress().catch(() => null);
                 if (progressRes) setProgress(progressRes);
                 /* "That one will come back later" is a promise about the
                    spaced-repetition ladder, and nothing was telling the ladder.
@@ -1492,7 +1501,7 @@ export default function Chat() {
 
                     let reviewResponse;
                     const advance = async () => {
-                        const progressRes = await api.post('/api/progress/increment').catch(() => null);
+                        const progressRes = await incrementProgress().catch(() => null);
                         if (progressRes) setProgress(progressRes);
                     };
                     const nextQuestion = () => {
@@ -1577,7 +1586,7 @@ export default function Chat() {
 
                     const out = [];
                     if (hasCorrectMatch) {
-                        const pr = await api.post('/api/progress/increment').catch(() => null);
+                        const pr = await incrementProgress().catch(() => null);
                         if (pr) setProgress(pr);
                         /* Verdict, then why, then what's next — the order a
                            teacher speaks in, and now the order of the audio too.
@@ -1597,7 +1606,7 @@ export default function Chat() {
                         }
                         out.push({ role: 'assistant', content: nextUp() });
                     } else if (misses >= REVIEW_RETRY_LIMIT) {
-                        const pr = await api.post('/api/progress/increment').catch(() => null);
+                        const pr = await incrementProgress().catch(() => null);
                         if (pr) setProgress(pr);
                         out.push({ role: 'assistant', content: `It's **${phraseItem.correct}**. We'll come back to this — ${nextUp()}` });
                     } else {
@@ -1717,7 +1726,7 @@ export default function Chat() {
                 }
 
                 if (hasCorrectMatch) {
-                    const progressRes = await api.post('/api/progress/increment').catch(() => null);
+                    const progressRes = await incrementProgress().catch(() => null);
                     if (progressRes) setProgress(progressRes);
                 }
 
@@ -1763,7 +1772,7 @@ export default function Chat() {
                 const convoIdx = currentInScenario - 11;
                 const convoItem = scenarioDataForMatch.conversations?.[convoIdx];
                 if (convoItem && consecutiveMisses(messages) >= REVIEW_RETRY_LIMIT) {
-                    const pr = await api.post('/api/progress/increment').catch(() => null);
+                    const pr = await incrementProgress().catch(() => null);
                     if (pr) setProgress(pr);
                     const next = drillPrompt(scenarioDataForMatch.conversations, convoIdx + 1);
                     const out = [{
@@ -1947,7 +1956,7 @@ export default function Chat() {
 
             // Fire progress increment and AI response in parallel — no more sequential wait
             const progressPromise = hasCorrectMatch
-                ? api.post('/api/progress/increment').catch(e => { console.error('Failed to increment progress', e); return null; })
+                ? incrementProgress().catch(e => { console.error('Failed to increment progress', e); return null; })
                 : Promise.resolve(null);
 
             let rawResponse = await aiService.getResponse(text, topicName, activeCharacter, nativeLang, targetLang, false, userLevel, metaNote, systemOverride);
@@ -2012,7 +2021,7 @@ export default function Chat() {
             if (statusTag === 'true' || statusTag === 'false') {
                 if (statusTag === 'true' && userLevel !== 'zero' && !hasCorrectMatch) {
                     console.log('[Progress] AI reported success (fallback), calling /api/progress/increment...');
-                    api.post('/api/progress/increment')
+                    incrementProgress()
                         .then(progressResult => {
                             setProgress(progressResult);
                             if (progressResult.leveledUp) {
@@ -2409,8 +2418,7 @@ export default function Chat() {
                                         const n = completedScenarioHold.idx + 1;
                                         return `Scenario ${n}: ${completedScenarioHold.scenario}`;
                                     }
-                                    const r = progress.successfulRepeats || 0;
-                                    const stageNum = Math.min(Math.floor(r / 15) + 1, 30);
+                                    const stageNum = currentScenarioIdx + 1;
 
                                     const scenarioLabel = CURRICULUM[safeLang]?.[stageNum - 1]?.scenario || `Scenario ${stageNum}`;
 
