@@ -1145,6 +1145,47 @@ to whoever owns `CURRICULUM`. Filed here because it was found here.
 It also happens to be nearly free: 5,711 characters of native script for both
 courses, which is the same 5,711 characters §7.0 wants to pre-render.
 
+### 7.5.1 Done, for Kannada — 2026-10-05
+
+Farhaan reported lesson 2's `Idu` being read "Eye-dee-you", a Latin initialism.
+It is the same defect. All 57 Kannada vocabulary words and all 70 drill lines
+now carry a `native` field beside the romanised one in `curriculum.js`, and
+`src/services/speechScript.js` hands it to the voice in step mode. The Latin is
+untouched — it is still what the screen shows, what the learner types and what
+`scoreAnswer` grades; 20,587 graded answers across all ten languages hash
+identically before and after.
+
+Measured the same way §7.5 was, on `kn-IN-SapnaNeural`, Deepgram `nova-3` `kn`,
+all 57 words, with the transcript romanised by `shared/transliterate.js` and
+judged by `scoreAnswer` rather than by eye:
+
+| | heard as the intended word | mean confidence |
+|---|---|---|
+| **native script** | **54 / 57** | 0.863 |
+| romanised Latin (what shipped) | 25 / 57 | 0.688 |
+
+`Idu` → ಇದು at **0.989**; `Idu` as Latin came back as the English noun
+**"Idea"** at 0.564. Across the 61 drill lines it is 57/61 against 16/61. The
+three word-level misses are recogniser artifacts, not spellings: ಬಿಸಿ and ಹೂವು
+are one- and two-syllable words that Sapna clips in isolation and that both
+score 0.99 in a carrier phrase and on `kn-IN-GaganNeural`, and ಎಲ್ಲಿ transcribes
+back exactly — the course simply romanises it `Yelli` for the spoken y-glide.
+`node tools/script-check.mjs [--tts]` re-runs all of this.
+
+Read those confidences as §7.4 says to: an intelligibility floor and a check
+that the script is the word that was meant, never a ranking of voices.
+
+**Two things this did not fix.** Telugu and Odiya — 60 of the 90 lessons — are
+still romanised; Telugu survives it and Odiya is untested. And chat mode still
+depends on the model emitting a `<tts>` tag, so the curriculum's new field only
+reaches step mode.
+
+One measurement that constrains how the swap is wired: `say -v Samantha "ಇದು"`
+on a Mac with no Kannada voice produces **11 ms** of audio against 437 ms for
+`"Idu"`. An English voice handed Kannada script is not approximate, it is
+**silent**. So the swap only happens when `pickVoice` finds a real voice for the
+language; a device without one keeps the romanisation and the existing warning.
+
 ## 7.6 The five-minute test on Farhaan's own phone
 
 I cannot do this and it is the only part that settles anything. Sound on.
@@ -1230,7 +1271,8 @@ Concretely:
    never pays at all.
 5. **Do not ship edge-tts.** Evaluation only. It is impersonating a browser.
 6. **Fix the Kannada romanisation before buying any voice.** §7.5. No vendor
-   fixes `Hege`.
+   fixes `Hege`. — **Done 2026-10-05, Kannada only; §7.5.1.** Telugu and Odiya,
+   which are 60 of the 90 lessons, still have no native script.
 
 ### When does "free" stop being true?
 

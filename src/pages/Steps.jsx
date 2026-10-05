@@ -20,7 +20,8 @@ import * as fx from '../utils/feedbackFx';
 import { getAnswerMode, setAnswerMode } from '../utils/learnMode';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { aiService } from '../services/ai';
-import { speakInBrowser, waitForVoices } from '../services/speech';
+import { speakInBrowser, waitForVoices, pickVoice } from '../services/speech';
+import { speechTextFor } from '../services/speechScript';
 import { getLangCode } from '../../shared/languages.js';
 import { hasBrahmicScript, isNonLatinScript } from '../../shared/transliterate.js';
 import { isUnhearable } from '../../shared/asr.js';
@@ -1346,15 +1347,36 @@ function Lesson({ scenarioParam }) {
        handed a transliteration, not its own script. When the device has no
        voice for the language, `speakInBrowser` speaks anyway and warns once
        rather than going silent, because there is nothing else on this screen to
-       carry the word. */
+       carry the word.
+
+       The Kannada course now carries native script in `curriculum.js` and
+       `speechTextFor` swaps it in here — a Kannada voice reads the Latin `Idu`
+       as the English word "idea", which is what a learner reported hearing.
+       Latin is still what the screen shows and what the grader marks; only the
+       utterance changes.
+
+       The swap is conditional on a real voice being installed, and that is not
+       caution — it is measured. `say -v Samantha "ಇದು"` on this Mac, which has
+       no Kannada voice, produces **11 milliseconds** of audio against 437 ms
+       for "Idu": an English voice handed Kannada script does not approximate
+       it, it says nothing at all. Silence on a teach screen is worse than a
+       mispronunciation, so a device with no Kannada voice keeps the Latin and
+       `speakInBrowser` warns once, exactly as before. */
     const langCode = useMemo(() => getLangCode(targetLang), [targetLang]);
     const speak = useCallback((text) => {
         try {
-            speakInBrowser(text, langCode || 'en-IN', {
+            const code = langCode || 'en-IN';
+            /* Resolved at speak time, not at mount: Chrome fills the voice list
+               asynchronously, so asking too early answers "no voice" for a
+               device that has one. */
+            const spoken = langCode && pickVoice(langCode)
+                ? speechTextFor(langName, text)
+                : text;
+            speakInBrowser(spoken, code, {
                 rate: 0.85, requireVoice: false, lang: targetLang,
             });
         } catch { /* no speech synthesis — the phonetic line still carries it */ }
-    }, [langCode, targetLang]);
+    }, [langCode, langName, targetLang]);
 
     /* Say it before they try, not after. A learner whose language nothing can
        transcribe should not have to press a microphone, wait for a round trip
