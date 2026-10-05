@@ -149,6 +149,11 @@ export const differsOnlyByDeicticInitial = (a, b) => {
     const split = (w) => /^(y?[aei])(.+)$/.exec(w);
     const da = split(a), db = split(b);
     if (!da || !db || da[1] === db[1]) return false;
+    /* `elli` against *yelli* is the same vowel with and without the glide the
+       romanisation writes in front of it (ಎಲ್ಲಿ starts with a vowel letter), not
+       a different deictic. Calling it one told a Kannada learner "it is the
+       first vowel, and that changes the word" about a word they had right. */
+    if (da[1].replace(/^y/, '') === db[1].replace(/^y/, '')) return false;
     if (da[2].length < 2) return false;
     return da[2] === db[2];
 };
@@ -573,6 +578,62 @@ export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()
     };
 };
 
+/* ── Spoken answers ──────────────────────────────────────────────────────
+
+   A transcript is the recogniser's spelling, not the learner's. A learner who
+   said *Yelli* five times was rejected five times because the recogniser wrote
+   "elli" / "ee elli" — which is in fact how the course's own ಎಲ್ಲಿ romanises.
+   So a SPOKEN answer gets two allowances a typed one does not:
+
+   1. Script. If the recogniser's native-script reading matches the step's
+      native form, that is the answer, whatever the romanisation table made of it.
+   2. Sound. Per word: the prothetic glide the romanisation writes before a
+      front or rounded vowel (ye-/yi- for e-/i-, vo-/vu- for o-/u-) is dropped,
+      and then vowelSkeleton applies (length, doubled consonants, aspiration).
+      Vowel IDENTITY survives, so illi/alli/elli and idu/adu stay distinct, and
+      the person-ending and polarity checks still run inside scoreAnswer.
+   Typed answers never reach this; they keep today's strictness. */
+const nativeKey = (v) => String(v || '').normalize('NFC')
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, '');
+const spokenWord = (w) => vowelSkeleton(w.replace(/^y(?=[ei])/, '').replace(/^v(?=[ou])/, ''));
+export const spokenKey = (value) => normalizeLatin(value).split(' ')
+    .filter(Boolean).map(spokenWord).join(' ');
+
+/** scoreAnswer for a transcript. `heardNative` is the recogniser's script
+ *  reading (the transcribe response's `native`); `expectedNative` the step's. */
+export const scoreSpoken = (actual, expected, variants = [], lexicon = new Map(),
+    { heardNative = '', expectedNative = '' } = {}) => {
+    const strict = scoreAnswer(actual, expected, variants, lexicon);
+    if (strict.accepted) return strict;
+    const heard = nativeKey(heardNative), want = nativeKey(expectedNative);
+    /* The target must close the utterance, as answerIsOffered requires in
+       Latin — "ee elli" is a filler then the word, not the word mentioned. */
+    if (heard && want && heard.endsWith(want)) return { ...strict, accepted: true, by: 'native' };
+    /* Snap each heard word onto a target word with the SAME sound key, then
+       grade strictly. Re-grading the keys themselves was tried and was far too
+       loose (Meeru passed for Peru): the key strings are not course words, so
+       the real-word and person-ending guards had nothing to hold on to. A word
+       that is itself a different course word is never snapped. */
+    const { words } = asLexicon(lexicon);
+    const targets = new Map();
+    for (const v of [expected, ...(variants || [])]) {
+        for (const t of normalizeLatin(v).split(' ').filter(Boolean)) {
+            if (!targets.has(spokenWord(t))) targets.set(spokenWord(t), t);
+        }
+    }
+    let snapped = false;
+    const rewritten = normalizeLatin(actual).split(' ').filter(Boolean).map(w => {
+        if (words.has(w)) return w;
+        const t = targets.get(spokenWord(w));
+        if (!t || t === w) return w;
+        snapped = true;
+        return t;
+    }).join(' ');
+    if (!snapped) return strict;
+    const loose = scoreAnswer(rewritten, expected, variants, lexicon);
+    return loose.accepted ? { ...loose, by: 'sound' } : strict;
+};
+
 /** A learner who misspells and is accepted never learns the spelling.
  *
  *  Both round-1 testers typed a word wrong — `Bagunanu` for *Bagunnanu*, `Ikada`
@@ -724,6 +785,22 @@ export const teachSliceFor = (vocabulary = [], step = 0) => {
     const from = Math.floor((step * n) / TEACH_STEPS);
     const to = Math.floor(((step + 1) * n) / TEACH_STEPS);
     return vocabulary.slice(from, Math.max(to, from + 1));
+};
+
+/** Does an authored `teach` line say anything the word card does not?
+ *  The card already shows word, phonetic and meaning, so `“Where” is {w}.`
+ *  under it is an echo. Strip the word, the meaning, punctuation and the
+ *  connective filler of those templates; anything left is real explanation. */
+const TEACH_FILLER = new Set(['is', 'a', 'an', 'the', 'means', 'its', 'it', 'says', 'say', 'word', 'for', 'to']);
+export const teachAddsSomething = (wordObj) => {
+    if (!wordObj?.teach) return false;
+    const strip = (v) => String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    let text = ` ${strip(wordObj.teach.replaceAll('{w}', ' '))} `;
+    for (const part of [wordObj.meaning, wordObj.word]) {
+        const p = strip(part);
+        if (p) text = text.replaceAll(` ${p} `, '  ');
+    }
+    return text.split(' ').filter(t => t && !TEACH_FILLER.has(t)).length > 0;
 };
 
 /** One fact: what to say and what it means. Anything more goes in a grammarNote. */
@@ -1621,7 +1698,7 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map()) 
         if (near) {
             const meaning = meanings.get(near) || meanings.get(canon(near));
             return meaning
-                ? `${near} means "${meaning}" — the first vowel is what separates them, and in Telugu that changes the word.`
+                ? `${near} means "${meaning}" — the first vowel is what separates them, and here that changes the word.`
                 : `Not ${near} but ${t} — it is the first vowel, and that changes the word.`;
         }
     }

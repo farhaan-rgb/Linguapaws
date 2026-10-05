@@ -31,6 +31,15 @@ const altsOf = (wordObj) => (wordObj?.alt || []);
  * than back-filled with the current lesson's own words a second time, which
  * would quiz a word the learner met ninety seconds ago.
  */
+/* The step's answer in the course's own script, so a spoken answer can be
+   matched on what the recogniser heard rather than how it romanised it. */
+const nativeOf = (lessons, word) => {
+    for (const l of lessons || []) for (const v of l.vocabulary || []) {
+        if (v.word === word && v.native) return v.native;
+    }
+    return '';
+};
+
 export function buildLessonSteps(lesson, reviewSet = null, allLessons = []) {
     if (!lesson) return [];
     const steps = [];
@@ -52,6 +61,7 @@ export function buildLessonSteps(lesson, reviewSet = null, allLessons = []) {
             slice,
             expected,
             variants: altsOf(wordObj),
+            native: wordObj.native || '',
         });
     });
 
@@ -67,6 +77,7 @@ export function buildLessonSteps(lesson, reviewSet = null, allLessons = []) {
                 : `Say ${item.word} again`,
             expected: item.word,
             variants: engine.altsFor(allLessons, item.word),
+            native: item.native || nativeOf(allLessons, item.word),
         });
     });
 
@@ -84,6 +95,7 @@ export function buildLessonSteps(lesson, reviewSet = null, allLessons = []) {
             prompt: engine.drillPrompt(drills, idx) || drill.prompt,
             expected: drill.correct,
             variants: drill.acceptable || [],
+            native: drill.native || '',
         });
     });
 

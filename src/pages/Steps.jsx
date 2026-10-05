@@ -806,12 +806,17 @@ function StepScreen({
         ? step.slice[0].phonetic : null;
 
     /** `spoken` answers come straight from the transcriber, unconfirmed. */
-    const grade = useCallback((raw, spoken = false) => {
+    const grade = useCallback((raw, spoken = false, heardNative = '') => {
         if (settled) return;
         const said = String(raw || '').trim();
         if (!said) return;
 
-        const { accepted } = engine.scoreAnswer(said, step.expected, step.variants, lexicon);
+        /* A transcript gets the benefit of the doubt (native-script match,
+           glide and length) — decided in the engine, not here. */
+        const { accepted } = spoken
+            ? engine.scoreSpoken(said, step.expected, step.variants, lexicon,
+                { heardNative, expectedNative: step.native })
+            : engine.scoreAnswer(said, step.expected, step.variants, lexicon);
 
         /* A spoken miss counts like a typed one. It used to cost nothing, which
            meant a speaking learner never reached the reveal and could not get
@@ -860,10 +865,13 @@ function StepScreen({
     }, [settled, step, lexicon, misses, onSettled, onMiss, drill]);
     const check = useCallback(() => grade(answer, false), [grade, answer]);
 
-    const lockInWith = useCallback((raw, spoken = false) => {
+    const lockInWith = useCallback((raw, spoken = false, heardNative = '') => {
         const said = String(raw || '').trim();
         if (!said || locked) return;
-        const { accepted } = engine.scoreAnswer(said, step.expected, step.variants, lexicon);
+        const { accepted } = spoken
+            ? engine.scoreSpoken(said, step.expected, step.variants, lexicon,
+                { heardNative, expectedNative: step.native })
+            : engine.scoreAnswer(said, step.expected, step.variants, lexicon);
         if (!accepted) {
             setLockHeard(spoken ? said : '');
             setLockMiss(!spoken);
@@ -900,7 +908,7 @@ function StepScreen({
                is an offer to replace an answer, not an instruction to bin one.
                What was actually wrong there was the message above it. */
             onStart: () => setHeardMiss(''),
-            onText: (text) => gradeRef.current(text, true),
+            onText: (text, heardNative) => gradeRef.current(text, true, heardNative),
         });
     }, [onListen, step]);
 
@@ -910,7 +918,7 @@ function StepScreen({
             variants: step.variants,
             prompt: step.prompt || `Say ${step.expected}`,
             onStart: () => { setLockMiss(false); setLockHeard(''); },
-            onText: (text) => lockInRef.current(text, true),
+            onText: (text, heardNative) => lockInRef.current(text, true, heardNative),
         });
     }, [onListen, step]);
 
@@ -990,9 +998,11 @@ function StepScreen({
                                     won={phase === 'correct'} />
                             ))}
                         </div>
-                        {step.slice.some(w => w.teach) && !settled && (
+                        {/* Only a line that explains something: "“Where” is Yelli"
+                            under a card that already says Yelli / Where is an echo. */}
+                        {step.slice.some(engine.teachAddsSomething) && !settled && (
                             <div className="card" style={{ padding: 14, marginTop: 12 }}>
-                                {step.slice.filter(w => w.teach).map(w => (
+                                {step.slice.filter(engine.teachAddsSomething).map(w => (
                                     <p key={w.word} style={{ margin: '0 0 6px', fontSize: 14, lineHeight: 1.6 }}>
                                         <RichText text={w.teach.replaceAll('{w}', `**${w.word}**`)} />
                                     </p>
@@ -1461,7 +1471,7 @@ function Lesson({ scenarioParam }) {
                 ? engine.pickRomanisation(text, expected, variants, lexicon)
                 : text;
             setVoice(IDLE_VOICE);
-            onText(shown);
+            onText(shown, result.native || (hasBrahmicScript(text) ? text : ''));
             return undefined;
         } finally {
             finishing.current = false;

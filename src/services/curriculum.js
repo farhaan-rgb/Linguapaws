@@ -872,7 +872,7 @@ export const CURRICULUM = {
             icon: "🧭",
             color: "#dcfce7",
             vocabulary: [
-                { word: "Yelli", native: "ಎಲ್ಲಿ", meaning: "Where", phonetic: "yehl-lih", teach: "“Where” is {w}." },
+                { word: "Yelli", native: "ಎಲ್ಲಿ", meaning: "Where", phonetic: "yehl-lih", alt: ["elli"], teach: "“Where” is {w}." },
                 { word: "Mane", native: "ಮನೆ", meaning: "House / home", phonetic: "muh-neh", alt: ["manege"],
                   teach: "“House” is {w}. Going TO it, the word takes -ge: *manege*. Kannada puts that ending ON the noun, never a separate word in front of it." },
                 { word: "Illi", native: "ಇಲ್ಲಿ", meaning: "Here", phonetic: "ihl-lih",
