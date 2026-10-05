@@ -61,8 +61,10 @@ function Ring({ fraction, size }) {
     return (
         <svg width={size} height={size} style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }} aria-hidden="true">
             <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(168,85,247,0.15)" strokeWidth="6" />
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="url(#lm-grad)" strokeWidth="6"
-                strokeLinecap="round" strokeDasharray={`${c * fraction} ${c}`} />
+            {fraction > 0 && (
+                <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="url(#lm-grad)" strokeWidth="6"
+                    strokeLinecap="round" strokeDasharray={`${c * fraction} ${c}`} />
+            )}
         </svg>
     );
 }
@@ -210,10 +212,9 @@ export default function LessonMap() {
                 background: 'var(--primary-gradient)', color: 'white', padding: '12px 14px 14px',
                 boxShadow: '0 12px 24px -10px rgba(124,58,237,0.55)',
             }}>
-                <svg width="150" height="120" viewBox="0 0 150 120" aria-hidden="true"
-                    style={{ position: 'absolute', right: -18, bottom: -26, opacity: 0.13 }}>
-                    <g transform="translate(40 70) rotate(-20) scale(5)"><PawShape fill="white" /></g>
-                    <g transform="translate(112 34) rotate(-10) scale(3.4)"><PawShape fill="white" /></g>
+                <svg width="120" height="120" viewBox="-60 -60 120 120" aria-hidden="true"
+                    style={{ position: 'absolute', right: 62, top: -34, opacity: 0.14 }}>
+                    <g transform="rotate(24) scale(8)"><PawShape fill="white" /></g>
                 </svg>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -253,7 +254,7 @@ export default function LessonMap() {
                     )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 12, paddingLeft: 4 }}>
                     <div role="progressbar" aria-valuemin={0} aria-valuemax={n} aria-valuenow={doneCount}
                         aria-label={`${doneCount} of ${n} lessons`}
                         style={{ position: 'relative', flex: 1, height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.25)' }}>

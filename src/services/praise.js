@@ -305,11 +305,33 @@ export function summaryFor({ unaided = 0, total = 1, bestCombo = 0 } = {}) {
    already theirs. */
 
 export function mapHeadline({ lang = '', done = 0, total = 0 } = {}) {
-    if (done <= 0) return { title: `Your ${lang} path`, line: `${total} lessons. The first one starts with hello.` };
-    if (done >= total) return { title: `Your ${lang} path`, line: `All ${total} lessons done. Every one is open to replay.` };
-    return { title: `Your ${lang} path`,
+    if (done <= 0) return { kicker: 'Your path starts here', title: lang,
+                            line: `${total} lessons. The first one starts with hello.` };
+    if (done >= total) return { kicker: 'Path complete', title: lang,
+                                line: `All ${total} lessons done. Every one is open to replay.` };
+    return { kicker: 'Your path', title: lang,
              line: `${done} of ${total} lessons behind you. Lesson ${done + 1} is next.` };
 }
+
+/** The sign between two units of the path. */
+export function mapUnitLabel({ unit = 1, from = 1, to = 1 } = {}) {
+    return { title: `Unit ${unit}`, line: from === to ? `Lesson ${from}` : `Lessons ${from}–${to}` };
+}
+
+/** The small tag over a review lesson's name, and over the last lesson's. */
+export function mapCheckpointTag({ last = false } = {}) {
+    return last ? 'Final lesson' : 'Checkpoint';
+}
+
+/** Under the end of the path. */
+export function mapFinishLine({ lang = '', done = 0, total = 0 } = {}) {
+    if (done >= total) return `Finish line. All ${total} lessons of ${lang} are yours.`;
+    const left = total - done;
+    return `Finish line: ${left} lesson${left === 1 ? '' : 's'} to go.`;
+}
+
+/** The marker on the current lesson. */
+export const MAP_HERE = 'You are here';
 
 /** The caption under the current lesson's node. */
 export function mapHereLine({ stepIdx = 0, stepTotal = 0 } = {}) {
