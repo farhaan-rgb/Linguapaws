@@ -8,7 +8,10 @@ import {
 import { CURRICULUM, isLanguageAvailable } from '../services/curriculum';
 import * as engine from '../services/lessonEngine';
 import * as praise from '../services/praise';
-import { buildLessonSteps, wordsTaughtBy, stepCaption } from '../services/stepPlan';
+import {
+    buildLessonSteps, wordsTaughtBy, stepCaption, PHASES,
+    triesFor, shouldRequeue, isRoundEnd, withRetries, resumeStepFor, railIndexFor,
+} from '../services/stepPlan';
 import { ensureReviewSet, recordTaughtWord, recordReview } from '../services/srs';
 import { getStoredJSON } from '../utils/storage';
 import { api } from '../services/api';
@@ -809,15 +812,11 @@ function StepScreen({
 
         const { accepted } = engine.scoreAnswer(said, step.expected, step.variants, lexicon);
 
-        if (!accepted && spoken) {
-            /* Shown, not counted. No miss, no lost streak, no step towards the
-               reveal — and the box is left as it was, so a mis-hearing cannot
-               overwrite something the learner typed. */
-            setHeardMiss(said);
-            setShake(s => s + 1);
-            return;
-        }
-        setHeardMiss('');
+        /* A spoken miss counts like a typed one. It used to cost nothing, which
+           meant a speaking learner never reached the reveal and could not get
+           past the screen. "Heard: …" stays, so they see what the recogniser
+           made of it — and the box is left as it was. */
+        setHeardMiss(!accepted && spoken ? said : '');
 
         if (accepted) {
             // Forgive the typo, but say what the spelling was — a learner accepted
@@ -841,10 +840,11 @@ function StepScreen({
            none, so no screen ever says "not quite" and leaves it there. */
         setDiagnosis(engine.explainMiss(said, step.expected, step.variants, lexicon)
             || (drill?.hint ? '' : praise.scaffoldFor(step.expected)));
-        // Two misses and the answer is shown. Nothing here traps a learner on a
-        // screen they cannot pass.
-        if (next >= engine.REVIEW_RETRY_LIMIT) {
+        // Two misses (one on a re-ask) and the answer is shown. Nothing here
+        // traps a learner on a screen they cannot pass.
+        if (next >= triesFor(step)) {
             setRevealLine(praise.revealLineFor(step.index));
+            setLockHeard(spoken ? said : '');
             setPhase('revealed');
             fx.playMiss();
             onSettled({ correct: false, revealed: true, misses: next });
@@ -1257,8 +1257,16 @@ function Lesson({ scenarioParam }) {
     const lesson = lessons[scenarioIdx];
     const lexicon = useMemo(() => engine.buildLexicon(lessons), [lessons]);
 
+    /* `steps` is the plan; `run` is the plan plus re-asks of missed screens,
+       appended at the end of each round. `index` walks the run. */
     const [steps, setSteps] = useState([]);
+    const [run, setRun] = useState([]);
     const [index, setIndex] = useState(0);
+    /** Screens revealed this round that will be asked again at its end. */
+    const missedRef = useRef([]);
+    /* Mirrors missedRef.current.length for render ("last one", the last
+       button's label), since a ref read during render is not a dependency. */
+    const [missedCount, setMissedCount] = useState(0);
     const [banked, setBanked] = useState([]);
     const [unaided, setUnaided] = useState(0);
     const [finished, setFinished] = useState(false);
@@ -1291,7 +1299,7 @@ function Lesson({ scenarioParam }) {
     const [answerMode, setAnswerModeState] = useState(getAnswerMode);
     const [voice, setVoice] = useState(IDLE_VOICE);
 
-    const step = steps[index] || null;
+    const step = run[index] || null;
 
     /* Build the run: review slots from the SRS queue, everything else straight
        from the curriculum. */
@@ -1311,6 +1319,7 @@ function Lesson({ scenarioParam }) {
             const start = savedStepFor(await progressP, langName, scenarioIdx, built.length);
             if (cancelled) return;
             setSteps(built);
+            setRun(built);
             /* Mid-lesson resume: the app was closed partway through. Steps
                before `start` count as seen — their words go in the bank (they
                were recorded with the SRS when first taught) — and the streak
@@ -1482,8 +1491,15 @@ function Lesson({ scenarioParam }) {
 
     /** A screen was answered. Tell the SRS, move the shared progress counter,
      *  and hand the screen back everything it needs to celebrate. */
-    const handleSettled = useCallback(({ correct, revealed, misses }) => {
+    const handleSettled = useCallback(({ correct, revealed, misses: tries }) => {
         const t = tally.current;
+        /* A re-ask is a screen that already went wrong once, so its success is a
+           recovery, never a clean first-try answer. */
+        const misses = tries + (step?.retry ? 1 : 0);
+        if (!correct && shouldRequeue(step)) {
+            missedRef.current.push(step);
+            setMissedCount(missedRef.current.length);
+        }
         const wasStumbled = t.stumbled;
 
         if (correct && step?.kind === 'drill') {
@@ -1503,7 +1519,8 @@ function Lesson({ scenarioParam }) {
         t.combo = correct && misses === 0 ? t.combo : 0;
         t.stumbled = !correct || misses > 0;
 
-        if (step?.kind === 'review') {
+        // The SRS hears the first attempt only — not the eventual re-ask.
+        if (step?.kind === 'review' && !step.retry) {
             recordReview({
                 lang: langName, word: step.item.word,
                 outcome: engine.gradeOutcome({ correct, misses, revealed }),
@@ -1553,7 +1570,14 @@ function Lesson({ scenarioParam }) {
                 lang: langName, word: w.word, meaning: w.meaning, scenario: scenarioIdx,
             }).catch(() => {});
         });
-        if (index + 1 >= steps.length) {
+        let nextRun = run;
+        if (isRoundEnd(run, index) && missedRef.current.length) {
+            nextRun = withRetries(run, index, missedRef.current);
+            missedRef.current = [];
+            setMissedCount(0);
+            setRun(nextRun);
+        }
+        if (index + 1 >= nextRun.length) {
             setFinished(true);
             fx.playComplete();
             /* Reaching the summary is what "completed" means here — every
@@ -1567,13 +1591,15 @@ function Lesson({ scenarioParam }) {
             }
         } else {
             setIndex(i => i + 1);
-            /* Fire-and-forget: the next screen, so a killed app reopens here. */
-            if (langName) {
-                api.post('/api/progress/position', { lang: langName, lessonIdx: scenarioIdx, stepIdx: index + 1 })
+            /* Fire-and-forget: the next screen, so a killed app reopens here.
+               Plan-indexed; mid-requeue it is the start of the round. */
+            const at = resumeStepFor(steps, nextRun[index + 1], missedRef.current.length);
+            if (langName && at != null) {
+                api.post('/api/progress/position', { lang: langName, lessonIdx: scenarioIdx, stepIdx: at })
                     .catch(() => {});
             }
         }
-    }, [step, index, steps.length, langName, scenarioIdx]);
+    }, [step, index, run, steps, langName, scenarioIdx]);
 
     const toggleSound = () => {
         const next = !soundOn;
@@ -1641,7 +1667,7 @@ function Lesson({ scenarioParam }) {
                     }}>
                     <X size={16} />
                 </button>
-                <ProgressRail steps={steps} index={index} />
+                <ProgressRail steps={steps} index={railIndexFor(steps, step)} />
                 <button onClick={toggleSound}
                     aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'}
                     style={{
@@ -1662,8 +1688,10 @@ function Lesson({ scenarioParam }) {
                     margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: 1.2,
                     textTransform: 'uppercase', color: 'var(--accent-purple)',
                 }}>
-                    {stepCaption(steps, index)}
-                    {index === steps.length - 1 && ' · last one'}
+                    {step.retry
+                        ? `${PHASES[step.phase].label} · ${praise.RETRY_TAG}`
+                        : stepCaption(steps, step.index)}
+                    {index === run.length - 1 && !missedCount && ' · last one'}
                 </p>
                 <ScorePill points={score.points} combo={score.combo} gain={gain} />
             </div>
@@ -1683,7 +1711,7 @@ function Lesson({ scenarioParam }) {
                     onMiss={handleMiss}
                     onLockIn={handleLockIn}
                     onAdvance={handleAdvance}
-                    isLast={index === steps.length - 1}
+                    isLast={index === run.length - 1 && !missedCount}
                     answerMode={answerMode}
                     onAnswerMode={chooseAnswerMode}
                     voice={shownVoice}

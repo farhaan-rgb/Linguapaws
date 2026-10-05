@@ -101,3 +101,51 @@ export function stepCaption(steps, index) {
     const position = sameKind.indexOf(step) + 1;
     return `${PHASES[step.phase].label} · ${position} of ${sameKind.length}`;
 }
+
+/* ── Re-asking what was missed ──────────────────────────────────────────────
+   A screen the learner did not get (the answer had to be shown) comes back once
+   more at the end of its own round — a round being one phase of the cycle —
+   before the next round starts. A re-ask gets ONE try before the answer is
+   shown again, and a screen is re-asked at most RETRY_CAP times, so "two more
+   misses on a re-asked question and it moves on for good". Every path ends:
+   the run only grows by re-asks, and re-asks stop at the cap.
+
+   The run is the plan plus appended copies. A copy keeps its plan `index` (so
+   resume, the rail and the lesson map keep counting plan screens) and carries
+   `retry` = how many times it has been re-asked. */
+
+export const RETRY_CAP = 2;
+
+/** Tries before the reveal: the plan's own limit first time, one on a re-ask. */
+export const triesFor = (step) => (step?.retry ? 1 : engine.REVIEW_RETRY_LIMIT);
+
+/** Whether a screen whose answer was just revealed should come back again. */
+export const shouldRequeue = (step) => (step?.retry || 0) < RETRY_CAP;
+
+/** True when run[i] is the last screen of its round. */
+export const isRoundEnd = (run, i) => !run[i + 1] || run[i + 1].phase !== run[i]?.phase;
+
+/** Insert re-asks of `missed` straight after run[i]. Returns a new run. */
+export const withRetries = (run, i, missed) => (missed.length
+    ? [...run.slice(0, i + 1), ...missed.map(s => ({ ...s, retry: (s.retry || 0) + 1 })), ...run.slice(i + 1)]
+    : run);
+
+/** The plan index a killed app should reopen at, given the run entry it is
+ *  about to show. Mid-requeue there is nowhere honest to resume except the
+ *  start of the round, so the round is played again from the top. */
+export function resumeStepFor(steps, next, pendingMisses = 0) {
+    if (!next) return null;
+    if (!next.retry && !pendingMisses) return next.index;
+    const start = steps.findIndex(s => s.phase === next.phase);
+    return start < 0 ? next.index : start;
+}
+
+/** The plan index the progress rail should show for a run entry: a re-ask sits
+ *  on the last segment of its round, since every plan screen before it is done. */
+export function railIndexFor(steps, entry) {
+    if (!entry) return 0;
+    if (!entry.retry) return entry.index;
+    let last = entry.index;
+    steps.forEach((s, i) => { if (s.phase === entry.phase) last = i; });
+    return last;
+}

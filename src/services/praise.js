@@ -68,6 +68,10 @@ export const REVEAL_LINES = [
 export const missLineFor = (seed = 0) => pick(MISS_LINES, seed);
 export const revealLineFor = (seed = 0) => pick(REVEAL_LINES, seed);
 
+/** Caption on a screen re-asked at the end of its round, after its answer
+ *  had to be shown. */
+export const RETRY_TAG = 'One more go';
+
 /** Said on the first clean answer after a screen that went wrong. The single
  *  most motivating thing a learner can be told is that they recovered. */
 export const RECOVERY_LINE = 'Back on it.';
@@ -85,9 +89,9 @@ export const VOICE = {
     listening: 'Listening…',
     working:   'Working out what you said…',
     again:     'Say it again',
-    /** A spoken answer the engine did not accept. It is checked the moment it
-     *  arrives, and a rejection costs nothing — no try, no streak — because a
-     *  recogniser mishearing Telugu is not evidence the learner was wrong. */
+    /** A spoken answer the engine did not accept. It costs a try like a typed
+     *  miss — it used to cost nothing, and a speaking learner could then never
+     *  reach the reveal — so it is shown back, to make a mishearing visible. */
     heard:     (said) => `Heard: “${said}”. Not a match yet — say it again, or type it.`,
     typeInstead: 'or type it',
 };
