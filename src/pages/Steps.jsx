@@ -1449,6 +1449,7 @@ function Lesson({ scenarioParam }) {
         if (isRecordingRef.current) return finishListening('tap');
 
         if (!MIC_SUPPORTED) return trouble('unsupported');
+        fx.unlockAudio();
         if (navigator.onLine === false) return trouble('offline');
         if (ctx.onStart) ctx.onStart();
         setVoice({ ...IDLE_VOICE, status: 'opening' });

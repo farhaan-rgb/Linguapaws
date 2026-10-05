@@ -58,6 +58,12 @@ export const buzz = (pattern) => {
     try { navigator.vibrate?.(pattern); } catch { /* unsupported */ }
 };
 
+/** Start (or wake) the audio context from inside a tap. A spoken answer is
+ *  graded after the recording ends, outside any gesture, so its chime would
+ *  otherwise land on a context the browser never let start — typed answers
+ *  chimed and spoken ones did not. Called when the mic is tapped. */
+export const unlockAudio = () => { if (isFxOn()) audio(); };
+
 /* C-major, so nothing can ever land sour however it stacks up. */
 const C5 = 523.25, E5 = 659.25, G5 = 783.99, C6 = 1046.5, E6 = 1318.5;
 
