@@ -335,7 +335,11 @@ SHADOW PRACTICE:
                                 native: response.native || null,
                             };
                         }
-                        return { error: 'No transcription text returned from the engine.', reason: 'empty' };
+                        /* Nothing was said, or nothing the engine could
+                           hear. Not an `error`: callers branch on `error` to
+                           say "could not make that out", and the learner who
+                           said nothing should hear "nothing came through". */
+                        return { text: '', reason: 'empty' };
                     }
                     return {
                         text: response.text,

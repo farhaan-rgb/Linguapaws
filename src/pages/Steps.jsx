@@ -484,7 +484,7 @@ function SuccessPanel({ step, reward, onSpeak, phonetic, hero = true, focusSpan 
  *  once. A lesson that ends a screen on failure teaches the failure. */
 function RevealPanel({
     step, line, onSpeak, locked, lockText, setLockText, onLockIn, lockMiss,
-    lockRef, answerMode, voice, onListen, langName,
+    lockRef, answerMode, voice, onListen, langName, lockHeard = '',
 }) {
     const meaning = step.kind === 'drill' ? step.drill?.meaning : null;
     /* This panel's button says Lock it in, not Check, so it names its own. */
@@ -543,7 +543,7 @@ function RevealPanel({
                         {answerMode === 'speak' && (
                             <div style={{ marginBottom: 8 }}>
                                 <MicRow status={voice.status} onTap={onListen}
-                                    tone="amber" heard={!!lockText} />
+                                    tone="amber" heard={!!lockHeard} />
                             </div>
                         )}
                         <div style={{ display: 'flex', gap: 8 }}>
@@ -577,6 +577,11 @@ function RevealPanel({
                         {troubleNote && (
                             <p style={{ margin: '8px 0 0', fontSize: 12.5, lineHeight: 1.5, color: '#b45309' }}>
                                 {troubleNote}
+                            </p>
+                        )}
+                        {lockHeard && !troubleNote && (
+                            <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#b45309' }}>
+                                {praise.VOICE.heard(lockHeard)}
                             </p>
                         )}
                         {lockMiss && (
@@ -697,8 +702,11 @@ function StepScreen({
     const [lockText, setLockText] = useState('');
     const [locked, setLocked] = useState(false);
     const [lockMiss, setLockMiss] = useState(false);
-    /** A transcript has landed in the box and the learner should look at it. */
-    const [heard, setHeard] = useState(false);
+    /** A spoken answer the engine did not accept, shown back as "Heard: …".
+     *  Not a miss: recognisers mishear Indic languages often enough that a
+     *  rejected transcript is not evidence the learner was wrong. */
+    const [heardMiss, setHeardMiss] = useState('');
+    const [lockHeard, setLockHeard] = useState('');
     /** How many of the grammar note's points have been shown, and which one the
      *  underline is currently sitting on (null = follow the newest). */
     const [revealed, setRevealed] = useState(0);
@@ -771,11 +779,14 @@ function StepScreen({
         return () => clearTimeout(t);
     }, [step.kind, step.expected, onSpeak]);
 
-    /* Say the answer back the moment it is right. The learner produced it in
-       text; hearing it is the half of the reward that text cannot give. Tied to
-       the sound switch, so muting the app really does mute it. */
+    /* The answer is said aloud when it is revealed — the learner did not get
+       there, and hearing the right form is the correction. It used to be said
+       on a correct answer too, which made every teach screen speak the same
+       word twice inside a few seconds; a learner who just got it right has the
+       speaker button on the success panel if they want it again. Tied to the
+       sound switch, so muting the app really does mute it. */
     useEffect(() => {
-        if (phase !== 'correct' || !fx.isFxOn()) return undefined;
+        if (phase !== 'revealed' || !fx.isFxOn()) return undefined;
         const t = setTimeout(() => onSpeak(step.expected), 420);
         return () => clearTimeout(t);
     }, [phase, step.expected, onSpeak]);
@@ -790,12 +801,23 @@ function StepScreen({
     const phonetic = step.kind === 'teach' && step.slice?.length === 1
         ? step.slice[0].phonetic : null;
 
-    const check = useCallback(() => {
+    /** `spoken` answers come straight from the transcriber, unconfirmed. */
+    const grade = useCallback((raw, spoken = false) => {
         if (settled) return;
-        const said = answer.trim();
+        const said = String(raw || '').trim();
         if (!said) return;
 
         const { accepted } = engine.scoreAnswer(said, step.expected, step.variants, lexicon);
+
+        if (!accepted && spoken) {
+            /* Shown, not counted. No miss, no lost streak, no step towards the
+               reveal — and the box is left as it was, so a mis-hearing cannot
+               overwrite something the learner typed. */
+            setHeardMiss(said);
+            setShake(s => s + 1);
+            return;
+        }
+        setHeardMiss('');
 
         if (accepted) {
             // Forgive the typo, but say what the spelling was — a learner accepted
@@ -834,29 +856,41 @@ function StepScreen({
             setShake(s => s + 1);
             fx.playMiss();
         }
-    }, [settled, answer, step, lexicon, misses, onSettled, onMiss, drill]);
+    }, [settled, step, lexicon, misses, onSettled, onMiss, drill]);
+    const check = useCallback(() => grade(answer, false), [grade, answer]);
 
-    const lockIn = useCallback(() => {
-        const said = lockText.trim();
+    const lockInWith = useCallback((raw, spoken = false) => {
+        const said = String(raw || '').trim();
         if (!said || locked) return;
         const { accepted } = engine.scoreAnswer(said, step.expected, step.variants, lexicon);
-        if (!accepted) { setLockMiss(true); setShake(s => s + 1); return; }
+        if (!accepted) {
+            setLockHeard(spoken ? said : '');
+            setLockMiss(!spoken);
+            setShake(s => s + 1);
+            return;
+        }
         setLocked(true);
         setLockMiss(false);
+        setLockHeard('');
         fx.playLockIn();
         onLockIn();
-    }, [lockText, locked, step, lexicon, onLockIn]);
+    }, [locked, step, lexicon, onLockIn]);
+    const lockIn = useCallback(() => lockInWith(lockText, false), [lockInWith, lockText]);
 
-    /* The transcript lands in the same box the typist uses, and it is not
-       checked for them. A mis-hearing must never be able to spend one of the
-       two tries this screen allows. */
+    /* The transcript reaches the engine through the same `grade` the typist
+       uses, through a ref so a recording that ends itself seconds after the tap
+       grades against this render's state, not the tap's. */
+    const gradeRef = useRef(grade);
+    const lockInRef = useRef(lockInWith);
+    useEffect(() => { gradeRef.current = grade; lockInRef.current = lockInWith; }, [grade, lockInWith]);
+
     const listen = useCallback(() => {
         onListen({
             expected: step.expected,
             variants: step.variants,
             prompt: step.prompt || `Say ${step.expected}`,
-            /* A recording in flight is not a transcript, so the "that is what I
-               heard" note goes; the answer itself stays. Emptying the box here
+            /* A recording in flight is not a transcript, so the "Heard: …"
+               note goes; the typed answer itself stays. Emptying the box here
                was tried and is wrong in every branch that matters: the retry
                succeeds and overwrites it anyway, and the retry fails — which is
                the whole reason we are talking about this — having destroyed
@@ -864,12 +898,8 @@ function StepScreen({
                have destroyed was `Namaste`, an accepted answer. Tapping the mic
                is an offer to replace an answer, not an instruction to bin one.
                What was actually wrong there was the message above it. */
-            onStart: () => setHeard(false),
-            onText: (text) => {
-                setAnswer(text);
-                setHeard(true);
-                setPhase(p => (p === 'retry' ? 'answering' : p));
-            },
+            onStart: () => setHeardMiss(''),
+            onText: (text) => gradeRef.current(text, true),
         });
     }, [onListen, step]);
 
@@ -878,8 +908,8 @@ function StepScreen({
             expected: step.expected,
             variants: step.variants,
             prompt: step.prompt || `Say ${step.expected}`,
-            onStart: () => setLockMiss(false),
-            onText: (text) => { setLockText(text); setLockMiss(false); },
+            onStart: () => { setLockMiss(false); setLockHeard(''); },
+            onText: (text) => lockInRef.current(text, true),
         });
     }, [onListen, step]);
 
@@ -1027,6 +1057,7 @@ function StepScreen({
                                 onLockIn={lockIn} lockMiss={lockMiss}
                                 lockRef={lockRef} answerMode={answerMode}
                                 voice={voice} onListen={listenLock} langName={langName}
+                                lockHeard={lockHeard}
                             />
                         </div>
                     )}
@@ -1044,7 +1075,7 @@ function StepScreen({
                                     state, including every way the mic can fail. */}
                                 {speakMode && (
                                     <div style={{ marginBottom: 9 }}>
-                                        <MicRow status={voice.status} onTap={listen} heard={heard} />
+                                        <MicRow status={voice.status} onTap={listen} heard={!!heardMiss} />
                                     </div>
                                 )}
                                 <input
@@ -1052,7 +1083,7 @@ function StepScreen({
                                     value={answer}
                                     onChange={e => {
                                         setAnswer(e.target.value);
-                                        setHeard(false);
+                                        setHeardMiss('');
                                         if (phase === 'retry') setPhase('answering');
                                     }}
                                     /* "or type it" only while speaking is
@@ -1070,12 +1101,12 @@ function StepScreen({
                                         transition: 'border-color 0.2s',
                                     }}
                                 />
-                                {speakMode && heard && !troubleNote && (
+                                {heardMiss && !troubleNote && (
                                     <p style={{
                                         margin: '8px 2px 0', fontSize: 12.5, lineHeight: 1.5,
                                         color: 'var(--text-secondary)',
                                     }}>
-                                        {praise.VOICE.heard}
+                                        {praise.VOICE.heard(heardMiss)}
                                     </p>
                                 )}
                                 {troubleNote && <TroubleNote>{troubleNote}</TroubleNote>}
@@ -1256,7 +1287,7 @@ function Lesson({ scenarioParam }) {
     /* Destructured, not held as an object: the hook returns a fresh one every
        render, and a dependency that changes every render would tear down the
        cleanup below — stopping the recording the learner had just started. */
-    const { isRecording, startRecording, stopRecording, prepare } = useAudioRecorder();
+    const { isRecordingRef, startRecording, stopRecording, prepare } = useAudioRecorder();
     const [answerMode, setAnswerModeState] = useState(getAnswerMode);
     const [voice, setVoice] = useState(IDLE_VOICE);
 
@@ -1333,14 +1364,30 @@ function Lesson({ scenarioParam }) {
 
     /** Start listening, or stop and transcribe. Every failure below leaves the
      *  learner on the same screen with the text box still under the mic — that
-     *  is the rule this surface has never broken and is not about to. */
-    const listen = useCallback(async ({ expected, variants, prompt, onText, onStart }) => {
+     *  is the rule this surface has never broken and is not about to.
+     *
+     *  One tap. The recording ends itself — the recorder's voice-activity
+     *  detection calls `finishListening` after a second of quiet following
+     *  speech, after 2.5s of nothing at all, or at the 6s cap — and a tap while
+     *  listening still ends it early, through the same function. Whatever comes
+     *  back is handed to the screen, which checks it straight away: the old
+     *  second tap and the confirm step in between were two chances to lose the
+     *  learner and no chance to help them. */
+    const listenCtx = useRef(null);
+    const finishing = useRef(false);
+    const finishListening = useCallback(async (reason) => {
+        const ctx = listenCtx.current;
+        if (!ctx || finishing.current) return undefined;
+        finishing.current = true;
+        const { expected, variants, prompt, onText } = ctx;
         const trouble = (kind) => setVoice({ status: 'idle', kind });
-
-        if (isRecording) {
+        try {
             setVoice({ ...IDLE_VOICE, status: 'working' });
             let blob = null;
             try { blob = await stopRecording(true); } catch { blob = null; }
+            /* Nothing rose above the room in 2.5s. Sending silence to the
+               transcriber costs a round trip and comes back empty anyway. */
+            if (reason === 'nospeech') return trouble('empty');
             if (!blob || !blob.size) return trouble('empty');
             if (navigator.onLine === false) return trouble('offline');
             /* The step knows its own answer, which is more than chat can tell
@@ -1372,11 +1419,25 @@ function Lesson({ scenarioParam }) {
             setVoice(IDLE_VOICE);
             onText(shown);
             return undefined;
+        } finally {
+            finishing.current = false;
+            listenCtx.current = null;
         }
+    }, [stopRecording, nativeLang, targetLang, lexicon]);
+    /* The recorder's auto-stop fires from a timer set when recording began, so
+       it reaches the current `finishListening` through a ref, not the one in
+       scope at the tap. */
+    const finishRef = useRef(finishListening);
+    useEffect(() => { finishRef.current = finishListening; }, [finishListening]);
+
+    const listen = useCallback(async (ctx) => {
+        const trouble = (kind) => setVoice({ status: 'idle', kind });
+        if (finishing.current) return undefined;
+        if (isRecordingRef.current) return finishListening('tap');
 
         if (!MIC_SUPPORTED) return trouble('unsupported');
         if (navigator.onLine === false) return trouble('offline');
-        if (onStart) onStart();
+        if (ctx.onStart) ctx.onStart();
         setVoice({ ...IDLE_VOICE, status: 'opening' });
         const stream = await prepare();
         if (!stream) {
@@ -1390,10 +1451,11 @@ function Lesson({ scenarioParam }) {
             } catch { /* keep 'denied' — it is the likelier of the two */ }
             return trouble(kind);
         }
-        await startRecording();
+        listenCtx.current = ctx;
+        await startRecording({ vad: { onAutoStop: (reason) => finishRef.current(reason) } });
         setVoice({ ...IDLE_VOICE, status: 'listening' });
         return undefined;
-    }, [isRecording, startRecording, stopRecording, prepare, nativeLang, targetLang, lexicon]);
+    }, [isRecordingRef, finishListening, startRecording, prepare]);
 
     /* Leaving mid-recording must not leave the mic open. */
     useEffect(() => () => { stopRecording(true); }, [stopRecording]);

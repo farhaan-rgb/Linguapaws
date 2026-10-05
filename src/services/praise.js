@@ -82,12 +82,13 @@ export const RECOVERY_LINE = 'Back on it.';
 export const VOICE = {
     idle:      'Tap and say it',
     opening:   'Opening the mic…',
-    listening: 'Listening — tap when you are done',
+    listening: 'Listening…',
     working:   'Working out what you said…',
     again:     'Say it again',
-    /** Shown under the box the transcript landed in. The learner checks it,
-     *  we do not — a mis-hearing must not be able to spend one of their tries. */
-    heard:     'That is what I heard. Fix it if I got it wrong, then check.',
+    /** A spoken answer the engine did not accept. It is checked the moment it
+     *  arrives, and a rejection costs nothing — no try, no streak — because a
+     *  recogniser mishearing Telugu is not evidence the learner was wrong. */
+    heard:     (said) => `Heard: “${said}”. Not a match yet — say it again, or type it.`,
     typeInstead: 'or type it',
 };
 
