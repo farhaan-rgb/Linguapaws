@@ -21,7 +21,7 @@ import { getAnswerMode, setAnswerMode } from '../utils/learnMode';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { aiService } from '../services/ai';
 import { speakInBrowser, waitForVoices, pickVoice } from '../services/speech';
-import { speechTextFor } from '../services/speechScript';
+import { speechTextFor, englishVoiceTextFor } from '../services/speechScript';
 import { getLangCode } from '../../shared/languages.js';
 import { hasBrahmicScript, isNonLatinScript } from '../../shared/transliterate.js';
 import { isUnhearable } from '../../shared/asr.js';
@@ -1381,7 +1381,9 @@ function Lesson({ scenarioParam }) {
                device that has one. */
             const spoken = langCode && pickVoice(langCode)
                 ? speechTextFor(langName, text)
-                : text;
+                /* No voice for the language: an English voice reads `Mane` as
+                   "main", so it gets the pronunciation guide instead. */
+                : englishVoiceTextFor(langName, text);
             speakInBrowser(spoken, code, {
                 rate: 0.85, requireVoice: false, lang: targetLang,
             });

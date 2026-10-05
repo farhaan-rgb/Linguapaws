@@ -49,15 +49,17 @@ function tableFor(langName) {
     if (tables.has(langName)) return tables.get(langName);
     const words = new Map();
     const phrases = new Map();
+    const phonetics = new Map();
     for (const lesson of CURRICULUM[langName] || []) {
         for (const v of lesson.vocabulary || []) {
             if (v?.word && v.native) words.set(keyOf(v.word), v.native);
+            if (v?.word && v.phonetic) phonetics.set(keyOf(v.word), v.phonetic);
         }
         for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {
             if (d?.correct && d.native) phrases.set(keyOf(d.correct), d.native);
         }
     }
-    const table = { words, phrases, any: words.size > 0 || phrases.size > 0 };
+    const table = { words, phrases, phonetics, any: words.size > 0 || phrases.size > 0 };
     tables.set(langName, table);
     return table;
 }
@@ -107,4 +109,21 @@ export function speechTextFor(langName, text) {
        and a drill that asks a question should sound like one. */
     const tail = /[?!.]$/.test(raw) ? raw.slice(-1) : '';
     return out.join(' ') + tail;
+}
+
+/**
+ * The string to hand a voice that does NOT speak the language — a laptop with
+ * no Kannada voice, where the English voice reads the Latin `Mane` as "main".
+ * Each word the course gives a pronunciation guide for is swapped for that
+ * guide (`muh-neh`), which an English voice reads close to right. Words with
+ * no guide stay as they are. A stopgap until the course ships recorded audio.
+ */
+export function englishVoiceTextFor(langName, text) {
+    const raw = String(text || '');
+    const { phonetics } = tableFor(langName);
+    if (!raw.trim() || !phonetics.size) return raw;
+    return raw.split(/\s+/).filter(Boolean).map((token) => {
+        const guide = phonetics.get(keyOf(token));
+        return guide ? guide.replace(/-/g, ' ') : token;
+    }).join(' ');
 }
