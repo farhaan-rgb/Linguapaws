@@ -558,7 +558,7 @@ function RevealPanel({
                                 placeholder="Type it here…"
                                 style={{
                                     flex: 1, minWidth: 0, padding: '11px 13px', borderRadius: 12,
-                                    fontSize: 15, fontFamily: 'var(--font-main)',
+                                    fontSize: 15, textAlign: 'center', fontFamily: 'var(--font-main)',
                                     border: '1.5px solid rgba(180,83,9,0.25)', background: '#fff',
                                     outline: 'none',
                                 }}
@@ -1095,7 +1095,7 @@ function StepScreen({
                                         : (step.kind === 'teach' ? 'Type it back…' : 'Type your answer…')}
                                     style={{
                                         width: '100%', padding: '15px 16px',
-                                        borderRadius: 'var(--radius-md)', fontSize: 16, fontFamily: 'var(--font-main)',
+                                        borderRadius: 'var(--radius-md)', fontSize: 16, textAlign: 'center', fontFamily: 'var(--font-main)',
                                         border: `2px solid ${phase === 'retry' ? '#f59e0b' : 'rgba(168,85,247,0.18)'}`,
                                         background: '#fff', outline: 'none', boxSizing: 'border-box',
                                         transition: 'border-color 0.2s',
