@@ -5,6 +5,8 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import '../index.css';
 import Steps from '../pages/Steps';
 import Home from '../pages/Home';
+import LessonMap from '../pages/LessonMap';
+import { api } from '../services/api';
 import ModeToggle from '../components/ModeToggle';
 import { AuthProvider } from '../contexts/AuthContext';
 import { CURRICULUM } from '../services/curriculum';
@@ -125,6 +127,21 @@ const screen = params.get('screen');
 
 /* Header renders the signed-in avatar unconditionally, so the home preview needs
    a stub user. Never a real token — every API call still fails and is swallowed. */
+/* The lesson map: ?screen=map&done=N&at=S stubs /api/progress so the map shows
+   N lessons finished and S screens into the next one. No `done` = new learner. */
+if (screen === 'map') {
+    const done = params.get('done');
+    const at = parseInt(params.get('at') || '0', 10);
+    const realGet = api.get.bind(api);
+    api.get = async (path) => {
+        if (path !== '/api/progress') return realGet(path);
+        const p = { successfulRepeats: 0, lessonProgress: {}, lessonPosition: {} };
+        if (done !== null) p.lessonProgress[lang] = Number(done) - 1;
+        const next = done === null ? 0 : Number(done);
+        if (at > 0) p.lessonPosition[lang] = { lessonIdx: next, stepIdx: at };
+        return p;
+    };
+}
 if (screen === 'home') {
     localStorage.setItem('linguapaws_user', JSON.stringify({
         name: 'Preview', email: 'preview@example.com', picture: '',
@@ -367,10 +384,11 @@ createRoot(document.getElementById('root')).render(
         <div style={{ paddingTop: 18 }}>
             {screen === 'toggle' ? <TogglePreview /> : (
             <AuthProvider>
-                <MemoryRouter initialEntries={[screen === 'home' ? '/' : `/steps?scenario=${scenario}`]}>
+                <MemoryRouter initialEntries={[screen === 'home' ? '/' : screen === 'map' ? '/lessons' : `/steps?scenario=${scenario}`]}>
                     <Routes>
                         <Route path="/" element={<Home />} />
                         <Route path="/steps" element={<Steps />} />
+                        <Route path="/lessons" element={<LessonMap />} />
                     </Routes>
                 </MemoryRouter>
             </AuthProvider>

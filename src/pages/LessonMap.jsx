@@ -104,9 +104,9 @@ export default function LessonMap() {
 
     const head = mapHeadline({ lang: langName, done: doneCount, total: lessons.length });
     const miko = characters.find(c => c.id === 'miko')?.image;
-    const half = Math.max(0, width / 2 - NODE / 2 - 34);
+    const half = Math.max(0, width / 2 - 75); // keeps the 150px label on screen
     const xOf = (i) => width / 2 + SWING[i % SWING.length] * half;
-    const yOf = (i) => 40 + i * ROW;
+    const yOf = (i) => 78 + i * ROW;
     const height = yOf(lessons.length - 1) + 90;
 
     /* One smooth curve through every node centre. */

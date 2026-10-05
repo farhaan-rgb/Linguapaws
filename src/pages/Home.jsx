@@ -35,6 +35,12 @@ export default function Home() {
     };
 
     const handleStartChat = (topic = null, character = null) => {
+        // The main button opens the lesson map; a tapped node there opens the
+        // lesson in the chosen mode. Topic and character picks still go direct.
+        if (!topic && !character) {
+            navigate('/lessons');
+            return;
+        }
         // Step mode has no tutor persona, so picking a character always means chat.
         const url = (learnMode === 'steps' && !character) ? '/steps' : '/chat';
         const params = new URLSearchParams();

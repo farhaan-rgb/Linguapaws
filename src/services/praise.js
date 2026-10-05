@@ -294,3 +294,21 @@ export function summaryFor({ unaided = 0, total = 1, bestCombo = 0 } = {}) {
     return { badge: 'You finished it', icon: '🐾',
              line: 'This one fought back and you stayed. That is the part that counts.' };
 }
+
+/* ── The lesson map ────────────────────────────────────────────────────────
+   Facts about where the learner stands, not cheers. A new learner is told what
+   the first stop is; someone mid-way is told how much of the language is
+   already theirs. */
+
+export function mapHeadline({ lang = '', done = 0, total = 0 } = {}) {
+    if (done <= 0) return { title: `Your ${lang} path`, line: `${total} lessons. The first one starts with hello.` };
+    if (done >= total) return { title: `Your ${lang} path`, line: `All ${total} lessons done. Every one is open to replay.` };
+    return { title: `Your ${lang} path`,
+             line: `${done} of ${total} lessons behind you. Lesson ${done + 1} is next.` };
+}
+
+/** The caption under the current lesson's node. */
+export function mapHereLine({ stepIdx = 0, stepTotal = 0 } = {}) {
+    if (stepIdx > 0 && stepTotal > 0) return `${stepIdx} of ${stepTotal} screens done`;
+    return 'Start here';
+}
