@@ -68,8 +68,9 @@ const idOf = (name) => (LANGUAGES.find(l => l.name === name) || {}).id;
 
 console.log('# Does the voice get the right alphabet?\n');
 console.log('An empty cell is an empty cell. A language with no native script is');
-console.log('spoken from its romanisation, which §7.5 showed is fine in Telugu and');
-console.log('not fine in Kannada.\n');
+console.log('spoken from its romanisation, which §7.5 showed is survivable in');
+console.log('Telugu and not survivable in Kannada. Both now carry script anyway;');
+console.log('Hindi, Odiya and the six one-lesson courses do not.\n');
 
 const w = (s, n) => String(s).padEnd(n);
 console.log(`| ${w('Language', 11)}| ${w('lessons', 8)}| ${w('words', 6)}| ${w('with native', 12)}| ${w('drills', 7)}| ${w('with native', 12)}|`);
@@ -92,7 +93,12 @@ const notes = [];
 for (const name of languages) {
     if (!hasNativeScript(name)) continue;
     const ls = CURRICULUM[name];
-    const lex = ls.flatMap(l => l.vocabulary || []);
+    /* The real lexicon object, not a bare array of vocabulary. `scoreAnswer`
+       takes `{synonyms, words, meanings}`; handed an array, `asLexicon` falls
+       through to empty maps and grades more strictly than the engine a learner
+       actually meets. That was the shape passed here and at the live A/B until
+       2026-10-05, and it cost one accepted word in 163. */
+    const lex = E.buildLexicon(ls);
     const script = SCRIPT_BY_LANGUAGE[idOf(name)];
     let checked = 0;
     ls.forEach((lesson, li) => {
@@ -202,7 +208,7 @@ if (live) {
             const voice = VOICES[name];
             if (!hasNativeScript(name) || !voice) continue;
             const id = idOf(name);
-            const lex = CURRICULUM[name].flatMap(l => l.vocabulary || []);
+            const lex = E.buildLexicon(CURRICULUM[name]);
             console.log(`\n### ${name} — \`${voice}\` → Deepgram nova-3 \`${id}\`\n`);
             console.log('| # | stored | native | heard (native) | conf | heard (Latin) | conf |');
             console.log('|--|--|--|--|--|--|--|');

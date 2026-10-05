@@ -17,9 +17,18 @@
  * heard as "Eye-dee-you", and no vendor fixes it: it is an orthography
  * problem, recorded as VOICE-STACK.md §7.5 before it was fixed here.
  *
- * So the curriculum now carries a `native` field beside the Kannada `word`
- * and `correct` strings. It is **audio only**. Nothing displays it, nothing
- * grades against it, and `lessonEngine.scoreAnswer` has never seen it.
+ * So the curriculum now carries a `native` field beside the `word` and
+ * `correct` strings. It is **audio only**. Nothing displays it, nothing grades
+ * against it, and `lessonEngine.scoreAnswer` has never seen it.
+ *
+ * Telugu was converted next, on 2026-10-05, and the result is worth knowing
+ * before converting a third language: Telugu's romanisation was already
+ * working. 146 of its 163 words come back as the intended word in native
+ * script against **131** in Latin — a 9-point gap, where Kannada's was 51
+ * (VOICE-STACK.md §7.5.2). Native script is still the right answer for Telugu
+ * — `Pani` was being heard as the Hindi पानी, "water" — but do not assume the
+ * next language is a Kannada-sized emergency. Measure it with
+ * `tools/script-check.mjs --tts` first.
  *
  * One deliberate limit, for whoever adds the next language: this resolves
  * all-or-nothing. A phrase whose every token has a native form is spoken in
@@ -54,8 +63,9 @@ function tableFor(langName) {
 }
 
 /** Does this language carry native script at all? Languages that do not are
- *  untouched by everything below — the point of adding Kannada first was that
- *  nothing else had to change. */
+ *  untouched by everything below — the point of adding Kannada first, and then
+ *  Telugu without touching a line of code, was that nothing else had to
+ *  change. Hindi, Odiya and the six one-lesson courses are still romanised. */
 export function hasNativeScript(langName) {
     return tableFor(langName).any;
 }

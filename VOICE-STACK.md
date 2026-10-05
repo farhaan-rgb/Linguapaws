@@ -1175,16 +1175,117 @@ back exactly — the course simply romanises it `Yelli` for the spoken y-glide.
 Read those confidences as §7.4 says to: an intelligibility floor and a check
 that the script is the word that was meant, never a ranking of voices.
 
-**Two things this did not fix.** Telugu and Odiya — 60 of the 90 lessons — are
-still romanised; Telugu survives it and Odiya is untested. And chat mode still
-depends on the model emitting a `<tts>` tag, so the curriculum's new field only
-reaches step mode.
+**Two things this did not fix.** Telugu and Odiya — 60 of the 90 lessons — were
+still romanised; Telugu is done as of §7.5.2 below and Odiya is still untested.
+And chat mode still depends on the model emitting a `<tts>` tag, so the
+curriculum's new field only reaches step mode.
 
 One measurement that constrains how the swap is wired: `say -v Samantha "ಇದು"`
 on a Mac with no Kannada voice produces **11 ms** of audio against 437 ms for
 `"Idu"`. An English voice handed Kannada script is not approximate, it is
 **silent**. So the swap only happens when `pickVoice` finds a real voice for the
 language; a device without one keeps the romanisation and the existing warning.
+
+### 7.5.2 Done, for Telugu — 2026-10-05. And it is a much smaller win.
+
+All 163 Telugu vocabulary words and all 210 drill lines now carry a `native`
+field, and `speechTextFor` swaps **373 of 373** step utterances. No code
+changed: `Steps.jsx` was already written language-generically in §7.5.1, so
+this round is content only.
+
+The honest headline is the one §7.5 predicted, and it should be read before the
+table. **Telugu is not Kannada.** Measured the same way — `te-IN-ShrutiNeural`
+via edge-tts, Deepgram `nova-3` `te`, transcript romanised by
+`shared/transliterate.js` and judged by `scoreAnswer`, same voice, only the
+orthography changing:
+
+| | heard as the intended word | mean confidence |
+|---|---|---|
+| **Telugu**, native script | **146 / 163** (89.6%) | 0.924 |
+| Telugu, romanised Latin (what shipped) | 131 / 163 (80.4%) | 0.842 |
+| **Kannada**, native script (§7.5.1) | **54 / 57** (94.7%) | 0.863 |
+| Kannada, romanised Latin | 25 / 57 (43.9%) | 0.688 |
+
+Kannada's romanisation was failing more than half the time and native script
+closed a **51-point** gap. Telugu's romanisation was already working four times
+in five, and native script closes **9 points** of the remaining fifth. Both are
+improvements; only one was an emergency. Anyone deciding what to do about Odiya
+should take this row, not the Kannada row, as the base rate for "a language
+whose romanisation basically works".
+
+Nineteen words it does fix, and they are not marginal ones. `Pani` ("work",
+in two lessons) was coming back as **పానీ** — the Hindi word for *water*.
+`Anna` ("elder brother") came back as **అన్నం**, which is *food*, and both are
+words this course teaches. `Paina` → **తన** at 0.341, `Chillar` → **చెల్ల**,
+`Aakhari` → **ఆ కర్రీ** ("that curry") at 0.987 confidence, `Chestunnanu` →
+**జస్ట్ ఉన్నాను**, `Cheyagalanu` → **చెయ్యాడ్లాను**, `Matladagalanu` →
+**మట్లా గిలాను**. Three of the four modal verbs of lesson 22 — the whole point
+of that lesson — were mispronounced, and are not now.
+
+**Seventeen native strings did not round-trip, and none of them is a wrong
+word.** Nine of the seventeen came back as *exactly* the Telugu string written
+here and fail only because the course's romanisation disagrees with Telugu
+spelling: `Unnaru`/ఉన్నారు, `Unnanu`/ఉన్నాను, `Unnara`/ఉన్నారా and
+`Kurchilu`/కుర్చీలు drop a long vowel the course's own phonetic guide marks;
+`Kani`/కానీ and `Malli`/మళ్ళీ the same; `Chesanu`/చేశాను and `Chusanu`/చూశాను
+use ś where the course writes s; `Oddu`/వద్దు and `Bus`/బస్సు are below.
+
+The other eight are recogniser artifacts, and were re-run on the second Telugu
+voice and inside a carrier phrase rather than averaged away — the same
+treatment ಬಿಸಿ and ಹೂವು got:
+
+| word | alone, Shruti | alone, Mohan | in a carrier phrase |
+|---|---|---|---|
+| `Ee` ఈ | — 0.000 | — 0.000 | ఈ పుస్తకం → **ఈ 0.998** |
+| `Eeroju` ఈరోజు | ఈ 0.727 | **ఈరోజు 0.657** | ఈరోజు బాగుంది → **0.994** |
+| `Kada` కదా | కథ 0.588 | కథ 0.934 | మంచి కదా → **0.990** |
+| `Aali` ఆలి | ఖాళీ 0.270 | పాలి 0.238 | చేయాలి → **0.940** |
+| `Velthunnanu` వెళ్తున్నాను | వెళుతున్నాను 0.673 | వెళుతున్నాను 0.537 | నేను ఇప్పుడు వెళ్తున్నాను → **0.976** |
+| `Malli` మళ్ళీ | మళ్లీ 0.819 | **మళ్ళీ 0.583** | నేను మళ్లీ... → **0.996** |
+| `Ticketu` టికెట్టు | టిక్కెట్టు 0.839 | టిక్కెట్టు 0.876 | బస్సు టికెట్ కావాలి → 0.879 |
+| `Oddu` వద్దు | **వద్దు 0.950** | **వద్దు 0.987** | అన్నం వద్దు → **0.999** |
+
+`ఈ` is one vowel letter and nova-3 returns *nothing at all* for it on either
+voice, then 0.998 for the same letter one word later — the clearest case yet
+that a low score on a short string is the recogniser and not the spelling.
+`కదా` coming back as `కథ` is the `Idu`→`aidu` trap again: a real word of the
+same language that this course also teaches, three lessons apart.
+
+Read every confidence above as §7.4 says to. It is an intelligibility floor and
+a check that the script written down is the word that was meant. It is not a
+ranking of voices and cannot be made into one.
+
+**What a Telugu reader should settle**, kept separate from the mechanical
+results because these are content calls and not spelling errors:
+
+| | the course says | written Telugu is | the question |
+|---|---|---|---|
+| L4, L8, L24 | `Oddu` | **వద్దు** *vaddu* | The word begins with a *v*. The learner reads "Oddu" and hears "vaddu". Either the romanisation becomes `Vaddu` or the native becomes the colloquial ఒద్దు. |
+| L2 | `Meeru peru emiti?` | **మీ పేరు ఏమిటి** | "Meeru peru" is ungrammatical — it needs the possessive *mee*. The native field reproduces the Latin's error faithfully rather than quietly correcting a drill the grader also marks. |
+| L24 | `Annam leda roti` | **రొట్టె** *rotte* | The loanword is written రొట్టె in Telugu, which will never romanise back to `roti`. |
+| L8 | `Rendu snehithulu` | **ఇద్దరు** *iddaru* | Telugu counts people with a separate numeral set. Same faithful-to-the-Latin call. |
+| L8, L23 | `Lu`, `Aali` | లు, ఆలి | Both are bound suffixes taught as standalone word cards. ఆలి spoken alone is a real Telugu word meaning *wife*, which is why it transcribes as something else. |
+| L21 | `Inti lo`, `Naa tho` | **ఇంటిలో**, **నాతో** | Telugu postpositions attach to the noun. Written joined here, which is why they romanise back as one word. |
+| L5, L30 | `... naa peru [name]` | — | The `[name]` placeholder stays in Latin inside an otherwise Telugu line, so the voice changes alphabet for one word. It is the only place `speechTextFor`'s all-or-nothing rule is deliberately broken, and it is broken because the screen shows the same bracket. |
+| L13 | `Chesanu`, `Chusanu` | చేశాను / చేసాను | Both spellings are in use. The prescribed ś is written here; the course's `s` romanisation points at the other. |
+
+Two more things measured this round. The silence gate still applies and is not
+Kannada-specific: `say -v Samantha "ఇది"` on this Mac produces **11.6 ms** of
+audio against 460 ms for `"Idhi"`, and `"నమస్కారం"` 11.6 ms against 831 ms for
+`"Namaskaram"`. And `speechTextFor` costs **0.26 µs** per call once its table is
+built, with a one-time **0.66 ms** to build the 373-entry Telugu table — it is
+a Map lookup on the way to an utterance that takes seconds, and it is not a
+latency consideration at all.
+
+**A bug in `tools/script-check.mjs` was found and fixed while running this.**
+Both the offline and live halves passed `lessons.flatMap(l => l.vocabulary)` —
+a bare array — where `scoreAnswer` expects the `{synonyms, words, meanings}`
+object `buildLexicon` returns. `asLexicon` silently falls through to empty maps
+for an array, so the tool was grading more strictly than the engine a learner
+actually meets. It cost exactly one accepted word in 163 (Telugu Latin 130→131
+and native 145→146 on the same audio) and changed nothing in Kannada's offline
+result, so §7.5.1's numbers stand. The numbers in this section are from a full
+re-run after the fix.
 
 ## 7.6 The five-minute test on Farhaan's own phone
 
