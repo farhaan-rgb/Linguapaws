@@ -1,7 +1,7 @@
 /* Where does each surface resume? Checks src/services/lessonResume.js, the one
    rule Chat.jsx and Steps.jsx both read.   node tools/resume-check.mjs */
 import assert from 'node:assert';
-import { resumeIndex, scenarioIndexFor, mergeProgress, withLessonCompleted, completedLessonFor } from '../src/services/lessonResume.js';
+import { resumeIndex, scenarioIndexFor, mergeProgress, withLessonCompleted, completedLessonFor, savedStepFor } from '../src/services/lessonResume.js';
 
 const cases = [];
 const check = (name, fn) => { try { fn(); cases.push(['ok  ', name]); } catch (e) { cases.push(['FAIL', `${name}: ${e.message}`]); } };
@@ -37,6 +37,15 @@ check('stale /increment payload cannot move lesson progress back', () => {
 });
 check('payload without lessonProgress (older server) keeps the local one', () =>
     assert.deepStrictEqual(mergeProgress({ lessonProgress: { Odiya: 1 } }, { successfulRepeats: 5 }).lessonProgress, { Odiya: 1 }));
+const pos = { lessonPosition: { Kannada: { lessonIdx: 0, stepIdx: 3 } } };
+check('mid-lesson: Kannada L1 after 3 answers reopens at step 3 (word 4)', () =>
+    assert.strictEqual(savedStepFor(pos, 'Kannada', 0, 15), 3));
+check('mid-lesson: a different lesson starts at 0', () => assert.strictEqual(savedStepFor(pos, 'Kannada', 1, 15), 0));
+check('mid-lesson: a different language starts at 0', () => assert.strictEqual(savedStepFor(pos, 'Telugu', 0, 15), 0));
+check('mid-lesson: a step past a shorter plan starts at 0', () => assert.strictEqual(savedStepFor(pos, 'Kannada', 0, 3), 0));
+check('mid-lesson: no record / offline starts at 0', () => assert.strictEqual(savedStepFor(null, 'Kannada', 0, 15), 0));
+check('mid-lesson: mergeProgress carries the position through', () =>
+    assert.deepStrictEqual(mergeProgress({}, pos).lessonPosition, pos.lessonPosition));
 
 for (const [s, n] of cases) console.log(`${s} ${n}`);
 const failed = cases.filter(([s]) => s === 'FAIL').length;

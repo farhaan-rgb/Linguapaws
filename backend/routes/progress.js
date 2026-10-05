@@ -3,7 +3,10 @@ const User = require('../models/User');
 const LearnedWord = require('../models/LearnedWord');
 const requireAuth = require('../middleware/auth');
 const { nextSchedule, initialSchedule } = require('../services/srs');
-const { validateCompletion, completionUpdate, progressPayload } = require('../services/lessonProgress');
+const {
+    validateCompletion, completionUpdate, progressPayload,
+    validatePosition, positionUpdate, positionClearFilter, positionClearUpdate,
+} = require('../services/lessonProgress');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -37,6 +40,10 @@ router.post('/lesson-complete', async (req, res) => {
     const parsed = validateCompletion(req.body);
     if (parsed.error) return res.status(400).json({ error: parsed.error });
 
+    await User.updateOne(
+        positionClearFilter(req.user._id, parsed.lang, parsed.lessonIdx),
+        positionClearUpdate(parsed.lang)
+    );
     const user = await User.findByIdAndUpdate(
         req.user._id,
         completionUpdate(parsed.lang, parsed.lessonIdx),
@@ -45,6 +52,22 @@ router.post('/lesson-complete', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     res.json(progressPayload(user));
+});
+
+// POST /api/progress/position — where the learner is inside a lesson
+// Body: { lang, lessonIdx, stepIdx } — stepIdx is the next screen to show.
+// Sent fire-and-forget after every answered step so a killed app resumes there.
+router.post('/position', async (req, res) => {
+    const parsed = validatePosition(req.body);
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+
+    const user = await User.findByIdAndUpdate(
+        req.user._id,
+        positionUpdate(parsed.lang, parsed.lessonIdx, parsed.stepIdx),
+        { returnDocument: 'after' }
+    );
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    res.json({ lessonPosition: progressPayload(user).lessonPosition });
 });
 
 // POST /api/progress/learn-word — record a word as taught and put it on the ladder

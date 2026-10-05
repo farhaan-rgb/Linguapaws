@@ -31,6 +31,14 @@ const userSchema = new mongoose.Schema(
         // say where a learner is in any one of them; this can. Forward-only —
         // see POST /api/progress/lesson-complete.
         lessonProgress: { type: Map, of: Number, default: {} },
+        // Where the learner is INSIDE a lesson, per course: { Kannada: { lessonIdx: 0,
+        // stepIdx: 3 } } means the next screen to show is step 3 of lesson 0.
+        // Overwritten on every answered step, cleared when that lesson completes.
+        lessonPosition: {
+            type: Map,
+            of: new mongoose.Schema({ lessonIdx: Number, stepIdx: Number, updatedAt: Date }, { _id: false }),
+            default: {},
+        },
         learnedWords: [{ word: String, meaning: String, scenario: String }],
     },
     { timestamps: true }

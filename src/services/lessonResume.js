@@ -55,3 +55,15 @@ export function mergeProgress(prev, next) {
 export function withLessonCompleted(progress, lang, lessonIdx) {
     return mergeProgress(progress, { lessonProgress: { [lang]: lessonIdx } });
 }
+
+/* Where to start INSIDE a lesson. `lessonPosition[lang]` is the next screen to
+   show, written after every answered step and cleared on completion. It only
+   applies to the lesson it was saved in, and a step index past the end (the
+   plan came out shorter this time, e.g. no review slots offline) means start
+   over rather than open onto nothing. */
+export function savedStepFor(progress, lang, lessonIdx, stepCount) {
+    const pos = progress?.lessonPosition?.[lang];
+    if (!pos || pos.lessonIdx !== lessonIdx) return 0;
+    const s = pos.stepIdx;
+    return Number.isInteger(s) && s > 0 && s < stepCount ? s : 0;
+}

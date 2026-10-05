@@ -9,7 +9,7 @@ require('express-async-errors');
 const { validateCompletion, completionUpdate, progressPayload } = require('../services/lessonProgress');
 
 /* An in-memory stand-in for the one user, applying `$max` the way Mongo does. */
-const store = { _id: 'u1', successfulRepeats: 47, learnedWords: [], lessonProgress: new Map() };
+const store = { _id: 'u1', successfulRepeats: 47, learnedWords: [], lessonProgress: new Map(), lessonPosition: new Map() };
 const calls = [];
 const FakeUser = {
     findById: async () => store,
@@ -20,7 +20,17 @@ const FakeUser = {
             const cur = store.lessonProgress.get(lang);
             if (cur === undefined || v > cur) store.lessonProgress.set(lang, v);
         }
+        for (const [k, v] of Object.entries(update.$set || {})) {
+            store.lessonPosition.set(k.replace(/^lessonPosition\./, ''), v);
+        }
         return store;
+    },
+    updateOne: async (filter, update) => {
+        for (const k of Object.keys(update.$unset || {})) {
+            const lang = k.replace(/^lessonPosition\./, '');
+            const want = filter[`lessonPosition.${lang}.lessonIdx`];
+            if (store.lessonPosition.get(lang)?.lessonIdx === want) store.lessonPosition.delete(lang);
+        }
     },
 };
 store.save = async () => store;
@@ -106,4 +116,32 @@ test('route: records, is idempotent, only moves forward, keeps languages apart',
         assert.deepStrictEqual(r.lessonProgress, { Telugu: 4, Kannada: 0 });
         assert.deepStrictEqual(calls[0].opts, { returnDocument: 'after' });
     });
+});
+
+test('route: position is saved per language and cleared only by its own lesson completing', async () => {
+    await withServer(async (base) => {
+        let r = await (await post(`${base}/position`, { lang: 'Kannada', lessonIdx: 0, stepIdx: 3 })).json();
+        assert.strictEqual(r.lessonPosition.Kannada.stepIdx, 3);
+        await post(`${base}/position`, { lang: 'Telugu', lessonIdx: 5, stepIdx: 9 });
+
+        r = await (await fetch(base)).json();
+        assert.deepStrictEqual({ ...r.lessonPosition.Kannada, updatedAt: undefined }, { lessonIdx: 0, stepIdx: 3, updatedAt: undefined });
+        assert.strictEqual(r.lessonPosition.Telugu.stepIdx, 9);
+
+        assert.strictEqual((await post(`${base}/position`, { lang: 'Kannada', lessonIdx: 0, stepIdx: -1 })).status, 400);
+        assert.strictEqual((await post(`${base}/position`, { lang: 'a.b', lessonIdx: 0, stepIdx: 1 })).status, 400);
+
+        r = await (await post(`${base}/lesson-complete`, { lang: 'Telugu', lessonIdx: 2 })).json();
+        assert.ok(r.lessonPosition.Telugu, 'finishing a different lesson leaves the position');
+        r = await (await post(`${base}/lesson-complete`, { lang: 'Kannada', lessonIdx: 0 })).json();
+        assert.strictEqual(r.lessonPosition.Kannada, undefined, 'finishing the lesson clears it');
+        assert.ok(r.lessonPosition.Telugu, 'other languages untouched');
+    });
+});
+
+test('mongoose casts the position $set against the real schema', () => {
+    const castUpdate = require('mongoose/lib/helpers/query/castUpdate');
+    const RealUser = require('mongoose').model('User');
+    const cast = castUpdate(RealUser.schema, { $set: { 'lessonPosition.Kannada': { lessonIdx: '0', stepIdx: '3', updatedAt: new Date(0) } } }, {}, null, {});
+    assert.strictEqual(cast.$set['lessonPosition.Kannada'].stepIdx, 3);
 });

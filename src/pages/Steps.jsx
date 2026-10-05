@@ -12,7 +12,7 @@ import { buildLessonSteps, wordsTaughtBy, stepCaption } from '../services/stepPl
 import { ensureReviewSet, recordTaughtWord, recordReview } from '../services/srs';
 import { getStoredJSON } from '../utils/storage';
 import { api } from '../services/api';
-import { resumeIndex } from '../services/lessonResume';
+import { resumeIndex, savedStepFor } from '../services/lessonResume';
 import * as fx from '../utils/feedbackFx';
 import { getAnswerMode, setAnswerMode } from '../utils/learnMode';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
@@ -1299,6 +1299,7 @@ function Lesson({ scenarioParam }) {
         let cancelled = false;
         if (!lesson) return undefined;
         (async () => {
+            const progressP = api.get('/api/progress').catch(() => null);
             let reviewSet = null;
             try {
                 reviewSet = await ensureReviewSet(
@@ -1306,7 +1307,19 @@ function Lesson({ scenarioParam }) {
                     (lesson.phrases || []).flatMap(p => String(p.correct || '').split(/\s+/)),
                 );
             } catch { /* offline — the lesson still runs, without review slots */ }
-            if (!cancelled) setSteps(buildLessonSteps(lesson, reviewSet, lessons));
+            const built = buildLessonSteps(lesson, reviewSet, lessons);
+            const start = savedStepFor(await progressP, langName, scenarioIdx, built.length);
+            if (cancelled) return;
+            setSteps(built);
+            /* Mid-lesson resume: the app was closed partway through. Steps
+               before `start` count as seen — their words go in the bank (they
+               were recorded with the SRS when first taught) — and the streak
+               starts fresh, since it never survived a reload anyway. */
+            if (start > 0) {
+                setIndex(start);
+                setBanked(built.slice(0, start).flatMap(wordsTaughtBy)
+                    .filter((w, i, all) => all.findIndex(x => x.word === w.word) === i));
+            }
         })();
         return () => { cancelled = true; };
     }, [lesson, langName, scenarioIdx, lessons]);
@@ -1551,7 +1564,14 @@ function Lesson({ scenarioParam }) {
                 api.post('/api/progress/lesson-complete', { lang: langName, lessonIdx: scenarioIdx })
                     .catch(() => {});
             }
-        } else setIndex(i => i + 1);
+        } else {
+            setIndex(i => i + 1);
+            /* Fire-and-forget: the next screen, so a killed app reopens here. */
+            if (langName) {
+                api.post('/api/progress/position', { lang: langName, lessonIdx: scenarioIdx, stepIdx: index + 1 })
+                    .catch(() => {});
+            }
+        }
     }, [step, index, steps.length, langName, scenarioIdx]);
 
     const toggleSound = () => {
