@@ -7,7 +7,8 @@
  * what counts as a right answer. Every accepted-answer decision here defers to
  * lessonEngine; nothing about the grading is reimplemented.
  *
- * Cycle: 5 teach · 3 review · 3 phrase · 4 conversation.
+ * Cycle: 5 teach · 3 review · 3 phrase · 4 conversation in Chat. Step mode
+ * gives teach one screen per vocabulary word, so its plan length varies.
  */
 
 import * as engine from '../services/lessonEngine.js';
@@ -34,25 +35,25 @@ export function buildLessonSteps(lesson, reviewSet = null, allLessons = []) {
     if (!lesson) return [];
     const steps = [];
 
-    /* ── 1. Teach ── */
-    for (let i = 0; i < engine.TEACH_STEPS; i++) {
-        const slice = engine.teachSliceFor(lesson.vocabulary || [], i);
-        if (!slice.length) continue;
+    /* ── 1. Teach ──
+       One screen per word, however many the lesson holds. The engine's
+       teachSliceFor folds a lesson onto five slots for Chat's fixed 15-turn
+       cycle, which on a 6- or 7-word lesson put two words on one screen and
+       asked for them together ("Hoguttene Hogu") as if they were one word.
+       Step mode has no fixed turn count to honour, so it does not borrow that
+       folding: a 7-word lesson gets 7 teach screens. Chat is unchanged. */
+    (lesson.vocabulary || []).forEach(wordObj => {
+        const slice = [wordObj];
         const expected = engine.expectedForTeachStep(slice);
-        if (!expected) continue;
+        if (!expected) return;
         steps.push({
             kind: 'teach',
             phase: 'teach',
             slice,
             expected,
-            // Orderings and fused forms, plus each word's own alt spellings —
-            // a single-word step gets nothing from teachStepVariants.
-            variants: [
-                ...engine.teachStepVariants(slice),
-                ...(slice.length === 1 ? altsOf(slice[0]) : []),
-            ],
+            variants: altsOf(wordObj),
         });
-    }
+    });
 
     /* ── 2. Review ── */
     (reviewSet || []).forEach(item => {
