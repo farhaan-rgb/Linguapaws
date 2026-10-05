@@ -161,8 +161,15 @@ export default function LessonMap() {
                                 style={{ position: 'absolute', left: xOf(i), top: yOf(i), transform: 'translate(-50%, -50%)',
                                          display: 'flex', flexDirection: 'column', alignItems: 'center', width: 150 }}>
                                 {here && (
+                                    /* Beside the node, never above it: above sat on the path and the
+                                       previous lesson. The curve meets every node vertically, so the
+                                       side at node height is always clear; pick the side facing centre. */
                                     <div className="lm-here" style={{
-                                        position: 'absolute', bottom: '100%', marginBottom: -2, display: 'flex',
+                                        position: 'absolute', top: size / 2 - 14,
+                                        ...(SWING[i % SWING.length] > 0
+                                            ? { right: 75 + size / 2 + 8 }
+                                            : { left: 75 + size / 2 + 8 }),
+                                        display: 'flex',
                                         alignItems: 'center', gap: 6, background: 'white', borderRadius: 999,
                                         padding: '3px 10px 3px 3px', boxShadow: 'var(--shadow-md)', whiteSpace: 'nowrap',
                                         fontSize: 12, fontWeight: 700, color: 'var(--accent-purple)',
