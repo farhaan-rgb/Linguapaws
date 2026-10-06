@@ -971,7 +971,7 @@ export const CURRICULUM = {
                   grammarNote: "*Nimma* means the person you're talking to: here, Miko. If a prompt says “your teacher” and means the one who teaches YOU, the word is *nanna*, “my”." },
                 { prompt: "Point at your teacher and say 'her name', respectfully.", correct: "Avara hesaru", native: "ಅವರ ಹೆಸರು", meaning: "Her name (respectful)", hint: "Respectful her + name",
                   acceptable: ["avara hesaru?"],
-                  grammarNote: "*Avara* means “his” or “her”, said with respect. Use it for anyone older or senior to you. *Aatana* is the plain “his” you just used." },
+                  grammarNote: "*Avara* means “his” or “her”, said with respect. Use it for teachers and anyone older than you. Earlier, in *aatana kathe* (his story), *aatana* was the everyday “his”." },
                 { prompt: "Ask someone what their name is.", correct: "Nimma hesaru yenu?", native: "ನಿಮ್ಮ ಹೆಸರು ಏನು?", meaning: "What is your name?", hint: "Your + name + what?",
                   acceptable: ["nimma hesaru enu?", "nimma hesaru yenu", "nimma hesaru enu"],
                   grammarNote: "This is *Hesaru yenu?* from before, with “your” added at the front. Nothing else changes." }
