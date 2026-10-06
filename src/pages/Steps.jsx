@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     X, Volume2, VolumeX, Lightbulb, MessageCircle, ArrowRight, Check, Flame,
-    Mic, Square, Keyboard,
+    Mic, Square, Keyboard, Eye,
 } from 'lucide-react';
 
 import { CURRICULUM, isLanguageAvailable } from '../services/curriculum';
@@ -1138,14 +1138,21 @@ function StepScreen({
                                 )}
                                 {troubleNote && <TroubleNote>{troubleNote}</TroubleNote>}
                                 {!settled && step.kind !== 'teach' && (
+                                    /* A pill, not a line of grey text: plain text
+                                       under the box read as a caption, and nobody
+                                       tapped it. */
                                     <button onClick={giveUp}
                                         style={{
-                                            margin: '12px auto 0', display: 'block',
-                                            background: 'none', border: 'none', padding: '4px 8px',
-                                            cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                                            color: 'var(--text-secondary)',
+                                            margin: '14px auto 0', display: 'flex',
+                                            alignItems: 'center', gap: 7,
+                                            background: '#fff', padding: '9px 16px', borderRadius: 99,
+                                            border: '1.5px solid rgba(168,85,247,0.35)',
+                                            boxShadow: '0 2px 8px rgba(168,85,247,0.10)',
+                                            cursor: 'pointer', fontSize: 14, fontWeight: 700,
+                                            fontFamily: 'var(--font-display)',
+                                            color: 'var(--accent-purple)',
                                         }}>
-                                        I don't know — show me
+                                        <Eye size={16} /> I don't know — show me
                                     </button>
                                 )}
                             </div>
