@@ -865,6 +865,22 @@ function StepScreen({
     }, [settled, step, lexicon, misses, onSettled, onMiss, drill]);
     const check = useCallback(() => grade(answer, false), [grade, answer]);
 
+    /* "I don't know" — the answer straight away, instead of two wrong guesses
+       made on purpose to get there. It is a reveal like any other: the streak
+       goes, and the screen comes back at the end of the round. */
+    const giveUp = useCallback(() => {
+        if (settled) return;
+        const next = misses + 1;
+        setMisses(next);
+        onMiss();
+        setHeardMiss('');
+        setRevealLine(praise.revealLineFor(step.index));
+        setLockHeard('');
+        setPhase('revealed');
+        fx.playMiss();
+        onSettled({ correct: false, revealed: true, misses: next });
+    }, [settled, misses, onMiss, step, onSettled]);
+
     const lockInWith = useCallback((raw, spoken = false, heardNative = '') => {
         const said = String(raw || '').trim();
         if (!said || locked) return;
@@ -1121,6 +1137,17 @@ function StepScreen({
                                     </p>
                                 )}
                                 {troubleNote && <TroubleNote>{troubleNote}</TroubleNote>}
+                                {!settled && step.kind !== 'teach' && (
+                                    <button onClick={giveUp}
+                                        style={{
+                                            margin: '12px auto 0', display: 'block',
+                                            background: 'none', border: 'none', padding: '4px 8px',
+                                            cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                                            color: 'var(--text-secondary)',
+                                        }}>
+                                        I don't know — show me
+                                    </button>
+                                )}
                             </div>
                         </>
                     )}
