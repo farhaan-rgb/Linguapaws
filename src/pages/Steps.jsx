@@ -747,6 +747,8 @@ function StepScreen({
     /** The word family the miss fell inside, and the first-letter outline. */
     const [family, setFamily] = useState(null);
     const [scaffold, setScaffold] = useState('');
+    /** The last wrong answer, so "show me" after a miss can still say what it meant. */
+    const lastWrongRef = useRef('');
     const [missLine, setMissLine] = useState('');
     const [revealLine, setRevealLine] = useState('');
     const [shake, setShake] = useState(0);
@@ -882,6 +884,7 @@ function StepScreen({
 
         const next = misses + 1;
         setMisses(next);
+        lastWrongRef.current = said;
         /* The flame goes out here, not at the end of the screen. A streak that
            survives a miss and only dies on a full reveal is a streak nobody can
            lose, and a counter nobody can lose is not worth having. */
@@ -896,7 +899,7 @@ function StepScreen({
         const revealing = next >= triesFor(step);
         const help = engine.missHelp(said, step.expected, {
             variants: step.variants, lexicon, taughtLessons, families,
-            meaning: drill?.meaning || '', reveal: revealing,
+            meaning: drill?.meaning || '', reveal: revealing, language: langName,
         });
         /* A taught word said in place of the needed one is remembered, so the
            pair comes back as a contrast screen in a later lesson. First miss on
@@ -924,7 +927,7 @@ function StepScreen({
             setShake(s => s + 1);
             fx.playMiss();
         }
-    }, [settled, step, lexicon, taughtLessons, families, misses, onSettled, onMiss, onConfusion, drill]);
+    }, [settled, step, lexicon, taughtLessons, families, misses, onSettled, onMiss, onConfusion, drill, langName]);
     const check = useCallback(() => grade(answer, false), [grade, answer]);
 
     /* "I don't know" — the answer straight away, instead of two wrong guesses
@@ -936,12 +939,22 @@ function StepScreen({
         setMisses(next);
         onMiss();
         setHeardMiss('');
+        /* After a miss, the reveal names the word and shows the family card
+           that the first miss held back. */
+        if (lastWrongRef.current) {
+            const help = engine.missHelp(lastWrongRef.current, step.expected, {
+                variants: step.variants, lexicon, taughtLessons, families,
+                meaning: drill?.meaning || '', reveal: true, language: langName,
+            });
+            setFamily(help.family);
+            if (help.line) setDiagnosis(help.line);
+        }
         setRevealLine(praise.revealLineFor(step.index));
         setLockHeard('');
         setPhase('revealed');
         fx.playMiss();
         onSettled({ correct: false, revealed: true, misses: next });
-    }, [settled, misses, onMiss, step, onSettled]);
+    }, [settled, misses, onMiss, step, onSettled, lexicon, taughtLessons, families, langName, drill]);
 
     const lockInWith = useCallback((raw, spoken = false, heardNative = '') => {
         const said = String(raw || '').trim();

@@ -1794,7 +1794,35 @@ export const missScaffold = (said, expected, lexicon = new Map()) => {
         return `${pre}${word[0]}${'_'.repeat(Math.max(word.length - 1, 1))}${post}`;
     });
     const scaffold = out.join(' ');
-    return scaffold === String(expected || '').trim() ? '' : scaffold;
+    if (scaffold === String(expected || '').trim()) return '';
+    return out.length === 1 ? `It's one word: ${scaffold}` : scaffold;
+};
+
+/* "beku" (want) + "illa" (no) for "beda" (don't want): a learner who built
+   the meaning out of two taught words has reasoned well and deserves to hear
+   it before being told the language has one word for it. Conservative on
+   purpose: the extra words must be exactly one negation and one word whose
+   meaning, negated, is the missing word's meaning — nothing else left over. */
+const NEGATION = /^(no|not)$/;
+const meaningParts = (m) => String(m || '').toLowerCase()
+    .replace(/\([^)]*\)/g, '').split(/\s*\/\s*/).map(x => x.trim()).filter(Boolean);
+const negatedForms = (part) => [`don't ${part}`, `do not ${part}`, `not ${part}`, `no ${part}`];
+const builtFromParts = (extra, missing, taught) => {
+    if (extra.length !== 2 || missing.length !== 1) return null;
+    const target = taught.get(missing[0]);
+    if (!target) return null;
+    const targets = meaningParts(target.meaning);
+    for (const [neg, pos] of [[extra[0], extra[1]], [extra[1], extra[0]]]) {
+        const n = taught.get(neg); const p = taught.get(pos);
+        if (!n || !p || n.word === p.word) continue;
+        if (!meaningParts(n.meaning).some(x => NEGATION.test(x))) continue;
+        if (meaningParts(p.meaning).some(x => NEGATION.test(x))) continue;
+        const built = meaningParts(p.meaning).flatMap(negatedForms);
+        if (targets.some(t => built.includes(t))) {
+            return { order: extra, positive: p, negation: n, target };
+        }
+    }
+    return null;
 };
 
 /**
@@ -1805,7 +1833,7 @@ export const missScaffold = (said, expected, lexicon = new Map()) => {
  */
 export const missHelp = (said, expected, {
     variants = [], lexicon = new Map(), taughtLessons = [], families = [],
-    meaning = '', reveal = false,
+    meaning = '', reveal = false, language = '',
 } = {}) => {
     const fallback = () => explainMiss(said, expected, variants, lexicon);
     const { synonyms } = asLexicon(lexicon);
@@ -1873,7 +1901,19 @@ export const missHelp = (said, expected, {
             if (members.length >= 2) family = { name: fam.name, members };
         }
     }
-    return { line: lines.join(' '), family, scaffold, pairs };
+    /* Good reasoning is said first. The rest of the analysis still runs, so
+       the pair is remembered and the reveal still gets its family card. */
+    const extra = got.filter(g => !has(need, g));
+    const reasoned = builtFromParts(extra, missing, taught);
+    if (reasoned) {
+        const [a, b] = reasoned.order.map(w => taught.get(w).word.toLowerCase());
+        lines.length = 0;
+        lines.push(`Good thinking: *${a}* + *${b}* makes sense, but ${language || 'this language'} says it in one word`
+            + (reveal ? `: *${capital(reasoned.target.word)}*.` : '.'));
+    }
+    /* The family card marks the needed word, so on a first miss it would hand
+       the answer over. It waits for the reveal. */
+    return { line: lines.join(' '), family: reveal ? family : null, scaffold, pairs };
 };
 
 /* ── What the voice says ───────────────────────────────────────────────────
