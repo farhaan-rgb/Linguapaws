@@ -25,6 +25,13 @@ const clamp = (n, lessonCount) => Math.min(Math.max(n, 0), Math.max(0, lessonCou
 export function resumeIndex(progress, lang, lessonCount) {
     const done = completedLessonFor(progress, lang);
     if (done !== null) return clamp(done + 1, lessonCount);
+    /* The shared counter is only a guess for a learner from before
+       per-language records. Once any language has a record, a language with
+       none is a new course: lesson 1. Otherwise ninety Kannada answers opened
+       a first Telugu session on lesson 7. */
+    const hasAnyRecord = Object.values(progress?.lessonProgress || {})
+        .some(v => Number.isInteger(v) && v >= 0);
+    if (hasAnyRecord) return 0;
     return clamp(Math.floor((progress?.successfulRepeats || 0) / CYCLE_SIZE), lessonCount);
 }
 
