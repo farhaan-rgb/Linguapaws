@@ -164,7 +164,9 @@ if (screen === 'home') {
      ?lock=N     get it wrong twice, then type the revealed answer back
      ?bounce=N   miss screen N, clear it, then clear N+1 — the recovery line
      ?type=…     type this on whatever screen the run lands on
+     ?wrong=a|b  the wrong answers ?miss / ?reveal type (default "zzz nonsense")
 */
+const wrongTexts = (params.get('wrong') || 'zzz nonsense').split('|');
 
 const cta = () => [...document.querySelectorAll('button')]
     .find(b => /^(Check|Continue|See how you did)$/.test(b.textContent.trim()));
@@ -254,7 +256,8 @@ if (winTo !== null && winTo !== undefined) {
             }
             if (!input) return;
             if (at === wrongAt && wrongsLeft > 0) {
-                if (!input.value) return setValue(input, 'zzz nonsense');
+                const wrong = wrongTexts[wrongs - wrongsLeft] || wrongTexts[0];
+                if (input.value !== wrong) return setValue(input, wrong);
                 button.click(); wrongsLeft--;
                 if (!wrongsLeft && !recovering && !locking && bounce === null) stop();
                 return;

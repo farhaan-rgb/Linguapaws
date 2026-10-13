@@ -5,7 +5,7 @@ import {
     Mic, Square, Keyboard, Eye,
 } from 'lucide-react';
 
-import { CURRICULUM, isLanguageAvailable } from '../services/curriculum';
+import { CURRICULUM, WORD_FAMILIES, isLanguageAvailable } from '../services/curriculum';
 import * as engine from '../services/lessonEngine';
 import * as praise from '../services/praise';
 import {
@@ -486,9 +486,41 @@ function SuccessPanel({ step, reward, onSpeak, phonetic, hero = true, focusSpan 
 /** The second miss. Deliberately not red and deliberately not the end of the
  *  screen: the answer is handed over, and the learner is invited to type it
  *  once. A lesson that ends a screen on failure teaches the failure. */
+/* The words a miss swapped between, side by side: the one said, the one
+   needed, and the rest of the set the learner has already met. */
+function FamilyCard({ family }) {
+    return (
+        <div style={{
+            margin: '10px 0 0', padding: '8px 10px', borderRadius: 12, textAlign: 'left',
+            background: 'rgba(255,255,255,0.75)', border: '1px solid rgba(180,83,9,0.16)',
+        }}>
+            {family.members.map(m => (
+                <div key={m.word} style={{
+                    display: 'flex', alignItems: 'baseline', gap: 8, padding: '4px 6px',
+                    borderRadius: 8, fontSize: 13, lineHeight: 1.35,
+                    background: m.needed ? 'rgba(16,185,129,0.12)' : m.said ? 'rgba(245,158,11,0.16)' : 'transparent',
+                }}>
+                    <span style={{
+                        fontWeight: 800, fontFamily: 'var(--font-display)', minWidth: 64,
+                        color: m.needed ? '#047857' : m.said ? '#b45309' : 'var(--text-main)',
+                    }}>{m.word}</span>
+                    <span style={{ flex: 1, color: 'var(--text-secondary)' }}>{m.meaning}</span>
+                    {(m.said || m.needed) && (
+                        <span style={{
+                            fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                            color: m.needed ? '#047857' : '#b45309',
+                        }}>{m.needed ? 'needed here' : 'you said'}</span>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
 function RevealPanel({
     step, line, onSpeak, locked, lockText, setLockText, onLockIn, lockMiss,
     lockRef, answerMode, voice, onListen, langName, lockHeard = '',
+    why = '', family = null,
 }) {
     const meaning = step.kind === 'drill' ? step.drill?.meaning : null;
     /* This panel's button says Lock it in, not Check, so it names its own. */
@@ -525,6 +557,13 @@ function RevealPanel({
                 }}>
                 <Volume2 size={15} /> Hear it
             </button>
+
+            {why && (
+                <p style={{ margin: '12px 0 0', fontSize: 13, lineHeight: 1.5, color: '#78350f' }}>
+                    <RichText text={why} />
+                </p>
+            )}
+            {family && <FamilyCard family={family} />}
 
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(180,83,9,0.16)' }}>
                 {locked ? (
@@ -685,8 +724,10 @@ function GrammarPoints({ points, revealed, activeIdx, onFocusPoint }) {
     );
 }
 
+const NO_FAMILIES = [];
+
 function StepScreen({
-    step, lexicon, onSpeak, onSettled, onMiss, onLockIn, onAdvance, isLast,
+    step, lexicon, taughtLessons, families, onSpeak, onSettled, onMiss, onLockIn, onAdvance, isLast,
     answerMode, onAnswerMode, voice, onListen, langName,
 }) {
     const inputRef = useRef(null);
@@ -700,6 +741,9 @@ function StepScreen({
     const [reward, setReward] = useState(null);
     /** What was actually wrong, from the engine's own diagnosis. */
     const [diagnosis, setDiagnosis] = useState('');
+    /** The word family the miss fell inside, and the first-letter outline. */
+    const [family, setFamily] = useState(null);
+    const [scaffold, setScaffold] = useState('');
     const [missLine, setMissLine] = useState('');
     const [revealLine, setRevealLine] = useState('');
     const [shake, setShake] = useState(0);
@@ -844,11 +888,20 @@ function StepScreen({
            quite" at people who had the right words in the wrong order. */
         /* The engine's diagnosis first; the shape of the answer when it has
            none, so no screen ever says "not quite" and leaves it there. */
-        setDiagnosis(engine.explainMiss(said, step.expected, step.variants, lexicon)
-            || (drill?.hint ? '' : praise.scaffoldFor(step.expected)));
+        /* One engine analysis: what the words they used mean, what was asked
+           for, the family both belong to, and an outline for the second try. */
+        const revealing = next >= triesFor(step);
+        const help = engine.missHelp(said, step.expected, {
+            variants: step.variants, lexicon, taughtLessons, families,
+            meaning: drill?.meaning || '', reveal: revealing,
+        });
+        setFamily(help.family);
+        setScaffold(help.scaffold);
+        setDiagnosis(help.line
+            || (drill?.hint || help.scaffold ? '' : praise.scaffoldFor(step.expected)));
         // Two misses (one on a re-ask) and the answer is shown. Nothing here
         // traps a learner on a screen they cannot pass.
-        if (next >= triesFor(step)) {
+        if (revealing) {
             setRevealLine(praise.revealLineFor(step.index));
             setLockHeard(spoken ? said : '');
             setPhase('revealed');
@@ -862,7 +915,7 @@ function StepScreen({
             setShake(s => s + 1);
             fx.playMiss();
         }
-    }, [settled, step, lexicon, misses, onSettled, onMiss, drill]);
+    }, [settled, step, lexicon, taughtLessons, families, misses, onSettled, onMiss, drill]);
     const check = useCallback(() => grade(answer, false), [grade, answer]);
 
     /* "I don't know" — the answer straight away, instead of two wrong guesses
@@ -1085,6 +1138,7 @@ function StepScreen({
                                 lockRef={lockRef} answerMode={answerMode}
                                 voice={voice} onListen={listenLock} langName={langName}
                                 lockHeard={lockHeard}
+                                why={diagnosis} family={family}
                             />
                         </div>
                     )}
@@ -1162,8 +1216,9 @@ function StepScreen({
 
                 {/* A miss says what was actually wrong. No red — amber, because
                     the learner has another try and the screen should look like
-                    they do. */}
-                {phase === 'retry' && (
+                    they do. It stays up while they type the second try — the
+                    outline and the family card are what they type it from. */}
+                {!settled && misses > 0 && missLine && (
                     <div style={{
                         margin: '10px 0 0', padding: '11px 13px', borderRadius: 14,
                         background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.24)',
@@ -1177,6 +1232,16 @@ function StepScreen({
                                 <RichText text={diagnosis} />
                             </p>
                         )}
+                        {scaffold && (
+                            <p style={{
+                                margin: '8px 0 0', fontFamily: 'var(--font-display)', fontWeight: 800,
+                                fontSize: 17, letterSpacing: '0.04em', color: '#78350f',
+                                wordBreak: 'break-word',
+                            }}>
+                                {scaffold}
+                            </p>
+                        )}
+                        {family && <FamilyCard family={family} />}
                     </div>
                 )}
 
@@ -1301,6 +1366,8 @@ function Lesson({ scenarioParam }) {
     const scenarioIdx = resolvedIdx ?? 0;
     const lesson = lessons[scenarioIdx];
     const lexicon = useMemo(() => engine.buildLexicon(lessons), [lessons]);
+    /* What a miss may explain with: only what has been taught by this lesson. */
+    const taughtLessons = useMemo(() => lessons.slice(0, scenarioIdx + 1), [lessons, scenarioIdx]);
 
     /* `steps` is the plan; `run` is the plan plus re-asks of missed screens,
        appended at the end of each round. `index` walks the run. */
@@ -1774,6 +1841,8 @@ function Lesson({ scenarioParam }) {
                 <StepScreen
                     step={step}
                     lexicon={lexicon}
+                    taughtLessons={taughtLessons}
+                    families={WORD_FAMILIES[langName] || NO_FAMILIES}
                     onSpeak={speak}
                     onSettled={handleSettled}
                     onMiss={handleMiss}

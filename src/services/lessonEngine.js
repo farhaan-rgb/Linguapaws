@@ -1733,6 +1733,142 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map()) 
     return null;
 };
 
+/* ── After a miss: what they confused, in their own words ──────────────────
+   `explainMiss` says what the grader saw. This says what the learner MEANT:
+   each wrong word they used that the course has taught, what it means, and
+   what the question needed instead — plus the small family the two words
+   belong to, and a first-letter outline for the second try.
+
+   Only words taught up to this lesson count (`taughtLessons`), so a line never
+   explains a word with a meaning the learner has not been shown. Grading is
+   untouched: this runs after `scoreAnswer` has already said no.                */
+
+/** "His / her (respectful)" -> the part of it this question is about. */
+const glossFor = (meaning, context = '') => {
+    const raw = String(meaning || '').trim();
+    if (!raw) return '';
+    const tail = (raw.match(/\((respectful|polite)\)\s*$/i) || [])[1]?.toLowerCase() || '';
+    let core = raw.replace(/\s*\((respectful|polite)\)\s*$/i, '');
+    const parts = core.split(/\s*\/\s*/).filter(Boolean);
+    if (parts.length > 1) {
+        const ctx = ` ${String(context).toLowerCase()} `;
+        const hit = parts.find(p => new RegExp(`\\b${p.toLowerCase().replace(/[^a-z' ]/g, '')}\\b`).test(ctx));
+        core = hit || parts.join(' or ');
+    }
+    if (!/^I\b/.test(core)) core = core.charAt(0).toLowerCase() + core.slice(1);
+    const said = tail === 'respectful' ? ', said with respect' : tail === 'polite' ? ', said politely' : '';
+    return `“${core}”${said}`;
+};
+
+const taughtWords = (lessons = []) => {
+    const map = new Map();
+    for (const lesson of lessons) {
+        for (const v of lesson.vocabulary || []) {
+            if (!v.word || !v.meaning) continue;
+            const entry = { word: v.word, meaning: v.meaning };
+            const key = normalizeLatin(v.word);
+            if (key && !map.has(key)) map.set(key, entry);
+            for (const a of v.alt || []) {
+                const k = normalizeLatin(a);
+                if (k && !map.has(k)) map.set(k, entry);
+            }
+        }
+    }
+    return map;
+};
+
+const capital = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+
+/** Expected answer with every word the learner missed cut to its first letter. */
+export const missScaffold = (said, expected, lexicon = new Map()) => {
+    const { synonyms } = asLexicon(lexicon);
+    const canon = (t) => synonyms.get(t) || t;
+    const got = new Set(normalizeLatin(said).split(' ').filter(Boolean).map(canon));
+    const out = String(expected || '').trim().split(/\s+/).map(tok => {
+        if (/[[\]()]/.test(tok)) return tok;
+        const m = tok.match(/^([^\p{L}]*)([\p{L}\p{N}'’-]+)([^\p{L}]*)$/u);
+        if (!m) return tok;
+        const [, pre, word, post] = m;
+        const key = canon(normalizeLatin(word));
+        if (got.has(key)) return tok;
+        return `${pre}${word[0]}${'_'.repeat(Math.max(word.length - 1, 1))}${post}`;
+    });
+    const scaffold = out.join(' ');
+    return scaffold === String(expected || '').trim() ? '' : scaffold;
+};
+
+/**
+ * Everything step mode says after a miss, from one analysis.
+ *   line     — the sentence; today's `explainMiss` when nothing better fits
+ *   family   — { name, members: [{ word, meaning, said, needed }] } or null
+ *   scaffold — "A____ hesaru" for the second try ('' on a reveal)
+ */
+export const missHelp = (said, expected, {
+    variants = [], lexicon = new Map(), taughtLessons = [], families = [],
+    meaning = '', reveal = false,
+} = {}) => {
+    const fallback = () => explainMiss(said, expected, variants, lexicon);
+    const { synonyms } = asLexicon(lexicon);
+    const canon = (t) => synonyms.get(t) || t;
+    const taught = taughtWords(taughtLessons);
+    const need = normalizeLatin(expected).split(' ')
+        .filter(t => t && !/[[\]()]/.test(t));
+    const got = normalizeLatin(said).split(' ').filter(Boolean);
+    const scaffold = reveal ? '' : missScaffold(said, expected, lexicon);
+    if (!need.length || !got.length) return { line: fallback(), family: null, scaffold };
+
+    const has = (list, t) => list.some(x => x === t || canon(x) === canon(t));
+    const missing = need.filter(t => !has(got, t));
+    /* A wrong word that is really a misspelling, a changed ending or a flipped
+       first vowel of a needed word is the grader's business, and
+       `explainMiss` already names those exactly. */
+    const close = (g, t) => levenshtein(g, t) <= 1 || isSpellingSlip(g, t)
+        || differsOnlyByPersonEnding(g, t) || differsOnlyByDeicticInitial(g, t)
+        || ((g.startsWith(t) || t.startsWith(g)) && Math.min(g.length, t.length) >= 3);
+    const wrong = got.filter(g => !has(need, g) && taught.has(g) && !missing.some(t => close(g, t)));
+    if (!missing.length || !wrong.length) return { line: fallback(), family: null, scaffold };
+
+    const familyOf = (a, b) => families.find(f => {
+        const m = f.members.map(normalizeLatin);
+        return m.includes(canon(a)) || m.includes(a) ? (m.includes(canon(b)) || m.includes(b)) : false;
+    });
+
+    const lines = [];
+    let family = null;
+    const used = new Set();
+    for (const g of wrong.slice(0, 2)) {
+        const pool = missing.filter(t => !used.has(t));
+        const t = pool.find(x => familyOf(g, x))
+            || pool[Math.min(got.indexOf(g), pool.length - 1)] || pool[0];
+        if (t) used.add(t);
+        const mine = glossFor(taught.get(g).meaning);
+        const wantEntry = t && taught.get(t);
+        const want = wantEntry ? glossFor(wantEntry.meaning, meaning) : '';
+        const shown = capital(taught.get(g).word);
+        let line = `*${shown}* means ${mine}.`;
+        if (want) line += reveal
+            ? ` This asks for ${want}: *${capital(wantEntry.word)}*.`
+            : ` This asks for ${want}.`;
+        else line += ' That is not what this asks for.';
+        lines.push(line);
+
+        const fam = !family && t && familyOf(g, t);
+        if (fam) {
+            const members = fam.members
+                .map(m => taught.get(normalizeLatin(m)))
+                .filter(Boolean)
+                .map(e => ({
+                    word: e.word,
+                    meaning: e.meaning,
+                    said: normalizeLatin(e.word) === canon(g) || normalizeLatin(e.word) === g,
+                    needed: normalizeLatin(e.word) === canon(t) || normalizeLatin(e.word) === t,
+                }));
+            if (members.length >= 2) family = { name: fam.name, members };
+        }
+    }
+    return { line: lines.join(' '), family, scaffold };
+};
+
 /* ── What the voice says ───────────────────────────────────────────────────
    The app is voice-first, and it sent ONLY `role: 'assistant'` messages to
    text-to-speech. Every 💡 grammar note and 🎓 banner is `role: 'system'`, so

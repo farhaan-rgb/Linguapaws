@@ -2045,3 +2045,42 @@ export function isLanguageAvailable(name) {
 export function lessonCount(name) {
     return LESSON_COUNTS[name] || 0;
 }
+
+/* ── Word families ─────────────────────────────────────────────────────────
+   Small sets of words a learner mixes up because they do the same job: my /
+   your / his, I / you, this / that. When a miss swaps one member for another,
+   step mode shows the family as a card so the learner sees the whole set side
+   by side instead of one correction in isolation.
+
+   Members are headwords (any case); meanings come from the vocabulary itself,
+   and the card lists only members the learner has already been taught, so a
+   family can name words from later lessons without leaking them early. */
+export const WORD_FAMILIES = {
+    Kannada: [
+        { name: 'Whose', members: ['nanna', 'nimma', 'aatana', 'avara'] },
+        { name: 'Who', members: ['naanu', 'neevu', 'ivaru', 'avaru'] },
+        { name: 'This or that', members: ['idu', 'adu'] },
+        { name: 'Here or there', members: ['illi', 'alli'] },
+        { name: 'Want or not', members: ['beku', 'beda'] },
+        { name: 'Yes or no', members: ['haudu', 'illa'] },
+        { name: 'Numbers', members: ['ondu', 'eradu', 'mooru', 'naalku', 'aidu'] },
+        { name: 'Size', members: ['dodda', 'chikka'] },
+        { name: 'Good or bad', members: ['olleya', 'ketta'] },
+    ],
+    Telugu: [
+        { name: 'Whose', members: ['naa', 'mee', 'ayana', 'ame'] },
+        { name: 'Who', members: ['nenu', 'meeru'] },
+        { name: 'This or that', members: ['idhi', 'adhi', 'ee'] },
+        { name: 'Here or there', members: ['ikkada', 'akkada'] },
+        { name: 'Want or not', members: ['kaavali', 'oddu'] },
+        { name: 'Numbers', members: ['okati', 'rendu', 'moodu', 'naalugu', 'aidhu'] },
+        { name: 'Family', members: ['amma', 'nanna', 'anna', 'akka', 'thammudu'] },
+        { name: 'When', members: ['eeroju', 'repu', 'ninna'] },
+        { name: 'Size', members: ['pedda', 'chinna'] },
+        { name: 'Good or bad', members: ['manchi', 'chedu'] },
+        { name: 'Where it is', members: ['lo', 'paina', 'kindha', 'tho', 'daggara'] },
+        { name: 'Colours', members: ['telupu', 'nalupu', 'erupu'] },
+        { name: 'I did / I will', members: ['chesanu', 'chestanu', 'chestunnanu'] },
+        { name: 'And, but, or', members: ['mariyu', 'kani', 'leda'] },
+    ],
+};
