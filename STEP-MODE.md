@@ -254,3 +254,30 @@ Not part of `npm run build`; vite only builds `index.html`.
   language code, which is absent for some Indian languages on some machines.
 - **No chat → steps control inside Chat.jsx**, because that file had uncommitted
   work in it and I left it alone. Switching mid-chat means going Home first.
+
+## Practice (`/steps?practice=1`)
+
+A round of about ten screens drawn **only from lessons finished in this
+language** (`lessonProgress[lang]`), built by `buildPracticeSteps` in
+`stepPlan.js` and rendered by the same `Steps.jsx` screens — same grading,
+missHelp, scaffold, family card, "I don't know — show me" and end-of-round
+re-asks. No teach screens: practice teaches nothing new.
+
+Slots fill in priority order, then group by phase so re-asks still land at the
+end of a round:
+
+1. SRS words that are due (`/api/progress/due`)
+2. open confused pairs, as contrast screens (`/api/progress/confusions/open`)
+3. screens whose answer was revealed in a past lesson (`/api/progress/missed`)
+4. a top-up alternating words and phrase/conversation drills
+
+The third source is new: a revealed teach or drill screen posts
+`/api/progress/missed` (the `MissedScreen` collection); one clean first-try
+answer in practice retires it, a fresh miss reopens it.
+
+Practice writes SRS reviews and confusion wins/misses as normal, and nothing a
+lesson writes about *where you are*: no `lesson-complete`, no `position`, no
+`increment`. Locked until a lesson is finished. On the map it is a pill on the
+stretch between the last finished lesson and "You are here", which gets
+`PRACTICE_GAP` of extra room so the pill never sits on a node or a label.
+`node tools/practice-check.mjs` checks the plan stays in scope and in order.

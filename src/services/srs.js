@@ -227,3 +227,44 @@ export async function recordContrastCheck({ lang, said, needed, correct, scenari
         return null;
     }
 }
+
+/* ── Practice ───────────────────────────────────────────────────────────────
+   What a practice session draws from, besides the curriculum: the SRS due
+   queue, open confused pairs, and lesson screens whose answer had to be
+   revealed. Each source fails independently — offline, practice is a top-up
+   from the finished lessons alone. */
+
+const getOr = (path, fallback) => api.get(path).then(r => (Array.isArray(r) ? r : fallback)).catch(() => fallback);
+
+export async function fetchPracticeSources(lang, size = 10) {
+    if (!lang) return { due: [], confusions: [], missed: [] };
+    const q = encodeURIComponent(lang);
+    const [due, confusions, missed] = await Promise.all([
+        getOr(`/api/progress/due?lang=${q}&limit=${size}`, []),
+        getOr(`/api/progress/confusions/open?lang=${q}&limit=3`, []),
+        getOr(`/api/progress/missed?lang=${q}&limit=${size}`, []),
+    ]);
+    return { due, confusions, missed };
+}
+
+/** Fire-and-forget: a lesson screen whose answer had to be revealed. */
+export async function recordMissedScreen({ lang, lessonIdx, kind, key }) {
+    if (!lang || !key) return null;
+    try {
+        return await api.post('/api/progress/missed', { lang, lessonIdx, kind, key });
+    } catch (err) {
+        console.warn('[srs] failed to record missed screen', key, err.message);
+        return null;
+    }
+}
+
+/** Fire-and-forget: how a missed screen went when practice brought it back. */
+export async function recordMissedCheck({ lang, lessonIdx, kind, key, correct }) {
+    if (!lang || !key) return null;
+    try {
+        return await api.post('/api/progress/missed/check', { lang, lessonIdx, kind, key, correct });
+    } catch (err) {
+        console.warn('[srs] failed to record missed check', key, err.message);
+        return null;
+    }
+}

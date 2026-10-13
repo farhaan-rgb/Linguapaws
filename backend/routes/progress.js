@@ -2,6 +2,7 @@ const express = require('express');
 const User = require('../models/User');
 const LearnedWord = require('../models/LearnedWord');
 const Confusion = require('../models/Confusion');
+const MissedScreen = require('../models/MissedScreen');
 const requireAuth = require('../middleware/auth');
 const { nextSchedule, initialSchedule } = require('../services/srs');
 const {
@@ -9,8 +10,11 @@ const {
     validatePosition, positionUpdate, positionClearFilter, positionClearUpdate,
 } = require('../services/lessonProgress');
 const {
-    validatePair, filterFor, confusionUpdate, checkUpdate, pickDue, pairPayload,
+    validatePair, filterFor, confusionUpdate, checkUpdate, pickDue, pickOpenPairs, pairPayload,
 } = require('../services/confusions');
+const {
+    validateMissed, missedFilter, missedUpdate, pickOpen, missedPayload,
+} = require('../services/missedScreens');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -254,6 +258,54 @@ router.post('/confusion/check', async (req, res) => {
     Object.assign(doc, checkUpdate(doc, req.body.correct, p.scenario));
     await doc.save();
     res.json(pairPayload(doc));
+});
+
+// GET /api/progress/confusions/open?lang=Kannada&limit=3 — open pairs for a
+// practice session, most frequent first. Unlike /confusions/due there is no
+// "not this lesson" rule: practice is not a lesson.
+router.get('/confusions/open', async (req, res) => {
+    const { lang } = req.query;
+    if (typeof lang !== 'string' || !lang) return res.status(400).json({ error: 'lang query param is required' });
+    const requested = parseInt(req.query.limit, 10);
+    const limit = Math.min(Math.max(Number.isNaN(requested) ? 3 : requested, 1), 10);
+    const open = await Confusion.find({ userId: req.user._id, lang, retired: false }).limit(50).lean();
+    res.json(pickOpenPairs(open, limit).map(pairPayload));
+});
+
+// POST /api/progress/missed — a lesson screen whose answer had to be revealed
+// Body: { lang, lessonIdx, kind: 'word'|'drill', key }. Fire-and-forget from step mode.
+router.post('/missed', async (req, res) => {
+    const m = validateMissed(req.body);
+    if (m.error) return res.status(400).json({ error: m.error });
+    const doc = await MissedScreen.findOneAndUpdate(
+        missedFilter(req.user._id, m), missedUpdate(m),
+        { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
+    ).lean();
+    res.json(missedPayload(doc));
+});
+
+// GET /api/progress/missed?lang=Kannada&limit=5 — open missed screens for practice
+router.get('/missed', async (req, res) => {
+    const { lang } = req.query;
+    if (typeof lang !== 'string' || !lang) return res.status(400).json({ error: 'lang query param is required' });
+    const requested = parseInt(req.query.limit, 10);
+    const limit = Math.min(Math.max(Number.isNaN(requested) ? 5 : requested, 1), 20);
+    const open = await MissedScreen.find({ userId: req.user._id, lang, retired: false }).limit(100).lean();
+    res.json(pickOpen(open, limit).map(missedPayload));
+});
+
+// POST /api/progress/missed/check — how a missed screen went when practice
+// brought it back. Body: { lang, lessonIdx, kind, key, correct }. A clean
+// first-try answer retires it.
+router.post('/missed/check', async (req, res) => {
+    const m = validateMissed(req.body);
+    if (m.error) return res.status(400).json({ error: m.error });
+    if (typeof req.body.correct !== 'boolean') return res.status(400).json({ error: 'correct (boolean) is required' });
+    const doc = await MissedScreen.findOne(missedFilter(req.user._id, m));
+    if (!doc) return res.status(404).json({ error: 'no such screen' });
+    if (req.body.correct) doc.retired = true;
+    await doc.save();
+    res.json(missedPayload(doc));
 });
 
 module.exports = router;

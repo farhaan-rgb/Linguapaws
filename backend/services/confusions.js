@@ -52,9 +52,16 @@ function pickDue(docs = [], scenario) {
         .sort((a, b) => (b.count - a.count) || (new Date(a.lastSeen) - new Date(b.lastSeen)))[0] || null;
 }
 
+/** Open pairs for a practice session, most frequent first; no lesson rule. */
+function pickOpenPairs(docs = [], limit = 3) {
+    return docs.filter(d => !d.retired)
+        .sort((a, b) => (b.count - a.count) || (new Date(a.lastSeen) - new Date(b.lastSeen)))
+        .slice(0, limit);
+}
+
 const pairPayload = (d) => (d ? {
     said: d.said, needed: d.needed, saidMeaning: d.saidMeaning, neededMeaning: d.neededMeaning,
     count: d.count, wins: d.wins, retired: d.retired,
 } : null);
 
-module.exports = { RETIRE_AFTER, validatePair, filterFor, confusionUpdate, checkUpdate, pickDue, pairPayload };
+module.exports = { RETIRE_AFTER, validatePair, filterFor, confusionUpdate, checkUpdate, pickDue, pickOpenPairs, pairPayload };

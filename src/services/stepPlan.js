@@ -71,6 +71,55 @@ const contrastVariants = (lessons, c) => {
     return out.slice(1, 12);
 };
 
+/* One review screen: a word from the SRS queue, or a confused pair. Shared by
+   the lesson plan and the practice plan so both ask a review the same way. */
+function reviewStep(item, allLessons) {
+    if (item.contrast) {
+        const a = nativeOf(allLessons, item.contrast.said);
+        const b = nativeOf(allLessons, item.contrast.needed);
+        return {
+            kind: 'review',
+            phase: 'review',
+            item,
+            prompt: contrastPrompt(item.contrast),
+            expected: item.word,
+            variants: contrastVariants(allLessons, item.contrast),
+            native: a && b ? `${a} ${b}` : '',
+        };
+    }
+    return {
+        kind: 'review',
+        phase: 'review',
+        item,
+        prompt: item.meaning
+            ? `How do you say "${item.meaning}"?`
+            : `Say ${item.word} again`,
+        expected: item.word,
+        variants: engine.altsFor(allLessons, item.word),
+        native: item.native || nativeOf(allLessons, item.word),
+    };
+}
+
+/* One phrase or conversation screen; `drills[idx]` carries its phase. */
+function drillStep(drills, idx) {
+    const drill = drills[idx];
+    return {
+        kind: 'drill',
+        phase: drill.phase,
+        drill,
+        prompt: engine.drillPrompt(drills, idx) || drill.prompt,
+        expected: drill.correct,
+        variants: drill.acceptable || [],
+        native: drill.native || '',
+    };
+}
+
+/** A lesson's phrases then conversations, each tagged with its phase. */
+const drillsOf = (lesson) => [
+    ...(lesson?.phrases || []).map(d => ({ ...d, phase: 'phrase' })),
+    ...(lesson?.conversations || []).map(d => ({ ...d, phase: 'conversation' })),
+];
+
 export function buildLessonSteps(lesson, reviewSet = null, allLessons = [], contrast = null) {
     if (!lesson) return [];
     const steps = [];
@@ -100,53 +149,138 @@ export function buildLessonSteps(lesson, reviewSet = null, allLessons = [], cont
     const slots = (reviewSet || []).filter(item => item?.word);
     const pairItem = slots.length ? contrastItem(contrast) : null;
     if (pairItem) slots[slots.length - 1] = pairItem;
-    slots.forEach(item => {
-        if (item.contrast) {
-            steps.push({
-                kind: 'review',
-                phase: 'review',
-                item,
-                prompt: contrastPrompt(item.contrast),
-                expected: item.word,
-                variants: contrastVariants(allLessons, item.contrast),
-                native: [nativeOf(allLessons, item.contrast.said), nativeOf(allLessons, item.contrast.needed)]
-                    .every(Boolean)
-                    ? `${nativeOf(allLessons, item.contrast.said)} ${nativeOf(allLessons, item.contrast.needed)}` : '',
-            });
-            return;
-        }
-        steps.push({
-            kind: 'review',
-            phase: 'review',
-            item,
-            prompt: item.meaning
-                ? `How do you say "${item.meaning}"?`
-                : `Say ${item.word} again`,
-            expected: item.word,
-            variants: engine.altsFor(allLessons, item.word),
-            native: item.native || nativeOf(allLessons, item.word),
-        });
-    });
+    slots.forEach(item => steps.push(reviewStep(item, allLessons)));
 
     /* ── 3 & 4. Drills, exactly as the curriculum orders them ── */
-    const drills = [
-        ...(lesson.phrases || []).map(d => ({ ...d, phase: 'phrase' })),
-        ...(lesson.conversations || []).map(d => ({ ...d, phase: 'conversation' })),
-    ];
+    const drills = drillsOf(lesson);
     drills.forEach((drill, idx) => {
-        if (!drill?.correct) return;
-        steps.push({
-            kind: 'drill',
-            phase: drill.phase,
-            drill,
-            prompt: engine.drillPrompt(drills, idx) || drill.prompt,
-            expected: drill.correct,
-            variants: drill.acceptable || [],
-            native: drill.native || '',
-        });
+        if (drill?.correct) steps.push(drillStep(drills, idx));
     });
 
     return steps.map((s, i) => ({ ...s, index: i }));
+}
+
+/* ── Practice ────────────────────────────────────────────────────────────────
+   A short session drawn ONLY from lessons the learner has finished in this
+   language (`finishedIdx` = lessonProgress[lang]). Nothing new is taught, so
+   there are no teach screens; it reuses the review and drill screens above.
+
+   Slots fill in priority order, then the chosen screens are grouped by phase
+   (review, phrase, conversation) so the end-of-round re-asks work as in a
+   lesson:
+     1. SRS words that are due
+     2. recorded confusion pairs, as contrast screens
+     3. screens missed or revealed in past lessons
+     4. a top-up mixing words and drills from the finished lessons
+
+   Every screen carries `practice` (which of the four filled it) and
+   `lessonIdx` (the finished lesson it came from); a screen from the missed
+   record also carries `missedRef`, the record to retire. */
+
+export const PRACTICE_SIZE = 10;
+
+const norm = (t) => String(t || '').toLowerCase().replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim();
+
+/* Deterministic shuffle, so one seed gives one plan (and a test can pin it). */
+function shuffled(list, seed) {
+    const out = [...list];
+    let s = ((seed + 1) * 1664525 + 1013904223) & 0x7fffffff;
+    for (let i = out.length - 1; i > 0; i--) {
+        s = (s * 1664525 + 1013904223) & 0x7fffffff;
+        const j = s % (i + 1);
+        [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+}
+
+export function buildPracticeSteps({
+    lessons = [], finishedIdx = null, due = [], confusions = [], missed = [],
+    size = PRACTICE_SIZE, seed = 0,
+} = {}) {
+    if (!Number.isInteger(finishedIdx) || finishedIdx < 0) return [];
+    const scope = lessons.slice(0, finishedIdx + 1);
+    if (!scope.length) return [];
+
+    /* Every word the finished lessons taught, first lesson that taught it. */
+    const words = new Map();
+    scope.forEach((l, li) => (l.vocabulary || []).forEach(v => {
+        const k = norm(v.word);
+        if (k && !words.has(k)) words.set(k, { ...v, lessonIdx: li });
+    }));
+    const drillsByLesson = scope.map(drillsOf);
+
+    const picked = [];
+    const used = new Set();
+    const take = (step, source, lessonIdx, extra = {}) => {
+        const k = norm(step.expected);
+        if (picked.length >= size || !k || used.has(k)) return;
+        used.add(k);
+        picked.push({ ...step, ...extra, practice: source, lessonIdx });
+    };
+    const wordStep = (w) => reviewStep(
+        { word: w.word, meaning: w.meaning || '', source: 'due', native: w.native || '' }, scope);
+    const drillAt = (li, di) => drillStep(drillsByLesson[li], di);
+
+    /* 1. Due words — only ones a finished lesson taught. */
+    for (const d of due || []) {
+        const w = words.get(norm(d?.word));
+        if (w) take(wordStep(w), 'due', w.lessonIdx);
+    }
+
+    /* 2. Confused pairs, both halves taught by a finished lesson. */
+    for (const c of confusions || []) {
+        const a = words.get(norm(c?.said)), b = words.get(norm(c?.needed));
+        const item = a && b ? contrastItem(c) : null;
+        if (item) take(reviewStep(item, scope), 'confusion', Math.max(a.lessonIdx, b.lessonIdx));
+    }
+
+    /* 3. Screens missed or revealed before, in a finished lesson. */
+    for (const m of missed || []) {
+        const li = Number(m?.lessonIdx);
+        if (!Number.isInteger(li) || li < 0 || li > finishedIdx) continue;
+        if (m.kind === 'word') {
+            const w = words.get(norm(m.key));
+            if (w) take(wordStep(w), 'missed', w.lessonIdx, { missedRef: { kind: 'word', key: m.key, lessonIdx: li } });
+        } else if (m.kind === 'drill') {
+            const di = drillsByLesson[li].findIndex(d => norm(d.correct) === norm(m.key));
+            if (di >= 0) take(drillAt(li, di), 'missed', li, { missedRef: { kind: 'drill', key: m.key, lessonIdx: li } });
+        }
+    }
+
+    /* 4. Top up: alternate words and drills, whichever is behind. */
+    const poolWords = shuffled([...words.values()], seed);
+    const poolDrills = shuffled(drillsByLesson.flatMap((ds, li) =>
+        ds.map((d, di) => (d?.correct ? [li, di] : null)).filter(Boolean)), seed + 1);
+    while (picked.length < size && (poolWords.length || poolDrills.length)) {
+        const nWords = picked.filter(s => s.kind === 'review').length;
+        const wantDrill = poolDrills.length && (!poolWords.length || nWords > picked.length - nWords);
+        if (wantDrill) {
+            const [li, di] = poolDrills.shift();
+            take(drillAt(li, di), 'mix', li);
+        } else {
+            const w = poolWords.shift();
+            take(wordStep(w), 'mix', w.lessonIdx);
+        }
+    }
+
+    const order = ['review', 'phrase', 'conversation'];
+    return order.flatMap(ph => picked.filter(s => s.phase === ph))
+        .map((s, i) => ({ ...s, index: i }));
+}
+
+/** What a revealed screen is remembered as, for practice to bring back:
+ *  a teach screen is its word, a drill its answer. Reviews are left to the SRS
+ *  and contrast screens to the confusion record. Null = not recorded. */
+export function missedKeyFor(step, lessonIdx) {
+    if (!step || !Number.isInteger(lessonIdx)) return null;
+    if (step.kind === 'teach' && step.slice?.length === 1) {
+        return { kind: 'word', key: step.slice[0].word, lessonIdx };
+    }
+    if (step.kind === 'drill' && step.expected) return { kind: 'drill', key: step.expected, lessonIdx };
+    if (step.kind === 'review' && step.practice && !step.item?.contrast) {
+        return { kind: 'word', key: step.expected, lessonIdx };
+    }
+    return null;
 }
 
 /** Words a teach step puts on screen — banked once the learner clears it. */

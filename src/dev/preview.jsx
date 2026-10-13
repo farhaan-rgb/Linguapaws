@@ -128,8 +128,9 @@ const screen = params.get('screen');
 /* Header renders the signed-in avatar unconditionally, so the home preview needs
    a stub user. Never a real token — every API call still fails and is swallowed. */
 /* The lesson map: ?screen=map&done=N&at=S stubs /api/progress so the map shows
-   N lessons finished and S screens into the next one. No `done` = new learner. */
-if (screen === 'map') {
+   N lessons finished and S screens into the next one. No `done` = new learner.
+   ?screen=practice&done=N opens a practice session over those N lessons. */
+if (screen === 'map' || screen === 'practice') {
     const done = params.get('done');
     const at = parseInt(params.get('at') || '0', 10);
     const realGet = api.get.bind(api);
@@ -405,7 +406,7 @@ createRoot(document.getElementById('root')).render(
         <div style={{ paddingTop: 18 }}>
             {screen === 'toggle' ? <TogglePreview /> : screen === 'summary' ? <SummaryPreview /> : (
             <AuthProvider>
-                <MemoryRouter initialEntries={[screen === 'home' ? '/' : screen === 'map' ? '/lessons' : `/steps?scenario=${scenario}`]}>
+                <MemoryRouter initialEntries={[screen === 'home' ? '/' : screen === 'map' ? '/lessons' : screen === 'practice' ? '/steps?practice=1' : `/steps?scenario=${scenario}`]}>
                     <Routes>
                         <Route path="/" element={<Home />} />
                         <Route path="/steps" element={<Steps />} />

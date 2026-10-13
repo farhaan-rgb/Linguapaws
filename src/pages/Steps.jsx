@@ -11,16 +11,17 @@ const NO_KNOWN = [];
 import * as engine from '../services/lessonEngine';
 import * as praise from '../services/praise';
 import {
-    buildLessonSteps, wordsTaughtBy, stepCaption, PHASES,
+    buildLessonSteps, buildPracticeSteps, missedKeyFor, wordsTaughtBy, stepCaption, PHASES,
     triesFor, shouldRequeue, isRoundEnd, withRetries, resumeStepFor, railIndexFor,
 } from '../services/stepPlan';
 import {
     ensureReviewSet, recordTaughtWord, recordReview,
     ensureContrast, recordConfusion, recordContrastCheck,
+    fetchPracticeSources, recordMissedScreen, recordMissedCheck,
 } from '../services/srs';
 import { getStoredJSON } from '../utils/storage';
 import { api } from '../services/api';
-import { resumeIndex, savedStepFor } from '../services/lessonResume';
+import { resumeIndex, savedStepFor, completedLessonFor } from '../services/lessonResume';
 import * as fx from '../utils/feedbackFx';
 import { getAnswerMode, setAnswerMode } from '../utils/learnMode';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
@@ -1344,13 +1345,19 @@ function StepScreen({
    `steps`, `index`, `banked`, `unaided`, `said` and `score` would all have to be
    reset together, and a remount is the one way to be sure none of them is
    missed. */
+/* `?practice=1` is a practice session: the same screens, a plan from
+   buildPracticeSteps drawn only from finished lessons, and none of a lesson's
+   progress writes (no lesson-complete, no position, no repeat counter). */
 export default function Steps() {
     const [searchParams] = useSearchParams();
-    const scenarioParam = searchParams.get('scenario');
-    return <Lesson key={scenarioParam ?? 'resume'} scenarioParam={scenarioParam} />;
+    const practice = searchParams.get('practice') === '1';
+    const scenarioParam = practice ? null : searchParams.get('scenario');
+    /* `round` makes "Practise again" a fresh mount, as `scenario` does for lessons. */
+    return <Lesson key={practice ? `practice-${searchParams.get('round') || ''}` : (scenarioParam ?? 'resume')}
+        scenarioParam={scenarioParam} practice={practice} />;
 }
 
-function Lesson({ scenarioParam }) {
+function Lesson({ scenarioParam, practice = false }) {
     const navigate = useNavigate();
 
     /* Read once. `getStoredJSON` hands back a fresh object every call, and an
@@ -1366,6 +1373,7 @@ function Lesson({ scenarioParam }) {
 
     const urlScenario = scenarioParam;
     const [resolvedIdx, setResolvedIdx] = useState(() => {
+        if (practice) return null;
         const raw = parseInt(urlScenario ?? '', 10);
         return Number.isNaN(raw) ? null : Math.min(Math.max(raw, 0), MAX_SCENARIO_IDX);
     });
@@ -1383,14 +1391,19 @@ function Lesson({ scenarioParam }) {
             let idx = 0;
             try {
                 const p = await api.get('/api/progress');
-                idx = resumeIndex(p, langName, lessons.length);
-            } catch { idx = 0; }
+                /* Practice works over the finished lessons, so it sits on the
+                   last one finished; -1 = nothing finished here, locked. */
+                idx = practice
+                    ? Math.min(completedLessonFor(p, langName) ?? -1, lessons.length - 1)
+                    : resumeIndex(p, langName, lessons.length);
+            } catch { idx = practice ? -1 : 0; }
             if (!cancelled) setResolvedIdx(idx);
         })();
         return () => { cancelled = true; };
-    }, [resolvedIdx, lessons.length, langName]);
+    }, [resolvedIdx, lessons.length, langName, practice]);
 
-    const scenarioIdx = resolvedIdx ?? 0;
+    const practiceLocked = practice && resolvedIdx === -1;
+    const scenarioIdx = practiceLocked ? 0 : (resolvedIdx ?? 0);
     const lesson = lessons[scenarioIdx];
     const lexicon = useMemo(() => engine.buildLexicon(lessons), [lessons]);
     /* What a miss may explain with: only what has been taught by this lesson. */
@@ -1412,6 +1425,8 @@ function Lesson({ scenarioParam }) {
     /* Every sentence the learner actually produced, for the summary. Not the
        lesson's phrase list — the ones they got out themselves. */
     const [said, setSaid] = useState([]);
+    /* Practice's "worth watching": screens that needed a second try or a reveal. */
+    const [watch, setWatch] = useState([]);
 
     /* ── The reward layer ──
        Streak and paws live here rather than in the screen, because they are the
@@ -1446,7 +1461,19 @@ function Lesson({ scenarioParam }) {
        from the curriculum. */
     useEffect(() => {
         let cancelled = false;
-        if (!lesson) return undefined;
+        if (!lesson || resolvedIdx === null || practiceLocked) return undefined;
+        if (practice) {
+            (async () => {
+                const sources = await fetchPracticeSources(langName);
+                const built = buildPracticeSteps({
+                    lessons, finishedIdx: scenarioIdx, ...sources, seed: Date.now() % 100000,
+                });
+                if (cancelled) return;
+                setSteps(built);
+                setRun(built);
+            })();
+            return () => { cancelled = true; };
+        }
         (async () => {
             const progressP = api.get('/api/progress').catch(() => null);
             let reviewSet = null;
@@ -1474,7 +1501,7 @@ function Lesson({ scenarioParam }) {
             }
         })();
         return () => { cancelled = true; };
-    }, [lesson, langName, scenarioIdx, lessons]);
+    }, [lesson, langName, scenarioIdx, lessons, practice, practiceLocked, resolvedIdx]);
 
     /* The language object stored by the picker carries `id`, `name` and
        `native`. This used to read `speechCode || code`, two fields it has never
@@ -1668,6 +1695,25 @@ function Lesson({ scenarioParam }) {
         }
         const wasStumbled = t.stumbled;
 
+        if (practice && (!correct || misses > 0)) {
+            const c = step?.item?.contrast;
+            const meaning = c ? [c.saidMeaning, c.neededMeaning].filter(Boolean).join(' / ')
+                : (step?.item?.meaning || step?.drill?.meaning || '');
+            setWatch(prev => prev.some(x => x.text === step.expected)
+                ? prev : [...prev, { text: step.expected, meaning }]);
+        }
+
+        /* Missed screens, for practice to bring back. First attempt only. */
+        if (step && !step.retry) {
+            const firstTry = Boolean(correct && misses === 0 && !revealed);
+            if (step.missedRef) {
+                recordMissedCheck({ lang: langName, ...step.missedRef, correct: firstTry }).catch(() => {});
+            } else if (!correct) {
+                const key = missedKeyFor(step, practice ? step.lessonIdx : scenarioIdx);
+                if (key) recordMissedScreen({ lang: langName, ...key }).catch(() => {});
+            }
+        }
+
         if (correct && step?.kind === 'drill') {
             setSaid(prev => prev.some(x => x.text === step.expected)
                 ? prev
@@ -1693,19 +1739,21 @@ function Lesson({ scenarioParam }) {
                cleanly — first try, nothing revealed. */
             recordContrastCheck({
                 lang: langName, said: step.item.contrast.said, needed: step.item.contrast.needed,
-                correct: Boolean(correct && misses === 0 && !revealed), scenario: scenarioIdx,
+                correct: Boolean(correct && misses === 0 && !revealed),
+                scenario: practice ? 'practice' : scenarioIdx,
             }).catch(() => {});
         } else if (step?.kind === 'review' && !step.retry) {
             recordReview({
                 lang: langName, word: step.item.word,
                 outcome: engine.gradeOutcome({ correct, misses, revealed }),
-                wasCorrect: correct, meaning: step.item.meaning, scenario: scenarioIdx,
+                wasCorrect: correct, meaning: step.item.meaning,
+                scenario: practice ? step.lessonIdx : scenarioIdx,
             }).catch(() => {});
         }
 
         /* Both modes move the same counter, so a lesson done in steps leaves the
            learner exactly where the chat would have. */
-        if (correct) api.post('/api/progress/increment').catch(() => {});
+        if (correct && !practice) api.post('/api/progress/increment').catch(() => {});
 
         setScore({ combo: t.combo, best: t.best, points: t.points,
                    recovered: t.recovered, locks: t.locks, bonus: t.bonus });
@@ -1731,7 +1779,7 @@ function Lesson({ scenarioParam }) {
             recovery: wasStumbled && misses === 0,
             points, combo: t.combo, milestone: hit,
         };
-    }, [step, langName, scenarioIdx, award]);
+    }, [step, langName, scenarioIdx, award, practice]);
 
     const handleMiss = useCallback(() => {
         tally.current.combo = 0;
@@ -1739,9 +1787,10 @@ function Lesson({ scenarioParam }) {
     }, []);
 
     const handleConfusion = useCallback((pairs) => {
-        (pairs || []).forEach(p => recordConfusion({ ...p, lang: langName, scenario: scenarioIdx })
-            .catch(() => {}));
-    }, [langName, scenarioIdx]);
+        (pairs || []).forEach(p => recordConfusion({
+            ...p, lang: langName, scenario: practice ? 'practice' : scenarioIdx,
+        }).catch(() => {}));
+    }, [langName, scenarioIdx, practice]);
 
     const handleLockIn = useCallback(() => {
         tally.current.locks += 1;
@@ -1772,7 +1821,7 @@ function Lesson({ scenarioParam }) {
                REVIEW_RETRY_LIMIT misses, so there is no stricter bar that
                would not also trap someone. Forward-only on the server, so
                replaying an earlier lesson never moves resume backwards. */
-            if (langName) {
+            if (langName && !practice) {
                 api.post('/api/progress/lesson-complete', { lang: langName, lessonIdx: scenarioIdx })
                     .catch(() => {});
             }
@@ -1781,12 +1830,12 @@ function Lesson({ scenarioParam }) {
             /* Fire-and-forget: the next screen, so a killed app reopens here.
                Plan-indexed; mid-requeue it is the start of the round. */
             const at = resumeStepFor(steps, nextRun[index + 1], missedRef.current.length);
-            if (langName && at != null) {
+            if (langName && at != null && !practice) {
                 api.post('/api/progress/position', { lang: langName, lessonIdx: scenarioIdx, stepIdx: at })
                     .catch(() => {});
             }
         }
-    }, [step, index, run, steps, langName, scenarioIdx]);
+    }, [step, index, run, steps, langName, scenarioIdx, practice]);
 
     const toggleSound = () => {
         const next = !soundOn;
@@ -1795,6 +1844,20 @@ function Lesson({ scenarioParam }) {
     };
 
     /* ── Guards ── */
+    if (practiceLocked) {
+        return (
+            <div className="app-container" style={{ padding: 24, textAlign: 'center' }}>
+                <p style={{ fontSize: 36 }}>🔒</p>
+                <h2 style={{ fontFamily: 'var(--font-display)' }}>Practice opens after a lesson</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
+                    Finish your first {langName || ''} lesson and practice will draw on what it taught.
+                </p>
+                <button className="btn-primary" onClick={() => navigate('/lessons')} style={{ marginTop: 16 }}>
+                    Back to the map
+                </button>
+            </div>
+        );
+    }
     if (resolvedIdx === null || (lesson && !steps.length)) {
         return (
             <div className="app-container" style={{
@@ -1804,7 +1867,7 @@ function Lesson({ scenarioParam }) {
                 <div style={{ fontSize: 38 }}>🐾</div>
                 {lesson && (
                     <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-display)' }}>
-                        Laying out {lesson.scenario}…
+                        {practice ? 'Gathering your practice…' : `Laying out ${lesson.scenario}…`}
                     </p>
                 )}
             </div>
@@ -1835,6 +1898,7 @@ function Lesson({ scenarioParam }) {
                 lesson={lesson} steps={steps} banked={banked} unaided={unaided} said={said}
                 score={score} onSpeak={speak} scenarioIdx={scenarioIdx} navigate={navigate}
                 hasNext={scenarioIdx + 1 < lessons.length}
+                practice={practice} watch={watch}
             />
         );
     }
@@ -1846,7 +1910,8 @@ function Lesson({ scenarioParam }) {
             <MilestoneBanner milestone={milestone} />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 16px 10px' }}>
-                <button onClick={() => navigate('/')} aria-label="Leave lesson"
+                <button onClick={() => navigate(practice ? '/lessons' : '/')}
+                    aria-label={practice ? 'Leave practice' : 'Leave lesson'}
                     style={{
                         width: 32, height: 32, borderRadius: 10, border: 'none', cursor: 'pointer',
                         background: 'var(--card-bg)', color: 'var(--text-secondary)', flexShrink: 0,
@@ -1875,9 +1940,11 @@ function Lesson({ scenarioParam }) {
                     margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: 1.2,
                     textTransform: 'uppercase', color: 'var(--accent-purple)',
                 }}>
-                    {step.retry
-                        ? `${PHASES[step.phase].label} · ${praise.RETRY_TAG}`
-                        : stepCaption(steps, step.index)}
+                    {practice
+                        ? `Practice · ${step.retry ? praise.RETRY_TAG : `${step.index + 1} of ${steps.length}`}`
+                        : step.retry
+                            ? `${PHASES[step.phase].label} · ${praise.RETRY_TAG}`
+                            : stepCaption(steps, step.index)}
                     {index === run.length - 1 && !missedCount && ' · last one'}
                 </p>
                 <ScorePill points={score.points} combo={score.combo} gain={gain} />
@@ -1918,13 +1985,16 @@ function Lesson({ scenarioParam }) {
    summary that congratulates you for finishing is congratulating you for
    pressing Continue fifteen times.                                          */
 
-export function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, scenarioIdx, navigate, hasNext = true }) {
+export function Summary({
+    lesson, steps, banked, unaided, said, score, onSpeak, scenarioIdx, navigate, hasNext = true,
+    practice = false, watch = [],
+}) {
     const verdict = praise.summaryFor({
-        unaided, total: steps.length, bestCombo: score.best,
+        unaided, total: steps.length, bestCombo: score.best, practice,
     });
     const r = praise.resultsFor({
         unaided, total: steps.length, best: score.best,
-        recovered: score.recovered, locks: score.locks, bonus: score.bonus,
+        recovered: score.recovered, locks: score.locks, bonus: score.bonus, practice,
     });
     const points = useCountUp(score.points, 900);
     const first = useCountUp(unaided, 900);
@@ -2050,7 +2120,7 @@ export function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, 
 
             <div style={{ textAlign: 'center', paddingTop: 24 }}>
                 <div style={{ fontSize: 52, animation: 'tick-pop 0.6s cubic-bezier(0.22,1.4,0.36,1)' }}>
-                    {lesson.icon || '🎉'}
+                    {practice ? '🏋️' : (lesson.icon || '🎉')}
                 </div>
                 <p style={{
                     display: 'inline-block', margin: '10px 0 0', padding: '5px 14px', borderRadius: 99,
@@ -2061,7 +2131,7 @@ export function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, 
                     {verdict.icon} {verdict.badge}
                 </p>
                 <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 25, margin: '10px 0 2px' }}>
-                    {lesson.scenario}
+                    {practice ? 'Practice' : lesson.scenario}
                 </h1>
                 <p style={{
                     margin: '0 0 6px', fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3,
@@ -2079,55 +2149,59 @@ export function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, 
 
             {r.low ? <>{saidCard}{scores}</> : <>{scores}{saidCard}</>}
 
-            <section className="card" style={{ padding: 16 }}>
-                <h3 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>
-                    Words you met {banked.length ? `· ${banked.length}` : ''}
-                </h3>
-                {banked.map((w, i) => (
-                    <div key={w.word} style={{
-                        display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px',
-                        borderRadius: 12, background: 'rgba(168,85,247,0.05)', marginBottom: 6,
-                        animation: 'slide-in 0.45s cubic-bezier(0.22,1,0.36,1) backwards',
-                        animationDelay: `${0.06 * i + 0.15}s`,
-                    }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ margin: 0, fontWeight: 700 }}>{w.word}</p>
-                            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
-                                {w.meaning}
-                            </p>
+            {practice ? (
+                <PracticeFooter watch={watch} onSpeak={onSpeak} navigate={navigate} />
+            ) : (<>
+                <section className="card" style={{ padding: 16 }}>
+                    <h3 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>
+                        Words you met {banked.length ? `· ${banked.length}` : ''}
+                    </h3>
+                    {banked.map((w, i) => (
+                        <div key={w.word} style={{
+                            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px',
+                            borderRadius: 12, background: 'rgba(168,85,247,0.05)', marginBottom: 6,
+                            animation: 'slide-in 0.45s cubic-bezier(0.22,1,0.36,1) backwards',
+                            animationDelay: `${0.06 * i + 0.15}s`,
+                        }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ margin: 0, fontWeight: 700 }}>{w.word}</p>
+                                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>
+                                    {w.meaning}
+                                </p>
+                            </div>
+                            <SpeakButton text={w.word} onSpeak={onSpeak} size={34} />
                         </div>
-                        <SpeakButton text={w.word} onSpeak={onSpeak} size={34} />
-                    </div>
-                ))}
-            </section>
+                    ))}
+                </section>
 
-            {/* `MAX_SCENARIO_IDX` is 29 because Telugu and Odiya have thirty
-                lessons. Kannada has ten and Hindi five, so clamping to it sent a
-                learner who finished the last Kannada lesson to scenario 11 and
-                the "No lesson here yet" screen — a dead end as the reward for
-                finishing a language. Offered only when there is somewhere to go. */}
-            {hasNext ? (
-                <button className="btn-primary" style={{ width: '100%', marginTop: 4 }}
-                    onClick={() => navigate(`/steps?scenario=${scenarioIdx + 1}`)}>
-                    Next lesson <ArrowRight size={16} style={{ verticalAlign: -3 }} />
+                {/* `MAX_SCENARIO_IDX` is 29 because Telugu and Odiya have thirty
+                    lessons. Kannada has ten and Hindi five, so clamping to it sent a
+                    learner who finished the last Kannada lesson to scenario 11 and
+                    the "No lesson here yet" screen — a dead end as the reward for
+                    finishing a language. Offered only when there is somewhere to go. */}
+                {hasNext ? (
+                    <button className="btn-primary" style={{ width: '100%', marginTop: 4 }}
+                        onClick={() => navigate(`/steps?scenario=${scenarioIdx + 1}`)}>
+                        Next lesson <ArrowRight size={16} style={{ verticalAlign: -3 }} />
+                    </button>
+                ) : (
+                    <p style={{
+                        margin: '10px 0 4px', textAlign: 'center', fontSize: 13.5,
+                        color: 'var(--text-secondary)', lineHeight: 1.6,
+                    }}>
+                        That is the last lesson written so far — you have finished the course.
+                    </p>
+                )}
+                <button onClick={() => navigate(`/chat?scenario=${scenarioIdx}`)}
+                    style={{
+                        width: '100%', marginTop: 10, padding: '13px',
+                        borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer',
+                        background: 'var(--card-bg)', fontWeight: 700,
+                        color: 'var(--accent-purple)', fontFamily: 'var(--font-display)',
+                    }}>
+                    <MessageCircle size={15} style={{ verticalAlign: -3 }} /> Practise this scenario in chat
                 </button>
-            ) : (
-                <p style={{
-                    margin: '10px 0 4px', textAlign: 'center', fontSize: 13.5,
-                    color: 'var(--text-secondary)', lineHeight: 1.6,
-                }}>
-                    That is the last lesson written so far — you have finished the course.
-                </p>
-            )}
-            <button onClick={() => navigate(`/chat?scenario=${scenarioIdx}`)}
-                style={{
-                    width: '100%', marginTop: 10, padding: '13px',
-                    borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer',
-                    background: 'var(--card-bg)', fontWeight: 700,
-                    color: 'var(--accent-purple)', fontFamily: 'var(--font-display)',
-                }}>
-                <MessageCircle size={15} style={{ verticalAlign: -3 }} /> Practise this scenario in chat
-            </button>
+            </>)}
             <button onClick={() => navigate('/')}
                 style={{
                     width: '100%', marginTop: 8, padding: '11px', border: 'none',
@@ -2137,6 +2211,54 @@ export function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, 
                 Back home
             </button>
         </div>
+    );
+}
+
+/* Practice's end: up to three things worth watching, then the way back.
+   The items are the screens that needed a second try or a reveal. */
+function PracticeFooter({ watch, onSpeak, navigate }) {
+    const items = watch.slice(0, 3);
+    return (
+        <>
+            <section className="card" style={{ padding: 16 }}>
+                <h3 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>
+                    {items.length ? 'Worth watching' : 'Nothing to watch'}
+                </h3>
+                {items.length ? items.map((w, i) => (
+                    <div key={w.text} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px',
+                        borderRadius: 12, background: 'rgba(245,158,11,0.08)', marginBottom: 6,
+                        animation: 'slide-in 0.45s cubic-bezier(0.22,1,0.36,1) backwards',
+                        animationDelay: `${0.06 * i + 0.15}s`,
+                    }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ margin: 0, fontWeight: 700 }}>{w.text}</p>
+                            {w.meaning && (
+                                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>{w.meaning}</p>
+                            )}
+                        </div>
+                        <SpeakButton text={w.text} onSpeak={onSpeak} size={34} />
+                    </div>
+                )) : (
+                    <p style={{ margin: 0, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        Every one came out first time. Practice will dig further back next round.
+                    </p>
+                )}
+            </section>
+            <button className="btn-primary" style={{ width: '100%', marginTop: 4 }}
+                onClick={() => navigate(`/steps?practice=1&round=${Date.now()}`)}>
+                Practise again <ArrowRight size={16} style={{ verticalAlign: -3 }} />
+            </button>
+            <button onClick={() => navigate('/lessons')}
+                style={{
+                    width: '100%', marginTop: 10, padding: '13px',
+                    borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer',
+                    background: 'var(--card-bg)', fontWeight: 700,
+                    color: 'var(--accent-purple)', fontFamily: 'var(--font-display)',
+                }}>
+                Back to the map
+            </button>
+        </>
     );
 }
 

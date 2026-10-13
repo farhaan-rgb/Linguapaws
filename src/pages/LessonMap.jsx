@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Lock } from 'lucide-react';
+import { ArrowLeft, Check, Lock, Dumbbell } from 'lucide-react';
 import { CURRICULUM, isLanguageAvailable } from '../services/curriculum';
 import { api } from '../services/api';
 import { resumeIndex, savedStepFor, completedLessonFor } from '../services/lessonResume';
@@ -31,6 +31,7 @@ const ROW = 116;          // vertical distance between nodes
 const NODE = 68;          // node diameter
 const BANNER = 60;        // extra height where a unit sign sits
 const TOP = 52;           // first node centre
+const PRACTICE_GAP = 48;  // extra height on the stretch the practice stop sits on
 const SWING = [0, 0.75, 1, 0.75, 0, -0.75, -1, -0.75]; // the snake, as a fraction of the half-width
 const SCENERY = ['🌿', '🐟', '🧶', '🌸', '🍃', '🐾'];
 
@@ -159,7 +160,12 @@ export default function LessonMap() {
 
     const half = Math.max(0, width / 2 - NODE / 2 - 18);
     const xOf = (i) => width / 2 + SWING[i % SWING.length] * half;
-    const yOf = (i) => TOP + i * ROW + unitOf(i) * BANNER;
+    /* The practice stop needs its own room: the stretch from the last finished
+       lesson to the current one is PRACTICE_GAP longer. */
+    const practiceSeg = completed === null || !n ? null
+        : allDone ? (n > 1 ? last : null) : (current >= 1 ? current : null);
+    const yOf = (i) => TOP + i * ROW + unitOf(i) * BANNER
+        + (practiceSeg !== null && i >= practiceSeg ? PRACTICE_GAP : 0);
     const pt = (i) => ({ x: xOf(i), y: yOf(i) });
     const height = yOf(last) + 150;
 
@@ -179,9 +185,32 @@ export default function LessonMap() {
     const fullPath = pathTo(last);
     const donePath = doneCount > 0 ? pathTo(Math.min(doneCount, last)) : '';
 
+    /* The practice stop: on the trail between the last finished lesson and the
+       current one, so the auto-scroll to "You are here" brings it into view.
+       Once the course is done it sits before the last lesson. Hidden until a
+       lesson is finished. Where the previous lesson closes a unit, the unit
+       sign takes the middle of that stretch, so the stop sits nearer the
+       finished node instead. */
+    const practiceAt = (() => {
+        if (practiceSeg === null) return null;
+        const a = pt(practiceSeg - 1), b = pt(practiceSeg);
+        /* Mid-stretch; below the unit sign when the finished lesson closed a unit. */
+        const y = unitEnds.includes(practiceSeg - 1)
+            ? (a.y + (ROW + BANNER) / 2 + 16 + b.y - NODE / 2 - 10) / 2
+            : (a.y + b.y) / 2;
+        let lo = 0, hi = 1;
+        for (let k = 0; k < 20; k++) { const m = (lo + hi) / 2; if (onCurve(a, b, m).y < y) lo = m; else hi = m; }
+        return onCurve(a, b, lo);
+    })();
+    const openPractice = () => {
+        localStorage.removeItem('linguapaws_active_character');
+        navigate('/steps?practice=1');
+    };
+
     /* Paw prints on the walked part of the trail, between nodes. */
     const paws = [];
     for (let i = 1; i <= Math.min(doneCount, last); i++) {
+        if (i === practiceSeg) continue; // the practice stop sits on this stretch
         [0.36, 0.5, 0.64].forEach((t, k) => {
             const p = onCurve(pt(i - 1), pt(i), t);
             const side = k % 2 ? 1 : -1;
@@ -444,6 +473,27 @@ export default function LessonMap() {
                         );
                     })}
 
+                    {practiceAt && (
+                        <button onClick={openPractice} className="lm-practice"
+                            aria-label="Practice: a short round from lessons you have finished"
+                            style={{
+                                position: 'absolute', left: practiceAt.x, top: practiceAt.y,
+                                transform: 'translate(-50%, -50%)', zIndex: 2,
+                                display: 'flex', alignItems: 'center', gap: 7, padding: '6px 13px 6px 6px',
+                                borderRadius: 999, border: '2px solid var(--accent-purple)', background: 'white',
+                                color: 'var(--accent-purple)', cursor: 'pointer', whiteSpace: 'nowrap',
+                                fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 13,
+                            }}>
+                            <span aria-hidden="true" style={{
+                                width: 26, height: 26, borderRadius: '50%', background: 'var(--primary-gradient)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
+                            }}>
+                                <Dumbbell size={14} strokeWidth={2.5} />
+                            </span>
+                            Practice
+                        </button>
+                    )}
+
                     {/* The finish line, under the last lesson. */}
                     {n > 0 && (
                         <div style={{
@@ -492,8 +542,14 @@ const MAP_STYLES = `
 @keyframes lm-sway { 0%, 100% { rotate: -6deg; } 50% { rotate: 6deg; } }
 .lm-scenery { animation: lm-sway 5s ease-in-out infinite; }
 .lm-back:active { transform: scale(0.94); }
+.lm-practice {
+  box-shadow: inset 0 -3px 0 #e4d4fb, 0 6px 14px -6px rgba(124,58,237,0.5);
+  transition: box-shadow 0.12s ease, margin-top 0.12s ease;
+}
+.lm-practice:hover { margin-top: -2px; }
+.lm-practice:active { margin-top: 2px; box-shadow: inset 0 -1px 0 #e4d4fb, 0 2px 6px -2px rgba(124,58,237,0.5); }
 @media (prefers-reduced-motion: reduce) {
-  .lm-node, .lm-pulse, .lm-here, .lm-scenery, .lm-back { animation: none !important; transition: none !important; }
+  .lm-node, .lm-pulse, .lm-here, .lm-scenery, .lm-back, .lm-practice { animation: none !important; transition: none !important; }
   .lm-node:not(:disabled):hover, .lm-node:not(:disabled):active { transform: none; }
 }
 `;

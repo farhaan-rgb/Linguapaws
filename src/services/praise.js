@@ -280,8 +280,17 @@ export function pointsFor({ correct, misses = 0, combo = 0 } = {}) {
 /* ── The end of the lesson ─────────────────────────────────────────────────
    Graded on first-try answers, not on completion — everyone completes.      */
 
-export function summaryFor({ unaided = 0, total = 1, bestCombo = 0 } = {}) {
+export function summaryFor({ unaided = 0, total = 1, bestCombo = 0, practice = false } = {}) {
     const share = total ? unaided / total : 0;
+    /* Practice is old material, so the lines talk about what held, not a lesson. */
+    if (practice) {
+        if (unaided >= total) return { badge: 'All of it held', icon: '👑',
+                                       line: 'Every one first time, from lessons you had left behind.' };
+        if (share >= 0.5) return { badge: 'Holding up', icon: '🌱',
+                                   line: `${unaided} of ${total} came straight back. The rest is what practice is for.` };
+        return { badge: 'Round done', icon: '🐾',
+                 line: 'Some of these fought back. Seeing them again is how they stick.' };
+    }
     if (unaided >= total) {
         return { badge: 'Perfect lesson', icon: '👑',
                  line: 'Every single screen, first try. That does not happen by accident.' };
@@ -306,7 +315,7 @@ export function summaryFor({ unaided = 0, total = 1, bestCombo = 0 } = {}) {
  *  "16 paws" on its own is a number with no fact behind it. A streak under 2
  *  is not a streak, so it is not shown. `low` lets the card lead with the
  *  finish and the sentences instead of a big zero. */
-export function resultsFor({ unaided = 0, total = 0, recovered = 0, locks = 0, bonus = 0, best = 0 } = {}) {
+export function resultsFor({ unaided = 0, total = 0, recovered = 0, locks = 0, bonus = 0, best = 0, practice = false } = {}) {
     const share = total ? unaided / total : 0;
     const paws = [
         unaided > 0 && `${unaided} first time`,
@@ -315,7 +324,7 @@ export function resultsFor({ unaided = 0, total = 0, recovered = 0, locks = 0, b
         bonus > 0 && `+${bonus} streak bonus`,
     ].filter(Boolean);
     return {
-        complete: `Lesson complete · ${total} screens`,
+        complete: practice ? `${unaided} of ${total} right first time` : `Lesson complete · ${total} screens`,
         low: share < 0.5,
         ringLabel: 'right first time',
         firstLine: unaided > 0 ? `${unaided} of ${total} right first time` : null,
