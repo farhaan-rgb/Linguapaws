@@ -203,6 +203,7 @@ export function achievementFor({ step, lang = '', combo = 0 } = {}) {
     }
 
     if (step.kind === 'review') {
+        if (step.item?.contrast) return 'Both in the right place — that pair is coming apart.';
         return step.item?.source === 'due'
             ? 'Still there, from an earlier lesson.'
             : 'Straight back out again — that is memory forming.';

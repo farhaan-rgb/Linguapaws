@@ -40,7 +40,38 @@ const nativeOf = (lessons, word) => {
     return '';
 };
 
-export function buildLessonSteps(lesson, reviewSet = null, allLessons = []) {
+/* ── Confused pairs, brought back ──
+   A pair the learner mixed up earlier (said Nimma "your" where Avara "her,
+   respectful" was needed) comes back as one review screen asking for both, in
+   that order. It takes the LAST review slot rather than adding one, so the plan
+   length — which the lesson map and mid-lesson resume both count — is the same
+   with or without it, and a lesson with no review slots gets no contrast. */
+const capWord = (w) => String(w || '').charAt(0).toUpperCase() + String(w || '').slice(1);
+export function contrastItem(pair) {
+    if (!pair?.said || !pair?.needed) return null;
+    return {
+        word: `${capWord(pair.said)} ${capWord(pair.needed)}`,
+        meaning: '',
+        source: 'confusion',
+        contrast: { said: pair.said, needed: pair.needed,
+            saidMeaning: pair.saidMeaning || '', neededMeaning: pair.neededMeaning || '' },
+    };
+}
+const contrastPrompt = (c) => {
+    const a = engine.glossFor(c.saidMeaning) || `“${c.said}”`;
+    const b = engine.glossFor(c.neededMeaning) || `“${c.needed}”`;
+    return `These two got mixed up before. Say ${a}, then ${b}.`;
+};
+/* Every spelling of "said needed" the course accepts, alt by alt. */
+const contrastVariants = (lessons, c) => {
+    const as = [c.said, ...engine.altsFor(lessons, c.said)];
+    const bs = [c.needed, ...engine.altsFor(lessons, c.needed)];
+    const out = [];
+    for (const a of as) for (const b of bs) out.push(`${a} ${b}`);
+    return out.slice(1, 12);
+};
+
+export function buildLessonSteps(lesson, reviewSet = null, allLessons = [], contrast = null) {
     if (!lesson) return [];
     const steps = [];
 
@@ -66,8 +97,24 @@ export function buildLessonSteps(lesson, reviewSet = null, allLessons = []) {
     });
 
     /* ── 2. Review ── */
-    (reviewSet || []).forEach(item => {
-        if (!item?.word) return;
+    const slots = (reviewSet || []).filter(item => item?.word);
+    const pairItem = slots.length ? contrastItem(contrast) : null;
+    if (pairItem) slots[slots.length - 1] = pairItem;
+    slots.forEach(item => {
+        if (item.contrast) {
+            steps.push({
+                kind: 'review',
+                phase: 'review',
+                item,
+                prompt: contrastPrompt(item.contrast),
+                expected: item.word,
+                variants: contrastVariants(allLessons, item.contrast),
+                native: [nativeOf(allLessons, item.contrast.said), nativeOf(allLessons, item.contrast.needed)]
+                    .every(Boolean)
+                    ? `${nativeOf(allLessons, item.contrast.said)} ${nativeOf(allLessons, item.contrast.needed)}` : '',
+            });
+            return;
+        }
         steps.push({
             kind: 'review',
             phase: 'review',

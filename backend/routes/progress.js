@@ -1,12 +1,16 @@
 const express = require('express');
 const User = require('../models/User');
 const LearnedWord = require('../models/LearnedWord');
+const Confusion = require('../models/Confusion');
 const requireAuth = require('../middleware/auth');
 const { nextSchedule, initialSchedule } = require('../services/srs');
 const {
     validateCompletion, completionUpdate, progressPayload,
     validatePosition, positionUpdate, positionClearFilter, positionClearUpdate,
 } = require('../services/lessonProgress');
+const {
+    validatePair, filterFor, confusionUpdate, checkUpdate, pickDue, pairPayload,
+} = require('../services/confusions');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -214,6 +218,42 @@ router.get('/vocab', async (req, res) => {
             lapses: w.lapses,
         })),
     });
+});
+
+// POST /api/progress/confusion — the learner said one taught word for another
+// Body: { lang, said, needed, saidMeaning?, neededMeaning?, scenario? }
+// Fire-and-forget from step mode, after missHelp names the pair.
+router.post('/confusion', async (req, res) => {
+    const p = validatePair(req.body);
+    if (p.error) return res.status(400).json({ error: p.error });
+    const doc = await Confusion.findOneAndUpdate(
+        filterFor(req.user._id, p),
+        confusionUpdate(p),
+        { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
+    ).lean();
+    res.json(pairPayload(doc));
+});
+
+// GET /api/progress/confusions/due?lang=Kannada&scenario=4 — at most one open
+// pair to contrast in this lesson; never one last seen in this same lesson.
+router.get('/confusions/due', async (req, res) => {
+    const { lang } = req.query;
+    if (typeof lang !== 'string' || !lang) return res.status(400).json({ error: 'lang query param is required' });
+    const open = await Confusion.find({ userId: req.user._id, lang, retired: false }).limit(50).lean();
+    res.json(pairPayload(pickDue(open, req.query.scenario)));
+});
+
+// POST /api/progress/confusion/check — how a contrast screen went
+// Body: { lang, said, needed, correct, scenario? }. Two clean answers in a row retire it.
+router.post('/confusion/check', async (req, res) => {
+    const p = validatePair(req.body);
+    if (p.error) return res.status(400).json({ error: p.error });
+    if (typeof req.body.correct !== 'boolean') return res.status(400).json({ error: 'correct (boolean) is required' });
+    const doc = await Confusion.findOne(filterFor(req.user._id, p));
+    if (!doc) return res.status(404).json({ error: 'no such pair' });
+    Object.assign(doc, checkUpdate(doc, req.body.correct, p.scenario));
+    await doc.save();
+    res.json(pairPayload(doc));
 });
 
 module.exports = router;

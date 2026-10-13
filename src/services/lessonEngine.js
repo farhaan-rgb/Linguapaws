@@ -1744,7 +1744,7 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map()) 
    untouched: this runs after `scoreAnswer` has already said no.                */
 
 /** "His / her (respectful)" -> the part of it this question is about. */
-const glossFor = (meaning, context = '') => {
+export const glossFor = (meaning, context = '') => {
     const raw = String(meaning || '').trim();
     if (!raw) return '';
     const tail = (raw.match(/\((respectful|polite)\)\s*$/i) || [])[1]?.toLowerCase() || '';
@@ -1815,7 +1815,7 @@ export const missHelp = (said, expected, {
         .filter(t => t && !/[[\]()]/.test(t));
     const got = normalizeLatin(said).split(' ').filter(Boolean);
     const scaffold = reveal ? '' : missScaffold(said, expected, lexicon);
-    if (!need.length || !got.length) return { line: fallback(), family: null, scaffold };
+    if (!need.length || !got.length) return { line: fallback(), family: null, scaffold, pairs: [] };
 
     const has = (list, t) => list.some(x => x === t || canon(x) === canon(t));
     const missing = need.filter(t => !has(got, t));
@@ -1826,7 +1826,7 @@ export const missHelp = (said, expected, {
         || differsOnlyByPersonEnding(g, t) || differsOnlyByDeicticInitial(g, t)
         || ((g.startsWith(t) || t.startsWith(g)) && Math.min(g.length, t.length) >= 3);
     const wrong = got.filter(g => !has(need, g) && taught.has(g) && !missing.some(t => close(g, t)));
-    if (!missing.length || !wrong.length) return { line: fallback(), family: null, scaffold };
+    if (!missing.length || !wrong.length) return { line: fallback(), family: null, scaffold, pairs: [] };
 
     const familyOf = (a, b) => families.find(f => {
         const m = f.members.map(normalizeLatin);
@@ -1836,6 +1836,9 @@ export const missHelp = (said, expected, {
     const lines = [];
     let family = null;
     const used = new Set();
+    /* Which taught word stood in for which — the record that brings the pair
+       back as a contrast question in a later lesson. */
+    const pairs = [];
     for (const g of wrong.slice(0, 2)) {
         const pool = missing.filter(t => !used.has(t));
         const t = pool.find(x => familyOf(g, x))
@@ -1843,6 +1846,10 @@ export const missHelp = (said, expected, {
         if (t) used.add(t);
         const mine = glossFor(taught.get(g).meaning);
         const wantEntry = t && taught.get(t);
+        if (wantEntry && wantEntry.word !== taught.get(g).word) pairs.push({
+            said: taught.get(g).word, saidMeaning: taught.get(g).meaning,
+            needed: wantEntry.word, neededMeaning: wantEntry.meaning,
+        });
         const want = wantEntry ? glossFor(wantEntry.meaning, meaning) : '';
         const shown = capital(taught.get(g).word);
         let line = `*${shown}* means ${mine}.`;
@@ -1866,7 +1873,7 @@ export const missHelp = (said, expected, {
             if (members.length >= 2) family = { name: fam.name, members };
         }
     }
-    return { line: lines.join(' '), family, scaffold };
+    return { line: lines.join(' '), family, scaffold, pairs };
 };
 
 /* ── What the voice says ───────────────────────────────────────────────────

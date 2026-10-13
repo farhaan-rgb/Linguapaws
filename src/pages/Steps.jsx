@@ -12,7 +12,10 @@ import {
     buildLessonSteps, wordsTaughtBy, stepCaption, PHASES,
     triesFor, shouldRequeue, isRoundEnd, withRetries, resumeStepFor, railIndexFor,
 } from '../services/stepPlan';
-import { ensureReviewSet, recordTaughtWord, recordReview } from '../services/srs';
+import {
+    ensureReviewSet, recordTaughtWord, recordReview,
+    ensureContrast, recordConfusion, recordContrastCheck,
+} from '../services/srs';
 import { getStoredJSON } from '../utils/storage';
 import { api } from '../services/api';
 import { resumeIndex, savedStepFor } from '../services/lessonResume';
@@ -727,7 +730,7 @@ function GrammarPoints({ points, revealed, activeIdx, onFocusPoint }) {
 const NO_FAMILIES = [];
 
 function StepScreen({
-    step, lexicon, taughtLessons, families, onSpeak, onSettled, onMiss, onLockIn, onAdvance, isLast,
+    step, lexicon, taughtLessons, families, onSpeak, onSettled, onMiss, onConfusion, onLockIn, onAdvance, isLast,
     answerMode, onAnswerMode, voice, onListen, langName,
 }) {
     const inputRef = useRef(null);
@@ -895,6 +898,12 @@ function StepScreen({
             variants: step.variants, lexicon, taughtLessons, families,
             meaning: drill?.meaning || '', reveal: revealing,
         });
+        /* A taught word said in place of the needed one is remembered, so the
+           pair comes back as a contrast screen in a later lesson. First miss on
+           a screen only, and never on the contrast screen itself. */
+        if (misses === 0 && !step.retry && !step.item?.contrast && help.pairs?.length) {
+            onConfusion?.(help.pairs);
+        }
         setFamily(help.family);
         setScaffold(help.scaffold);
         setDiagnosis(help.line
@@ -915,7 +924,7 @@ function StepScreen({
             setShake(s => s + 1);
             fx.playMiss();
         }
-    }, [settled, step, lexicon, taughtLessons, families, misses, onSettled, onMiss, drill]);
+    }, [settled, step, lexicon, taughtLessons, families, misses, onSettled, onMiss, onConfusion, drill]);
     const check = useCallback(() => grade(answer, false), [grade, answer]);
 
     /* "I don't know" — the answer straight away, instead of two wrong guesses
@@ -1087,7 +1096,8 @@ function StepScreen({
                 )}
 
                 {step.kind === 'review' && (
-                    <PromptPanel muted={settled} sub={step.item.source === 'due' ? 'from an earlier lesson' : null}>
+                    <PromptPanel muted={settled} sub={step.item.source === 'due' ? 'from an earlier lesson'
+                        : step.item.contrast ? 'a pair you mixed up before' : null}>
                         {step.prompt}
                     </PromptPanel>
                 )}
@@ -1427,7 +1437,9 @@ function Lesson({ scenarioParam }) {
                     (lesson.phrases || []).flatMap(p => String(p.correct || '').split(/\s+/)),
                 );
             } catch { /* offline — the lesson still runs, without review slots */ }
-            const built = buildLessonSteps(lesson, reviewSet, lessons);
+            /* A pair confused in an earlier lesson takes the last review slot. */
+            const contrast = await ensureContrast(langName, scenarioIdx).catch(() => null);
+            const built = buildLessonSteps(lesson, reviewSet, lessons, contrast);
             const start = savedStepFor(await progressP, langName, scenarioIdx, built.length);
             if (cancelled) return;
             setSteps(built);
@@ -1655,7 +1667,14 @@ function Lesson({ scenarioParam }) {
         t.stumbled = !correct || misses > 0;
 
         // The SRS hears the first attempt only — not the eventual re-ask.
-        if (step?.kind === 'review' && !step.retry) {
+        if (step?.kind === 'review' && !step.retry && step.item?.contrast) {
+            /* A contrast screen counts as a win only when both words came
+               cleanly — first try, nothing revealed. */
+            recordContrastCheck({
+                lang: langName, said: step.item.contrast.said, needed: step.item.contrast.needed,
+                correct: Boolean(correct && misses === 0 && !revealed), scenario: scenarioIdx,
+            }).catch(() => {});
+        } else if (step?.kind === 'review' && !step.retry) {
             recordReview({
                 lang: langName, word: step.item.word,
                 outcome: engine.gradeOutcome({ correct, misses, revealed }),
@@ -1694,6 +1713,11 @@ function Lesson({ scenarioParam }) {
         tally.current.combo = 0;
         setScore(s => ({ ...s, combo: 0 }));
     }, []);
+
+    const handleConfusion = useCallback((pairs) => {
+        (pairs || []).forEach(p => recordConfusion({ ...p, lang: langName, scenario: scenarioIdx })
+            .catch(() => {}));
+    }, [langName, scenarioIdx]);
 
     const handleLockIn = useCallback(() => award(praise.LOCK_IN_POINTS), [award]);
 
@@ -1846,6 +1870,7 @@ function Lesson({ scenarioParam }) {
                     onSpeak={speak}
                     onSettled={handleSettled}
                     onMiss={handleMiss}
+                    onConfusion={handleConfusion}
                     onLockIn={handleLockIn}
                     onAdvance={handleAdvance}
                     isLast={index === run.length - 1 && !missedCount}
@@ -1865,7 +1890,7 @@ function Lesson({ scenarioParam }) {
    summary that congratulates you for finishing is congratulating you for
    pressing Continue fifteen times.                                          */
 
-function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, scenarioIdx, navigate, hasNext = true }) {
+export function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, scenarioIdx, navigate, hasNext = true }) {
     const verdict = praise.summaryFor({
         unaided, total: steps.length, bestCombo: score.best,
     });

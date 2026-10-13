@@ -135,7 +135,7 @@ export function clearReviewSet(lang, scenarioIdx) {
 export function clearAllReviewSets() {
     try {
         Object.keys(localStorage)
-            .filter((k) => k.startsWith('linguapaws_reviewset_'))
+            .filter((k) => k.startsWith('linguapaws_reviewset_') || k.startsWith('linguapaws_contrast_'))
             .forEach((k) => localStorage.removeItem(k));
     } catch {
         /* ignore */
@@ -171,6 +171,59 @@ export async function recordReview({ lang, word, outcome, wasCorrect, meaning, s
         });
     } catch (err) {
         console.warn('[srs] failed to record review for', word, err.message);
+        return null;
+    }
+}
+
+/* ── Confused pairs ─────────────────────────────────────────────────────────
+   When a miss used one taught word in place of another (missHelp's `pairs`),
+   the pair is recorded and comes back in a LATER lesson as one contrast screen
+   in the review round. The pair chosen for a lesson is cached like the review
+   set, so a reload mid-lesson asks the same screen it would have. */
+const contrastKey = (lang, scenarioIdx) => `linguapaws_contrast_${lang}_${scenarioIdx}`;
+
+/** Fire-and-forget: the learner said `said` where `needed` was wanted. */
+export async function recordConfusion({ lang, said, needed, saidMeaning, neededMeaning, scenario }) {
+    if (!lang || !said || !needed) return null;
+    try {
+        return await api.post('/api/progress/confusion', {
+            lang, said, needed, saidMeaning, neededMeaning, scenario,
+        });
+    } catch (err) {
+        console.warn('[srs] failed to record confusion', said, needed, err.message);
+        return null;
+    }
+}
+
+/** The pair to contrast in this lesson, or null. One per lesson at most. */
+export async function ensureContrast(lang, scenarioIdx) {
+    if (!lang) return null;
+    try {
+        const raw = localStorage.getItem(contrastKey(lang, scenarioIdx));
+        if (raw) return JSON.parse(raw)?.pair || null;
+    } catch { /* fall through */ }
+    let pair = null;
+    try {
+        const due = await api.get(
+            `/api/progress/confusions/due?lang=${encodeURIComponent(lang)}&scenario=${encodeURIComponent(scenarioIdx)}`
+        );
+        pair = due && due.said && due.needed ? due : null;
+    } catch {
+        return null; // offline — not cached, so the next entry asks again
+    }
+    try {
+        localStorage.setItem(contrastKey(lang, scenarioIdx), JSON.stringify({ pair }));
+    } catch { /* quota */ }
+    return pair;
+}
+
+/** Fire-and-forget: how the contrast screen went. Two clean wins retire a pair. */
+export async function recordContrastCheck({ lang, said, needed, correct, scenario }) {
+    if (!lang || !said || !needed) return null;
+    try {
+        return await api.post('/api/progress/confusion/check', { lang, said, needed, correct, scenario });
+    } catch (err) {
+        console.warn('[srs] failed to record contrast check', said, needed, err.message);
         return null;
     }
 }
