@@ -300,6 +300,31 @@ export function summaryFor({ unaided = 0, total = 1, bestCombo = 0 } = {}) {
              line: 'This one fought back and you stayed. That is the part that counts.' };
 }
 
+/** The numbers on the results card, each carrying its own label so none of
+ *  them can be read as something else. The ring is first-try answers, not
+ *  progress — everyone finishes — and paws say where they came from, because
+ *  "16 paws" on its own is a number with no fact behind it. A streak under 2
+ *  is not a streak, so it is not shown. `low` lets the card lead with the
+ *  finish and the sentences instead of a big zero. */
+export function resultsFor({ unaided = 0, total = 0, recovered = 0, locks = 0, bonus = 0, best = 0 } = {}) {
+    const share = total ? unaided / total : 0;
+    const paws = [
+        unaided > 0 && `${unaided} first time`,
+        recovered > 0 && `${recovered} fixed after a slip`,
+        locks > 0 && `${locks} ${locks === 1 ? 'word' : 'words'} locked in`,
+        bonus > 0 && `+${bonus} streak bonus`,
+    ].filter(Boolean);
+    return {
+        complete: `Lesson complete · ${total} screens`,
+        low: share < 0.5,
+        ringLabel: 'right first time',
+        firstLine: unaided > 0 ? `${unaided} of ${total} right first time` : null,
+        pawsLabel: 'paws earned',
+        pawsFrom: paws,
+        streak: best >= 2 ? `${best} in a row — your best run` : null,
+    };
+}
+
 /* ── The lesson map ────────────────────────────────────────────────────────
    Facts about where the learner stands, not cheers. A new learner is told what
    the first stop is; someone mid-way is told how much of the language is

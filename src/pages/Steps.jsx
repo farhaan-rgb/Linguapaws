@@ -1402,7 +1402,9 @@ function Lesson({ scenarioParam }) {
        streak is that it is longer than the thing in front of you. Held in a ref
        as well as state so `handleSettled` can compute the reward it returns
        synchronously, and the screen never renders a stale streak for a frame. */
-    const tally = useRef({ combo: 0, best: 0, points: 0, cleared: 0, stumbled: false });
+    const tally = useRef({ combo: 0, best: 0, points: 0, cleared: 0, stumbled: false,
+        /* Reporting only — the results card says where the paws came from. */
+        recovered: 0, locks: 0, bonus: 0 });
     const [score, setScore] = useState({ combo: 0, best: 0, points: 0 });
     const [gain, setGain] = useState(null);
     const [milestone, setMilestone] = useState(null);
@@ -1661,6 +1663,8 @@ function Lesson({ scenarioParam }) {
                 t.combo += 1;
                 t.best = Math.max(t.best, t.combo);
                 setUnaided(n => n + 1);
+            } else {
+                t.recovered += 1;
             }
         }
         t.combo = correct && misses === 0 ? t.combo : 0;
@@ -1686,11 +1690,14 @@ function Lesson({ scenarioParam }) {
            learner exactly where the chat would have. */
         if (correct) api.post('/api/progress/increment').catch(() => {});
 
-        setScore({ combo: t.combo, best: t.best, points: t.points });
+        setScore({ combo: t.combo, best: t.best, points: t.points,
+                   recovered: t.recovered, locks: t.locks, bonus: t.bonus });
         if (!correct) return null;
 
         const hit = praise.milestoneFor(t.combo);
         const points = praise.pointsFor({ correct: true, misses, combo: t.combo });
+        t.bonus += points.bonus;
+        setScore(s => ({ ...s, bonus: t.bonus }));
         award(points.total);
 
         if (hit) {
@@ -1719,7 +1726,11 @@ function Lesson({ scenarioParam }) {
             .catch(() => {}));
     }, [langName, scenarioIdx]);
 
-    const handleLockIn = useCallback(() => award(praise.LOCK_IN_POINTS), [award]);
+    const handleLockIn = useCallback(() => {
+        tally.current.locks += 1;
+        setScore(s => ({ ...s, locks: tally.current.locks }));
+        award(praise.LOCK_IN_POINTS);
+    }, [award]);
 
     const handleAdvance = useCallback(() => {
         setVoice(IDLE_VOICE);
@@ -1894,41 +1905,50 @@ export function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, 
     const verdict = praise.summaryFor({
         unaided, total: steps.length, bestCombo: score.best,
     });
+    const r = praise.resultsFor({
+        unaided, total: steps.length, best: score.best,
+        recovered: score.recovered, locks: score.locks, bonus: score.bonus,
+    });
     const points = useCountUp(score.points, 900);
     const first = useCountUp(unaided, 900);
     const share = steps.length ? unaided / steps.length : 0;
     const R = 34, C = 2 * Math.PI * R;
 
-    return (
-        <div className="app-container" style={{ padding: '16px 16px 40px' }}>
-            <StepStyles />
-            <Burst seed={scenarioIdx + 7} power={3} />
-
-            <div style={{ textAlign: 'center', paddingTop: 24 }}>
-                <div style={{ fontSize: 52, animation: 'tick-pop 0.6s cubic-bezier(0.22,1.4,0.36,1)' }}>
-                    {lesson.icon || '🎉'}
-                </div>
-                <p style={{
-                    display: 'inline-block', margin: '10px 0 0', padding: '5px 14px', borderRadius: 99,
-                    background: 'var(--primary-gradient)', color: '#fff',
-                    fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 12.5,
-                    letterSpacing: 0.4,
-                }}>
-                    {verdict.icon} {verdict.badge}
+    const pawsBlock = (
+        <div>
+            <p style={{ margin: 0, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20 }}>
+                🐾 {points} <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    {r.pawsLabel}
+                </span>
+            </p>
+            {r.pawsFrom.length > 0 && (
+                <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    {r.pawsFrom.map((part, i) => (
+                        <React.Fragment key={part}>
+                            {i ? ' · ' : ''}
+                            <span style={{ whiteSpace: 'nowrap' }}>{i ? '' : 'from '}{part}</span>
+                        </React.Fragment>
+                    ))}
                 </p>
-                <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 25, margin: '10px 0 4px' }}>
-                    {lesson.scenario}
-                </h1>
-                <p style={{
-                    color: 'var(--text-secondary)', fontSize: 14, margin: '0 auto',
-                    maxWidth: 330, lineHeight: 1.5,
-                }}>
-                    {verdict.line}
-                </p>
-            </div>
+            )}
+        </div>
+    );
+    const streakLine = r.streak && (
+        <p style={{ margin: '10px 0 0', fontSize: 13, fontWeight: 600 }}>🔥 {r.streak}</p>
+    );
 
-            <section className="card" style={{ padding: 16, marginTop: 20, display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ position: 'relative', width: 80, height: 80, flexShrink: 0 }}>
+    /* A good lesson leads with the ring. A rough one leads with the fact that
+       it is finished and what can now be said — the scores follow, small, and
+       no zero is drawn big. */
+    const scores = r.low ? (
+        <section className="card" style={{ padding: '14px 16px' }}>
+            {pawsBlock}
+            {streakLine}
+        </section>
+    ) : (
+        <section className="card" style={{ padding: 16, marginTop: 20, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ width: 84, flexShrink: 0, textAlign: 'center' }}>
+                <div style={{ position: 'relative', width: 80, height: 80, margin: '0 auto' }}>
                     <svg width="80" height="80" style={{ transform: 'rotate(-90deg)' }}>
                         <circle cx="40" cy="40" r={R} fill="none" stroke="#eee7f7" strokeWidth="9" />
                         <circle cx="40" cy="40" r={R} fill="none" stroke="url(#ringGrad)" strokeWidth="9"
@@ -1943,38 +1963,28 @@ export function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, 
                         </defs>
                     </svg>
                     <div style={{
-                        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+                        position: 'absolute', inset: 0, display: 'flex',
                         alignItems: 'center', justifyContent: 'center',
+                        fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 19,
                     }}>
-                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 19 }}>
-                            {first}
+                        {first}<span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700 }}>
+                            /{steps.length}
                         </span>
-                        <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>of {steps.length}</span>
                     </div>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)' }}>First try</p>
-                    <div style={{ display: 'flex', gap: 18, marginTop: 8 }}>
-                        <div>
-                            <p style={{ margin: 0, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20 }}>
-                                🐾 {points}
-                            </p>
-                            <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)' }}>
-                                paws this lesson
-                            </p>
-                        </div>
-                        <div>
-                            <p style={{ margin: 0, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20 }}>
-                                🔥 {score.best}
-                            </p>
-                            <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)' }}>
-                                best streak
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                <p style={{ margin: '5px 0 0', fontSize: 11, lineHeight: 1.25, color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    {r.ringLabel}
+                </p>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                {pawsBlock}
+                {streakLine}
+            </div>
+        </section>
+    );
 
+    const saidCard = (
+        <div style={{ marginTop: r.low ? 20 : 0 }}>
             {/* The thing a learner actually wants at the end of a lesson is not
                 a score, it is the evidence: sentences that were not available to
                 them twenty minutes ago and are now. */}
@@ -2012,6 +2022,45 @@ export function Summary({ lesson, steps, banked, unaided, said, score, onSpeak, 
                     ))}
                 </section>
             )}
+
+        </div>
+    );
+
+    return (
+        <div className="app-container" style={{ padding: '16px 16px 40px' }}>
+            <StepStyles />
+            <Burst seed={scenarioIdx + 7} power={3} />
+
+            <div style={{ textAlign: 'center', paddingTop: 24 }}>
+                <div style={{ fontSize: 52, animation: 'tick-pop 0.6s cubic-bezier(0.22,1.4,0.36,1)' }}>
+                    {lesson.icon || '🎉'}
+                </div>
+                <p style={{
+                    display: 'inline-block', margin: '10px 0 0', padding: '5px 14px', borderRadius: 99,
+                    background: 'var(--primary-gradient)', color: '#fff',
+                    fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 12.5,
+                    letterSpacing: 0.4,
+                }}>
+                    {verdict.icon} {verdict.badge}
+                </p>
+                <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 25, margin: '10px 0 2px' }}>
+                    {lesson.scenario}
+                </h1>
+                <p style={{
+                    margin: '0 0 6px', fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3,
+                    color: 'var(--accent-purple)',
+                }}>
+                    ✓ {r.complete}
+                </p>
+                <p style={{
+                    color: 'var(--text-secondary)', fontSize: 14, margin: '0 auto',
+                    maxWidth: 330, lineHeight: 1.5,
+                }}>
+                    {verdict.line}
+                </p>
+            </div>
+
+            {r.low ? <>{saidCard}{scores}</> : <>{scores}{saidCard}</>}
 
             <section className="card" style={{ padding: 16 }}>
                 <h3 style={{ fontSize: 15, marginTop: 0, marginBottom: 12 }}>

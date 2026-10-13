@@ -3,7 +3,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import '../index.css';
-import Steps from '../pages/Steps';
+import Steps, { Summary } from '../pages/Steps';
 import Home from '../pages/Home';
 import LessonMap from '../pages/LessonMap';
 import { api } from '../services/api';
@@ -376,6 +376,24 @@ function TogglePreview() {
     );
 }
 
+/* The results card on its own, with chosen numbers — a lesson's end is a
+   15-screen walk away and its scores depend on how it was played.
+     ?screen=summary&total=15&unaided=0&points=16&best=0&recovered=2&locks=2&bonus=0 */
+function SummaryPreview() {
+    const n = k => parseInt(params.get(k) || '0', 10);
+    const lesson = CURRICULUM[lang]?.[Number(scenario)] || CURRICULUM.Telugu[0];
+    const total = n('total') || 15;
+    const said = (lesson.phrases || []).slice(0, n('said') || 3)
+        .map(p => ({ text: p.correct || p.word || String(p), meaning: p.meaning || '' }));
+    return (
+        <Summary lesson={lesson} steps={Array.from({ length: total })}
+            banked={(lesson.vocabulary || []).slice(0, 5)} unaided={n('unaided')} said={said}
+            score={{ points: n('points'), best: n('best'), recovered: n('recovered'),
+                     locks: n('locks'), bonus: n('bonus') }}
+            onSpeak={() => {}} scenarioIdx={Number(scenario)} navigate={() => {}} />
+    );
+}
+
 createRoot(document.getElementById('root')).render(
     <>
         <div style={{
@@ -385,7 +403,7 @@ createRoot(document.getElementById('root')).render(
             PREVIEW · {lang} · scenario {Number(scenario) + 1} · not signed in
         </div>
         <div style={{ paddingTop: 18 }}>
-            {screen === 'toggle' ? <TogglePreview /> : (
+            {screen === 'toggle' ? <TogglePreview /> : screen === 'summary' ? <SummaryPreview /> : (
             <AuthProvider>
                 <MemoryRouter initialEntries={[screen === 'home' ? '/' : screen === 'map' ? '/lessons' : `/steps?scenario=${scenario}`]}>
                     <Routes>
