@@ -2084,3 +2084,85 @@ export const WORD_FAMILIES = {
         { name: 'And, but, or', members: ['mariyu', 'kani', 'leda'] },
     ],
 };
+
+/* ── Words the course does not teach, for explaining misses only ───────────
+   A learner who writes *Ivu dodda pustaka* has written real Kannada — *ivu* is
+   "these" — and being told "close, the word is Idu" treats a meaning error as
+   a typo. These are common words a learner may know from home or produce by
+   analogy (*idu* / *ivu*, *adu* / *avu*), so step mode can say what they mean.
+
+   NEVER used for grading: `scoreAnswer` does not read this. High-confidence
+   entries only; a wrong gloss here would teach a wrong word.
+     instead — the taught word the learner most likely meant
+     when    — the condition that calls for it; {thing} is the sentence's noun */
+export const KNOWN_WORDS = {
+    Kannada: [
+        { word: 'ivu', meaning: 'these', note: 'more than one', instead: 'idu', when: 'For one {thing}' },
+        { word: 'avu', meaning: 'those', note: 'more than one', instead: 'adu', when: 'For one {thing}' },
+        { word: 'neenu', meaning: 'you', note: 'informal', instead: 'neevu', when: 'To be polite' },
+        { word: 'ninna', meaning: 'your', note: 'informal', instead: 'nimma', when: 'To be polite' },
+        { word: 'ninage', meaning: 'to you', note: 'informal' },
+        { word: 'nanage', meaning: 'to me' },
+        { word: 'avanu', meaning: 'he (that man)' },
+        { word: 'avalu', meaning: 'she (that woman)' },
+        { word: 'ivanu', meaning: 'he (this man)' },
+        { word: 'ivalu', meaning: 'she (this woman)' },
+        { word: 'naavu', meaning: 'we' },
+        { word: 'namma', meaning: 'our' },
+        { word: 'alla', meaning: 'is not' },
+        { word: 'eega', meaning: 'now' },
+        { word: 'naale', meaning: 'tomorrow' },
+        { word: 'ninne', meaning: 'yesterday' },
+        { word: 'ivattu', meaning: 'today' },
+        { word: 'tumba', meaning: 'very / a lot' },
+        { word: 'swalpa', meaning: 'a little' },
+        { word: 'ella', meaning: 'all' },
+        { word: 'yaake', meaning: 'why' },
+        { word: 'yaavaga', meaning: 'when' },
+        { word: 'amma', meaning: 'mother' },
+        { word: 'appa', meaning: 'father' },
+        { word: 'anna', meaning: 'elder brother' },
+        { word: 'tamma', meaning: 'younger brother' },
+        { word: 'tangi', meaning: 'younger sister' },
+        { word: 'huduga', meaning: 'boy' },
+        { word: 'hudugi', meaning: 'girl' },
+        { word: 'haalu', meaning: 'milk' },
+        { word: 'hannu', meaning: 'fruit' },
+        { word: 'kelasa', meaning: 'work' },
+        { word: 'shaale', meaning: 'school' },
+        { word: 'ooru', meaning: 'town' },
+        { word: 'banni', meaning: 'come', note: 'polite' },
+        { word: 'baa', meaning: 'come', note: 'informal' },
+    ],
+    Telugu: [
+        { word: 'ivi', meaning: 'these', note: 'more than one', instead: 'idhi', when: 'For one {thing}' },
+        { word: 'avi', meaning: 'those', note: 'more than one', instead: 'adhi', when: 'For one {thing}' },
+        { word: 'nee', meaning: 'your', note: 'informal', instead: 'mee', when: 'To be polite' },
+        { word: 'neeku', meaning: 'to you', note: 'informal' },
+        { word: 'meeku', meaning: 'to you' },
+        { word: 'vaadu', meaning: 'he', note: 'informal' },
+        { word: 'atanu', meaning: 'he' },
+        { word: 'vaallu', meaning: 'they' },
+        { word: 'vaaru', meaning: 'they', note: 'respectful' },
+        { word: 'memu', meaning: 'we' },
+        { word: 'manam', meaning: 'we (you and I)' },
+        { word: 'maa', meaning: 'our' },
+        { word: 'mana', meaning: 'our (yours and mine)' },
+        { word: 'kaadu', meaning: 'is not' },
+        { word: 'inka', meaning: 'still / more' },
+        { word: 'kooda', meaning: 'also' },
+        { word: 'eppudu', meaning: 'when' },
+        { word: 'enni', meaning: 'how many' },
+        { word: 'konchem', meaning: 'a little' },
+        { word: 'anni', meaning: 'all' },
+        { word: 'abbayi', meaning: 'boy' },
+        { word: 'ammayi', meaning: 'girl' },
+        { word: 'chelli', meaning: 'younger sister' },
+        { word: 'ooru', meaning: 'town' },
+        { word: 'badi', meaning: 'school' },
+        { word: 'paalu', meaning: 'milk' },
+        { word: 'pandu', meaning: 'fruit' },
+        { word: 'raa', meaning: 'come', note: 'informal' },
+        { word: 'randi', meaning: 'come', note: 'polite' },
+    ],
+};

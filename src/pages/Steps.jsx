@@ -5,7 +5,9 @@ import {
     Mic, Square, Keyboard, Eye,
 } from 'lucide-react';
 
-import { CURRICULUM, WORD_FAMILIES, isLanguageAvailable } from '../services/curriculum';
+import { CURRICULUM, WORD_FAMILIES, KNOWN_WORDS, isLanguageAvailable } from '../services/curriculum';
+/* Explanation-only glossary of untaught words; never graded. */
+const NO_KNOWN = [];
 import * as engine from '../services/lessonEngine';
 import * as praise from '../services/praise';
 import {
@@ -900,6 +902,7 @@ function StepScreen({
         const help = engine.missHelp(said, step.expected, {
             variants: step.variants, lexicon, taughtLessons, families,
             meaning: drill?.meaning || '', reveal: revealing, language: langName,
+            knownWords: KNOWN_WORDS[langName] || NO_KNOWN,
         });
         /* A taught word said in place of the needed one is remembered, so the
            pair comes back as a contrast screen in a later lesson. First miss on
@@ -945,6 +948,7 @@ function StepScreen({
             const help = engine.missHelp(lastWrongRef.current, step.expected, {
                 variants: step.variants, lexicon, taughtLessons, families,
                 meaning: drill?.meaning || '', reveal: true, language: langName,
+                knownWords: KNOWN_WORDS[langName] || NO_KNOWN,
             });
             setFamily(help.family);
             if (help.line) setDiagnosis(help.line);

@@ -1612,9 +1612,22 @@ const ENDING_MEANS = {
     ra: 'a question', ya: 'a question', mu: 'we',
 };
 
-export const explainMiss = (said, expected, variants = [], lexicon = new Map()) => {
-    const { synonyms, meanings } = asLexicon(lexicon);
+/* Step mode passes `{ hideAnswer, clean }`: on a first miss no line may name
+   the answer word (the outline does that job), and meanings are quoted without
+   the course's internal usage notes. Chat passes nothing and is unchanged. */
+export const explainMiss = (said, expected, variants = [], lexicon = new Map(), opts = {}) => {
+    const { synonyms, meanings: rawMeanings } = asLexicon(lexicon);
     const canon = (t) => synonyms.get(t) || t;
+    const meanings = opts.clean
+        ? { get: (k) => { const m = rawMeanings.get(k); return m ? cleanGloss(m) : m; } }
+        : rawMeanings;
+    const hide = !!opts.hideAnswer;
+    const outline = (t) => {
+        const tok = String(expected || '').split(/\s+/)
+            .find(x => normalizeLatin(x) === t) || t;
+        const w = tok.replace(/[^\p{L}\p{N}'’-]/gu, '') || t;
+        return `${w[0]}${'_'.repeat(Math.max(w.length - 1, 1))}`;
+    };
     const need = normalizeLatin(expected).split(' ')
         .filter(t => t && !/[[\]()]/.test(t) && t !== 'name' && t !== 'place');
     const got = normalizeLatin(said).split(' ').filter(Boolean);
@@ -1655,6 +1668,9 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map()) 
             if (mine === 'you') mine = 'he/she (respectful)';
         }
         if (!mine || !want || mine === want) break;
+        if (hide) return want.startsWith('a question')
+            ? `Almost — ${swapped} states it; this needs the question form.`
+            : `That ending makes it "${mine}" — you want the "${want}" form.`;
         return want.startsWith('a question')
             ? `Almost — ${t} is the question form; ${swapped} states it instead of asking.`
             : `That ending makes it "${mine}" — you want the "${want}" form.`;
@@ -1671,6 +1687,9 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map()) 
         const [longer, shorter] = near.length > t.length ? [near, t] : [t, near];
         const ending = longer.slice(shorter.length);
         if (!ending) continue;
+        if (hide) return near.length > t.length
+            ? `Drop the -${ending} ending here.`
+            : `That one needs the -${ending} ending.`;
         return near.length > t.length
             ? `Drop the -${ending} here: ${t}, not ${near}.`
             : `That one needs the -${ending} ending: ${t}, not ${near}.`;
@@ -1699,7 +1718,9 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map()) 
             const meaning = meanings.get(near) || meanings.get(canon(near));
             return meaning
                 ? `${near} means "${meaning}" — the first vowel is what separates them, and here that changes the word.`
-                : `Not ${near} but ${t} — it is the first vowel, and that changes the word.`;
+                : hide
+                    ? `Not ${near}: it is the first vowel, and that changes the word. It starts ${outline(t)}.`
+                    : `Not ${near} but ${t} — it is the first vowel, and that changes the word.`;
         }
     }
 
@@ -1709,7 +1730,9 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map()) 
     for (const t of need) {
         if (got.includes(t)) continue;
         const near = got.find(g => Math.min(g.length, t.length) >= 3 && levenshtein(g, t) <= 1);
-        if (near) return `Close — you wrote ${near}, and the word is ${t}.`;
+        if (near) return hide
+            ? `Close — you wrote ${near}; the word you want starts ${outline(t)}.`
+            : `Close — you wrote ${near}, and the word is ${t}.`;
     }
 
     // A word simply absent.
@@ -1728,7 +1751,7 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map()) 
     // A misspelling, and nothing else.
     for (const t of need) {
         const slip = got.find(g => Math.min(g.length, t.length) >= 4 && isSpellingSlip(g, t));
-        if (slip) return `Close — check the vowels in ${t}.`;
+        if (slip) return hide ? `Close — check the vowels in ${slip}.` : `Close — check the vowels in ${t}.`;
     }
     return null;
 };
@@ -1743,9 +1766,21 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map()) 
    explains a word with a meaning the learner has not been shown. Grading is
    untouched: this runs after `scoreAnswer` has already said no.                */
 
+/* The course's `meaning` fields double as authoring notes: "Bad (before a
+   noun)", "Um (filler)", "Change (coins)". Quoted at a learner, the note reads
+   as part of the word. Parentheticals are dropped unless they mark a
+   distinction the learner has to make (politeness, number, register). */
+const KEPT_NOTES = /^(polite|respectful|informal|formal|more than one|plural|please|a friend|you and i|yours and mine|this man|that man|this woman|that woman)$/i;
+export const cleanGloss = (meaning) => {
+    const raw = String(meaning || '').trim();
+    const cleaned = raw.replace(/\s*\(([^)]*)\)/g, (all, inner) => (KEPT_NOTES.test(inner.trim()) ? all : ''))
+        .replace(/\s+/g, ' ').trim();
+    return cleaned || raw.replace(/[()]/g, '').trim();
+};
+
 /** "His / her (respectful)" -> the part of it this question is about. */
 export const glossFor = (meaning, context = '') => {
-    const raw = String(meaning || '').trim();
+    const raw = cleanGloss(meaning);
     if (!raw) return '';
     const tail = (raw.match(/\((respectful|polite)\)\s*$/i) || [])[1]?.toLowerCase() || '';
     let core = raw.replace(/\s*\((respectful|polite)\)\s*$/i, '');
@@ -1825,20 +1860,56 @@ const builtFromParts = (extra, missing, taught) => {
     return null;
 };
 
+/* English a learner falls back on mid-answer. Small on purpose: function words
+   and the everyday words a beginner reaches for. A token also counts as English
+   when it is the meaning of a word the course has taught ("bad" for *ketta*).
+   Checked only after taught words, glossary words and the answer's own words,
+   so a romanised word that happens to spell English is never caught here. */
+const COMMON_ENGLISH = new Set([...ENGLISH_TELLS,
+    'big', 'small', 'good', 'bad', 'hot', 'cold', 'food', 'water', 'book', 'books',
+    'house', 'home', 'name', 'friend', 'friends', 'want', 'yes', 'please', 'thank',
+    'thanks', 'sorry', 'here', 'there', 'where', 'who', 'one', 'two', 'three',
+    'four', 'five', 'his', 'her', 'your', 'our', 'we', 'they', 'he', 'she', 'am',
+    'go', 'going', 'story', 'teacher', 'sister', 'brother', 'mother', 'father',
+    'today', 'tomorrow', 'yesterday', 'now', 'very', 'many', 'flower', 'flowers',
+    'bill', 'money', 'okay', 'ok', 'hello', 'much', 'these', 'those', 'new', 'old',
+]);
+
+/* Words that do the same job, so one can be said to stand in for another. */
+const PRONOUN_GROUPS = [
+    ['i', 'my', 'me', 'mine'], ['you', 'your', 'yours'], ['he', 'his', 'him'],
+    ['she', 'her', 'hers'], ['we', 'our', 'us'], ['they', 'their', 'them'],
+    ['this', 'these'], ['that', 'those'],
+];
+const glossParts = (m) => cleanGloss(m).toLowerCase().replace(/\([^)]*\)/g, '')
+    .split(/\s*\/\s*/).map(x => x.trim()).filter(Boolean);
+const pronounGroups = (m) => new Set(glossParts(m)
+    .map(p => PRONOUN_GROUPS.findIndex(g => g.includes(p.split(' ')[0])))
+    .filter(i => i >= 0));
+const outlineOf = (word) => `${word[0]}${'_'.repeat(Math.max(word.length - 1, 1))}`;
+
 /**
  * Everything step mode says after a miss, from one analysis.
- *   line     — the sentence; today's `explainMiss` when nothing better fits
+ *   line     — the sentence; `explainMiss` (step options) when nothing better fits
  *   family   — { name, members: [{ word, meaning, said, needed }] } or null
  *   scaffold — "A____ hesaru" for the second try ('' on a reveal)
+ *
+ * A wrong word is paired with the word it stood in for only when that can be
+ * said with confidence — same family, same pronoun group, the glossary's own
+ * `instead`, or the one word that differs in an otherwise matching answer.
+ * Otherwise the line says what the word means and claims nothing more: telling
+ * a learner *nanna* replaced *ketta* because both came first is a guess.
  */
 export const missHelp = (said, expected, {
     variants = [], lexicon = new Map(), taughtLessons = [], families = [],
-    meaning = '', reveal = false, language = '',
+    meaning = '', reveal = false, language = '', knownWords = [],
 } = {}) => {
-    const fallback = () => explainMiss(said, expected, variants, lexicon);
+    const fallback = () => explainMiss(said, expected, variants, lexicon,
+        { hideAnswer: !reveal, clean: true });
     const { synonyms } = asLexicon(lexicon);
     const canon = (t) => synonyms.get(t) || t;
     const taught = taughtWords(taughtLessons);
+    const known = new Map((knownWords || []).map(k => [normalizeLatin(k.word), k]));
     const need = normalizeLatin(expected).split(' ')
         .filter(t => t && !/[[\]()]/.test(t));
     const got = normalizeLatin(said).split(' ').filter(Boolean);
@@ -1849,17 +1920,31 @@ export const missHelp = (said, expected, {
     const missing = need.filter(t => !has(got, t));
     /* A wrong word that is really a misspelling, a changed ending or a flipped
        first vowel of a needed word is the grader's business, and
-       `explainMiss` already names those exactly. */
+       `explainMiss` already names those exactly. A glossary word is not: *ivu*
+       is one letter from *idu* and means something else. */
     const close = (g, t) => levenshtein(g, t) <= 1 || isSpellingSlip(g, t)
         || differsOnlyByPersonEnding(g, t) || differsOnlyByDeicticInitial(g, t)
         || ((g.startsWith(t) || t.startsWith(g)) && Math.min(g.length, t.length) >= 3);
-    const wrong = got.filter(g => !has(need, g) && taught.has(g) && !missing.some(t => close(g, t)));
-    if (!missing.length || !wrong.length) return { line: fallback(), family: null, scaffold, pairs: [] };
+    const entryOf = (g) => taught.get(g) || (known.has(g) ? known.get(g) : null);
+    const wrong = got.filter(g => !has(need, g) && (
+        (taught.has(g) && !missing.some(t => close(g, t))) || (!taught.has(g) && known.has(g))));
+    const glossWords = new Set([...taught.values()].flatMap(e => glossParts(e.meaning))
+        .filter(p => !p.includes(' ')));
+    const english = got.filter(g => !has(need, g) && !taught.has(g) && !known.has(g)
+        && (COMMON_ENGLISH.has(g) || glossWords.has(g)));
+    if (!missing.length || (!wrong.length && !english.length)) {
+        return { line: fallback(), family: null, scaffold, pairs: [] };
+    }
 
     const familyOf = (a, b) => families.find(f => {
         const m = f.members.map(normalizeLatin);
         return m.includes(canon(a)) || m.includes(a) ? (m.includes(canon(b)) || m.includes(b)) : false;
     });
+    /* The answer word as the course writes it, and its first-letter outline. */
+    const shownWord = (t) => (String(expected).split(/\s+/)
+        .find(x => normalizeLatin(x) === t) || t).replace(/[^\p{L}\p{N}'’-]/gu, '') || t;
+    const answerFor = (t) => (reveal ? `*${capital(shownWord(t))}*` : outlineOf(capital(shownWord(t))));
+    const prompt = ` ${String(meaning || '').toLowerCase().replace(/[^a-z' ]/g, ' ').replace(/\s+/g, ' ')} `;
 
     const lines = [];
     let family = null;
@@ -1868,26 +1953,57 @@ export const missHelp = (said, expected, {
        back as a contrast question in a later lesson. */
     const pairs = [];
     for (const g of wrong.slice(0, 2)) {
+        const entry = entryOf(g);
+        const isKnown = !taught.has(g);
         const pool = missing.filter(t => !used.has(t));
-        const t = pool.find(x => familyOf(g, x))
-            || pool[Math.min(got.indexOf(g), pool.length - 1)] || pool[0];
+        const myGroups = pronounGroups(entry.meaning);
+        const insteadKey = isKnown && entry.instead ? normalizeLatin(entry.instead) : '';
+        const t = (insteadKey && pool.find(x => x === insteadKey || canon(x) === canon(insteadKey)))
+            || (!isKnown && pool.find(x => familyOf(g, x)))
+            || pool.find(x => taught.get(x) && [...pronounGroups(taught.get(x).meaning)].some(i => myGroups.has(i)))
+            || (wrong.length === 1 && missing.length === 1 && !english.length
+                && got.length === need.length && got.indexOf(g) === need.indexOf(missing[0]) ? missing[0] : undefined);
         if (t) used.add(t);
-        const mine = glossFor(taught.get(g).meaning);
+        const shown = capital(entry.word);
+        const note = isKnown && entry.note ? ` (${entry.note})` : '';
+        let line = `*${shown}* means ${glossFor(entry.meaning)}${note}.`;
         const wantEntry = t && taught.get(t);
-        if (wantEntry && wantEntry.word !== taught.get(g).word) pairs.push({
-            said: taught.get(g).word, saidMeaning: taught.get(g).meaning,
+        if (!isKnown && wantEntry && wantEntry.word !== entry.word) pairs.push({
+            said: entry.word, saidMeaning: entry.meaning,
             needed: wantEntry.word, neededMeaning: wantEntry.meaning,
         });
         const want = wantEntry ? glossFor(wantEntry.meaning, meaning) : '';
-        const shown = capital(taught.get(g).word);
-        let line = `*${shown}* means ${mine}.`;
-        if (want) line += reveal
-            ? ` This asks for ${want}: *${capital(wantEntry.word)}*.`
-            : ` This asks for ${want}.`;
-        else line += ' That is not what this asks for.';
+        if (t && insteadKey && entry.when) {
+            const nouns = need.filter(n => n !== t).map(n => taught.get(n)).filter(Boolean)
+                .map(e => glossParts(e.meaning)[0]).filter(p => p && !p.includes(' '));
+            const when = entry.when.replace('{thing}', nouns[nouns.length - 1] || 'thing');
+            line += ` ${when}, use the word for ${want || `“${shownWord(t)}”`}: ${answerFor(t)}.`;
+        } else if (want) {
+            line += reveal ? ` This asks for ${want}: *${capital(wantEntry.word)}*.` : ` This asks for ${want}.`;
+        } else if (!t && myGroups.size) {
+            /* A pronoun the answer does not need at all: "I don't want" is
+               *beda* alone, the "I" is in the verb. Said only when the prompt
+               has that pronoun and no word of the answer means it. */
+            const w = PRONOUN_GROUPS.flatMap((grp, i) => (myGroups.has(i) ? grp : []))
+                .find(p => prompt.includes(` ${p} `));
+            const answerHasIt = w && need.some(n => {
+                const e = taught.get(n) || taught.get(canon(n));
+                return e && [...pronounGroups(e.meaning)].some(i => PRONOUN_GROUPS[i].includes(w));
+            });
+            if (w && !answerHasIt) {
+                const W = w === 'i' ? 'I' : w;
+                const carrier = need.map(n => [n, taught.get(n) || taught.get(canon(n))])
+                    .filter(([, e]) => e)
+                    .map(([n, e]) => [n, glossParts(e.meaning).find(p => prompt.includes(` ${w} ${p} `))])
+                    .find(([, p]) => p);
+                line += carrier
+                    ? ` You don't need “${W}” here: *${shownWord(carrier[0]).toLowerCase()}* already means “${W} ${carrier[1]}”.`
+                    : ` You don't need “${W}” here.`;
+            }
+        }
         lines.push(line);
 
-        const fam = !family && t && familyOf(g, t);
+        const fam = !isKnown && !family && t && familyOf(g, t);
         if (fam) {
             const members = fam.members
                 .map(m => taught.get(normalizeLatin(m)))
@@ -1901,6 +2017,21 @@ export const missHelp = (said, expected, {
             if (members.length >= 2) family = { name: fam.name, members };
         }
     }
+    /* English left in the answer: name it, and point at the word it stands for
+       by its first letter — the word itself waits for the reveal. */
+    for (const e of english.slice(0, 2)) {
+        const t = missing.filter(x => !used.has(x)).find(x => {
+            const en = taught.get(x) || taught.get(canon(x));
+            return en && glossParts(en.meaning).includes(e);
+        });
+        if (t) used.add(t);
+        const E = e === 'i' ? 'I' : capital(e);
+        const where = language ? `In ${language}` : 'Here';
+        lines.push(t
+            ? `“${E}” is still in English. ${where} it ${reveal ? 'is' : 'starts with'} ${answerFor(t)}.`
+            : `“${E}” is still in English.`);
+    }
+    if (!lines.length) return { line: fallback(), family: null, scaffold, pairs: [] };
     /* Good reasoning is said first. The rest of the analysis still runs, so
        the pair is remembered and the reveal still gets its family card. */
     const extra = got.filter(g => !has(need, g));
