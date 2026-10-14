@@ -36,9 +36,24 @@ const indexFor = (lang, scenarioIdx) => {
     return idx;
 };
 
+/* The words that frame a question rather than name what it is about. Without
+   them "what is tomorrow?" would also look up Yenu ("what") and Ide ("is"). */
+const QUESTION_FRAME = new Set(('what whats is does do how say said mean means meaning the word words '
+    + 'for in a an of again was it its please you i me to again called tell').split(' '));
+
+/** An English meaning as a learner would type it: "Tomorrow", not
+ *  "Tomorrow (adverb)". */
+const gistOf = (meaning) => normalizeLatin(String(meaning || '').replace(/\s*\(.*?\)/g, ''));
+
 /** The taught words a question names. Exact spellings and alts first; then a
  *  token of four letters or more that a taught word starts with ("hoga" for
- *  hogabeku), because learners ask about the piece they noticed. */
+ *  hogabeku), because learners ask about the piece they noticed.
+ *
+ *  Then the English side. Stuck on "Tomorrow I am going home" at "tomorrow",
+ *  a learner asked "What is tomorrow?" and was told the course hadn't covered
+ *  it — Naale was taught three screens earlier. Only the Kannada spellings
+ *  were indexed, and a learner who has forgotten the word can only ask in
+ *  English. */
 export const wordsAskedAbout = (question, lang, scenarioIdx) => {
     const idx = indexFor(lang, scenarioIdx);
     const tokens = normalizeLatin(String(question || '')).split(' ').filter(Boolean);
@@ -51,7 +66,20 @@ export const wordsAskedAbout = (question, lang, scenarioIdx) => {
             if (k.length > t.length && k.startsWith(t)) { found.set(e.word, e); break; }
         }
     }
-    return [...found.values()];
+    if (found.size) return [...found.values()];
+
+    const rest = tokens.filter(t => !QUESTION_FRAME.has(t) && t !== normalizeLatin(lang));
+    if (!rest.length) return [];
+    const asked = ` ${rest.join(' ')} `;
+    const byMeaning = new Map();
+    for (const e of idx.values()) {
+        const gist = gistOf(e.meaning);
+        if (!gist || byMeaning.has(e.word)) continue;
+        // The whole meaning, as words: "go" must not match inside "going".
+        if (asked.includes(` ${gist} `)) byMeaning.set(e.word, { e, len: gist.length });
+    }
+    // Longest meaning first: "I am fine" before "I".
+    return [...byMeaning.values()].sort((a, b) => b.len - a.len).map(x => x.e);
 };
 
 const meaningOf = (w, idx) => idx.get(norm(w));
