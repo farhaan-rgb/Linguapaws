@@ -2468,14 +2468,16 @@ export function Summary({
                     <MessageCircle size={15} style={{ verticalAlign: -3 }} /> Practise this scenario in chat
                 </button>
             </>)}
-            <button onClick={() => navigate('/lessons')}
+            {/* Practice's own footer already ends with the way back; a second
+                one here gave its results page two "Back to lessons". */}
+            {!practice && <button onClick={() => navigate('/lessons')}
                 style={{
                     width: '100%', marginTop: 8, padding: '11px', border: 'none',
                     background: 'transparent', cursor: 'pointer',
                     color: 'var(--text-secondary)', fontWeight: 600,
                 }}>
                 Back to lessons
-            </button>
+            </button>}
         </div>
     );
 }
