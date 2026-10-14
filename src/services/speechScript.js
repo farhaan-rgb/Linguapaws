@@ -201,11 +201,19 @@ const MISS_SLOT_GROUPS = (MISS_TEMPLATES.join('').match(/\(\[/g) || []).length;
 export function speakableText(text) {
     return String(text || '')
         .replace(/([\p{L}'’)?!.])\s*\/\s*(?=[\p{L}(*-])/gu, '$1 or ')
+        /* A bracketed aside is set off with commas, so the voice pauses round
+           it: "That person (polite)" ran together as "that person polite". */
         .replace(/\s*\(([^()]*)\)\s*/g, (m, inner, at, all) => {
-            const before = at > 0 ? ' ' : '';
-            const after = at + m.length < all.length && !/^[,.;:!?]/.test(all.slice(at + m.length)) ? ' ' : '';
-            return `${before}${inner.trim()}${after}`;
+            const rest = all.slice(at + m.length);
+            /* Only a trailing qualifier — "(polite)" closing a phrase — is set
+               off; one mid-phrase, "If (someone) goes", reads straight on. */
+            const trailing = !rest || /^[,.;:!?"'”’]/.test(rest);
+            if (!trailing) return `${at > 0 ? ' ' : ''}${inner.trim()} `;
+            return `${at > 0 ? ', ' : ''}${inner.trim()}`;
         })
+        /* And a quoted phrase after a word gets a pause before it — `say
+           "That person"` — since the quote marks themselves are not spoken. */
+        .replace(/\b(say|says|said|ask|asks|tell|answer|reply)\s+(["“‘]|'(?=\p{L}))/giu, '$1, $2')
         .replace(/([.?!])(["'”’]?)[.?!]+/g, '$1$2')
         .replace(/[ \t]{2,}/g, ' ');
 }
@@ -272,6 +280,10 @@ export function tipSegments(langName, line) {
                utterance — `*naanu ishta*. *Naanu* means` was queued as the one
                Kannada phrase "naanu ishta Naanu". */
             if (/[.!?;]/.test(t)) brk = true;
+            /* A closing "?" still belongs to the line before it, or the voice
+               reads a question as a statement. */
+            const prev = out[out.length - 1];
+            if (prev && /\?/.test(t) && !/\?$/.test(prev.text)) prev.text += '?';
             return;
         }
         const last = out[out.length - 1];
