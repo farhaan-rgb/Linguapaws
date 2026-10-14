@@ -325,13 +325,23 @@ export const buildSynonymMap = (lessons = []) => {
    - *baruttade* "it comes to me" (I can, a skill) / *baruttene* "I will come":
      Kannada L22 builds "I can speak Kannada" on the first, and the second has
      been the learner's commonest verb since L14. Same root, different person;
-     `nanage Kannada baruttene` is not a sentence. */
+     `nanage Kannada baruttene` is not a sentence.
+   - Kannada L26-L30 add four more one-letter pairs: *male* "rain" / *mele*
+     "on"; *baruttide* "it is coming" / *baruttade* "it comes"; *nooru*
+     "hundred" / *mooru* "three"; *hauda* "really?" / *haudu* "yes". And
+     *aagilla* "hasn't come on" (L26 feelings) against *aagalla*, the spoken
+     "can't manage" from L22. Each is a different meaning, not a typo. */
 export const DISTINCT_WORDS = [
     ['naanu', 'nanage'],
     ['nenu', 'naaku'],
     ['matte', 'mattu'],
     ['hogi', 'hogu'],
     ['baruttade', 'baruttene'],
+    ['male', 'mele'],
+    ['baruttide', 'baruttade'],
+    ['nooru', 'mooru'],
+    ['hauda', 'haudu'],
+    ['aagilla', 'aagalla'],
 ];
 const DISTINCT_INDEX = new Map(DISTINCT_WORDS.flatMap((g, i) => g.map(w => [w, i])));
 /** True when a and b are different members of one DISTINCT_WORDS group. */

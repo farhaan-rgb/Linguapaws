@@ -1732,6 +1732,212 @@ export const CURRICULUM = {
                   grammarNote: "The “if” half comes first and ends in -are. The second half is a normal sentence." }
             ],
             farewell: "If you go, if you come, if there's coffee — you can make plans that depend on something now."
+        },
+        {
+            scenario: "Feelings",
+            icon: "😊",
+            color: "#fef9c3",
+            vocabulary: [
+                { word: "Hasivu", native: "ಹಸಿವು", meaning: "Hunger", phonetic: "huh-sih-vu", 
+                  teach: "{w} is “hunger”. Like *nanage bhaya*, a feeling happens “to me”: *nanage hasivu aagide*, “I'm hungry”." },
+                { word: "Aagide", native: "ಆಗಿದೆ", meaning: "Has come on (I feel it)", phonetic: "aa-gih-deh", alt: ["agide", "aagidhe"],
+                  teach: "{w} means “it has come on”. Put it after a feeling: *nanage hasivu aagide*. Said fast: *hasivaagide*." },
+                { word: "Aagilla", native: "ಆಗಿಲ್ಲ", meaning: "Hasn't come on (I don't feel it)", phonetic: "aa-gihl-luh", alt: ["agilla"],
+                  teach: "Swap *aagide* for {w} to say no: *nanage hasivu aagilla*, “I'm not hungry”." },
+                { word: "Sustu", native: "ಸುಸ್ತು", meaning: "Tiredness", phonetic: "sus-tu", alt: ["susthu"],
+                  teach: "{w} is “tiredness”: *nanage sustu aagide*, “I'm tired”." },
+                { word: "Baayaarike", native: "ಬಾಯಾರಿಕೆ", meaning: "Thirst", phonetic: "baa-yaa-rih-keh", alt: ["bayarike", "baayarike"],
+                  teach: "{w} is “thirst”. Same shape again: *nanage baayaarike aagide*, “I'm thirsty”." },
+                { word: "Bejaaru", native: "ಬೇಜಾರು", meaning: "Sad / fed up", phonetic: "bay-jaa-ru", alt: ["bejaru", "bejar", "bejaar"],
+                  teach: "{w} means “sad” or “fed up”: *nanage bejaaru aagide*. The opposite of *kushi*, from lesson 16." }
+            ],
+            phrases: [
+                { prompt: "Say 'I am hungry' — Kannada says 'to me, hunger has come on'", correct: "Nanage hasivu aagide", native: "ನನಗೆ ಹಸಿವು ಆಗಿದೆ", meaning: "I am hungry", hint: "To me + hunger + has come on",
+                  acceptable: ["nanage hasivaagide", "hasivu aagide", "hasivaagide"],
+                  grammarNote: "It's *nanage*, like *nanage bhaya* and *nanage kushi*. A feeling happens to you; you don't do it." },
+                { prompt: "Say 'I am tired'", correct: "Nanage sustu aagide", native: "ನನಗೆ ಸುಸ್ತು ಆಗಿದೆ", meaning: "I am tired", hint: "To me + tiredness + has come on",
+                  acceptable: ["nanage sustaagide", "nanage susthu aagide", "sustu aagide", "sustaagide"] },
+                { prompt: "Miko offers you a snack. Say 'I am not hungry'.", correct: "Nanage hasivu aagilla", native: "ನನಗೆ ಹಸಿವು ಆಗಿಲ್ಲ", meaning: "I am not hungry", hint: "To me + hunger + hasn't come on",
+                  acceptable: ["nanage hasivaagilla", "hasivu aagilla"],
+                  grammarNote: "Only the last word changes: *aagide* says yes, *aagilla* says no." }
+            ],
+            conversations: [
+                { prompt: "Miko asks how you are today. Say 'Today I am very happy'.", correct: "Ivattu nanage tumba kushi", native: "ಇವತ್ತು ನನಗೆ ತುಂಬಾ ಖುಷಿ", meaning: "Today I am very happy", hint: "Today + to me + very + happy",
+                  acceptable: ["nanage ivattu tumba kushi", "ivattu nanage tumba kushi aagide", "nanage ivattu tumba kushi aagide", "ivattu nanage thumba kushi"],
+                  grammarNote: "*Kushi* is from lesson 16. *Kushi aagide* is right too." },
+                { prompt: "After a long walk in the sun, say 'I am thirsty, I must drink water'.", correct: "Nanage baayaarike aagide, naanu neeru kudiyabeku", native: "ನನಗೆ ಬಾಯಾರಿಕೆ ಆಗಿದೆ, ನಾನು ನೀರು ಕುಡಿಯಬೇಕು", meaning: "I am thirsty, I must drink water", hint: "To me + thirst + has come on, I + water + must drink",
+                  acceptable: ["nanage baayaarike aagide naanu neeru kudiyabeku", "nanage baayaarike aagide, neeru kudiyabeku", "baayaarike aagide, neeru kudiyabeku", "nanage bayarike aagide, naanu neeru kudiyabeku", "nanage baayaarike aagide, naanu neeru kudibeku"],
+                  grammarNote: "Two halves, two people words: *nanage* for the feeling, *naanu* for the action. *Kudiyabeku* is from lesson 23." },
+                { prompt: "Miko asks why you look down. Say 'I am sad, because I have work tomorrow'.", correct: "Nanage bejaaru aagide, yaakendare nanage naale kelasa ide", native: "ನನಗೆ ಬೇಜಾರು ಆಗಿದೆ, ಯಾಕೆಂದರೆ ನನಗೆ ನಾಳೆ ಕೆಲಸ ಇದೆ", meaning: "I am sad, because I have work tomorrow", hint: "To me + sad + has come on, because + to me + tomorrow + work + is there",
+                  acceptable: ["nanage bejaaru aagide yaakendare nanage naale kelasa ide", "nanage bejaaru, yaakendare nanage naale kelasa ide", "nanage bejaaru aagide, yaakendare naale kelasa ide", "nanage bejaaru aagide, yaakendare naale nanage kelasa ide", "nanage bejaaru aagide, yaakandre nanage naale kelasa ide", "nanage naale kelasa ide, adakke bejaaru aagide"] },
+                { prompt: "Final check: Miko offers you dinner. Say 'I am not hungry, but I am tired'.", correct: "Nanage hasivu aagilla, aadare sustu aagide", native: "ನನಗೆ ಹಸಿವು ಆಗಿಲ್ಲ, ಆದರೆ ಸುಸ್ತು ಆಗಿದೆ", meaning: "I am not hungry, but I am tired", hint: "To me + hunger + hasn't come on, but + tiredness + has come on",
+                  acceptable: ["nanage hasivu aagilla aadare sustu aagide", "nanage hasivu aagilla, aadare nanage sustu aagide", "nanage hasivaagilla, aadare sustaagide", "nanage hasivu aagilla, aadre sustu aagide"],
+                  grammarNote: "One *nanage* covers both halves. *Aadare* is from lesson 24." }
+            ],
+            farewell: "Hungry, thirsty, tired, sad, happy — you can say how you feel, and when you don't."
+        },
+        {
+            scenario: "Numbers & Money",
+            icon: "💰",
+            color: "#dcfce7",
+            vocabulary: [
+                { word: "Duddu", native: "ದುಡ್ಡು", meaning: "Money", phonetic: "dud-du", alt: ["dudd", "dhuddu"] },
+                { word: "Hattu", native: "ಹತ್ತು", meaning: "Ten", phonetic: "hut-tu", alt: ["hatthu", "hathu"] },
+                { word: "Nooru", native: "ನೂರು", meaning: "Hundred", phonetic: "noo-ru", alt: ["nuru"],
+                  teach: "{w} is “a hundred”. Careful: *mooru*, from lesson 7, is “three”. One letter apart." },
+                { word: "Saavira", native: "ಸಾವಿರ", meaning: "Thousand", phonetic: "saa-vih-ruh", alt: ["savira", "saavra"] },
+                { word: "Rupaayi", native: "ರೂಪಾಯಿ", meaning: "Rupee / rupees", phonetic: "roo-paa-yih", alt: ["rupayi", "rupai", "roopayi", "rupees"],
+                  teach: "{w} goes after the number, and stays the same for one or many: *nooru rupaayi*, “a hundred rupees”." },
+                { word: "Chillare", native: "ಚಿಲ್ಲರೆ", meaning: "Change (coins)", phonetic: "chihl-luh-reh", alt: ["chillara", "chillre", "chillar"] },
+                { word: "Ideya", native: "ಇದೆಯಾ", meaning: "Is there? / do you have?", phonetic: "ih-deh-yaa", alt: ["ideyaa", "idya", "idheya"],
+                  teach: "Add -a to *ide* and it asks: {w}, “is there?”. *Neeru ideya?*, “is there water?”" }
+            ],
+            phrases: [
+                { prompt: "Say 'a hundred rupees'", correct: "Nooru rupaayi", native: "ನೂರು ರೂಪಾಯಿ", meaning: "A hundred rupees", hint: "Hundred + rupees",
+                  acceptable: ["nooru rupayi", "nooru rupai"],
+                  grammarNote: "The number first, then *rupaayi*, with nothing in between." },
+                { prompt: "Ask a shopkeeper 'Do you have change?' — Kannada says 'near you, is there change?'", correct: "Nimma hattira chillare ideya?", native: "ನಿಮ್ಮ ಹತ್ತಿರ ಚಿಲ್ಲರೆ ಇದೆಯಾ?", meaning: "Do you have change?", hint: "Your + near + change + is there?",
+                  acceptable: ["nimma hattira chillare ideya", "chillare ideya?", "chillare ideya"],
+                  grammarNote: "*Nimma hattira*, “near you”, from lesson 21, means “on you”. That's how Kannada asks what someone is carrying." },
+                { prompt: "Say 'I have no money' — 'near me, no money'", correct: "Nanna hattira duddu illa", native: "ನನ್ನ ಹತ್ತಿರ ದುಡ್ಡು ಇಲ್ಲ", meaning: "I have no money", hint: "My + near + money + not",
+                  acceptable: ["nanna hattira duddilla", "duddu illa", "nanna hathira duddu illa"] }
+            ],
+            conversations: [
+                { prompt: "At a stall, Miko picks up a book. Ask 'How much is the book?'", correct: "Pustaka eshtu?", native: "ಪುಸ್ತಕ ಎಷ್ಟು?", meaning: "How much is the book?", hint: "Book + how much?",
+                  acceptable: ["pustaka eshtu", "idu eshtu?", "pustaka estu?"],
+                  grammarNote: "*Eshtu* is from lesson 10. It goes last, like every question word." },
+                { prompt: "The seller asks for a thousand. Say 'I don't have a thousand rupees, but I have a hundred rupees'.", correct: "Nanna hattira saavira rupaayi illa, aadare nooru rupaayi ide", native: "ನನ್ನ ಹತ್ತಿರ ಸಾವಿರ ರೂಪಾಯಿ ಇಲ್ಲ, ಆದರೆ ನೂರು ರೂಪಾಯಿ ಇದೆ", meaning: "I don't have a thousand rupees, but I have a hundred rupees", hint: "My + near + thousand + rupees + not, but + hundred + rupees + is there",
+                  acceptable: ["nanna hattira saavira rupaayi illa aadare nooru rupaayi ide", "nanna hattira saavira rupaayi illa, aadre nooru rupaayi ide", "saavira rupaayi illa, aadare nooru rupaayi ide", "nanna hattira saavira rupayi illa, aadare nooru rupayi ide"] },
+                { prompt: "Your bill is 90 and you paid 100. Say 'Please give ten rupees change'.", correct: "Hattu rupaayi chillare kodi", native: "ಹತ್ತು ರೂಪಾಯಿ ಚಿಲ್ಲರೆ ಕೊಡಿ", meaning: "Please give ten rupees change", hint: "Ten + rupees + change + give",
+                  acceptable: ["hattu rupaayi chillare kodi", "hattu rupayi chillare kodi", "nanage hattu rupaayi chillare kodi", "hattu rupaayi kodi"],
+                  grammarNote: "*Kodi*, “please give”, from lesson 10, goes last." },
+                { prompt: "Final check: ask Miko 'Do you have a hundred rupees? I have no change.'", correct: "Nimma hattira nooru rupaayi ideya? Nanna hattira chillare illa", native: "ನಿಮ್ಮ ಹತ್ತಿರ ನೂರು ರೂಪಾಯಿ ಇದೆಯಾ? ನನ್ನ ಹತ್ತಿರ ಚಿಲ್ಲರೆ ಇಲ್ಲ", meaning: "Do you have a hundred rupees? I have no change.", hint: "Your near + hundred + rupees + is there? My near + change + not",
+                  acceptable: ["nimma hattira nooru rupaayi ideya nanna hattira chillare illa", "nimma hattira nooru rupaayi ideya? chillare illa", "nimma hattira nooru rupayi ideya? nanna hattira chillare illa"] }
+            ],
+            farewell: "Ten, a hundred, a thousand — you can ask the price, count your rupees and ask for change."
+        },
+        {
+            scenario: "Weather & Travel",
+            icon: "🌦️",
+            color: "#e0f2fe",
+            vocabulary: [
+                { word: "Male", native: "ಮಳೆ", meaning: "Rain", phonetic: "muh-leh", alt: ["malae"],
+                  teach: "{w} is “rain”. Careful: *mele*, “on”, from lesson 21, sounds close. Rain has the short “a”." },
+                { word: "Baruttide", native: "ಬರುತ್ತಿದೆ", meaning: "It is coming", phonetic: "buh-rut-tih-deh", alt: ["bartide", "barthide", "baruthide"],
+                  teach: "{w} is “it is coming”, right now. *Male baruttide*: rain is coming, so “it's raining”." },
+                { word: "Chali", native: "ಚಳಿ", meaning: "Cold (weather)", phonetic: "chuh-lih",
+                  teach: "{w} is cold weather. The opposite of *bisi*, “hot”, from lesson 9." },
+                { word: "Bassu", native: "ಬಸ್ಸು", meaning: "Bus", phonetic: "bus-su", alt: ["bus", "bas"] },
+                { word: "Tiket", native: "ಟಿಕೆಟ್", meaning: "Ticket", phonetic: "tih-keht", alt: ["ticket", "tiketu", "tikket"] },
+                { word: "Ooru", native: "ಊರು", meaning: "Town / hometown", phonetic: "oo-ru", alt: ["oorige", "uru"],
+                  teach: "{w} is a town, or the place you're from. “To my town” is *nanna oorige*, like *manege*, “to the house”." }
+            ],
+            phrases: [
+                { prompt: "Say 'It is raining' — Kannada says 'rain is coming'", correct: "Male baruttide", native: "ಮಳೆ ಬರುತ್ತಿದೆ", meaning: "It is raining", hint: "Rain + is coming",
+                  acceptable: ["male bartide", "male barthide"],
+                  grammarNote: "*Baruttide* is “it is coming” now. *Baruttade*, from lesson 22, is “it comes”, as in *Kannada baruttade*." },
+                { prompt: "Say 'It is very cold today'", correct: "Ivattu tumba chali ide", native: "ಇವತ್ತು ತುಂಬಾ ಚಳಿ ಇದೆ", meaning: "It is very cold today", hint: "Today + very + cold + there is",
+                  acceptable: ["ivattu tumba chali", "tumba chali ide", "ivattu thumba chali ide"] },
+                { prompt: "At the bus stand counter, say 'I want one bus ticket'", correct: "Nanage ondu bassu tiket beku", native: "ನನಗೆ ಒಂದು ಬಸ್ಸು ಟಿಕೆಟ್ ಬೇಕು", meaning: "I want one bus ticket", hint: "To me + one + bus + ticket + want",
+                  acceptable: ["ondu bassu tiket beku", "nanage ondu bus ticket beku", "ondu bus ticket beku", "nanage ondu bassu ticket beku"],
+                  grammarNote: "*Ondu*, “one”, from lesson 7, goes before the thing. *Beku* stays last." }
+            ],
+            conversations: [
+                { prompt: "You're waiting with Miko and you spot it down the road. Say 'The bus is coming'.", correct: "Bassu baruttide", native: "ಬಸ್ಸು ಬರುತ್ತಿದೆ", meaning: "The bus is coming", hint: "Bus + is coming",
+                  acceptable: ["bassu bartide", "bus baruttide", "bus bartide"],
+                  grammarNote: "The same word as the rain: anything on its way *baruttide*." },
+                { prompt: "Miko asks about your weekend. Say 'Tomorrow I will go to my town'.", correct: "Naale naanu nanna oorige hoguttene", native: "ನಾಳೆ ನಾನು ನನ್ನ ಊರಿಗೆ ಹೋಗುತ್ತೇನೆ", meaning: "Tomorrow I will go to my town", hint: "Tomorrow + I + my + to-town + will go",
+                  acceptable: ["naale naanu nanna oorige hoguttene", "naale nanna oorige hoguttene", "naanu naale nanna oorige hoguttene", "naale naanu nanna oorige hogtini", "naale naanu oorige hoguttene"],
+                  grammarNote: "*Oorige* works like *manege*: the -ge means “to”." },
+                { prompt: "Miko asks if you'll still come out. Say 'If it rains, I will come tomorrow'.", correct: "Male bandare, naanu naale baruttene", native: "ಮಳೆ ಬಂದರೆ, ನಾನು ನಾಳೆ ಬರುತ್ತೇನೆ", meaning: "If it rains, I will come tomorrow", hint: "Rain + if-comes, I + tomorrow + will come",
+                  acceptable: ["male bandare naanu naale baruttene", "male bandare, naale baruttene", "male bandare, naanu naale bartini", "male bandre, naanu naale baruttene", "male bandare, naale naanu baruttene"],
+                  grammarNote: "Rain “comes” in Kannada, so “if it rains” is *male bandare*, with *bandare* from lesson 25." },
+                { prompt: "Final check: Miko says stay in. Say 'It is cold and it is raining, but I must go'.", correct: "Chali ide, male baruttide, aadare naanu hogabeku", native: "ಚಳಿ ಇದೆ, ಮಳೆ ಬರುತ್ತಿದೆ, ಆದರೆ ನಾನು ಹೋಗಬೇಕು", meaning: "It is cold and it is raining, but I must go", hint: "Cold + is there, rain + is coming, but + I + must go",
+                  acceptable: ["chali ide male baruttide aadare naanu hogabeku", "chali ide, male baruttide, aadare hogabeku", "chali ide, male bartide, aadre naanu hogbeku", "chali ide mattu male baruttide, aadare naanu hogabeku", "chali ide, male baruttide, aadare naanu hogbeku"] }
+            ],
+            farewell: "Rain, cold, a bus ticket home — you can talk about the weather and get where you're going."
+        },
+        {
+            scenario: "Casual Talk",
+            icon: "😎",
+            color: "#fce7f3",
+            vocabulary: [
+                { word: "Alva", native: "ಅಲ್ವಾ", meaning: "Right? / isn't it?", phonetic: "ul-vaa", alt: ["alvaa", "allava"],
+                  teach: "Put {w} on the end of anything to make it “..., right?”: *chennagide, alva?*" },
+                { word: "Hauda", native: "ಹೌದಾ", meaning: "Really?", phonetic: "how-daa", alt: ["haudaa", "houda", "howda"],
+                  teach: "*Haudu* is “yes”. Ask it back, {w}, and it means “really?”" },
+                { word: "Sakkath", native: "ಸಕ್ಕತ್", meaning: "Awesome (casual)", phonetic: "suk-kuth", alt: ["sakkat", "sakath", "sakkatt"],
+                  teach: "{w} is “awesome”, said among friends: *sakkath aagide*, “it's great”." },
+                { word: "Guru", native: "ಗುರು", meaning: "Mate (casual)", phonetic: "gu-ru",
+                  teach: "{w} literally means “teacher”, but between friends it means “mate”. Not for strangers or elders." },
+                { word: "Paravaagilla", native: "ಪರವಾಗಿಲ್ಲ", meaning: "It's okay / no problem", phonetic: "puh-ruh-vaa-gihl-luh", alt: ["paravagilla", "paravaagila", "parvagilla"] },
+                { word: "Aayita", native: "ಆಯಿತಾ", meaning: "Is it done?", phonetic: "aa-yih-taa", alt: ["aayta", "aaytha", "aayitha", "ayta", "aayitaa"],
+                  teach: "{w} asks “has it happened?”. *Oota aayita?*, “had your meal?”, is how people say hello. Said short: *aayta*." }
+            ],
+            phrases: [
+                { prompt: "Miko says the film was good. Agree: 'It was good, right?'", correct: "Chennagittu, alva?", native: "ಚೆನ್ನಾಗಿತ್ತು, ಅಲ್ವಾ?", meaning: "It was good, right?", hint: "It was good + right?",
+                  acceptable: ["chennagittu alva?", "chennagittu alva", "chennagittu, alvaa?"],
+                  grammarNote: "*Chennagittu* is from lesson 20. *Alva* just goes on the end." },
+                { prompt: "Miko says she's moving to your street. Say 'Really?'", correct: "Hauda?", native: "ಹೌದಾ?", meaning: "Really?", hint: "Yes + ?",
+                  acceptable: ["hauda", "haudaa?", "houda?"] },
+                { prompt: "A stranger bumps into you and says sorry. Say 'It's okay'.", correct: "Paravaagilla", native: "ಪರವಾಗಿಲ್ಲ", meaning: "It's okay", hint: "No problem",
+                  acceptable: ["paravagilla"],
+                  grammarNote: "The polite answer to *kshamisi*, “sorry”, from lesson 10." }
+            ],
+            conversations: [
+                { prompt: "Your friend Ravi phones at lunchtime. Greet him the everyday way: 'Had your meal?'", correct: "Oota aayita?", native: "ಊಟ ಆಯಿತಾ?", meaning: "Had your meal?", hint: "Meal + done?",
+                  acceptable: ["oota aayita", "oota aayta?", "oota aaytha?", "oota ayta?"],
+                  grammarNote: "This is a hello, not really a question. People ask it all day." },
+                { prompt: "Ravi cooked for you. Say 'The food is awesome, mate!'", correct: "Oota sakkath aagide, guru!", native: "ಊಟ ಸಕ್ಕತ್ ಆಗಿದೆ, ಗುರು!", meaning: "The food is awesome, mate!", hint: "Food + awesome + has come on, mate",
+                  acceptable: ["oota sakkath aagide guru", "guru, oota sakkath aagide", "oota sakkat aagide, guru", "oota sakkath aagide, guru"],
+                  grammarNote: "*Aagide* from lesson 26 again: “it has come out awesome”." },
+                { prompt: "Ravi says he can't come today. Say 'No problem, tomorrow then'.", correct: "Paravaagilla, haagaadare naale", native: "ಪರವಾಗಿಲ್ಲ, ಹಾಗಾದರೆ ನಾಳೆ", meaning: "No problem, tomorrow then", hint: "No problem, in that case + tomorrow",
+                  acceptable: ["paravaagilla haagaadare naale", "paravagilla, haagaadare naale", "paravaagilla, hagadre naale", "paravaagilla, naale"],
+                  grammarNote: "*Haagaadare*, “in that case”, is from lesson 25." },
+                { prompt: "Final check: Ravi teases that his Kannada is better. Say 'Really? My Kannada is good too, right?'", correct: "Hauda? Nanna Kannada kooda chennagide, alva?", native: "ಹೌದಾ? ನನ್ನ ಕನ್ನಡ ಕೂಡ ಚೆನ್ನಾಗಿದೆ, ಅಲ್ವಾ?", meaning: "Really? My Kannada is good too, right?", hint: "Really? My + Kannada + too + is good, right?",
+                  acceptable: ["hauda nanna kannada kooda chennagide alva", "hauda? nanna kannada kooda chennagide alva?", "haudaa? nanna kannada kooda chennagide, alva?", "hauda? nanna kannada kuda chennagide, alva?"],
+                  grammarNote: "*Kooda* sits right after what it's about: *nanna Kannada kooda*, “my Kannada too”." }
+            ],
+            farewell: "Alva, hauda, sakkath, guru — you sound like someone who lives here now."
+        },
+        {
+            scenario: "Final Capstone",
+            icon: "🏆",
+            color: "#fef3c7",
+            opener: "Last one. 🐾 Thirty lessons ago you had no Kannada at all — let's finish the way you'd really finish a conversation.",
+            vocabulary: [
+                { word: "Paata", native: "ಪಾಠ", meaning: "Lesson", phonetic: "paa-tuh", alt: ["paatha", "patha", "pata"] },
+                { word: "Koneya", native: "ಕೊನೆಯ", meaning: "Last (before a noun)", phonetic: "koh-neh-yuh", alt: ["kone", "koneyaa"],
+                  teach: "{w} means “last”, and goes before the thing, like *olleya*: *koneya paata*, “the last lesson”." },
+                { word: "Kalite", native: "ಕಲಿತೆ", meaning: "I learned", phonetic: "kuh-lih-teh", alt: ["kalitenu", "kalte", "kalthe"],
+                  teach: "“I learned” is {w}. The same -e as *bande* and *hode*, from lesson 13." },
+                { word: "Kashta", native: "ಕಷ್ಟ", meaning: "Hard / difficult", phonetic: "kush-tuh", alt: ["kasta", "kashtha"] },
+                { word: "Sigona", native: "ಸಿಗೋಣ", meaning: "Let's meet", phonetic: "sih-goh-naa", alt: ["sigonaa"],
+                  teach: "*Matte sigona*, “let's meet again”, is the warm way to say goodbye. *Matte* is from lesson 20." }
+            ],
+            phrases: [
+                { prompt: "Say 'This is the last lesson'", correct: "Idu koneya paata", native: "ಇದು ಕೊನೆಯ ಪಾಠ", meaning: "This is the last lesson", hint: "This + last + lesson",
+                  acceptable: ["idu kone paata", "idu koneya paatha"],
+                  grammarNote: "Same shape as *idu pustaka*, from lesson 2. No word for “is”." },
+                { prompt: "Say 'I learned Kannada'", correct: "Naanu Kannada kalite", native: "ನಾನು ಕನ್ನಡ ಕಲಿತೆ", meaning: "I learned Kannada", hint: "I + Kannada + learned",
+                  acceptable: ["kannada kalite", "naanu kannada kalitenu", "naanu kannada kalte"] },
+                { prompt: "Say 'Kannada is hard, but it is good'", correct: "Kannada kashta, aadare chennagide", native: "ಕನ್ನಡ ಕಷ್ಟ, ಆದರೆ ಚೆನ್ನಾಗಿದೆ", meaning: "Kannada is hard, but it is good", hint: "Kannada + hard, but + it is good",
+                  acceptable: ["kannada kashta aadare chennagide", "kannada swalpa kashta, aadare chennagide", "kannada kashta, aadre chennagide"] }
+            ],
+            conversations: [
+                { prompt: "Miko asks what you did this month. Say 'I learned a little Kannada, because I like it'.", correct: "Naanu swalpa Kannada kalite, yaakendare nanage Kannada ishta", native: "ನಾನು ಸ್ವಲ್ಪ ಕನ್ನಡ ಕಲಿತೆ, ಯಾಕೆಂದರೆ ನನಗೆ ಕನ್ನಡ ಇಷ್ಟ", meaning: "I learned a little Kannada, because I like Kannada", hint: "I + a little + Kannada + learned, because + to me + Kannada + like",
+                  acceptable: ["naanu swalpa kannada kalite yaakendare nanage kannada ishta", "swalpa kannada kalite, yaakendare nanage kannada ishta", "naanu swalpa kannada kalite, yaakendare nanage ishta", "naanu swalpa kannada kalite, yaakandre nanage kannada ishta"],
+                  grammarNote: "*Naanu* for what you did, *nanage* for what you like. Two lessons in one sentence: 13 and 15." },
+                { prompt: "You're visiting Miko. Ask 'Is there a bus near your house?'", correct: "Nimma mane hattira bassu ideya?", native: "ನಿಮ್ಮ ಮನೆ ಹತ್ತಿರ ಬಸ್ಸು ಇದೆಯಾ?", meaning: "Is there a bus near your house?", hint: "Your + house + near + bus + is there?",
+                  acceptable: ["nimma mane hattira bassu ideya", "nimma mane hattira bus ideya?", "nimma mane hathira bassu ideya?"] },
+                { prompt: "Miko is going to Mysuru tomorrow. Say 'If you come with me, I will go too'.", correct: "Neevu nanna jote bandare, naanu kooda hoguttene", native: "ನೀವು ನನ್ನ ಜೊತೆ ಬಂದರೆ, ನಾನು ಕೂಡ ಹೋಗುತ್ತೇನೆ", meaning: "If you come with me, I will go too", hint: "You + my + with + if-come, I + too + will go",
+                  acceptable: ["neevu nanna jote bandare naanu kooda hoguttene", "neevu nanna jote bandare, naanu kooda hogtini", "nanna jote bandare, naanu kooda hoguttene", "neevu nanna jothe bandare, naanu kooda hoguttene", "neevu nanna jote bandre, naanu kooda hoguttene"],
+                  grammarNote: "With, if, too and will: lessons 21, 25, 24 and 14 in one breath." },
+                { prompt: "Final check: thank Miko and say goodbye — 'Thank you, let's meet again'.", correct: "Dhanyavada, matte sigona", native: "ಧನ್ಯವಾದ, ಮತ್ತೆ ಸಿಗೋಣ", meaning: "Thank you, let's meet again", hint: "Thank you + again + let's meet",
+                  acceptable: ["dhanyavada matte sigona", "dhanyavadagalu, matte sigona", "matte sigona, dhanyavada", "dhanyavada, matte sigona miko", "dhanyavada, hogi baruttene"],
+                  grammarNote: "*Hogi baruttene*, from lesson 14, works too. Both promise you'll be back." }
+            ],
+            farewell: "Matte sigona! 🐾 That's the course — thirty lessons, and you closed it in Kannada. You can greet people, say where things are, ask what something costs, talk about yesterday and tomorrow, say what you can, must and feel, and join it all with but, because and if. Dhanyavada for the company."
         }
     ],
     Hindi: [
@@ -2693,6 +2899,15 @@ export const WORD_FAMILIES = {
         { name: 'Coffee or tea', members: ['kaafi', 'chaha'] },
         { name: 'If', members: ['hodare', 'bandare', 'maadidare', 'iddare'] },
         { name: 'Came or if you come', members: ['bande', 'bandare'] },
+        { name: 'How you feel', members: ['kushi', 'bejaaru', 'hasivu', 'baayaarike', 'sustu'] },
+        { name: 'Feel it or not', members: ['aagide', 'aagilla'] },
+        { name: 'Big numbers', members: ['hattu', 'nooru', 'saavira'] },
+        { name: 'Hundred or three', members: ['nooru', 'mooru'] },
+        { name: 'Is there, or is there?', members: ['ide', 'ideya'] },
+        { name: 'Rain or on', members: ['male', 'mele'] },
+        { name: 'Comes or is coming', members: ['baruttade', 'baruttide'] },
+        { name: 'Hot or cold', members: ['bisi', 'chali'] },
+        { name: 'Yes or really', members: ['haudu', 'hauda'] },
     ],
     Telugu: [
         { name: 'Whose', members: ['naa', 'mee', 'ayana', 'ame'] },
@@ -2764,6 +2979,13 @@ export const KNOWN_WORDS = {
         { word: 'aa', meaning: 'that', note: 'before a thing' },
         { word: 'maneyalli', meaning: 'in the house' },
         { word: 'mejina', meaning: 'of the table' },
+        { word: 'kopa', meaning: 'anger' },
+        { word: 'jaasti', meaning: 'too much / more' },
+        { word: 'bisilu', meaning: 'sunshine / the sun\'s heat' },
+        { word: 'maga', meaning: 'mate', note: 'very casual, between friends' },
+        { word: 'macha', meaning: 'mate', note: 'very casual, between friends' },
+        { word: 'aaru', meaning: 'six' },
+        { word: 'aayitu', meaning: 'it is done / it happened' },
     ],
     Telugu: [
         { word: 'ivi', meaning: 'these', note: 'more than one', instead: 'idhi', when: 'For one {thing}' },
