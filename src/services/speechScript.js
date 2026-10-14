@@ -38,6 +38,11 @@
  */
 
 import { CURRICULUM } from './curriculum.js';
+import { toNativeWithLexicon } from '../../shared/transliterate.js';
+
+/** Languages `shared/transliterate.js` can write in native script from the
+ *  course's romanisation. Everywhere else the all-or-nothing rule above holds. */
+const TRANSLITERATED = new Set(['Kannada', 'Telugu']);
 
 /** Lookup key: case and punctuation carry no sound, so they carry no key. */
 const keyOf = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
@@ -53,18 +58,29 @@ function tableFor(langName) {
     /* Every token the course writes in the target language, native or not —
        what lets a tip line tell `*Nanna*` from `*not*`. */
     const known = new Set();
+    /* Romanised token → native token, for building words the course never
+       stored whole: every single-word vocabulary entry, plus each token of a
+       drill line whose Latin and native split into the same number of words
+       (`Naanu manege hoguttene` gives `manege` → ಮನೆಗೆ). First seen wins. */
+    const lexicon = new Map();
+    const align = (latin, native) => {
+        const a = keyOf(latin).split(' ').filter(Boolean);
+        const b = String(native).replace(/[^\p{L}\p{M}\s]/gu, ' ').trim().split(/\s+/).filter(Boolean);
+        if (a.length !== b.length) return;
+        a.forEach((t, i) => { if (/^[a-z]+$/.test(t) && !lexicon.has(t)) lexicon.set(t, b[i]); });
+    };
     for (const lesson of CURRICULUM[langName] || []) {
         for (const v of lesson.vocabulary || []) {
-            if (v?.word && v.native) words.set(keyOf(v.word), v.native);
+            if (v?.word && v.native) { words.set(keyOf(v.word), v.native); align(v.word, v.native); }
             if (v?.word && v.phonetic) phonetics.set(keyOf(v.word), v.phonetic);
             for (const t of keyOf(v?.word).split(' ')) if (t) known.add(t);
         }
         for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {
-            if (d?.correct && d.native) phrases.set(keyOf(d.correct), d.native);
+            if (d?.correct && d.native) { phrases.set(keyOf(d.correct), d.native); align(d.correct, d.native); }
             for (const t of keyOf(d?.correct).split(' ')) if (t) known.add(t);
         }
     }
-    const table = { words, phrases, phonetics, known, any: words.size > 0 || phrases.size > 0 };
+    const table = { words, phrases, phonetics, known, lexicon, any: words.size > 0 || phrases.size > 0 };
     tables.set(langName, table);
     return table;
 }
@@ -91,7 +107,7 @@ export function hasNativeScript(langName) {
 export function speechTextFor(langName, text) {
     const raw = String(text || '');
     if (!raw.trim()) return raw;
-    const { words, phrases, any } = tableFor(langName);
+    const { words, phrases, lexicon, any } = tableFor(langName);
     if (!any) return raw;
 
     /* A whole drill line first: the curriculum writes these out, so fused and
@@ -99,6 +115,22 @@ export function speechTextFor(langName, text) {
        than being rebuilt word by word from their dictionary shapes. */
     const whole = phrases.get(keyOf(raw)) || words.get(keyOf(raw));
     if (whole) return whole;
+
+    /* Kannada and Telugu: every token gets native script — the course's own
+       form where it has one, otherwise built by `shared/transliterate.js`.
+       That is what reaches the learner's own misspelling in a miss line
+       (`hogutiddene`) and inflections the course never stored whole; read as
+       Latin, a Kannada voice says both in an English accent (VOICE-STACK.md
+       §7.5). Punctuation stays where it was, for the voice's intonation. */
+    if (TRANSLITERATED.has(langName)) {
+        return raw.split(/(\s+)/).map((piece) => {
+            const m = piece.match(/^([^\p{L}]*)([\p{L}'’-]+)([^\p{L}]*)$/u);
+            /* `[name]` is a slot for the learner, not a word to say. */
+            if (!m || !/^[A-Za-z'’-]+$/.test(m[2]) || m[1].includes('[')) return piece;
+            const native = words.get(keyOf(m[2])) || toNativeWithLexicon(m[2], langName, lexicon);
+            return native ? m[1] + native + m[3] : piece;
+        }).join('');
+    }
 
     /* Otherwise a teach step, which joins two or three vocabulary words with a
        space and so is not in either table verbatim. */
@@ -133,6 +165,27 @@ export function englishVoiceTextFor(langName, text) {
     }).join(' ');
 }
 
+/* The `explainMiss` templates that carry a bare target word, one capture per
+   word. Kept narrow on purpose: each anchor is a phrase only those lines use. */
+const W = "([\\p{L}'’-]+)";
+const P = "([\\p{L}'’ ,?-]+)";   // a whole drill line, in the word-order lines
+const MISS_TEMPLATES = [
+    `you wrote ${W}`,
+    `the word is ${W}(?=\\.|$)`,
+    `\\bNot ${W} but ${W}`,
+    `\\bNot ${W}(?=: it is| — it is)`,
+    `^${W} means "`,
+    `check the vowels in ${W}`,
+    `: ${W}, not ${W}(?=\\.)`,
+    `the order is not\\. ${W} (?=goes|comes)`,
+    `goes right after ${W}(?:: ${P}(?=\\.))?`,
+    `(?:goes last|comes first): ${P}(?=\\.)`,
+    `Almost — ${W} (?=states|is the question form)`,
+    `; ${W} states it`,
+];
+const MISS_SLOTS = new RegExp(MISS_TEMPLATES.map(t => `(?:${t})`).join('|'), 'gu');
+const MISS_SLOT_GROUPS = (MISS_TEMPLATES.join('').match(/\(\[/g) || []).length;
+
 /**
  * Split an English tip line into what the English voice reads and what the
  * target path reads. Step mode's lines mark target words the same way chat's
@@ -154,9 +207,26 @@ export function tipSegments(langName, line) {
     /* A first-letter outline (`I__`, `A____ hesaru`, `K----`) is for the eye.
        Read as written it came out "I dot"; say what it means instead. */
     const raw = String(line || '')
-        .replace(/(starts? with )(\p{L})[_\-\u2013\u2014]{2,}/gu, '$1$2')
+        .replace(/(starts? (?:with )?)(\p{L})[_\-\u2013\u2014]{2,}/gu, '$1$2')
         .replace(/(?<![\p{L}])(\p{L})[_\-\u2013\u2014]{2,}/gu, 'a word starting with $1')
-        .replace(/[_]{2,}/g, 'a word');
+        .replace(/[_]{2,}/g, 'a word')
+        /* The engine's miss lines name words bare — `Close — you wrote
+           hogutiddene, and the word is hoguttiddene.` — with no markup, so the
+           whole line went to the English voice, the learner's spelling and the
+           right word both in an English accent. Mark the slots those templates
+           put a target word in (lessonEngine.explainMiss), and they are read
+           like any other italic target span. The learner's own spelling is
+           kept, said in the language's voice, then the right one: hearing the
+           two side by side is what the line is for. Kannada and Telugu only:
+           elsewhere the language's voice would be handed Latin, which is no
+           better than the English voice it replaces. */
+        .replace(TRANSLITERATED.has(langName) ? MISS_SLOTS : /$^/u, (all, ...groups) => {
+            let out = all;
+            for (const g of groups.slice(0, MISS_SLOT_GROUPS)) {
+                if (g) out = out.replace(new RegExp(`(?<![\\p{L}*])${g}(?![\\p{L}*])`, 'u'), `*${g}*`);
+            }
+            return out;
+        });
     if (!raw.trim()) return [];
     const { known } = tableFor(langName);
     const tokensOf = (s) => keyOf(s).split(' ').filter(Boolean);

@@ -469,3 +469,204 @@ export function romanise(text) {
         native: null, variants: [src],
     };
 }
+
+/* ── The other direction: course Latin → native script, for the voice ──────
+ *
+ * Why: a Kannada or Telugu voice reads a Latin string as English
+ * (VOICE-STACK.md §7.5). The curriculum's `native` fields cover what the
+ * course wrote; they cannot cover what the learner wrote. A miss line that
+ * echoes `hogutiddene` back, or a tip with an inflection the course never
+ * stored (`manege`), was spoken in an English accent on a device that has the
+ * right voice. This turns those into script the voice can say.
+ *
+ * It follows the course's own romanisation, not ISO 15919, so it is lossy by
+ * construction and the rules below are guesses where the Latin is silent:
+ *   - `aa ee oo` (and `ii uu`) are long; `ai au` are diphthongs.
+ *   - `e`/`o` carry no length mark in the course (`Hege` is ಹೇಗೆ, `Mane` is
+ *     ಮನೆ). Taken long in an open non-final syllable, short before a cluster
+ *     or a geminate and word-finally. `ay`/`oh` before a consonant are long.
+ *   - A doubled consonant is a geminate (`tt` → ತ್ತ).
+ *   - `n`/`m` before another consonant is the anusvara; Telugu word-final `m`
+ *     is too (`Namaskaram` → నమస్కారం).
+ *   - Retroflex vs dental follows how each course writes it: Kannada `t d` are
+ *     dental (`Idu`, `Pustaka`); Telugu writes the dentals as `th dh`
+ *     (`Pusthakam`, `Idhi`) and so plain `t d` are retroflex (`Emiti`,
+ *     `Ekkada`).
+ *   - Kannada's initial `ye` (`Yenu`, `Yelli`) is the spoken glide on a bare
+ *     vowel, ಏ/ಎ.
+ * Callers look the course's own `native` up first and use this only for what
+ * is left; where the two disagree, the course wins.
+ */
+const NATIVE_RULES = {
+    Kannada: { base: 0x0C80, t: 0x24, th: 0x25, d: 0x26, dh: 0x27, finalM: false, yeGlide: true },
+    Telugu: { base: 0x0C00, t: 0x1F, th: 0x24, d: 0x21, dh: 0x26, finalM: true, yeGlide: false },
+};
+
+const LATIN_CONSONANTS = [
+    ['chh', 0x1B], ['kh', 0x16], ['gh', 0x18], ['ch', 0x1A], ['jh', 0x1D],
+    ['ph', 0x2B], ['bh', 0x2D], ['sh', 0x36],
+    ['th', 'th'], ['dh', 'dh'], ['t', 't'], ['d', 'd'],
+    ['k', 0x15], ['g', 0x17], ['j', 0x1C], ['n', 0x28], ['p', 0x2A],
+    ['f', 0x2B], ['b', 0x2C], ['m', 0x2E], ['y', 0x2F], ['r', 0x30],
+    ['l', 0x32], ['v', 0x35], ['w', 0x35], ['s', 0x38], ['h', 0x39],
+    ['z', 0x1C], ['q', 0x15], ['c', 0x15],
+];
+/* [latin, independent offset, matra offset or null for the inherent a] */
+const LATIN_VOWELS = [
+    ['aa', 0x06, 0x3E], ['ee', 0x08, 0x40], ['ii', 0x08, 0x40],
+    ['oo', 0x0A, 0x42], ['uu', 0x0A, 0x42], ['ai', 0x10, 0x48],
+    ['au', 0x14, 0x4C], ['a', 0x05, null], ['i', 0x07, 0x3F],
+    ['u', 0x09, 0x41], ['e', 'e', 'e'], ['o', 'o', 'o'],
+];
+const SHORT_LONG = { e: [[0x0E, 0x46], [0x0F, 0x47]], o: [[0x12, 0x4A], [0x13, 0x4B]] };
+
+/** Latin → list of `{c: offset}` / `{v: latin}` units. */
+function latinUnits(word, rules) {
+    const units = [];
+    let i = 0;
+    const s = word;
+    while (i < s.length) {
+        const v = LATIN_VOWELS.find(([l]) => s.startsWith(l, i));
+        if (v) { units.push({ v: v[0] }); i += v[0].length; continue; }
+        if (s[i] === 'x') { units.push({ c: 0x15 }, { c: 0x38 }); i++; continue; }
+        const c = LATIN_CONSONANTS.find(([l]) => s.startsWith(l, i));
+        if (c) {
+            const off = typeof c[1] === 'string' ? rules[c[1]] : c[1];
+            units.push({ c: off, l: c[0] });
+            i += c[0].length;
+            continue;
+        }
+        i++; // anything else carries no sound the voice needs
+    }
+    return units;
+}
+
+/**
+ * One romanised Kannada or Telugu word → native script. `null` for a language
+ * with no rules here, or input that is not plain Latin.
+ *
+ * @param {string} word e.g. `hogutiddene`
+ * @param {'Kannada'|'Telugu'} langName
+ */
+export function toNativeWord(word, langName, { medial = false } = {}) {
+    const rules = NATIVE_RULES[langName];
+    const w = String(word || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (!rules || !w) return null;
+    let src = w;
+    /* `ay`/`oh` before a consonant or at the end: the course's long ē/ō. */
+    src = src.replace(/ay(?![aeiou])/g, 'E').replace(/oh(?![aeiou])/g, 'O');   // input is lower-case, so capitals are free markers
+    if (rules.yeGlide && !medial) src = src.replace(/^y(?=[eo])/, '');
+    const units = [];
+    for (const part of src.split(/([EO])/)) {
+        if (part === 'E') units.push({ v: 'E' });
+        else if (part === 'O') units.push({ v: 'O' });
+        else if (part) units.push(...latinUnits(part, rules));
+    }
+    for (let k = 0; k < units.length; k++) {
+        const u = units[k];
+        const prev = units[k - 1];
+        const next = units[k + 1];
+        /* `sh` before `t` is the retroflex pair ಷ್ಟ / ష్ట (`Eshtu`, `Ishta`),
+           and `ksh` is ಕ್ಷ. */
+        if (u.l === 'sh' && (next?.l === 't' || prev?.l === 'k')) {
+            u.c = 0x37;
+            if (next?.l === 't') next.c = 0x1F;
+        }
+        /* Telugu writes its dental d as `dh` (`Idhi`), so a plain `d` is
+           retroflex — except word-initially, after a nasal and doubled, where
+           the course's `d` is the dental (`Daggara`, `Undi`, `Pedda`). */
+        if (langName === 'Telugu' && u.l === 'd'
+            && ((!prev && !medial) || prev?.l === 'n' || prev?.l === 'd' || next?.l === 'd')) u.c = 0x26;
+        if (langName === 'Telugu') {
+            /* Telugu's plain `t` is retroflex between vowels (`Emiti`) and
+               after a nasal (`Intiki`), dental at the start and after `s`
+               (`Tintunnanu`, `Chestunnanu`). */
+            if (u.l === 't' && ((!prev && !medial) || prev?.l === 's')) u.c = 0x24;
+            /* The imperative `-andi`/`-ondi` is ండి; `Undi` "there is" is ంది. */
+            if (u.l === 'd' && prev?.l === 'n' && next?.v === 'i' && k + 2 === units.length
+                && (units[k - 2]?.v === 'a' || units[k - 2]?.v === 'o')) u.c = 0x21;
+            /* `ll` after a/e is ళ్ళ (`Vellu`, `Malli`); after i it is ల్ల (`Illu`). */
+            if (u.l === 'l' && next?.l === 'l' && prev?.v && prev.v !== 'i') { u.c = 0x33; next.c = 0x33; }
+            /* Verb and plural endings the course writes short and Telugu says
+               long: `-nanu -naru -vali -kalu` → -ాను -ారు -ాలి -ాలు. */
+            if (u.v === 'a' && k === units.length - 3 && units[k - 1]?.c != null
+                && (units[k + 1]?.l === 'n' || units[k + 1]?.l === 'r' || units[k + 1]?.l === 'l')
+                && (units[k + 2]?.v === 'u' || (units[k + 1]?.l === 'l' && units[k + 2]?.v === 'i'))) u.v = 'aa';
+        }
+        /* Kannada's plural `-galu` is ಗಳು, every time the course writes it. */
+        if (langName === 'Kannada' && u.l === 'l' && prev?.v === 'a' && units[k - 2]?.l === 'g'
+            && next?.v === 'u' && k + 2 === units.length) u.c = 0x33;
+    }
+    const ch = (off) => String.fromCodePoint(rules.base + off);
+    let out = '';
+    for (let k = 0; k < units.length; k++) {
+        const u = units[k];
+        const prev = units[k - 1];
+        const next = units[k + 1];
+        if (u.v) {
+            let v = u.v;
+            let [ind, mat] = (LATIN_VOWELS.find(([l]) => l === v) || []).slice(1);
+            if (v === 'E' || v === 'O' || v === 'e' || v === 'o') {
+                const key = v.toLowerCase();
+                let long = v === 'E' || v === 'O';
+                if (!long) {
+                    /* open, non-final syllable → long: one consonant then a vowel */
+                    long = !!(next?.c != null && units[k + 2]?.v);
+                }
+                [ind, mat] = SHORT_LONG[key][long ? 1 : 0];
+            }
+            if (prev?.c != null) { if (mat != null) out += ch(mat); }
+            else out += ch(ind);
+            continue;
+        }
+        /* nasal before a different consonant → anusvara */
+        const nasal = u.c === 0x28 || u.c === 0x2E;
+        if (nasal && next?.c != null && next.c !== u.c && next.c !== 0x2F && next.c !== 0x30 && next.c !== 0x35 && next.c !== 0x32) {
+            out += ch(0x02);
+            continue;
+        }
+        if (nasal && u.c === 0x2E && !next && rules.finalM && prev?.v) { out += ch(0x02); continue; }
+        out += ch(u.c);
+        if (!next?.v) out += ch(0x4D);   // virama: a cluster, or the word ends on it
+    }
+    return out;
+}
+
+/**
+ * Like `toNativeWord`, but leaning on what the course already spells: an exact
+ * entry in `lexicon` (romanised token → native, lower-case) wins outright, and
+ * otherwise the longest known stem is kept and only the rest is built by rule —
+ * so `manege` is the course's ಮನೆ plus ಗೆ, not the rule's guess at the whole
+ * word, and a misspelling like `hogutiddene` keeps the course's ಹೋಗು.
+ *
+ * @param {string} word one romanised token
+ * @param {'Kannada'|'Telugu'} langName
+ * @param {Map<string,string>} [lexicon]
+ * @returns {string|null}
+ */
+export function toNativeWithLexicon(word, langName, lexicon) {
+    const w = String(word || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (!w || !NATIVE_RULES[langName]) return null;
+    if (lexicon?.has(w)) return lexicon.get(w);
+    const whole = toNativeWord(w, langName);
+    if (lexicon) {
+        /* A stem must end on a vowel and the rest start on a consonant, so the
+           join falls between whole aksharas. The rest is taken from the rule
+           output for the WHOLE word, not built on its own: `da` alone is a
+           word-initial d, `da` in `akkada` is not. */
+        for (let n = w.length - 2; n >= 3; n--) {
+            const stem = w.slice(0, n);
+            if (!/[aeiou]$/.test(stem) || /^[aeiou]/.test(w.slice(n))) continue;
+            const known = lexicon.get(stem);
+            if (!known) continue;
+            const ruleStem = toNativeWord(stem, langName);
+            if (ruleStem && whole.startsWith(ruleStem)) return known + whole.slice(ruleStem.length);
+            /* The rule read the stem's vowel differently inside the longer
+               word (`mane` in `manege`): keep the course's stem and build the
+               rest as the middle of a word. */
+            const tail = toNativeWord(w.slice(n), langName, { medial: true });
+            if (tail) return known + tail;
+        }
+    }
+    return whole;
+}
