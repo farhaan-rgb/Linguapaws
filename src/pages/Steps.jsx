@@ -958,9 +958,16 @@ function StepScreen({
        every tip out. `onSay` drops the tip when "Read tips aloud" is off, which
        leaves exactly the word this effect always said. The reveal line itself
        ("No worries — here it is") is praise and is not read. */
+    /* On the reveal the answer is on screen, so "The word for “When” is
+       missing" — the line from the try before — is no longer true or useful,
+       and it was being read out in place of the answer. Only an explanation
+       that says what the learner's own words meant survives the reveal. */
+    const revealWhy = diagnosis && !/\bis missing\b/i.test(diagnosis) ? diagnosis : '';
     useEffect(() => {
         if (phase !== 'revealed') return undefined;
-        const t = setTimeout(() => onSay([{ target: step.expected }, { tip: diagnosis }]), 420);
+        const t = setTimeout(() => onSay([
+            { tip: 'The word is' }, { target: step.expected }, { tip: revealWhy },
+        ]), 420);
         return () => clearTimeout(t);
         // eslint-disable-next-line react-hooks/exhaustive-deps -- once per reveal, with the diagnosis it was made with
     }, [phase, step.expected, onSay]);
@@ -1356,7 +1363,7 @@ function StepScreen({
                                 lockRef={lockRef} answerMode={answerMode}
                                 voice={voice} onListen={listenLock} langName={langName}
                                 lockHeard={lockHeard}
-                                why={diagnosis} family={family}
+                                why={revealWhy} family={family}
                             />
                         </div>
                     )}
