@@ -135,6 +135,14 @@ const CONSONANTS = {
     0x7A: 'n', 0x7B: 'n', 0x7C: 'r', 0x7D: 'l', 0x7E: 'l', 0x7F: 'k',
 };
 
+/* `(chh|kh|ng|...)\1` — built from the table so a new digraph cannot be missed.
+   Longest first, so `chhchh` collapses as one unit and not as `ch` + `h`. */
+const GEMINATE_DIGRAPH = new RegExp(
+    '(' + [...new Set(Object.values(CONSONANTS))]
+        .filter(c => c.length > 1)
+        .sort((a, b) => b.length - a.length)
+        .join('|') + ')\\1', 'g');
+
 const VIRAMA = 0x4D;
 /* U+0901 ँ, U+0902 ं, U+0903 ः — and the same three offsets in all nine blocks.
    These were written one apart from the truth in the first draft, which made
@@ -369,9 +377,14 @@ export function toLatin(text, opts = {}) {
     /* A geminate written with a digraph doubles the whole digraph: ങ്ങ is
        `ngng` and ഛ്ഛ is `chhchh`. The engine's `vowelSkeleton` only collapses
        runs of the SAME character, so `ningngal` never met `Ningal`. Collapsed
-       here, where the digraph is still visible as a unit. */
+       here, where the digraph is still visible as a unit.
+
+       Only a consonant DIGRAPH is collapsed. The first version collapsed any
+       repeated 2-3 letter run, which also ate real repeated syllables: ನನಗೆ
+       `nanage` became `nage`, and a learner who said it correctly was marked
+       wrong. A digraph has no vowel in it, so `nana` can never match. */
     return out.join('')
-        .replace(/([a-z]{2,3})\1/g, '$1')
+        .replace(GEMINATE_DIGRAPH, '$1')
         .replace(/\s{2,}/g, ' ')
         .trim();
 }
