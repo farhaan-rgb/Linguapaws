@@ -330,18 +330,23 @@ export const buildSynonymMap = (lessons = []) => {
      "on"; *baruttide* "it is coming" / *baruttade* "it comes"; *nooru*
      "hundred" / *mooru* "three"; *hauda* "really?" / *haudu* "yes". And
      *aagilla* "hasn't come on" (L26 feelings) against *aagalla*, the spoken
-     "can't manage" from L22. Each is a different meaning, not a typo. */
+     "can't manage" from L22. Each is a different meaning, not a typo.
+   - The *baru* trio is one group, not two pairs: *baruttene* against
+     *baruttide* ("I will come" / "it is coming") was not a pair at all, so a
+     learner mixing the two outer words passed as one letter out.
+   - *kalite* "I learned" (Kannada L30) / *kalide*: graded "Exactly right" in
+     round K4. One letter, and it changes the word. */
 export const DISTINCT_WORDS = [
     ['naanu', 'nanage'],
     ['nenu', 'naaku'],
     ['matte', 'mattu'],
     ['hogi', 'hogu'],
-    ['baruttade', 'baruttene'],
+    ['baruttene', 'baruttade', 'baruttide'],
     ['male', 'mele'],
-    ['baruttide', 'baruttade'],
     ['nooru', 'mooru'],
     ['hauda', 'haudu'],
     ['aagilla', 'aagalla'],
+    ['kalite', 'kalide'],
 ];
 const DISTINCT_INDEX = new Map(DISTINCT_WORDS.flatMap((g, i) => g.map(w => [w, i])));
 /** True when a and b are different members of one DISTINCT_WORDS group. */
@@ -1080,7 +1085,9 @@ export const drillPrompt = (items, idx) => {
     const item = items?.[idx];
     if (!item?.prompt) return null;
     const p = item.prompt.trim();
-    return /[.?!]$/.test(p) ? p : `${p}.`;
+    /* A prompt ending in a quoted sentence ("…I have no change.'") already
+       ends; a full stop after the quote printed and spoke as '.'.'. */
+    return /[.?!]['"’”)]*$/.test(p) ? p : `${p}.`;
 };
 
 /* ── Retry, reveal, grading ────────────────────────────────────────────── */

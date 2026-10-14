@@ -66,7 +66,24 @@ const isStemOf = (token) => {
     return null;
 };
 
+/* Teach lines that use a word on an earlier screen than the one that teaches
+   it. Round K4: Kannada L21's first screen said *meju mele* five screens
+   before *meju*, and L26's first said *aagide* one screen early. Only the
+   italicised Kannada counts — the English around it is the gloss. */
+const early = new Set();
+const spellings = (v) => new Set([norm(v.word).join(''), ...(v.alt || []).flatMap(norm)]);
+
 lessons.forEach((lesson, i) => {
+    const vocab = lesson.vocabulary || [];
+    vocab.forEach((v, at) => {
+        const used = [...String(v.teach || '').matchAll(/\*([^*]+)\*/g)].flatMap(m => norm(m[1]));
+        for (const t of used) {
+            if (known.has(t)) continue;
+            const later = vocab.findIndex((w, j) => j > at && spellings(w).has(t));
+            if (later > at) early.add(`- L${i + 1} screen ${at + 1} (${v.word}) uses \`${t}\`, taught on screen ${later + 1}`);
+        }
+    });
+
     for (const v of lesson.vocabulary || []) {
         if (v.word) known.add(norm(v.word).join(''));
         for (const a of v.alt || []) norm(a).forEach(t => known.add(t));
@@ -131,6 +148,9 @@ if (!inflected.length) console.log('_None._\n');
 for (const m of inflected) {
     console.log(`- L${m.lesson} (${m.kind}) "${m.prompt}" → \`${m.form}\` — ${m.words.join(', ')}`);
 }
+
+console.log(`\n## Teach lines that use a word before its own screen (${early.size})\n`);
+console.log(early.size ? [...early].join('\n') : '_None._');
 
 const byWord = new Map();
 for (const m of missing) for (const w of m.words) byWord.set(w, (byWord.get(w) || 0) + 1);

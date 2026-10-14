@@ -92,7 +92,10 @@ function reviewStep(item, allLessons) {
         phase: 'review',
         item,
         prompt: item.meaning
-            ? `How do you say "${item.meaning}"?`
+            /* A meaning that is itself a question ("Really?") would print '"Really?"?'. */
+            ? (/[?!]$/.test(item.meaning.trim())
+                ? `How do you say "${item.meaning.trim()}"`
+                : `How do you say "${item.meaning}"?`)
             : `Say ${item.word} again`,
         expected: item.word,
         variants: engine.altsFor(allLessons, item.word),
