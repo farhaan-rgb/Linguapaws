@@ -3071,6 +3071,8 @@ export const WORD_FAMILIES = {
      needs   — what the answer needs, when the learner left it off
      bare    — "This asks for …" when they added it and should not have
      example — the course word that carries it, first taught
+     group / kind — siblings that do one job for different things (-galu for
+                things, -aru for people), so a swap is explained as that
    `changes` are the stem-end swaps the course teaches before an ending
    (Telugu *pusthakam* → *pusthaka*-lu, *illu* → *inti*-ki).
 
@@ -3084,7 +3086,11 @@ export const WORD_ENDINGS = {
             { ending: 'ge', lesson: 3, means: 'means “to”', needs: '“to”',
                 example: { word: 'manege', meaning: 'to the house' } },
             { ending: 'galu', lesson: 8, means: 'makes it more than one', needs: 'more than one',
-                bare: 'just one {gloss}', example: { word: 'manegalu', meaning: 'houses' } },
+                bare: 'just one {gloss}', group: 'plural', kind: 'things',
+                example: { word: 'manegalu', meaning: 'houses' } },
+            { ending: 'aru', lesson: 8, means: 'makes it more than one person', needs: 'more than one person',
+                bare: 'just one {gloss}', group: 'plural', kind: 'people',
+                example: { word: 'snehitaru', meaning: 'friends' } },
             { ending: 'illa', lesson: 20, means: 'makes it “not”', needs: '“not”',
                 example: { word: 'gottilla', meaning: 'I don\'t know' } },
             { ending: 'ya', lesson: 27, means: 'turns it into a question', needs: 'the question form',

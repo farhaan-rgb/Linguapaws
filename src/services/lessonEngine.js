@@ -2118,6 +2118,89 @@ const pronounGroups = (m) => new Set(glossParts(m)
     .filter(i => i >= 0));
 const outlineOf = (word) => `${word[0]}${'_'.repeat(Math.max(word.length - 1, 1))}`;
 
+/* ── A taught ending on a taught stem ──────────────────────────────────────
+   *Hoovegalu* for "flower" is the -galu of *manegalu* applied to *hoovu*: the
+   learner reasoned from a rule, and "the word for flower is missing" tells
+   them the opposite of what happened. `WORD_ENDINGS` (curriculum.js) lists the
+   endings each language teaches and the lesson that teaches it.
+
+   Conservative on purpose — this explains, it never accepts, but a wrong
+   explanation is still a wrong lesson. A word counts as stem + ending only
+   when the stem is one specific word (the expected one, or the one the learner
+   said) in one of a few shapes: as written, with its final vowel swapped for
+   another (hoovu → hoove-), with it dropped before a vowel ending (gottu →
+   gott-illa), or with a stem change the course teaches (pusthakam →
+   pusthaka-). Never a guess across the whole vocabulary.                    */
+const VOWEL = /[aeiou]$/;
+const stemForms = (stem, changes = []) => {
+    const forms = new Set([stem]);
+    for (const [from, to] of changes) {
+        if (stem.endsWith(from) && stem.length >= from.length) forms.add(stem.slice(0, -from.length) + to);
+    }
+    return forms;
+};
+/* Does `word` read as `stem` plus `e.ending`? */
+const carriesEnding = (word, stem, e, changes) => {
+    if (!word || !stem || stem.length < 3 || !word.endsWith(e.ending)) return false;
+    const head = word.slice(0, -e.ending.length);
+    if (head.length < 3) return false;
+    for (const f of stemForms(stem, changes)) {
+        if (head === f) return true;
+        if (!VOWEL.test(f) || f.length < 4) continue;
+        const root = f.slice(0, -1);
+        if (VOWEL.test(e.ending[0]) ? head === root : (head.length === f.length && head.startsWith(root) && VOWEL.test(head))) return true;
+    }
+    return false;
+};
+const fillGloss = (template, gloss) => template.replace('{gloss}', gloss);
+
+const endingMiss = (got, need, { endings, lessonNo, taught, answerFor, reveal }) => {
+    const list = (endings?.endings || []).filter(e => e.lesson <= lessonNo);
+    /* Literal comparison, not the lexicon's: the course lists *manege* as an
+       alternative of *mane*, so the lexicon treats the two as one word and the
+       missing -ge would never show up as missing. */
+    const missing = need.filter(t => !got.includes(t));
+    if (!list.length || missing.length !== 1) return '';
+    const t = missing[0];
+    const changes = endings.changes || [];
+    /* Never the answer itself (that would name it on a first miss), and never
+       the word they just wrote. */
+    const like = (e, ...avoid) => (e.example && !avoid.includes(normalizeLatin(e.example.word))
+        ? `, like *${e.example.word}* (${e.example.meaning})` : '');
+    const extra = got.filter(g => !need.includes(g));
+    for (const g of extra) {
+        const added = list.find(e => carriesEnding(g, t, e, changes));
+        const wanted = list.find(e => carriesEnding(t, g, e, changes));
+        /* Added an ending the answer does not have: Hoovegalu for Hoovu. */
+        if (added && !wanted) {
+            const entry = taught.get(t);
+            const gloss = (entry ? glossParts(entry.meaning)[0] : '').replace(/^i\b/, 'I');
+            const ask = gloss ? fillGloss(added.bare || 'just “{gloss}”, with no ending', gloss) : 'the word without it';
+            return `Good thinking: *-${added.ending}* ${added.means}${like(added, t, g)}. This asks for ${ask}: ${answerFor(t)}.`;
+        }
+        /* Left off an ending the answer needs: Mane for Manege. */
+        if (wanted && !added) {
+            const ex = like(wanted, t, g);
+            return reveal
+                ? `Right word, but this needs ${wanted.needs}: *-${wanted.ending}*${ex}. ${answerFor(t)}.`
+                : `Right word, but this needs ${wanted.needs}: ${t.startsWith(g) ? 'add' : 'it takes'} *-${wanted.ending}*${ex}.`;
+        }
+        /* Both carry an ending, on the same stem, and it is the wrong one. */
+        for (const [stem] of taught) {
+            const mine = list.find(e => carriesEnding(g, stem, e, changes));
+            const theirs = mine && list.find(e => e !== mine && carriesEnding(t, stem, e, changes));
+            if (!theirs) continue;
+            /* Sibling endings: *snehitagalu* for *snehitaru*. Same job, and
+               the course chose between them by what the word is. */
+            if (mine.group && mine.group === theirs.group && mine.kind && theirs.kind) {
+                return `Close: *-${mine.ending}* is for ${mine.kind}. For ${theirs.kind}, add *-${theirs.ending}*: ${answerFor(t)}.`;
+            }
+            return `*-${mine.ending}* ${mine.means}; this needs ${theirs.needs}, so *-${theirs.ending}* instead${reveal ? `: ${answerFor(t)}` : ''}.`;
+        }
+    }
+    return '';
+};
+
 /**
  * Everything step mode says after a miss, from one analysis.
  *   line     — the sentence; `explainMiss` (step options) when nothing better fits
@@ -2132,7 +2215,7 @@ const outlineOf = (word) => `${word[0]}${'_'.repeat(Math.max(word.length - 1, 1)
  */
 export const missHelp = (said, expected, {
     variants = [], lexicon = new Map(), taughtLessons = [], families = [],
-    meaning = '', reveal = false, language = '', knownWords = [],
+    meaning = '', reveal = false, language = '', knownWords = [], endings = null,
 } = {}) => {
     const fallback = () => explainMiss(said, expected, variants, lexicon,
         { hideAnswer: !reveal, clean: true });
@@ -2148,6 +2231,15 @@ export const missHelp = (said, expected, {
 
     const has = (list, t) => list.some(x => x === t || canon(x) === canon(t));
     const missing = need.filter(t => !has(got, t));
+    /* The answer word as the course writes it, and its first-letter outline. */
+    const shownWord = (t) => (String(expected).split(/\s+/)
+        .find(x => normalizeLatin(x) === t) || t).replace(/[^\p{L}\p{N}'’-]/gu, '') || t;
+    const answerFor = (t) => (reveal ? `*${capital(shownWord(t))}*` : outlineOf(capital(shownWord(t))));
+
+    const endingLine = endingMiss(got, need, {
+        endings, lessonNo: taughtLessons.length, taught, answerFor, reveal,
+    });
+    if (endingLine) return { line: endingLine, family: null, scaffold, pairs: [] };
     /* A wrong word that is really a misspelling, a changed ending or a flipped
        first vowel of a needed word is the grader's business, and
        `explainMiss` already names those exactly. A glossary word is not: *ivu*
@@ -2170,10 +2262,6 @@ export const missHelp = (said, expected, {
         const m = f.members.map(normalizeLatin);
         return m.includes(canon(a)) || m.includes(a) ? (m.includes(canon(b)) || m.includes(b)) : false;
     });
-    /* The answer word as the course writes it, and its first-letter outline. */
-    const shownWord = (t) => (String(expected).split(/\s+/)
-        .find(x => normalizeLatin(x) === t) || t).replace(/[^\p{L}\p{N}'’-]/gu, '') || t;
-    const answerFor = (t) => (reveal ? `*${capital(shownWord(t))}*` : outlineOf(capital(shownWord(t))));
     const prompt = ` ${String(meaning || '').toLowerCase().replace(/[^a-z' ]/g, ' ').replace(/\s+/g, ' ')} `;
 
     const lines = [];
