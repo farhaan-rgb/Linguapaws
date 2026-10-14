@@ -1986,7 +1986,7 @@ function Lesson({ scenarioParam, practice = false }) {
                     Finish your first {langName || ''} lesson and practice will draw on what it taught.
                 </p>
                 <button className="btn-primary" onClick={() => navigate('/lessons')} style={{ marginTop: 16 }}>
-                    Back to the map
+                    Back to lessons
                 </button>
             </div>
         );
@@ -2017,8 +2017,8 @@ function Lesson({ scenarioParam, practice = false }) {
                         ? `${langName} has no scenario ${scenarioIdx + 1}.`
                         : 'Pick a language first.'}
                 </p>
-                <button className="btn-primary" onClick={() => navigate('/')} style={{ marginTop: 16 }}>
-                    Back home
+                <button className="btn-primary" onClick={() => navigate('/lessons')} style={{ marginTop: 16 }}>
+                    Back to lessons
                 </button>
             </div>
         );
@@ -2410,7 +2410,7 @@ function PracticeFooter({ watch, onSpeak, navigate }) {
                     background: 'var(--card-bg)', fontWeight: 700,
                     color: 'var(--accent-purple)', fontFamily: 'var(--font-display)',
                 }}>
-                Back to the map
+                Back to lessons
             </button>
         </>
     );
