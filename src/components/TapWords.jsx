@@ -73,6 +73,13 @@ export function TapWordsProvider({ langName, lessonNo, on, speak, resetKey, chil
 
 let nextId = 0;
 
+/* The "this gives you part of the answer" gate is asked once per session.
+   After the learner has said yes once, a gated word opens straight to the
+   answer — still counted as help, and the popover says so. */
+const GATE_KEY = 'linguapaws_tap_gate_ok';
+const gateAccepted = () => { try { return sessionStorage.getItem(GATE_KEY) === '1'; } catch { return false; } };
+const acceptGate = () => { try { sessionStorage.setItem(GATE_KEY, '1'); } catch { /* private mode */ } };
+
 /** One tappable word. A real button, so a focused word's Enter opens it rather
  *  than reaching the screen's Enter handler (which ignores buttons). */
 function Word({ text, entry, english = false }) {
@@ -226,7 +233,16 @@ function Popover({ open, speak, onClose }) {
     const [pos, setPos] = useState(null);
     const { entry, rect } = open;
     /** A gated English word waits for "Show" before it gives anything away. */
-    const [shown, setShown] = useState(!entry.gated);
+    const [shown, setShown] = useState(!entry.gated || gateAccepted());
+    /* Showing marks the screen helped, which re-lays it out; on a phone that
+       nudges the page and fires a scroll, and the popover closed on it — the
+       learner had to tap the word again to see what they had asked for. A
+       scroll within a moment of opening or showing is that, not the learner. */
+    const settleUntil = useRef(Date.now() + 500);
+    useEffect(() => {
+        if (entry.gated && gateAccepted()) entry.onHelp?.();
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- once, as the popover opens
+    }, []);
 
     useLayoutEffect(() => {
         const el = ref.current;
@@ -252,13 +268,14 @@ function Popover({ open, speak, onClose }) {
         const key = (e) => { if (e.key === 'Escape') onClose(); };
         document.addEventListener('pointerdown', down, true);
         document.addEventListener('keydown', key);
-        window.addEventListener('scroll', onClose, true);
-        window.addEventListener('resize', onClose);
+        const moved = () => { if (Date.now() > settleUntil.current) onClose(); };
+        window.addEventListener('scroll', moved, true);
+        window.addEventListener('resize', moved);
         return () => {
             document.removeEventListener('pointerdown', down, true);
             document.removeEventListener('keydown', key);
-            window.removeEventListener('scroll', onClose, true);
-            window.removeEventListener('resize', onClose);
+            window.removeEventListener('scroll', moved, true);
+            window.removeEventListener('resize', moved);
         };
     }, [onClose]);
 
@@ -266,7 +283,12 @@ function Popover({ open, speak, onClose }) {
     const label = entry.status === 'taught' ? praise.TAP.fromLesson(entry.lesson) : praise.TAP.notYet;
     const blue = !!entry.english;
     const edge = blue ? 'rgba(59,130,246,0.24)' : 'rgba(168,85,247,0.22)';
-    const show = () => { entry.onHelp?.(); setShown(true); };
+    const show = () => {
+        settleUntil.current = Date.now() + 600;
+        acceptGate();
+        setShown(true);
+        entry.onHelp?.();
+    };
     const speakBtn = (word) => (
         <button type="button" onClick={() => speak?.(word)}
             aria-label={praise.TAP.hear(word)}
@@ -316,6 +338,9 @@ function Popover({ open, speak, onClose }) {
                             fontWeight: 700, fontSize: 13,
                         }}>{praise.TAP.show}</button>
                 </div>
+            )}
+            {blue && shown && entry.gated && (
+                <p style={{ ...small, margin: '0 0 6px', color: 'var(--accent-blue)' }}>{praise.TAP.helped}</p>
             )}
             {blue && shown && entry.options.map((o, i) => (
                 <div key={o.word} style={{

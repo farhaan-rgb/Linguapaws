@@ -436,5 +436,7 @@ export const TAP = {
        being asked. Said before anything is shown, because showing it is help. */
     gate: 'This gives you part of the answer.',
     show: 'Show',
+    /** Said on the popover once the gate is down, so the help is never silent. */
+    helped: 'Counts as help on this question',
     inLang: 'the word for it',
 };
