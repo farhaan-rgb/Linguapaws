@@ -27,7 +27,7 @@ echo "  linguapaws-dev"
 echo "  linguapaws-design"
 echo "  linguapaws-voice"
 tester Telugu  telugu  30 "7 to 9"
-tester Kannada kannada 20 "4 to 6"
+tester Kannada kannada 30 "4 to 6"
 # Odiya has 30 lessons and Hindi 5 — uncomment when you want them playtested.
 # tester Odiya odiya 30 "5 to 7"
 # tester Hindi hindi  5 "2 to 4"

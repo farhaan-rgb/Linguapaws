@@ -321,12 +321,17 @@ export const buildSynonymMap = (lessons = []) => {
      it; the chat teach step praised it with a spelling note, because the tutor's
      own line had just said "mind the ending: *mattu* is and".
    - *hogi* "having gone" / *hogu* "go": *hogi baruttene* is the leave-taking,
-     *hogu baruttene* is not a sentence, and it was accepted as one letter out. */
+     *hogu baruttene* is not a sentence, and it was accepted as one letter out.
+   - *baruttade* "it comes to me" (I can, a skill) / *baruttene* "I will come":
+     Kannada L22 builds "I can speak Kannada" on the first, and the second has
+     been the learner's commonest verb since L14. Same root, different person;
+     `nanage Kannada baruttene` is not a sentence. */
 export const DISTINCT_WORDS = [
     ['naanu', 'nanage'],
     ['nenu', 'naaku'],
     ['matte', 'mattu'],
     ['hogi', 'hogu'],
+    ['baruttade', 'baruttene'],
 ];
 const DISTINCT_INDEX = new Map(DISTINCT_WORDS.flatMap((g, i) => g.map(w => [w, i])));
 /** True when a and b are different members of one DISTINCT_WORDS group. */
