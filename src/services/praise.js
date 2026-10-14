@@ -30,14 +30,16 @@ const pick = (list, seed) => list[Math.abs(Math.trunc(seed)) % list.length];
                  The warm lines live here, and only here.
      fixed     — right after a miss. Names the fix, which is the real event.
      contrast  — a mixed-up pair put right. Its own fact, said plainly.
+     helped    — right, after tapping an English word for part of the answer.
 
    Every line has to be true of every screen it can land on. Lists are
    disjoint, so two screens of different weight never read the same.       */
 
 /** How much the screen asked of the learner. Everything below keys off this. */
-export function effortFor(step, misses = 0) {
+export function effortFor(step, misses = 0, helped = false) {
     if (step?.kind === 'teach') return 'teach';
     if (misses > 0) return 'fixed';
+    if (helped) return 'helped';
     if (step?.kind === 'review' && step.item?.contrast) return 'contrast';
     return 'recall';
 }
@@ -66,6 +68,13 @@ export const RECOVERED_PRAISE = [
     'You worked it out.',
 ];
 
+/* Right, after tapping an English word for part of the answer. True, and no
+   more than true: the learner got there, with a look. */
+export const HELPED_PRAISE = [
+    'Right — with a little help.',
+    'There it is — with a look first.',
+];
+
 export const CONTRAST_PRAISE = [
     'Those two are sorted now.',
     'Right one, not the lookalike.',
@@ -73,8 +82,9 @@ export const CONTRAST_PRAISE = [
 
 /** The verdict headline. `cleared` is how many answers the learner has cleared
  *  in this lesson, which is what keeps the line moving. */
-export function verdictFor({ step = null, misses = 0, cleared = 0 } = {}) {
-    switch (effortFor(step, misses)) {
+export function verdictFor({ step = null, misses = 0, cleared = 0, helped = false } = {}) {
+    switch (effortFor(step, misses, helped)) {
+        case 'helped':   return pick(HELPED_PRAISE, cleared);
         case 'teach':    return pick(TEACH_ACK, cleared);
         case 'fixed':    return pick(RECOVERED_PRAISE, cleared);
         case 'contrast': return pick(CONTRAST_PRAISE, cleared);
@@ -230,7 +240,7 @@ export const LOCK_IN_PROMPT = {
 
 const wordCount = (text) => String(text || '').trim().split(/\s+/).filter(Boolean).length;
 
-export function achievementFor({ step, lang = '', misses = 0 } = {}) {
+export function achievementFor({ step, lang = '', misses = 0, helped = false } = {}) {
     if (!step) return '';
     const language = lang || 'the language';
 
@@ -240,16 +250,18 @@ export function achievementFor({ step, lang = '', misses = 0 } = {}) {
 
     if (step.kind === 'review') {
         const c = step.item?.contrast;
-        if (c) return misses > 0
+        if (c) return misses > 0 || helped
             ? 'You caught the mix-up and put it right.'
             : 'Both in the right place, first try.';
         if (misses > 0) return 'It came back on the second look.';
+        if (helped) return 'You looked, then wrote it yourself.';
         return step.item?.source === 'due'
             ? 'Still there, from an earlier lesson.'
             : 'Back out from memory.';
     }
 
     const n = wordCount(step.expected);
+    if (helped) return `You built it in ${language}, with a word looked up.`;
     if (step.phase === 'conversation') return `A real reply, in ${language}.`;
     if (n >= 3) return `A whole sentence — ${n} words of ${language}.`;
     if (n >= 2) return 'You built that out of words you already had.';
@@ -306,8 +318,11 @@ export const STREAK_BONUS = 5;
 /** A streak pays a bonus from here on. */
 export const STREAK_BONUS_FROM = 3;
 
-export function pointsFor({ correct, misses = 0, combo = 0 } = {}) {
+/* A screen helped by an English tap scores as a second try would: the
+   learner produced it, but not unaided. No streak bonus either way. */
+export function pointsFor({ correct, misses = 0, combo = 0, helped = false } = {}) {
     if (!correct) return { base: 0, bonus: 0, total: 0 };
+    if (helped && misses === 0) return { base: RECOVERED_POINTS, bonus: 0, total: RECOVERED_POINTS };
     const base = misses > 0 ? RECOVERED_POINTS : CLEAN_POINTS;
     const bonus = combo >= STREAK_BONUS_FROM ? STREAK_BONUS : 0;
     return { base, bonus, total: base + bonus };
@@ -417,4 +432,9 @@ export const TAP = {
     fromLesson: (n) => `from lesson ${n}`,
     notYet: 'not taught yet',
     hear: (word) => `Hear ${word}`,
+    /* An English word whose translation is in the answer of a screen still
+       being asked. Said before anything is shown, because showing it is help. */
+    gate: 'This gives you part of the answer.',
+    show: 'Show',
+    inLang: 'the word for it',
 };

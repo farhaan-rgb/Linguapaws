@@ -77,6 +77,13 @@ for (const lang of languages) {
             if (!teach && !praise.achievementFor({ step, lang, misses: 1 })) {
                 problems.push(`${at}: nothing to say after a fix`);
             }
+            /* Helped by an English tap: its own honest verdict, never the
+               first-try praise. */
+            if (!teach) {
+                const hv = praise.verdictFor({ step, misses: 0, helped: true, cleared: si });
+                if (!praise.HELPED_PRAISE.includes(hv)) problems.push(`${at}: a helped answer got "${hv}"`);
+                if (!praise.achievementFor({ step, lang, helped: true })) problems.push(`${at}: nothing to say after help`);
+            }
 
             // 3. A miss leaves them something to work with.
             const diagnosis = engine.explainMiss(NONSENSE, step.expected, step.variants, lexicon);

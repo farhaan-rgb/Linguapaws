@@ -88,3 +88,60 @@ export function glossFor(langName, token, lessonNo = Infinity) {
     if (kn) return { word: token, meaning: kn.meaning, note: kn.note, status: 'known' };
     return null;
 }
+
+/* ── The other way: an English word to the word the course taught for it ──
+   Built from the vocabulary's own `meaning` glosses — "Don't want",
+   "House / home", "You (polite)" — with the parenthetical notes dropped and
+   each `/` alternative indexed whole. Only whole glosses are keys, so "is" or
+   "the" never matches on its own; "I" does, because the course taught a word
+   for it. A plural falls back to its singular ("books" → book). */
+
+export const englishKey = (s) => String(s || '').toLowerCase().replace(/’/g, "'")
+    .replace(/[^\p{L}\p{N}' ]+/gu, ' ').replace(/\s+/g, ' ').trim();
+
+/** Never a key on their own, even if a gloss somewhere were just this. */
+const ENGLISH_FILLER = new Set(['a', 'an', 'the', 'to', 'of', 'is', 'and', 'or', 'it']);
+const englishIndexes = new Map();
+
+function englishIndexFor(langName) {
+    if (englishIndexes.has(langName)) return englishIndexes.get(langName);
+    const map = new Map();
+    (CURRICULUM[langName] || []).forEach((lesson, i) => {
+        for (const v of lesson.vocabulary || []) {
+            if (!v?.word || !v?.meaning) continue;
+            const alts = String(v.meaning).replace(/\([^)]*\)/g, ' ').split(/[/;,]/);
+            for (const alt of alts) {
+                const k = englishKey(alt);
+                if (!k || ENGLISH_FILLER.has(k)) continue;
+                const list = map.get(k) || [];
+                if (!list.some(e => keyOf(e.word) === keyOf(v.word))) {
+                    list.push({ word: v.word, meaning: v.meaning, lesson: i + 1 });
+                }
+                map.set(k, list);
+            }
+        }
+    });
+    englishIndexes.set(langName, map);
+    return map;
+}
+
+/** Longest English phrase the index holds, in words. */
+export const ENGLISH_MAX_WORDS = 4;
+
+/**
+ * The taught word(s) for an English word or phrase, up to two.
+ * @returns {null | {english: true, phrase, options: [{word, meaning, lesson, earlier}]}}
+ */
+export function englishFor(langName, phrase, lessonNo = Infinity) {
+    const k = englishKey(phrase);
+    if (!k) return null;
+    const idx = englishIndexFor(langName);
+    const taughtBy = (key) => (idx.get(key) || []).filter(e => e.lesson <= lessonNo);
+    /* A plural taught later ("Books", lesson 9) must not hide the singular
+       taught already. */
+    let list = taughtBy(k);
+    if (!list.length && k.length > 3 && /[^s']s$/.test(k)) list = taughtBy(k.slice(0, -1));
+    if (!list.length && k.length > 4 && /es$/.test(k)) list = taughtBy(k.slice(0, -2));
+    const options = list.slice(0, 2).map(e => ({ ...e, earlier: e.lesson < lessonNo }));
+    return options.length ? { english: true, phrase, options } : null;
+}

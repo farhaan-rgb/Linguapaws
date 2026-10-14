@@ -6,7 +6,7 @@ import { Volume2 } from 'lucide-react';
 
 import RichText from './RichText';
 import { tipSegments } from '../services/speechScript';
-import { glossFor, keyOf } from '../services/wordGloss';
+import { glossFor, keyOf, englishFor, ENGLISH_MAX_WORDS } from '../services/wordGloss';
 import * as praise from '../services/praise';
 
 /* ── Tap a word for its meaning ──────────────────────────────────────────────
@@ -18,19 +18,38 @@ import * as praise from '../services/praise';
    `glossFor`, which only ever repeats the course. No entry, no underline.
 
    An unsettled recall screen hides its own answer: `TapHide` names the words a
-   tap would give away, and they render as plain text until the screen settles. */
+   tap would give away, and they render as plain text until the screen settles.
+
+   English runs the other way: a word the course has taught a translation for
+   ("want", "don't want", "books") is tappable for that translation, with a
+   blue underline instead of purple so the learner can see which side they are
+   tapping. On an unsettled recall screen an English word whose translation is
+   in the answer is *gated*: the popover says so and waits for "Show", and
+   showing marks the screen helped (`onHelp`). Every other English word is
+   free. */
 
 const TapCtx = createContext(null);
 const HideCtx = createContext(null);
 
-/** Words a tap must not give away on this screen, as course keys. */
-export function TapHide({ words, children }) {
-    const set = useMemo(() => {
-        const s = new Set();
-        for (const w of words || []) for (const t of keyOf(w).split(' ')) if (t) s.add(t);
-        return s;
-    }, [words]);
-    return <HideCtx.Provider value={set}>{children}</HideCtx.Provider>;
+/** Words a tap must not give away on this screen, as course keys. `onHelp`
+ *  is called when the learner asks an English word for part of the answer;
+ *  `helped` says they already have, so the gate is down. */
+export function TapHide({ words, onHelp = null, helped = false, children }) {
+    const ctx = useContext(TapCtx);
+    const lang = ctx?.langName;
+    const value = useMemo(() => {
+        const hidden = new Set();
+        for (const w of words || []) for (const t of keyOf(w).split(' ')) if (t) hidden.add(t);
+        /* The answer's words and the stems they are built on: "house" gives
+           away *manege* as surely as it gives away *mane*. */
+        const gate = new Set(hidden);
+        for (const t of hidden) {
+            const g = lang ? glossFor(lang, t) : null;
+            if (g?.parts?.stem) gate.add(keyOf(g.parts.stem));
+        }
+        return { hidden, gate, onHelp, helped };
+    }, [words, lang, onHelp, helped]);
+    return <HideCtx.Provider value={value}>{children}</HideCtx.Provider>;
 }
 
 export function TapWordsProvider({ langName, lessonNo, on, speak, resetKey, children }) {
@@ -47,7 +66,7 @@ export function TapWordsProvider({ langName, lessonNo, on, speak, resetKey, chil
     return (
         <TapCtx.Provider value={value}>
             {children}
-            {open && <Popover open={open} speak={speak} onClose={close} />}
+            {open && <Popover key={open.id} open={open} speak={speak} onClose={close} />}
         </TapCtx.Provider>
     );
 }
@@ -56,7 +75,7 @@ let nextId = 0;
 
 /** One tappable word. A real button, so a focused word's Enter opens it rather
  *  than reaching the screen's Enter handler (which ignores buttons). */
-function Word({ text, entry }) {
+function Word({ text, entry, english = false }) {
     const ctx = useContext(TapCtx);
     const id = useMemo(() => `tw${nextId++}`, []);
     const isOpen = ctx.openId === id;
@@ -69,11 +88,13 @@ function Word({ text, entry }) {
             onClick={e => { e.stopPropagation(); ctx.toggle(entry, e.currentTarget, id); }}
             style={{
                 font: 'inherit', color: 'inherit', letterSpacing: 'inherit',
-                background: isOpen ? 'rgba(168,85,247,0.12)' : 'none',
+                background: isOpen ? (english ? 'rgba(59,130,246,0.12)' : 'rgba(168,85,247,0.12)') : 'none',
                 border: 'none', padding: 0, margin: 0, borderRadius: 4, cursor: 'pointer',
                 textDecorationLine: 'underline', textDecorationStyle: 'dotted',
                 textDecorationThickness: '1.5px', textUnderlineOffset: '3px',
-                textDecorationColor: 'color-mix(in srgb, var(--accent-purple) 60%, transparent)',
+                textDecorationColor: english
+                    ? 'color-mix(in srgb, var(--accent-blue) 55%, transparent)'
+                    : 'color-mix(in srgb, var(--accent-purple) 60%, transparent)',
                 WebkitTapHighlightColor: 'transparent',
             }}>
             {text}
@@ -81,23 +102,63 @@ function Word({ text, entry }) {
     );
 }
 
-/** Render a run of text, wrapping the words `want(key)` admits that have a gloss. */
-function Words({ text, want }) {
+const WORD_RE = /^([^\p{L}]*)([\p{L}'’-]*\p{L})([^\p{L}]*)$/u;
+
+/** Render a run of text, wrapping the words `want(key)` admits that have a
+ *  gloss — and, with `english`, any other word or short phrase the course has
+ *  taught a translation for. */
+function Words({ text, want, english = false }) {
     const ctx = useContext(TapCtx);
-    const hidden = useContext(HideCtx);
-    return String(text).split(/(\s+)/).map((piece, i) => {
-        const m = piece.match(/^([^\p{L}]*)([\p{L}'’-]*\p{L})([^\p{L}]*)$/u);
-        if (!m) return piece;
+    const hide = useContext(HideCtx);
+    const pieces = String(text).split(/(\s+)/);
+    const out = [];
+    for (let i = 0; i < pieces.length; i++) {
+        const piece = pieces[i];
+        const m = piece.match(WORD_RE);
+        if (!m) { out.push(piece); continue; }
         const k = keyOf(m[2]);
-        if (!want(k) || hidden?.has(k)) return piece;
-        const entry = glossFor(ctx.langName, m[2], ctx.lessonNo);
-        if (!entry) return piece;
-        return (
-            <React.Fragment key={i}>
-                {m[1]}<Word text={m[2]} entry={entry} />{m[3]}
-            </React.Fragment>
-        );
-    });
+        if (want(k)) {
+            const entry = hide?.hidden.has(k) ? null : glossFor(ctx.langName, m[2], ctx.lessonNo);
+            out.push(entry
+                ? <React.Fragment key={i}>{m[1]}<Word text={m[2]} entry={entry} />{m[3]}</React.Fragment>
+                : piece);
+            continue;
+        }
+        if (english) {
+            /* Longest phrase first, across plain spaces only: "don't want"
+               before "want", and never across a full stop. */
+            let hit = null;
+            for (let n = ENGLISH_MAX_WORDS; n >= 1 && !hit; n--) {
+                const ms = [];
+                for (let j = 0; j < n; j++) {
+                    const mm = pieces[i + 2 * j]?.match(WORD_RE);
+                    if (!mm || (j > 0 && mm[1]) || (j < n - 1 && mm[3])) break;
+                    ms.push(mm);
+                }
+                if (ms.length !== n) continue;
+                const phrase = ms.map(x => x[2]).join(' ');
+                /* "I" the pronoun, never the letter i in "with an i". */
+                if (phrase === 'i') continue;
+                const entry = englishFor(ctx.langName, phrase, ctx.lessonNo);
+                if (entry) hit = { n, ms, phrase, entry };
+            }
+            if (hit) {
+                const { n, ms, phrase, entry } = hit;
+                const gated = !!hide && !hide.helped && entry.options.some(o =>
+                    keyOf(o.word).split(' ').some(t => hide.gate.has(t)));
+                const e = gated ? { ...entry, gated, onHelp: hide.onHelp } : entry;
+                out.push(
+                    <React.Fragment key={i}>
+                        {ms[0][1]}<Word text={phrase} entry={e} english />{ms[n - 1][3]}
+                    </React.Fragment>,
+                );
+                i += 2 * (n - 1);
+                continue;
+            }
+        }
+        out.push(piece);
+    }
+    return out;
 }
 
 /** A string that is all target language: an example, an answer, a family member. */
@@ -106,6 +167,17 @@ export function TapPhrase({ text }) {
     if (!ctx?.on || !text) return text ?? null;
     return <Words text={text} want={() => true} />;
 }
+
+/** A line of plain English — an example's meaning, a family member's gloss. */
+export function TapEnglish({ text }) {
+    const ctx = useContext(TapCtx);
+    if (!ctx?.on || !text) return text ?? null;
+    return <Words text={text} want={() => false} english />;
+}
+
+/** The question frame every memory check opens with. Tapping "how" or "you"
+ *  in it would be noise on every screen. */
+const FRAME = /^(\s*How do you say\b)/i;
 
 /** A teaching line in the course's light markdown, as RichText renders it —
  *  with the words `tipSegments` reads as target language made tappable. */
@@ -121,23 +193,26 @@ export function TapText({ text, accent = 'var(--accent-purple)' }) {
         }
         return s;
     }, [on, lang, text]);
-    if (!targets || !targets.size) return <RichText text={text} accent={accent} />;
+    if (!targets) return <RichText text={text} accent={accent} />;
     const want = (k) => targets.has(k);
     const parts = String(text).split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).filter(Boolean);
+    const frame = parts[0]?.match(FRAME)?.[1] || '';
+    if (frame) parts[0] = parts[0].slice(frame.length);
     return (
         <>
+            {frame}
             {parts.map((part, i) => {
                 if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
                     return (
                         <strong key={i} style={{ color: accent, fontWeight: 700 }}>
-                            <Words text={part.slice(2, -2)} want={want} />
+                            <Words text={part.slice(2, -2)} want={want} english />
                         </strong>
                     );
                 }
                 if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
-                    return <em key={i} style={{ fontStyle: 'italic' }}><Words text={part.slice(1, -1)} want={want} /></em>;
+                    return <em key={i} style={{ fontStyle: 'italic' }}><Words text={part.slice(1, -1)} want={want} english /></em>;
                 }
-                return <React.Fragment key={i}><Words text={part} want={want} /></React.Fragment>;
+                return <React.Fragment key={i}><Words text={part} want={want} english /></React.Fragment>;
             })}
         </>
     );
@@ -150,6 +225,8 @@ function Popover({ open, speak, onClose }) {
     const ref = useRef(null);
     const [pos, setPos] = useState(null);
     const { entry, rect } = open;
+    /** A gated English word waits for "Show" before it gives anything away. */
+    const [shown, setShown] = useState(!entry.gated);
 
     useLayoutEffect(() => {
         const el = ref.current;
@@ -165,7 +242,7 @@ function Popover({ open, speak, onClose }) {
         const cx = rect.left + rect.width / 2;
         const left = Math.min(Math.max(cx - w / 2, 12), vw - w - 12);
         setPos({ up, left, top: up ? rect.top - h - 9 : rect.bottom + 9, arrow: Math.min(Math.max(cx - left, 16), w - 16) });
-    }, [rect]);
+    }, [rect, shown]);
 
     useEffect(() => {
         const down = (e) => {
@@ -187,14 +264,32 @@ function Popover({ open, speak, onClose }) {
 
     const { parts } = entry;
     const label = entry.status === 'taught' ? praise.TAP.fromLesson(entry.lesson) : praise.TAP.notYet;
+    const blue = !!entry.english;
+    const edge = blue ? 'rgba(59,130,246,0.24)' : 'rgba(168,85,247,0.22)';
+    const show = () => { entry.onHelp?.(); setShown(true); };
+    const speakBtn = (word) => (
+        <button type="button" onClick={() => speak?.(word)}
+            aria-label={praise.TAP.hear(word)}
+            style={{
+                width: 34, height: 34, flexShrink: 0, borderRadius: 99, cursor: 'pointer',
+                border: 'none', background: 'rgba(168,85,247,0.1)', color: 'var(--accent-purple)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+            <Volume2 size={16} />
+        </button>
+    );
+    const small = {
+        margin: '6px 0 0', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, color: 'var(--text-secondary)',
+    };
     return createPortal(
-        <div ref={ref} role="dialog" aria-label={`${entry.word}: ${entry.meaning || parts?.stemMeaning || ''}`}
+        <div ref={ref} role="dialog" aria-label={blue ? `${entry.phrase}: ${praise.TAP.inLang}`
+            : `${entry.word}: ${entry.meaning || parts?.stemMeaning || ''}`}
             style={{
                 position: 'fixed', zIndex: 80, left: pos?.left ?? 0, top: pos?.top ?? 0,
                 visibility: pos ? 'visible' : 'hidden',
                 width: 'max-content', maxWidth: 'min(260px, calc(100vw - 24px))', minWidth: 150,
                 boxSizing: 'border-box', padding: '10px 12px 10px 14px', borderRadius: 14,
-                background: '#fff', border: '1px solid rgba(168,85,247,0.22)',
+                background: '#fff', border: `1px solid ${edge}`,
                 boxShadow: 'var(--shadow-lg)', textAlign: 'left', color: 'var(--text-main)',
                 fontFamily: 'var(--font-main)', fontStyle: 'normal', fontWeight: 400,
                 transformOrigin: pos?.up ? 'bottom center' : 'top center',
@@ -204,44 +299,71 @@ function Popover({ open, speak, onClose }) {
                     position: 'absolute', left: pos.arrow - 6, width: 12, height: 12,
                     background: '#fff', transform: 'rotate(45deg)',
                     ...(pos.up
-                        ? { bottom: -7, borderRight: '1px solid rgba(168,85,247,0.22)', borderBottom: '1px solid rgba(168,85,247,0.22)' }
-                        : { top: -7, borderLeft: '1px solid rgba(168,85,247,0.22)', borderTop: '1px solid rgba(168,85,247,0.22)' }),
+                        ? { bottom: -7, borderRight: `1px solid ${edge}`, borderBottom: `1px solid ${edge}` }
+                        : { top: -7, borderLeft: `1px solid ${edge}`, borderTop: `1px solid ${edge}` }),
                 }} />
             )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{
-                        margin: 0, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17,
-                        lineHeight: 1.2, wordBreak: 'break-word',
-                    }}>{entry.word}</p>
-                    {entry.meaning && (
-                        <p style={{ margin: '2px 0 0', fontSize: 14, fontWeight: 600, lineHeight: 1.35 }}>
-                            {entry.meaning}
-                        </p>
-                    )}
-                    {parts && (
-                        <p style={{ margin: '3px 0 0', fontSize: 12.5, lineHeight: 1.4, color: 'var(--text-secondary)' }}>
-                            <b style={{ color: 'var(--text-main)' }}>{parts.stem}</b> “{parts.stemMeaning}”
-                            {' + '}<b style={{ color: 'var(--text-main)' }}>{parts.ending}</b>
-                            {parts.endingMeans ? `, ${parts.endingMeans}` : ''}
-                        </p>
-                    )}
+            {blue && !shown && (
+                <div style={{ maxWidth: 220 }}>
+                    <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, lineHeight: 1.4 }}>
+                        {praise.TAP.gate}
+                    </p>
+                    <button type="button" onClick={show}
+                        style={{
+                            marginTop: 8, padding: '6px 16px', borderRadius: 99, cursor: 'pointer',
+                            border: '1px solid rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.08)',
+                            color: 'var(--accent-blue)', fontFamily: 'var(--font-display)',
+                            fontWeight: 700, fontSize: 13,
+                        }}>{praise.TAP.show}</button>
                 </div>
-                <button type="button" onClick={() => speak?.(entry.word)}
-                    aria-label={praise.TAP.hear(entry.word)}
-                    style={{
-                        width: 34, height: 34, flexShrink: 0, borderRadius: 99, cursor: 'pointer',
-                        border: 'none', background: 'rgba(168,85,247,0.1)', color: 'var(--accent-purple)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                    <Volume2 size={16} />
-                </button>
-            </div>
-            {(entry.status !== 'taught' || entry.earlier) && (
-                <p style={{
-                    margin: '6px 0 0', fontSize: 11, fontWeight: 700, letterSpacing: 0.3,
-                    color: 'var(--text-secondary)',
-                }}>{label}</p>
+            )}
+            {blue && shown && entry.options.map((o, i) => (
+                <div key={o.word} style={{
+                    paddingTop: i ? 8 : 0, marginTop: i ? 8 : 0,
+                    borderTop: i ? '1px solid rgba(59,130,246,0.14)' : 'none',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{
+                                margin: 0, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17,
+                                lineHeight: 1.2, wordBreak: 'break-word',
+                            }}>{o.word}</p>
+                            <p style={{ margin: '2px 0 0', fontSize: 14, fontWeight: 600, lineHeight: 1.35 }}>
+                                {o.meaning}
+                            </p>
+                        </div>
+                        {speakBtn(o.word)}
+                    </div>
+                    <p style={{ ...small, margin: '4px 0 0' }}>{praise.TAP.fromLesson(o.lesson)}</p>
+                </div>
+            ))}
+            {!blue && (
+                <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{
+                            margin: 0, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17,
+                            lineHeight: 1.2, wordBreak: 'break-word',
+                        }}>{entry.word}</p>
+                        {entry.meaning && (
+                            <p style={{ margin: '2px 0 0', fontSize: 14, fontWeight: 600, lineHeight: 1.35 }}>
+                                {entry.meaning}
+                            </p>
+                        )}
+                        {parts && (
+                            <p style={{ margin: '3px 0 0', fontSize: 12.5, lineHeight: 1.4, color: 'var(--text-secondary)' }}>
+                                <b style={{ color: 'var(--text-main)' }}>{parts.stem}</b> “{parts.stemMeaning}”
+                                {' + '}<b style={{ color: 'var(--text-main)' }}>{parts.ending}</b>
+                                {parts.endingMeans ? `, ${parts.endingMeans}` : ''}
+                            </p>
+                        )}
+                    </div>
+                    {speakBtn(entry.word)}
+                </div>
+                {(entry.status !== 'taught' || entry.earlier) && (
+                    <p style={small}>{label}</p>
+                )}
+                </>
             )}
         </div>,
         document.body,

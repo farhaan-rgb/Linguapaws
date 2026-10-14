@@ -35,7 +35,7 @@ import { speechTextFor, englishVoiceTextFor, tipSegments } from '../services/spe
 import { getLangCode } from '../../shared/languages.js';
 import { hasBrahmicScript, isNonLatinScript } from '../../shared/transliterate.js';
 import { isUnhearable } from '../../shared/asr.js';
-import { TapText, TapPhrase, TapHide, TapWordsProvider } from '../components/TapWords';
+import { TapText, TapPhrase, TapEnglish, TapHide, TapWordsProvider } from '../components/TapWords';
 import { isTapOn, setTapOn } from '../utils/tapMeaning';
 import Burst from '../components/Burst';
 
@@ -428,7 +428,7 @@ function SentenceExamples({ examples, onSpeak }) {
                                     <TapPhrase text={ex.correct} />
                                 </p>
                                 <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
-                                    {ex.meaning}
+                                    <TapEnglish text={ex.meaning} />
                                 </p>
                             </div>
                             <SpeakButton text={ex.correct} onSpeak={onSpeak} size={32} />
@@ -601,7 +601,7 @@ function FamilyCard({ family }) {
                         fontWeight: 800, fontFamily: 'var(--font-display)', minWidth: 64,
                         color: m.needed ? '#047857' : m.said ? '#b45309' : 'var(--text-main)',
                     }}><TapPhrase text={m.word} /></span>
-                    <span style={{ flex: 1, color: 'var(--text-secondary)' }}>{m.meaning}</span>
+                    <span style={{ flex: 1, color: 'var(--text-secondary)' }}><TapEnglish text={m.meaning} /></span>
                     {(m.said || m.needed) && (
                         <span style={{
                             fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
@@ -642,7 +642,7 @@ function RevealPanel({
             </p>
             {meaning && (
                 <p style={{ margin: '6px 0 0', fontSize: 13.5, color: 'var(--text-secondary)' }}>
-                    “{meaning}”
+                    “<TapEnglish text={meaning} />”
                 </p>
             )}
             <button onClick={() => onSpeak(step.expected)}
@@ -861,6 +861,10 @@ function StepScreen({
      *  underline is currently sitting on (null = follow the newest). */
     const [revealed, setRevealed] = useState(0);
     const [activeIdx, setActiveIdx] = useState(null);
+    /** An English word was tapped for part of the answer. Not a miss — no
+     *  flame out, no reveal — but the answer is no longer unaided. */
+    const [helped, setHelped] = useState(false);
+    const onHelp = useCallback(() => setHelped(true), []);
 
     const speakMode = answerMode === 'speak';
     const drill = step.kind === 'drill' ? step.drill : null;
@@ -1046,7 +1050,7 @@ function StepScreen({
             // in silence never finds out they had it wrong.
             setNote(engine.spellingNote(said, step.expected, step.variants, lexicon) || '');
             setPhase('correct');
-            setReward(onSettled({ correct: true, revealed: false, misses }));
+            setReward(onSettled({ correct: true, revealed: false, misses, helped }));
             return;
         }
 
@@ -1096,7 +1100,7 @@ function StepScreen({
             setShake(s => s + 1);
             fx.playMiss();
         }
-    }, [settled, step, lexicon, taughtLessons, families, misses, onSettled, onMiss, onConfusion, drill, langName]);
+    }, [settled, step, lexicon, taughtLessons, families, misses, helped, onSettled, onMiss, onConfusion, drill, langName]);
     const check = useCallback(() => grade(answer, false), [grade, answer]);
 
     /* "I don't know" — the answer straight away, instead of two wrong guesses
@@ -1248,7 +1252,7 @@ function StepScreen({
     const tapHidden = settled || step.kind === 'teach' ? NO_HIDE : [step.expected, ...(step.variants || [])];
 
     return (
-        <TapHide words={tapHidden}>
+        <TapHide words={tapHidden} onHelp={onHelp} helped={helped}>
             {phase === 'correct' && (
                 <Burst seed={step.index}
                     power={reward?.milestone ? 2 : reward?.effort === 'teach' ? 0 : 1} originY="36%" />
@@ -1292,7 +1296,7 @@ function StepScreen({
 
                 {step.kind === 'drill' && (
                     <>
-                        <PromptPanel muted={settled} sub={meaningAdds ? drill.meaning : null}>
+                        <PromptPanel muted={settled} sub={meaningAdds ? <TapEnglish text={drill.meaning} /> : null}>
                             <TapText text={step.prompt} />
                         </PromptPanel>
                         {drill.hint && !settled && (
@@ -1302,7 +1306,7 @@ function StepScreen({
                                     display: 'flex', alignItems: 'center', gap: 6,
                                     animation: 'pop-in 0.3s ease-out',
                                 }}>
-                                    <Lightbulb size={14} /> {drill.hint}
+                                    <Lightbulb size={14} /> <span><TapEnglish text={drill.hint} /></span>
                                 </p>
                             ) : (
                                 <button onClick={() => setShowHint(true)}
@@ -1929,18 +1933,22 @@ function Lesson({ scenarioParam, practice = false }) {
 
     /** A screen was answered. Tell the SRS, move the shared progress counter,
      *  and hand the screen back everything it needs to celebrate. */
-    const handleSettled = useCallback(({ correct, revealed, misses: tries }) => {
+    const handleSettled = useCallback(({ correct, revealed, misses: tries, helped: tapped = false }) => {
         const t = tally.current;
         /* A re-ask is a screen that already went wrong once, so its success is a
            recovery, never a clean first-try answer. */
         const misses = tries + (step?.retry ? 1 : 0);
+        /* Tapped an English word for part of the answer, then got it: right,
+           but not unaided — scored like a second try, no streak, and kept for
+           practice like a miss. Never requeued or revealed. */
+        const helped = Boolean(correct && tapped && misses === 0);
         if (!correct && shouldRequeue(step)) {
             missedRef.current.push(step);
             setMissedCount(missedRef.current.length);
         }
         const wasStumbled = t.stumbled;
 
-        if (practice && (!correct || misses > 0)) {
+        if (practice && (!correct || misses > 0 || helped)) {
             const c = step?.item?.contrast;
             const meaning = c ? [c.saidMeaning, c.neededMeaning].filter(Boolean).join(' / ')
                 : (step?.item?.meaning || step?.drill?.meaning || '');
@@ -1950,10 +1958,10 @@ function Lesson({ scenarioParam, practice = false }) {
 
         /* Missed screens, for practice to bring back. First attempt only. */
         if (step && !step.retry) {
-            const firstTry = Boolean(correct && misses === 0 && !revealed);
+            const firstTry = Boolean(correct && misses === 0 && !revealed && !helped);
             if (step.missedRef) {
                 recordMissedCheck({ lang: langName, ...step.missedRef, correct: firstTry }).catch(() => {});
-            } else if (!correct) {
+            } else if (!correct || helped) {
                 const key = missedKeyFor(step, practice ? step.lessonIdx : scenarioIdx);
                 if (key) recordMissedScreen({ lang: langName, ...key }).catch(() => {});
             }
@@ -1972,7 +1980,9 @@ function Lesson({ scenarioParam, practice = false }) {
 
         if (correct) {
             t.cleared += 1;
-            if (misses === 0) {
+            if (helped) {
+                t.recovered += 1;
+            } else if (misses === 0) {
                 if (recall) t.combo += 1;
                 t.best = Math.max(t.best, t.combo);
                 setUnaided(n => n + 1);
@@ -1980,8 +1990,9 @@ function Lesson({ scenarioParam, practice = false }) {
                 t.recovered += 1;
             }
         }
-        if (recall) t.combo = correct && misses === 0 ? t.combo : 0;
-        t.stumbled = !correct || misses > 0;
+        /* A helped answer neither builds the streak nor breaks it. */
+        if (recall && !helped) t.combo = correct && misses === 0 ? t.combo : 0;
+        t.stumbled = !correct || misses > 0 || helped;
 
         // The SRS hears the first attempt only — not the eventual re-ask.
         if (step?.kind === 'review' && !step.retry && step.item?.contrast) {
@@ -1989,13 +2000,13 @@ function Lesson({ scenarioParam, practice = false }) {
                cleanly — first try, nothing revealed. */
             recordContrastCheck({
                 lang: langName, said: step.item.contrast.said, needed: step.item.contrast.needed,
-                correct: Boolean(correct && misses === 0 && !revealed),
+                correct: Boolean(correct && misses === 0 && !revealed && !helped),
                 scenario: practice ? 'practice' : scenarioIdx,
             }).catch(() => {});
         } else if (step?.kind === 'review' && !step.retry) {
             recordReview({
                 lang: langName, word: step.item.word,
-                outcome: engine.gradeOutcome({ correct, misses, revealed }),
+                outcome: engine.gradeOutcome({ correct, misses: helped ? 1 : misses, revealed }),
                 wasCorrect: correct, meaning: step.item.meaning,
                 scenario: practice ? step.lessonIdx : scenarioIdx,
             }).catch(() => {});
@@ -2009,8 +2020,8 @@ function Lesson({ scenarioParam, practice = false }) {
                    recovered: t.recovered, locks: t.locks, bonus: t.bonus });
         if (!correct) return null;
 
-        const hit = recall && misses === 0 ? praise.milestoneFor(t.combo) : null;
-        const points = praise.pointsFor({ correct: true, misses, combo: recall ? t.combo : 0 });
+        const hit = recall && misses === 0 && !helped ? praise.milestoneFor(t.combo) : null;
+        const points = praise.pointsFor({ correct: true, misses, helped, combo: recall ? t.combo : 0 });
         t.bonus += points.bonus;
         setScore(s => ({ ...s, bonus: t.bonus }));
         award(points.total);
@@ -2026,10 +2037,10 @@ function Lesson({ scenarioParam, practice = false }) {
         }
 
         return {
-            verdict: praise.verdictFor({ step, misses, cleared: t.cleared - 1 }),
-            achievement: praise.achievementFor({ step, lang: langName, misses }),
-            effort: praise.effortFor(step, misses),
-            recovery: wasStumbled && misses === 0,
+            verdict: praise.verdictFor({ step, misses, helped, cleared: t.cleared - 1 }),
+            achievement: praise.achievementFor({ step, lang: langName, misses, helped }),
+            effort: praise.effortFor(step, misses, helped),
+            recovery: wasStumbled && misses === 0 && !helped,
             points, combo: t.combo, milestone: hit,
         };
     }, [step, langName, scenarioIdx, award, practice]);
@@ -2406,7 +2417,7 @@ export function Summary({
                                 </p>
                                 {line.meaning && (
                                     <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--text-secondary)' }}>
-                                        {line.meaning}
+                                        <TapEnglish text={line.meaning} />
                                     </p>
                                 )}
                             </div>
