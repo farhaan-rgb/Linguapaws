@@ -185,7 +185,7 @@ async function askModel(system, history, note, guard = null) {
                 }
                 return null;
             }
-            const bad = E.fabricatedForms(text, guard.target, guard.allowed);
+            const bad = E.fabricatedForms(text, guard.target, guard.allowed, SYSTEM_ENGLISH);
             if (bad.length) {
                 debug('rejected: fabricated', JSON.stringify(bad.map(b => `${b.wrote}<-${b.insteadOf}`)), '|', text.slice(0, 90));
                 if (!guard.retried) {
@@ -296,7 +296,7 @@ function pushHelper(push, reply, guard = {}) {
             push('assistant', kept);
             return;
         }
-        debug('withheld: reply revealed an answer |', kept.slice(0, 90));
+        debug('withheld: reply revealed an answer |', kept.slice(0, 90), JSON.stringify(sentences.filter(t => E.answerWasRevealed(kept, t))));
     }
 
     /* Withheld or unusable. Never silence: the lesson's own note if there is a
@@ -422,12 +422,22 @@ async function explain(s, said, target, lesson, note) {
     const grounding = shortlist.length
         ? `\n[The lesson's own explanations, most likely relevant first. Answer the learner FROM these — quote or paraphrase, but do not contradict them and do not invent a different reason. If none of them addresses the question, say briefly and honestly that this course has not covered it yet.\n${shortlist.map((t, i) => `(${i + 1}) ${t}`).join('\n')}]`
         : '';
-    const reply = await askModel(
+    const ask = (extra = '') => askModel(
         conversationalRules(s.lang, 'English', levelForStep(s.step)),
         s.messages.concat([{ role: 'user', content: said }]),
-        note + grounding,
+        note + grounding + extra,
         { target: target || '', allowed: taughtSoFar(s), englishOnly: s.step < 11, lang: s.lang },
     );
+    let reply = await ask();
+    /* A good answer that also writes out the drill's sentence is withheld by
+       pushHelper, and the learner gets a pointer at their notes instead. Round
+       K4's "why do I need naanu?" lost three honest answers that way. One retry,
+       told exactly what to leave out, recovers most of them. */
+    const multiword = E.normalizeLatin(target || '').split(' ').filter(Boolean).length >= 2;
+    if (reply && multiword && E.answerWasRevealed(reply, target)) {
+        debug('explain: reply wrote the answer, retrying');
+        reply = await ask(`\n[Your previous reply wrote out the answer sentence "${target}". Answer again WITHOUT writing that sentence or most of its words in order — name at most one ${s.lang} word, and describe the rest in English.]`);
+    }
     // If the model gave nothing usable, the lesson's own words go out unaltered.
     return reply ? { text: reply, authored: false } : { text: shortlist[0] || '', authored: true };
 }
@@ -583,7 +593,8 @@ async function turn(s, said) {
     // The app treats a help phrase as a question at every stage, not just the
     // ones whose text happens to trip looksLikeQuestion. Mirror it, or the
     // harness reports a dead end the learner never actually hits.
-    const isQuestion = !isAck && (E.isHelpRequest(said) || E.looksLikeQuestion(said));
+    const isQuestion = !isAck && (E.isHelpRequest(said)
+        || E.isLearnerQuestion(said, { lexicon: syn, extraEnglish: SYSTEM_ENGLISH }));
     /* Opening with "Is..." or "What..." means asking, and must never be graded as
        answering — even when the question names the very word being asked for. */
     const askingOnly = E.opensAsQuestion(said);
@@ -787,9 +798,13 @@ async function turn(s, said) {
                "So — Say 'I have money'." — no verdict, no hint — while the same
                bare answer next turn was properly corrected. */
             const reply = isQuestion ? await explain(s, said, item.correct, lesson,
-                `[The learner asked a question instead of answering. Answer it briefly without stating the target sentence. ${explanationAuthority(lesson)} ${E.antiFabricationRule(item.correct, taughtSoFar(s))} ${E.ONE_QUESTION_RULE}]`) : null;
+                `[The learner asked a question instead of answering. Answer it briefly without stating the target sentence. If they ask whether a word is needed, say plainly whether the course also accepts the answer without it${(item.acceptable || []).length ? ` (it accepts: ${item.acceptable.length} shorter or alternative forms)` : ''} — describe it, never write the sentence out. ${explanationAuthority(lesson)} ${E.antiFabricationRule(item.correct, taughtSoFar(s))} ${E.ONE_QUESTION_RULE}]`) : null;
             pushHelper(push, reply, { state: s, target: item.correct, misses, asked: true, fallback: E.bestExplanationFor(lesson, said, s.step), taught: taughtSoFar(s), said, upcoming: upcomingAnswers(s, lesson) });
-            const attempted = E.normalizeLatin(said).split(' ').some(t => t.length > 2
+            /* Naming one target word inside a question is not attempting the
+               sentence — round K4's "why do I need naanu?" was stamped "Not quite"
+               and cost an attempt. Same rule as the app's isPureQuestion. */
+            const attempted = !E.isPureQuestion(said, item.correct, { lexicon: syn, extraEnglish: SYSTEM_ENGLISH })
+                && E.normalizeLatin(said).split(' ').some(t => t.length > 2
                 && E.normalizeLatin(item.correct).split(' ').includes(t));
             const h = attempted && item.hint ? ` Hint: ${item.hint.replace(/[.?!]+$/, '')}.` : '';
             push('assistant', attempted
@@ -938,7 +953,9 @@ async function turn(s, said) {
        told "Not quite. 2 of the words are missing". Marking a pure question wrong
        is the very fault this branch was added to fix, so the attempt test only
        applies to turns that are not asking-only. */
-    const attemptedConvo = !askingOnly && E.normalizeLatin(said).split(' ').some(t => t.length > 2
+    const attemptedConvo = !askingOnly
+        && !E.isPureQuestion(said, item?.correct, { lexicon: syn, extraEnglish: SYSTEM_ENGLISH })
+        && E.normalizeLatin(said).split(' ').some(t => t.length > 2
         && E.normalizeLatin(item?.correct || '').split(' ').includes(t));
     if (isQuestion && !attemptedConvo) {
         push('assistant', `So — ${nextPrompt}`);

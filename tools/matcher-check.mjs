@@ -284,5 +284,35 @@ for (const n of longSpoken) {
     console.log(`    ${n.spoken.slice(0, 120)}...`);
 }
 
+/* A question is answered and re-asked, not graded — so an ANSWER misread as a
+   question is never graded either. Every answer the course lists must read as an
+   attempt, and the round-K4 questions (and their answer-shaped look-alikes) must
+   land on the right side. */
+const asQuestion = [];
+lessons.forEach((lesson, i) => {
+    for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {
+        for (const form of [d.correct, ...(d.acceptable || [])].filter(Boolean)) {
+            if (E.isLearnerQuestion(form, { lexicon: syn })) asQuestion.push({ lesson: i + 1, form });
+        }
+    }
+});
+const QUESTION_PINS = [
+    ['wait, I thought the -ene ending already means I? why do I need naanu?', true],
+    ["what's the word for early?", true],
+    ['how do I say late?', true],
+    ['Yaake beda?', false],
+    ['Nimma hesaru yenu?', false],
+    ['Meeru ela unnaru?', false],
+    ['Emiti?', false],
+    ['Nenu bagunnanu, meeru?', false],
+    ['Is ka naam kya hai?', false],
+];
+for (const [said, want] of QUESTION_PINS) {
+    if (E.isLearnerQuestion(said, { lexicon: syn }) !== want) asQuestion.push({ lesson: '-', form: `${said} (pinned ${want ? 'question' : 'answer'})` });
+}
+console.log(`\n## Answers read as questions, or pinned questions misread (${asQuestion.length})\n`);
+if (!asQuestion.length) console.log('_None._\n');
+for (const q of asQuestion) console.log(`- L${q.lesson} \`${q.form}\``);
+
 process.exit(rejected.length || misshapen.length || falsePasses.length || longSpoken.length
-    || swapPasses.length || pinnedWrong.length ? 1 : 0);
+    || swapPasses.length || pinnedWrong.length || asQuestion.length ? 1 : 0);

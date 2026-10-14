@@ -575,26 +575,12 @@ export default function Chat() {
         return null;
     };
 
-    /* A learner talking to the tutor rather than answering it.
-       The signal is that they switched to ENGLISH, not that the text ends in a
-       question mark — plenty of valid Telugu answers do ("Emiti?", "Nenu
-       bagunnanu, meeru?"), so punctuation alone misreads real answers as
-       questions. Two or more English function words is the giveaway, since none
-       of them appear in a romanised Telugu or Kannada answer. */
-    const ENGLISH_TELLS = new Set([
-        'can', 'cant', 'could', 'why', 'what', 'whats', 'how', 'is', 'are', 'was',
-        'do', 'does', 'did', 'the', 'a', 'an', 'and', 'or', 'but', 'not', 'no',
-        'i', 'you', 'me', 'my', 'it', 'this', 'that', 'also', 'as', 'well', 'too',
-        'say', 'said', 'mean', 'means', 'meaning', 'same', 'different', 'instead',
-        'another', 'other', 'both', 'use', 'used', 'about', 'in', 'of', 'to', 'for',
-        'should', 'would', 'isnt', 'dont', 'doesnt', 'wrong', 'right', 'correct',
-    ]);
-
-    const looksLikeQuestion = (t) => {
-        const words = (t || '').toLowerCase().replace(/[^a-z\s']/g, ' ').split(/\s+/).filter(Boolean);
-        if (words.length < 3) return false;
-        return words.filter(w => ENGLISH_TELLS.has(w.replace(/'/g, ''))).length >= 2;
-    };
+    /* A learner talking to the tutor rather than answering it. The engine
+       decides (shared with the harness): a question shape AND mostly English,
+       so "Yaake beda?" stays an answer while "why do I need naanu?" is asked.
+       Every caller also requires !hasCorrectMatch — an accepted answer is never
+       a question. */
+    const looksLikeQuestion = (t) => engine.isLearnerQuestion(t, { lexicon: LEXICON });
 
     /* Every turn must give the learner something to do. The transition into the
        phrase stage used to be a bare "Now let's put those words into phrases!"
@@ -1845,6 +1831,16 @@ export default function Chat() {
                 evalNote = `[SYSTEM: The user is asking to move on, not answering. Do NOT grade or correct their message, and do NOT say they were wrong. Briefly acknowledge and present the next challenge for this scenario.]`;
             } else if (isCurrentlyInReview) {
                 evalNote = `[SYSTEM: The learner asked you a QUESTION instead of answering: "${actual}". Do NOT grade it, do NOT say they were wrong, and do NOT tell them the answer to the quiz. Answer their question directly and briefly in ${nativeLang?.name || 'English'} — if they asked whether another word also works, say plainly whether it does and how it differs. Then re-ask the quiz question: what is the ${targetLangName} word for "${expectedCorrectionStr ? (reviewItem?.meaning || 'that word') : 'that word'}"?]`;
+            } else if (!isContinueRequest
+                && engine.isPureQuestion(text, expectedCorrectionStr, { lexicon: LEXICON })) {
+                /* Round K4: a learner's question in a phrase drill fell through to
+                   "RETRY. User failed previously. Show the hint", and the model
+                   duly answered "Not quite. Hint: …" — grading a question and
+                   costing an attempt. A question is answered, never graded. */
+                const sameTask = isCurrentlyInBasic
+                    ? drillPrompt(scenarioDataForMatch.phrases, currentInScenario - 8)
+                    : (isCurrentlyInConvo ? drillPrompt(scenarioDataForMatch.conversations, currentInScenario - 11) : null);
+                evalNote = `[SYSTEM: The learner asked you a QUESTION instead of answering: "${actual}". Do NOT grade it, do NOT say "not quite", "try again" or that they were wrong, and do NOT give them the answer${expectedCorrectionStr ? ` ("${expectedCorrectionStr}")` : ''}. Answer their question directly and briefly in ${nativeLang?.name || 'English'}, from what this lesson has taught. If they ask whether a word is needed, say plainly whether it can be left out — describe it, never write the sentence out. Do NOT move on to a new task.${sameTask ? ` Then re-ask exactly: ${sameTask}` : ''}]`;
             } else if (isHelpRequest) {
                 evalNote = `[SYSTEM: HELP REQUEST. The user is stuck. Give a helpful hint then re-ask the prompt.]`;
             } else if (lastWasFailure) {
@@ -2008,6 +2004,16 @@ export default function Chat() {
             }
             responseWithoutMeta = responseWithoutMeta.replace(/<success>.*?<\/success>/gi, '');
 
+            /* A question turn is neither a hit nor a miss. The model is told so,
+               but if it still says "Not quite" that line would be counted by
+               consecutiveMisses and push the learner toward the reveal cap, and a
+               <success> tag would mark the bubble or advance the step. */
+            const askedThisTurn = !hasCorrectMatch && !isContinueRequest && !isLastScenarioStep
+                && engine.isPureQuestion(text, expectedCorrectionStr, { lexicon: LEXICON });
+            if (askedThisTurn) {
+                statusTag = 'missing';
+                responseWithoutMeta = engine.stripMissVerdict(responseWithoutMeta);
+            }
             if (statusTag === 'true' || statusTag === 'false') {
                 if (statusTag === 'true' && userLevel !== 'zero' && !hasCorrectMatch) {
                     console.log('[Progress] AI reported success (fallback), calling /api/progress/increment...');
@@ -2086,10 +2092,13 @@ export default function Chat() {
             /* If the learner asked a question mid-drill, the model answered it —
                but it does not reliably restate the task afterwards. Do it here so
                they are never left without something to do. */
-            if (!hasCorrectMatch && (isCurrentlyInBasic || isCurrentlyInReview)) {
+            if (!hasCorrectMatch && (isCurrentlyInBasic || isCurrentlyInReview
+                || (isCurrentlyInConvo && askedThisTurn))) {
                 const task = isCurrentlyInBasic
                     ? drillPrompt(scenarioDataForMatch.phrases, currentInScenario - 8)
-                    : (reviewItem?.meaning ? `What's the ${targetLangName} word for "${reviewItem.meaning}"?` : null);
+                    : isCurrentlyInConvo
+                        ? drillPrompt(scenarioDataForMatch.conversations, currentInScenario - 11)
+                        : (reviewItem?.meaning ? `What's the ${targetLangName} word for "${reviewItem.meaning}"?` : null);
                 if (task && !normalizeLatin(storedResponse).includes(normalizeLatin(task).slice(0, 24))) {
                     outgoing.push({ role: 'assistant', content: `So — ${task}` });
                 }

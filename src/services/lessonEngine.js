@@ -679,7 +679,14 @@ export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()
         return m;
     };
     const saidMembers = countMembers(actual);
+    /* The licensing form must also want the copula the learner used. Telugu L26
+       teaches two whole sentences — *naaku … undi* and *nenu … unnanu* — and each
+       check found its own form: `naaku alupuga unnanu` had its pronoun licensed by
+       the first and its verb by the second, so a half-and-half sentence passed. */
     const contrastOk = !saidMembers.size || given.some(v => {
+        const wantCopula = copulaOf(v);
+        if (wantCopula.size !== saidCopula.size) return false;
+        for (const t of wantCopula) if (!saidCopula.has(t)) return false;
         const want = countMembers(v);
         for (const [t, n] of saidMembers) if ((want.get(t) || 0) < n) return false;
         for (const y of want.keys()) {
@@ -1085,6 +1092,16 @@ export const consecutiveMisses = (msgs = []) => {
     return n;
 };
 
+/** A reply to a learner's QUESTION must not carry a miss verdict: consecutiveMisses
+    would count it, and the question would cost an attempt. Drops each sentence
+    that reads as one; never returns empty. */
+export const stripMissVerdict = (text) => {
+    const src = String(text || '');
+    if (!MISS_RE.test(src)) return src;
+    const kept = src.split(/(?<=[.!?])\s+/).filter(sentence => !MISS_RE.test(sentence)).join(' ').trim();
+    return kept || 'Good question.';
+};
+
 /** Did the previous turn hand over the answer? Looks for the answer itself, not
     for a form of words, so the model volunteering it also counts. */
 export const answerWasRevealed = (text, expected) => {
@@ -1189,6 +1206,47 @@ export const looksLikeQuestion = (t) => {
     return words.filter(w => ENGLISH_TELLS.has(w.replace(/'/g, ''))).length >= 2;
 };
 
+/** Is the learner asking the tutor something rather than attempting the drill?
+ *
+ *  Round K4, Kannada L14: "I thought the -ene ending already means I? why do I
+ *  need naanu?" was answered with a pointer at the notes and then "Not quite.
+ *  Hint: …" — a question graded as a wrong answer, costing an attempt. Four
+ *  lessons later "what's the word for early?" was answered properly. Same
+ *  learner, same kind of turn, two verdicts.
+ *
+ *  The signal is a question shape — a trailing "?", an English interrogative
+ *  first word, or two English function words — but a question mark alone proves
+ *  nothing: *Yaake beda?* and *Nimma hesaru yenu?* are answers. So it must also
+ *  be mostly ENGLISH: more than half its words recognised as English and not as
+ *  a word this course teaches. Hindi's *is* ("this") is why taught words never
+ *  count as English. Anything the grader accepted is an answer, full stop.
+ *  `extraEnglish` is a dictionary for callers that have one (Node). */
+export const isLearnerQuestion = (text, { accepted = false, lexicon = new Map(), extraEnglish = null } = {}) => {
+    if (accepted) return false;
+    const raw = String(text || '').trim();
+    if (!raw) return false;
+    const shaped = /\?\s*$/.test(raw) || opensAsQuestion(raw) || looksLikeQuestion(raw);
+    if (!shaped) return false;
+    const { words: taught } = asLexicon(lexicon);
+    const toks = normalizeLatin(raw.replace(/'/g, '')).split(' ').filter(Boolean);
+    if (toks.length < 2) return false;
+    const english = toks.filter(t => !taught.has(t)
+        && (ENGLISH_TELLS.has(t) || OPENING_INTERROGATIVES.has(t) || looksEnglish(t, extraEnglish)));
+    return english.length * 2 > toks.length;
+};
+
+/** A question that is NOT also an attempt at the drill. Round K2 settled that a
+ *  wrong answer with a question stuck on the end (`Adu yenu? — though I can't
+ *  tell…`) is still graded, so an attempt is one that covers at least half the
+ *  target's words. Merely naming one of them — "why do I need naanu?" against
+ *  *Naanu aamele tinnuttene* — is asking, and so is anything that opens as a
+ *  question ("is it ketta or chennagilla here?"). */
+export const isPureQuestion = (said, target, { accepted = false, lexicon = new Map(), extraEnglish = null } = {}) => {
+    if (!isLearnerQuestion(said, { accepted, lexicon, extraEnglish })) return false;
+    if (!target || opensAsQuestion(said)) return true;
+    return tokenCoverage(said, target, lexicon) < 0.5;
+};
+
 /* Asking for help is not a wrong answer. Kept here rather than inline in the
    chat page so the offline harness recognises the same phrases the app does —
    the harness previously graded "I don't know" as a miss at the vocabulary
@@ -1291,7 +1349,7 @@ export const antiFabricationRule = (target, knownWords = []) => {
  *  *illu*, *chestanu* for *cheyali* — and English words are not near-misses of
  *  Telugu ones, so they do not trip it.
  */
-export const fabricatedForms = (text, target = '', allowedWords = []) => {
+export const fabricatedForms = (text, target = '', allowedWords = [], extraEnglish = null) => {
     const real = new Set([
         ...normalizeLatin(target).split(' ').filter(Boolean),
         ...allowedWords.flatMap(w => normalizeLatin(w).split(' ')).filter(Boolean),
@@ -1301,6 +1359,10 @@ export const fabricatedForms = (text, target = '', allowedWords = []) => {
     const found = [];
     for (const token of normalizeLatin(text).split(' ').filter(Boolean)) {
         if (token.length < 4 || real.has(token)) continue;
+        /* Except that they are: Kannada round K4 lost a good answer to "this"
+           (≈ *thinde*) and "need" (≈ *neevu*). An English word is not an
+           invented inflection. */
+        if (looksEnglish(token, extraEnglish)) continue;
         for (const word of real) {
             if (word.length < 4) continue;
             const d = levenshtein(token, word);

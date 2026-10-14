@@ -656,7 +656,7 @@ export const CURRICULUM = {
                 { word: "Bhayam", native: "భయం", meaning: "Fear", phonetic: "bhuh-yum" }
             ],
             phrases: [
-                { prompt: "Say 'I am tired'", correct: "Naaku alupuga undi", native: "నాకు అలుపుగా ఉంది", meaning: "I am tired", hint: "To me + tiredly + it is", acceptable: ["naaku alupu undi"],
+                { prompt: "Say 'I am tired'", correct: "Naaku alupuga undi", native: "నాకు అలుపుగా ఉంది", meaning: "I am tired", hint: "To me + tiredly + it is",
                   // NOT "naaku alupu undi": dropping the -ga is exactly what this
                   // lesson teaches you not to do, and listing it as acceptable had
                   // the drill praise the error one second before the note
