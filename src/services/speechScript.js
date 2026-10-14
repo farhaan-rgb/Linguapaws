@@ -151,7 +151,12 @@ export function englishVoiceTextFor(langName, text) {
  *          strings; markdown and quote marks removed.
  */
 export function tipSegments(langName, line) {
-    const raw = String(line || '');
+    /* A first-letter outline (`I__`, `A____ hesaru`, `K----`) is for the eye.
+       Read as written it came out "I dot"; say what it means instead. */
+    const raw = String(line || '')
+        .replace(/(starts? with )(\p{L})[_\-\u2013\u2014]{2,}/gu, '$1$2')
+        .replace(/(?<![\p{L}])(\p{L})[_\-\u2013\u2014]{2,}/gu, 'a word starting with $1')
+        .replace(/[_]{2,}/g, 'a word');
     if (!raw.trim()) return [];
     const { known } = tableFor(langName);
     const tokensOf = (s) => keyOf(s).split(' ').filter(Boolean);
