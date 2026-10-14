@@ -1949,7 +1949,7 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
             return meaning
                 ? `${near} means "${meaning}" — the first vowel is what separates them, and here that changes the word.`
                 : hide
-                    ? `Not ${near}: it is the first vowel, and that changes the word. It starts ${outline(t)}.`
+                    ? `Not ${near}: it is the first vowel, and that changes the word. It starts with ${outline(t)}.`
                     : `Not ${near} but ${t} — it is the first vowel, and that changes the word.`;
         }
     }
@@ -1957,31 +1957,53 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
     /* A plain near-miss: one letter out, and not one of the distinctions above.
        Saying "a word is missing" about a word they very nearly wrote is the kind
        of unhelpful accuracy that sends a learner looking in the wrong place. */
-    for (const t of need) {
-        if (got.includes(t)) continue;
-        const near = got.find(g => Math.min(g.length, t.length) >= 3 && levenshtein(g, t) <= 1);
-        if (near) return hide
-            ? `Close — you wrote ${near}; the word you want starts ${outline(t)}.`
-            : `Close — you wrote ${near}, and the word is ${t}.`;
-    }
+    const nearMiss = () => {
+        for (const t of need) {
+            if (got.includes(t)) continue;
+            const near = got.find(g => Math.min(g.length, t.length) >= 3 && levenshtein(g, t) <= 1);
+            if (near) return hide
+                ? `Close, you wrote ${near}; the word you want starts with ${outline(t)}.`
+                : `${opts.clean ? 'Close, ' : 'Close — '}you wrote ${near}, and the word is ${t}.`;
+        }
+        return null;
+    };
 
     // A word simply absent.
     const missing = need.filter(t => !got.some(g => g === t || canon(g) === canon(t)
+        || (Math.min(g.length, t.length) >= 3 && levenshtein(g, t) <= 1)
+        || (opts.clean && Math.min(g.length, t.length) >= 5 && levenshtein(g, t) <= 2)
         || (Math.min(g.length, t.length) >= 4 && isSpellingSlip(g, t))));
-    if (missing.length === 1) {
-        const meaning = meanings.get(missing[0]) || meanings.get(canon(missing[0]));
-        return meaning
-            ? `The word for "${meaning}" is missing.`
-            : 'One word of the answer is missing.';
-    }
-    if (missing.length > 1 && missing.length < need.length) {
-        return `${missing.length} of the words are missing.`;
-    }
+    const absent = () => {
+        if (missing.length === 1) {
+            const meaning = meanings.get(missing[0]) || meanings.get(canon(missing[0]));
+            return meaning
+                ? `The word for "${meaning}" is missing.`
+                : 'One word of the answer is missing.';
+        }
+        if (missing.length > 1 && missing.length < need.length) {
+            return `${missing.length} of the words are missing.`;
+        }
+        return null;
+    };
+    /* Step mode ranks a missing word above a typo: a learner told only that
+       *ivatte* is nearly right fixes one letter and is marked wrong again for
+       the word they never wrote. Chat keeps its order. A one-letter slip no
+       longer counts as "missing" either way — it is the word, misspelt. */
+    const first = opts.clean ? (absent() || nearMiss()) : (nearMiss() || absent());
+    if (first) return first;
 
     // A misspelling, and nothing else.
     for (const t of need) {
         const slip = got.find(g => Math.min(g.length, t.length) >= 4 && isSpellingSlip(g, t));
-        if (slip) return hide ? `Close — check the vowels in ${slip}.` : `Close — check the vowels in ${t}.`;
+        if (slip) return hide ? `Close, check the vowels in ${slip}.` : `${opts.clean ? 'Close, ' : 'Close — '}check the vowels in ${t}.`;
+    }
+    /* Two letters out (*kesala* for *kelasa*): still the word, misspelt. */
+    if (opts.clean) {
+        for (const t of need) {
+            if (got.includes(t)) continue;
+            const slip = got.find(g => Math.min(g.length, t.length) >= 5 && levenshtein(g, t) <= 2);
+            if (slip) return hide ? `Close, check the spelling of ${slip}.` : `Close, you wrote ${slip}, and the word is ${t}.`;
+        }
     }
     return null;
 };
@@ -2217,8 +2239,6 @@ export const missHelp = (said, expected, {
     variants = [], lexicon = new Map(), taughtLessons = [], families = [],
     meaning = '', reveal = false, language = '', knownWords = [], endings = null,
 } = {}) => {
-    const fallback = () => explainMiss(said, expected, variants, lexicon,
-        { hideAnswer: !reveal, clean: true });
     const { synonyms } = asLexicon(lexicon);
     const canon = (t) => synonyms.get(t) || t;
     const taught = taughtWords(taughtLessons);
@@ -2227,10 +2247,38 @@ export const missHelp = (said, expected, {
         .filter(t => t && !/[[\]()]/.test(t));
     const got = normalizeLatin(said).split(' ').filter(Boolean);
     const scaffold = reveal ? '' : missScaffold(said, expected, lexicon);
-    if (!need.length || !got.length) return { line: fallback(), family: null, scaffold, pairs: [] };
-
     const has = (list, t) => list.some(x => x === t || canon(x) === canon(t));
     const missing = need.filter(t => !has(got, t));
+    /* A typo of a needed word: *ivatte* for *ivattu*, *kesala* for *kelasa*. */
+    const typo = (g, t) => Math.min(g.length, t.length) >= 3
+        && (levenshtein(g, t) <= (Math.min(g.length, t.length) >= 5 ? 2 : 1)
+            || (Math.min(g.length, t.length) >= 4 && isSpellingSlip(g, t)));
+    /* One line leads — the most important problem — and at most one short
+       line follows for the rest. A learner who wrote *Ivatte, naanu kesala
+       hogittene* made three mistakes and was told about the smallest, the
+       one-letter slip in *ivatte*; fixing it left the wrong verb standing.
+       Order: a wrong meaning, a wrong ending, a missing word, word order, and
+       spelling last — spelling is what the follow-up line is for. */
+    const finish = (line, { skip = [], ending = false } = {}) => {
+        if (!line || ending) return line;
+        const plain = ` ${normalizeLatin(line.replace(/\*/g, ''))} `;
+        const said = (g) => plain.includes(` ${g} `);
+        const slips = got.filter(g => !has(need, g) && !skip.includes(g) && !said(g)
+            && missing.some(t => typo(g, t)));
+        const gone = got.length < need.length && !/\bmissing\b/.test(line)
+            ? missing.filter(t => !used.has(t) && !got.some(g => typo(g, t))) : [];
+        const goneGloss = gone.length === 1 && taught.get(gone[0]) ? glossFor(taught.get(gone[0]).meaning, meaning) : '';
+        const parts = [];
+        if (gone.length) parts.push(goneGloss ? `the word for ${goneGloss} is missing` : `${gone.length === 1 ? 'a word is' : `${gone.length} words are`} missing`);
+        if (slips.length) parts.push(`check the spelling of ${slips.map(g => `*${g}*`).join(' and ')}`);
+        if (!parts.length) return line;
+        const also = parts.length === 2 ? `Also, ${parts[0]}, and ${parts[1]}.` : `Also ${parts[0]}.`;
+        return `${line} ${also.replace(/^Also the/, 'Also, the').replace(/^Also a word/, 'Also, a word').replace(/^Also (\d)/, 'Also, $1')}`;
+    };
+    const used = new Set();
+    const fallback = () => finish(explainMiss(said, expected, variants, lexicon,
+        { hideAnswer: !reveal, clean: true }));
+    if (!need.length || !got.length) return { line: fallback(), family: null, scaffold, pairs: [] };
     /* The answer word as the course writes it, and its first-letter outline. */
     const shownWord = (t) => (String(expected).split(/\s+/)
         .find(x => normalizeLatin(x) === t) || t).replace(/[^\p{L}\p{N}'’-]/gu, '') || t;
@@ -2239,7 +2287,7 @@ export const missHelp = (said, expected, {
     const endingLine = endingMiss(got, need, {
         endings, lessonNo: taughtLessons.length, taught, answerFor, reveal,
     });
-    if (endingLine) return { line: endingLine, family: null, scaffold, pairs: [] };
+    if (endingLine) return { line: finish(endingLine, { ending: true }), family: null, scaffold, pairs: [] };
     /* A wrong word that is really a misspelling, a changed ending or a flipped
        first vowel of a needed word is the grader's business, and
        `explainMiss` already names those exactly. A glossary word is not: *ivu*
@@ -2248,8 +2296,25 @@ export const missHelp = (said, expected, {
         || differsOnlyByPersonEnding(g, t) || differsOnlyByDeicticInitial(g, t)
         || ((g.startsWith(t) || t.startsWith(g)) && Math.min(g.length, t.length) >= 3);
     const entryOf = (g) => taught.get(g) || (known.has(g) ? known.get(g) : null);
-    const wrong = got.filter(g => !has(need, g) && (
-        (taught.has(g) && !missing.some(t => close(g, t))) || (!taught.has(g) && known.has(g))));
+    /* A near-form of a different taught word: *hogittene* is one letter from
+       *hoguttene*, "I go", and nowhere near *maaduttiddene*, "I am doing". It
+       is not a misspelling of the answer — the learner reached for the wrong
+       word — so it is explained by what that word means. Only when the form is
+       close to no word of the answer, and to exactly one taught word. */
+    const nearForm = new Map();
+    for (const g of got) {
+        if (has(need, g) || taught.has(g) || known.has(g) || g.length < 4) continue;
+        if (need.some(t => close(g, t) || typo(g, t))) continue;
+        const hits = [...taught.keys()].filter(k => !has(need, k) && Math.min(k.length, g.length) >= 4
+            && (levenshtein(g, k) <= (Math.min(k.length, g.length) >= 7 ? 2 : 1) || isSpellingSlip(g, k)));
+        const words = new Set(hits.map(k => taught.get(k).word));
+        if (words.size === 1) nearForm.set(g, hits[0]);
+    }
+    const wrong = got.filter(g => !has(need, g) && (nearForm.has(g)
+        || (taught.has(g) && !missing.some(t => close(g, t))) || (!taught.has(g) && known.has(g))));
+    /* Missing words that no written word is a typo of: the ones a wrong word
+       can have stood in for. */
+    const unwritten = missing.filter(t => !got.some(g => !nearForm.has(g) && typo(g, t)));
     const glossWords = new Set([...taught.values()].flatMap(e => glossParts(e.meaning))
         .filter(p => !p.includes(' ')));
     const english = got.filter(g => !has(need, g) && !taught.has(g) && !known.has(g)
@@ -2266,27 +2331,30 @@ export const missHelp = (said, expected, {
 
     const lines = [];
     let family = null;
-    const used = new Set();
     /* Which taught word stood in for which — the record that brings the pair
        back as a contrast question in a later lesson. */
     const pairs = [];
     for (const g of wrong.slice(0, 2)) {
-        const entry = entryOf(g);
-        const isKnown = !taught.has(g);
+        const near = nearForm.has(g);
+        const entry = near ? taught.get(nearForm.get(g)) : entryOf(g);
+        const isKnown = !near && !taught.has(g);
         const pool = missing.filter(t => !used.has(t));
         const myGroups = pronounGroups(entry.meaning);
         const insteadKey = isKnown && entry.instead ? normalizeLatin(entry.instead) : '';
         const t = (insteadKey && pool.find(x => x === insteadKey || canon(x) === canon(insteadKey)))
             || (!isKnown && pool.find(x => familyOf(g, x)))
             || pool.find(x => taught.get(x) && [...pronounGroups(taught.get(x).meaning)].some(i => myGroups.has(i)))
-            || (wrong.length === 1 && missing.length === 1 && !english.length
-                && got.length === need.length && got.indexOf(g) === need.indexOf(missing[0]) ? missing[0] : undefined);
+            || (wrong.length === 1 && unwritten.length === 1 && !english.length
+                && got.length === need.length && got.indexOf(g) === need.indexOf(unwritten[0]) ? unwritten[0] : undefined);
         if (t) used.add(t);
         const shown = capital(entry.word);
         const note = isKnown && entry.note ? ` (${entry.note})` : '';
-        let line = `*${shown}* means ${glossFor(entry.meaning)}${note}.`;
+        let line = near
+            ? `*${capital(g)}* sounds like *${entry.word.toLowerCase()}*, ${glossFor(entry.meaning)}.`
+            : `*${shown}* means ${glossFor(entry.meaning)}${note}.`;
         const wantEntry = t && taught.get(t);
-        if (!isKnown && wantEntry && wantEntry.word !== entry.word) pairs.push({
+        /* A near-form is not recorded as a confused pair: it may be a typo. */
+        if (!isKnown && !near && wantEntry && wantEntry.word !== entry.word) pairs.push({
             said: entry.word, saidMeaning: entry.meaning,
             needed: wantEntry.word, neededMeaning: wantEntry.meaning,
         });
@@ -2296,6 +2364,8 @@ export const missHelp = (said, expected, {
                 .map(e => glossParts(e.meaning)[0]).filter(p => p && !p.includes(' '));
             const when = entry.when.replace('{thing}', nouns[nouns.length - 1] || 'thing');
             line += ` ${when}, use the word for ${want || `“${shownWord(t)}”`}: ${answerFor(t)}.`;
+        } else if (want && near) {
+            line += ` This asks for ${want}: ${answerFor(t)}.`;
         } else if (want) {
             line += reveal ? ` This asks for ${want}: *${capital(wantEntry.word)}*.` : ` This asks for ${want}.`;
         } else if (!t && myGroups.size) {
@@ -2362,7 +2432,11 @@ export const missHelp = (said, expected, {
     }
     /* The family card marks the needed word, so on a first miss it would hand
        the answer over. It waits for the reveal. */
-    return { line: lines.join(' '), family: reveal ? family : null, scaffold, pairs };
+    const lead = lines.join(' ');
+    return {
+        line: lines.length > 1 ? lead : finish(lead, { skip: [...wrong, ...english] }),
+        family: reveal ? family : null, scaffold, pairs,
+    };
 };
 
 /* ── What the voice says ───────────────────────────────────────────────────

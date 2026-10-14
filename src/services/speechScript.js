@@ -180,6 +180,7 @@ const MISS_TEMPLATES = [
     `\\bNot ${W}(?=: it is| — it is)`,
     `^${W} means "`,
     `check the vowels in ${W}`,
+    `check the spelling of ${W}`,
     `: ${W}, not ${W}(?=\\.)`,
     `the order is not\\. ${W} (?=goes|comes)`,
     `goes right after ${W}(?:: ${P}(?=\\.))?`,

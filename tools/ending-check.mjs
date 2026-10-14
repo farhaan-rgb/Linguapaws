@@ -41,7 +41,14 @@ const CASES = [
     ['Telugu', 3, 'Nenu illu velthunnanu', 'Nenu intiki velthunnanu', false, /needs “to”: it takes \*-ki\*, like \*paniki\*/],
     ['Telugu', 3, 'Nenu inti velthunnanu', 'Nenu intiki velthunnanu', false, /needs “to”: add \*-ki\*/],
     ['Telugu', 8, 'Snehithudulu', 'Snehithudu', false, /-lu\* makes it more than one/],
-    ['Telugu', 8, 'Snehithulu', 'Snehithudu', false, /-lu\* makes it more than one/],
+    ['Telugu', 8, 'Snehithulu', 'Snehithudu', false, /-lu\* makes it more than one/],    // Ranked: the wrong-meaning word leads, the typos follow in one line.
+    ['Kannada', 12, 'Ivatte, naanu kesala hogittene', 'Ivattu naanu kelasa maaduttiddene', false, /^\*Hogittene\* sounds like \*hoguttene\*, “I go or I will go”\. This asks for “I am doing”: M____________\. Also check the spelling of \*ivatte\* and \*kesala\*\.$/, /Maaduttiddene/],
+    ['Kannada', 12, 'Ivatte, naanu kesala hogittene', 'Ivattu naanu kelasa maaduttiddene', true, /“I am doing”: \*Maaduttiddene\*\. Also check the spelling/],
+    ['Kannada', 12, 'Ivatte naanu kelasa', 'Ivattu naanu kelasa maaduttiddene', false, /^The word for "I am doing" is missing\. Also check the spelling of \*ivatte\*\.$/],
+    ['Kannada', 12, 'Ivatte naanu kelasa maaduttiddene', 'Ivattu naanu kelasa maaduttiddene', false, /^Close, you wrote ivatte; the word you want starts with I_____\.$/],
+    ['Kannada', 8, 'Ivu dodda pustaka', 'Idu dodda pustaka', false, /^\*Ivu\* means “these” \(more than one\)\. For one book, use the word for “this”: I__\.$/],
+    ['Kannada', 8, 'Neevu hesaru enu', 'Nimma hesaru enu', false, /^\*Neevu\* means “you”, said politely\. This asks for “your”\.$/],
+    ['Kannada', 8, 'Nanage oota beku illa', 'Nanage oota beda', false, /^Good thinking: \*beku\* \+ \*illa\* makes sense/],
 ];
 
 let fail = 0;
