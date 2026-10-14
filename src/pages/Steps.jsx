@@ -5,7 +5,7 @@ import {
     Mic, Square, Keyboard, Eye, MessageSquareText, BookOpen,
 } from 'lucide-react';
 
-import { CURRICULUM, WORD_FAMILIES, KNOWN_WORDS, isLanguageAvailable } from '../services/curriculum';
+import { CURRICULUM, WORD_FAMILIES, KNOWN_WORDS, WORD_ENDINGS, isLanguageAvailable } from '../services/curriculum';
 /* Explanation-only glossary of untaught words; never graded. */
 const NO_KNOWN = [];
 import * as engine from '../services/lessonEngine';
@@ -1066,7 +1066,7 @@ function StepScreen({
         const help = engine.missHelp(said, step.expected, {
             variants: step.variants, lexicon, taughtLessons, families,
             meaning: drill?.meaning || '', reveal: revealing, language: langName,
-            knownWords: KNOWN_WORDS[langName] || NO_KNOWN,
+            knownWords: KNOWN_WORDS[langName] || NO_KNOWN, endings: WORD_ENDINGS[langName] || null,
         });
         /* A taught word said in place of the needed one is remembered, so the
            pair comes back as a contrast screen in a later lesson. First miss on
@@ -1112,7 +1112,7 @@ function StepScreen({
             const help = engine.missHelp(lastWrongRef.current, step.expected, {
                 variants: step.variants, lexicon, taughtLessons, families,
                 meaning: drill?.meaning || '', reveal: true, language: langName,
-                knownWords: KNOWN_WORDS[langName] || NO_KNOWN,
+                knownWords: KNOWN_WORDS[langName] || NO_KNOWN, endings: WORD_ENDINGS[langName] || null,
             });
             setFamily(help.family);
             if (help.line) setDiagnosis(help.line);
@@ -1353,7 +1353,15 @@ function StepScreen({
                                         <MicRow status={voice.status} onTap={listen} heard={!!heardMiss} />
                                     </div>
                                 )}
+                                {/* A form, so a phone keyboard's Enter submits. Android keyboards
+                                    send Enter mid-autocorrect as a composing key (229) that the
+                                    document handler rightly ignores; the form's own submit still
+                                    fires. On a laptop the handler takes Enter first and prevents
+                                    this, so the answer is never checked twice. */}
+                                <form onSubmit={(e) => { e.preventDefault(); if (!settled) check(); }}
+                                    style={{ margin: 0 }}>
                                 <input
+                                    enterKeyHint="go"
                                     ref={inputRef}
                                     value={answer}
                                     onChange={e => {
@@ -1377,6 +1385,7 @@ function StepScreen({
                                         transition: 'border-color 0.2s',
                                     }}
                                 />
+                                </form>
                                 {heardMiss && !troubleNote && (
                                     <p style={{
                                         margin: '8px 2px 0', fontSize: 12.5, lineHeight: 1.5,
