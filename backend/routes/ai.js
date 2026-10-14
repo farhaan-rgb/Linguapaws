@@ -462,49 +462,75 @@ router.post('/transcribe', async (req, res) => {
         let usedModel = null;
         const attempts = [];
 
-        for (const rung of ladder) {
-            if (rung.engine === 'deepgram' && !process.env.DEEPGRAM_API_KEY) continue;
+        /* One engine call, returning its transcript ('' for heard-nothing).
+           Errors are caught into the result so a call nobody waits for — the
+           second engine, when the first already answered — can never become
+           an unhandled rejection. */
+        const runRung = async (rung) => {
             const startedAt = Date.now();
             try {
-                if (rung.engine === 'deepgram') {
-                    const { result, error } = await getDeepgram().listen.prerecorded.transcribeFile(
-                        buffer,
-                        {
+                const text = await (async () => {
+                    if (rung.engine === 'deepgram') {
+                        const { result, error } = await getDeepgram().listen.prerecorded.transcribeFile(
+                            buffer,
+                            {
+                                model: rung.model,
+                                language: rung.code,
+                                smart_format: true,
+                                punctuate: true,
+                                /* A phrase hint, where the screen knows its own
+                                   answer. Only useful when the target is spelled the
+                                   way the engine writes it, which for an Indic
+                                   language it is not — kept because it costs nothing
+                                   and helps on the English turns. */
+                                ...(targetText ? { search: [String(targetText).toLowerCase()] } : {}),
+                                ...(expectingTargetLang ? { filler_words: false } : {}),
+                            }
+                        );
+                        if (error) throw error;
+                        return (result?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '').trim();
+                    } else {
+                        const file = await OpenAI.toFile(buffer, `audio.${ext}`, { type: mimeType });
+                        const prompt = expectingTargetLang && targetLangName
+                            ? `The user is speaking ${targetLangName}.${targetText ? ` The expected phrase is: ${targetText}` : ''}`
+                            : (nativeLangName ? `The user is speaking ${nativeLangName} or English.` : undefined);
+                        const transcription = await getClient().audio.transcriptions.create({
+                            file,
                             model: rung.model,
                             language: rung.code,
-                            smart_format: true,
-                            punctuate: true,
-                            /* A phrase hint, where the screen knows its own
-                               answer. Only useful when the target is spelled the
-                               way the engine writes it, which for an Indic
-                               language it is not — kept because it costs nothing
-                               and helps on the English turns. */
-                            ...(targetText ? { search: [String(targetText).toLowerCase()] } : {}),
-                            ...(expectingTargetLang ? { filler_words: false } : {}),
-                        }
-                    );
-                    if (error) throw error;
-                    rawText = (result?.results?.channels?.[0]?.alternatives?.[0]?.transcript || '').trim();
-                } else {
-                    const file = await OpenAI.toFile(buffer, `audio.${ext}`, { type: mimeType });
-                    const prompt = expectingTargetLang && targetLangName
-                        ? `The user is speaking ${targetLangName}.${targetText ? ` The expected phrase is: ${targetText}` : ''}`
-                        : (nativeLangName ? `The user is speaking ${nativeLangName} or English.` : undefined);
-                    const transcription = await getClient().audio.transcriptions.create({
-                        file,
-                        model: rung.model,
-                        language: rung.code,
-                        ...(prompt ? { prompt } : {}),
-                    });
-                    rawText = (transcription.text || '').trim();
-                }
+                            ...(prompt ? { prompt } : {}),
+                        });
+                        return (transcription.text || '').trim();
+                    }
+                })();
+                return { text, ms: Date.now() - startedAt };
             } catch (err) {
+                return { err, ms: Date.now() - startedAt };
+            }
+        };
+
+        /* The first two engines are asked at once rather than in turn. When
+           the first hears nothing — Deepgram does return '' on audio another
+           engine reads cleanly — the second has already been working, so the
+           learner does not wait for it from scratch (it added 1–5 s). Later
+           rungs still start only if both come back empty. The first engine's
+           answer is preferred whenever it has one, exactly as before. */
+        const eligible = ladder.filter(r => r.engine !== 'deepgram' || process.env.DEEPGRAM_API_KEY);
+        const pending = eligible.map((r, i) => (i < 2 ? runRung(r) : null));
+        let heardNothing = 0;
+        for (let i = 0; i < eligible.length; i++) {
+            const rung = eligible[i];
+            /* Two engines that both answered "" heard silence. A third was
+               spending 8 s on a silent clip to agree with them, so later rungs
+               are kept for when the first ones failed, not when they heard
+               nothing. */
+            if (!pending[i] && heardNothing >= 2) break;
+            const { text, err, ms } = await (pending[i] || runRung(rung));
+            if (err) {
                 attempts.push(`${rung.engine}/${rung.model} threw ${err.name}: ${err.message}`);
-                rawText = null;
                 continue;
             }
-
-            const ms = Date.now() - startedAt;
+            rawText = (text || '').trim() || null;
             if (rawText) {
                 usedEngine = rung.engine;
                 usedModel = rung.model;
@@ -512,9 +538,8 @@ router.post('/transcribe', async (req, res) => {
                 break;
             }
             /* A successful call that heard nothing. Worth a line: it is
-               indistinguishable from silence at the microphone otherwise, and
-               Deepgram does return an empty string with confidence 0.000 on
-               audio that another engine transcribes cleanly. */
+               indistinguishable from silence at the microphone otherwise. */
+            heardNothing += 1;
             attempts.push(`${rung.engine}/${rung.model} returned empty after ${ms}ms`);
         }
 

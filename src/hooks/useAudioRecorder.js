@@ -19,7 +19,7 @@ export const VAD = {
     /** No speech by now: stop, and call it nothing heard. */
     noSpeechMs: 2500,
     /** This much continuous quiet after speech ends the recording. */
-    silenceMs: 1000,
+    silenceMs: 700,
     /** Whatever happens, never longer than this. */
     maxMs: 6000,
     /** Above this for `speechHoldMs` counts as speech having started. */
