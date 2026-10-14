@@ -160,7 +160,11 @@ export const CURRICULUM = {
                 { word: "Snehithudu", native: "స్నేహితుడు", meaning: "Friend", phonetic: "snay-hih-tu-du" },
                 { word: "Guruvu", native: "గురువు", meaning: "Teacher", phonetic: "gu-ru-vu" },
                 { word: "Thammudu", native: "తమ్ముడు", meaning: "Younger Brother", phonetic: "thum-mu-du" },
-                { word: "Akka", native: "అక్క", meaning: "Elder Sister", phonetic: "uhk-kuh" }
+                { word: "Akka", native: "అక్క", meaning: "Elder Sister", phonetic: "uhk-kuh",
+                  examples: [
+                    { text: "Mee akka evaru?", native: "మీ అక్క ఎవరు?", meaning: "Who is your elder sister?" },
+                  ]
+                }
             ],
             phrases: [
                 { prompt: "Ask 'Who is he?'", correct: "Ayana evaru?", native: "ఆయన ఎవరు?", grammarNote: "*Evaru* (“who”) goes at the end. Use *ayana* for a person, not *idhi*: *idhi* is for things, and using it for a person is rude.", meaning: "Who is he?", hint: "He + who?", acceptable: ["ame evaru?"] },
@@ -183,8 +187,16 @@ export const CURRICULUM = {
                   teach: "“One” is {w}. Before a thing it becomes *oka*: *oka pusthakam*, “one book”, just like *idhi* becomes *ee*." },
                 { word: "Rendu", native: "రెండు", meaning: "Two", phonetic: "rehn-du" },
                 { word: "Moodu", native: "మూడు", meaning: "Three", phonetic: "moo-du" },
-                { word: "Naalugu", native: "నాలుగు", meaning: "Four", phonetic: "naa-lu-gu" },
-                { word: "Aidhu", native: "ఐదు", meaning: "Five", phonetic: "eye-du" }
+                { word: "Naalugu", native: "నాలుగు", meaning: "Four", phonetic: "naa-lu-gu",
+                  examples: [
+                    { text: "Naalugu kaavali", native: "నాలుగు కావాలి", meaning: "I want four" },
+                  ]
+                },
+                { word: "Aidhu", native: "ఐదు", meaning: "Five", phonetic: "eye-du",
+                  examples: [
+                    { text: "Naaku aidhu kaavali", native: "నాకు ఐదు కావాలి", meaning: "I want five" },
+                  ]
+                }
             ],
             phrases: [
                 { prompt: "Say 'One book'", correct: "Oka pusthakam", native: "ఒక పుస్తకం", meaning: "One book", hint: "One + book", acceptable: ["okati pusthakam"],
@@ -208,12 +220,20 @@ export const CURRICULUM = {
             color: "#fff1f2",
             vocabulary: [
                 { word: "Lu", native: "లు", meaning: "(Plural suffix)", phonetic: "lu",
-                  teach: "Add {w} to mean more than one. Ends in a vowel? Add -lu: *kurchi* → *kurchilu*. Ends in -am? Swap for -alu: *pusthakam* → *pusthakalu*. Ends in -udu? Swap for -ulu: *snehithudu* → *snehithulu*." },
+                  teach: "Add {w} to mean more than one. Ends in a vowel? Add -lu: *kurchi* → *kurchilu*. Ends in -am? Swap for -alu: *pusthakam* → *pusthakalu*. Ends in -udu? Swap for -ulu: *snehithudu* → *snehithulu*.",
+                  examples: [
+                    { text: "Naa guruvulu", native: "నా గురువులు", meaning: "My teachers (guruvu + lu)" },
+                  ]
+                },
                 { word: "Pusthakalu", native: "పుస్తకాలు", meaning: "Books", phonetic: "pus-tuh-kaa-lu" },
                 { word: "Chala", native: "చాలా", meaning: "Many / very", phonetic: "chaa-laa", alt: ["chaala"],
                   teach: "{w} means “many” or “very”. *Chala pusthakalu*: “many books”." },
                 { word: "Snehithulu", native: "స్నేహితులు", meaning: "Friends", phonetic: "snay-hih-tu-lu" },
-                { word: "Guruvulu", native: "గురువులు", meaning: "Teachers", phonetic: "gu-ru-vu-lu", teach: "*Guruvu* + -lu gives {w}, “teachers”." },
+                { word: "Guruvulu", native: "గురువులు", meaning: "Teachers", phonetic: "gu-ru-vu-lu", teach: "*Guruvu* + -lu gives {w}, “teachers”.",
+                  examples: [
+                    { text: "Guruvulu ekkada?", native: "గురువులు ఎక్కడ?", meaning: "Where are the teachers?" },
+                  ]
+                },
                 { word: "Kurchilu", native: "కుర్చీలు", meaning: "Chairs", phonetic: "kur-chee-lu", alt: ["kurchi"],
                   teach: "One chair is *kurchi*; more than one is {w}. It ends in a vowel, so just add -lu." }
             ],
@@ -242,12 +262,22 @@ export const CURRICULUM = {
             color: "#ecfdf5",
             vocabulary: [
                 { word: "Pedda", native: "పెద్ద", meaning: "Big", phonetic: "pehd-duh" },
-                { word: "Chinna", native: "చిన్న", meaning: "Small", phonetic: "chin-nuh" },
+                { word: "Chinna", native: "చిన్న", meaning: "Small", phonetic: "chin-nuh",
+                  examples: [
+                    { text: "Chinna illu", native: "చిన్న ఇల్లు", meaning: "A small house" },
+                    { text: "Idhi chinna pusthakam", native: "ఇది చిన్న పుస్తకం", meaning: "This is a small book" },
+                  ]
+                },
                 { word: "Manchi", native: "మంచి", meaning: "Good", phonetic: "mun-chih" },
                 { word: "Chedu", native: "చెడు", meaning: "Bad", phonetic: "cheh-du" },
                 { word: "Vedi", native: "వేడి", meaning: "Hot", phonetic: "vay-dih" },
                 { word: "Bagundi", native: "బాగుంది", meaning: "It is good", phonetic: "baa-gun-dih",
-                  teach: "{w} means “it is good”: *baga* (“well”) + *undi* (“it is”). Use it for a meal, a day, a film." }
+                  teach: "{w} means “it is good”: *baga* (“well”) + *undi* (“it is”). Use it for a meal, a day, a film.",
+                  examples: [
+                    { text: "Idhi bagundi", native: "ఇది బాగుంది", meaning: "This is good" },
+                    { text: "Annam bagundi", native: "అన్నం బాగుంది", meaning: "The food is good" },
+                  ]
+                }
             ],
             phrases: [
                 { prompt: "Say 'Big house'", correct: "Pedda illu", native: "పెద్ద ఇల్లు", meaning: "Big house", hint: "Big + house" },
@@ -271,7 +301,11 @@ export const CURRICULUM = {
                 { word: "Billu", native: "బిల్లు", meaning: "Bill", phonetic: "bihl-lu" },
                 { word: "Ivvandi", native: "ఇవ్వండి", meaning: "Give (please)", phonetic: "ihv-vun-dih", teach: "A polite “please give” is {w}." },
                 { word: "Dhanyavaadaalu", native: "ధన్యవాదాలు", meaning: "Thank you", phonetic: "dhun-yuh-vaa-daa-lu", alt: ["dhanyavadalu", "danyavadhalu"] },
-                { word: "Kurchondi", native: "కూర్చోండి", meaning: "Sit (please)", phonetic: "koor-choh-ndih", teach: "A polite “please sit” is {w}." },
+                { word: "Kurchondi", native: "కూర్చోండి", meaning: "Sit (please)", phonetic: "koor-choh-ndih", teach: "A polite “please sit” is {w}.",
+                  examples: [
+                    { text: "Ikkada kurchondi", native: "ఇక్కడ కూర్చోండి", meaning: "Please sit here" },
+                  ]
+                },
                 { word: "Mariyu", native: "మరియు", meaning: "And", phonetic: "muh-rih-yu",
                   teach: "{w} means “and”: *bhojanam mariyu neeru*. In everyday speech people often leave it out." }
             ],
@@ -301,7 +335,11 @@ export const CURRICULUM = {
                 { word: "Ippudu", native: "ఇప్పుడు", meaning: "Now", phonetic: "ihp-pu-du" },
                 { word: "Pani", native: "పని", meaning: "Work", phonetic: "puh-nih", alt: ["paniki"] },
                 { word: "Unnanu", native: "ఉన్నాను", meaning: "I am", phonetic: "un-naa-nu",
-                  teach: "{w} means “I am”, and it's the end of every word in this lesson. *Chestu* + *unnanu* = “I am doing”. Swap to *unnaru* and it means “you are”." }
+                  teach: "{w} means “I am”, and it's the end of every word in this lesson. *Chestu* + *unnanu* = “I am doing”. Swap to *unnaru* and it means “you are”.",
+                  examples: [
+                    { text: "Nenu ikkada unnanu", native: "నేను ఇక్కడ ఉన్నాను", meaning: "I am here" },
+                  ]
+                }
             ],
             phrases: [
                 { prompt: "Say 'I am doing work'", correct: "Nenu pani chestunnanu", native: "నేను పని చేస్తున్నాను", grammarNote: "The -nu at the end of *chestunnanu* means “I”. One word does the job of three English ones.", meaning: "I am doing work", hint: "I + work + doing" },
@@ -320,11 +358,23 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Eeroju", native: "ఈరోజు", meaning: "Today", phonetic: "ee-roh-ju" },
                 { word: "Repu", native: "రేపు", meaning: "Tomorrow", phonetic: "ray-pu" },
-                { word: "Ninna", native: "నిన్న", meaning: "Yesterday", phonetic: "nihn-nuh" },
-                { word: "Appudu", native: "అప్పుడు", meaning: "Then", phonetic: "uhp-pu-du" },
+                { word: "Ninna", native: "నిన్న", meaning: "Yesterday", phonetic: "nihn-nuh",
+                  examples: [
+                    { text: "Ninna, eeroju, repu", native: "నిన్న, ఈరోజు, రేపు", meaning: "Yesterday, today, tomorrow" },
+                  ]
+                },
+                { word: "Appudu", native: "అప్పుడు", meaning: "Then", phonetic: "uhp-pu-du",
+                  examples: [
+                    { text: "Appudu nenu intiki velthunnanu", native: "అప్పుడు నేను ఇంటికి వెళ్తున్నాను", meaning: "Then I am going home" },
+                  ]
+                },
                 { word: "Ganta", native: "గంట", meaning: "Hour", phonetic: "gun-tuh" },
                 { word: "Tharuvatha", native: "తరువాత", meaning: "Later / after", phonetic: "thuh-ru-vaa-thuh",
-                  teach: "{w} means “later”. Put it where *ippudu* (“now”) goes: before the action word, not at the end." }
+                  teach: "{w} means “later”. Put it where *ippudu* (“now”) goes: before the action word, not at the end.",
+                  examples: [
+                    { text: "Tharuvatha nenu intiki velthunnanu", native: "తరువాత నేను ఇంటికి వెళ్తున్నాను", meaning: "Later I am going home" },
+                  ]
+                }
             ],
             phrases: [
                 { prompt: "Say 'Today I am going'", correct: "Eeroju nenu velthunnanu", native: "ఈరోజు నేను వెళ్తున్నాను", meaning: "Today I am going", hint: "Today + I + going" },
@@ -349,7 +399,11 @@ export const CURRICULUM = {
                   teach: "{w} means “I went”. The start of the word changes in ways you can't predict: *vellu* (“go”) → *vellanu*, “eat” → *thinnanu*, “see” → *chusanu*. Learn each one; the ending stays the same." },
                 { word: "Thinnanu", native: "తిన్నాను", meaning: "I ate", phonetic: "thihn-naa-nu" },
                 { word: "Chusanu", native: "చూశాను", meaning: "I saw", phonetic: "choo-saa-nu" },
-                { word: "Cheppanu", native: "చెప్పాను", meaning: "I spoke / I said", phonetic: "chehp-paa-nu" }
+                { word: "Cheppanu", native: "చెప్పాను", meaning: "I spoke / I said", phonetic: "chehp-paa-nu",
+                  examples: [
+                    { text: "Nenu adhi cheppanu", native: "నేను అది చెప్పాను", meaning: "I said that" },
+                  ]
+                }
             ],
             phrases: [
                 { prompt: "Say 'I went home'", correct: "Nenu intiki vellanu", native: "నేను ఇంటికి వెళ్ళాను", grammarNote: "Change the -nu and you change who did it: *chesaru* is “you did”, *chesadu* is “he did”.", meaning: "I went home", hint: "I + home + went" },
@@ -397,7 +451,12 @@ export const CURRICULUM = {
                 { word: "Andhuke", native: "అందుకే", meaning: "That's why", phonetic: "uhn-du-kay" },
                 { word: "Ishtam", native: "ఇష్టం", meaning: "Like", phonetic: "ihsh-tum" },
                 { word: "Ledu", native: "లేదు", meaning: "No/Not", phonetic: "lay-du", teach: "“No” is {w}." },
-                { word: "Bhayam", native: "భయం", meaning: "Fear", phonetic: "bhuh-yum" }
+                { word: "Bhayam", native: "భయం", meaning: "Fear", phonetic: "bhuh-yum",
+                  examples: [
+                    { text: "Naaku bhayam", native: "నాకు భయం", meaning: "I am scared" },
+                    { text: "Naaku bhayam ledu", native: "నాకు భయం లేదు", meaning: "I am not scared" },
+                  ]
+                }
             ],
             phrases: [
                 { prompt: "Ask 'Why?' about something.", correct: "Adhi enduku?", native: "అది ఎందుకు?", grammarNote: "*Enduku* (“why”) often comes first, but it can go at the end too: *adhi enduku* is the everyday way. *Ledu* also means “is not” or “there isn't”.", meaning: "Why is that?", hint: "That + why?", acceptable: ["enduku?"] },
@@ -464,7 +523,11 @@ export const CURRICULUM = {
                 { word: "Niddra", native: "నిద్ర", meaning: "Sleep", phonetic: "nihd-ruh" },
                 { word: "Snanam", native: "స్నానం", meaning: "Bath", phonetic: "snaa-num" },
                 { word: "Pani", native: "పని", meaning: "Work", phonetic: "puh-nih" },
-                { word: "Melukonu", native: "మేలుకొను", meaning: "Wake up", phonetic: "may-lu-ko-nu" },
+                { word: "Melukonu", native: "మేలుకొను", meaning: "Wake up", phonetic: "may-lu-ko-nu",
+                  examples: [
+                    { text: "Ippudu melukonu", native: "ఇప్పుడు మేలుకొను", meaning: "Wake up now" },
+                  ]
+                },
                 { word: "Vanta", native: "వంట", meaning: "Cook", phonetic: "vun-tuh" }
             ],
             phrases: [
@@ -553,11 +616,23 @@ export const CURRICULUM = {
         {
             scenario: "The 'Can' & 'Can't'",
             vocabulary: [
-                { word: "Galanu", native: "గలను", meaning: "Can", phonetic: "guh-luh-nu", teach: "{w} is the ending for “I can”." },
-                { word: "Lenu", native: "లేను", meaning: "Can't", phonetic: "lay-nu", teach: "{w} is the ending for “I can’t”." },
+                { word: "Galanu", native: "గలను", meaning: "Can", phonetic: "guh-luh-nu", teach: "{w} is the ending for “I can”.",
+                  examples: [
+                    { text: "Nenu ippudu cheyagalanu", native: "నేను ఇప్పుడు చేయగలను", meaning: "I can do it now" },
+                  ]
+                },
+                { word: "Lenu", native: "లేను", meaning: "Can't", phonetic: "lay-nu", teach: "{w} is the ending for “I can’t”.",
+                  examples: [
+                    { text: "Repu nenu cheyalenu", native: "రేపు నేను చేయలేను", meaning: "I can't do it tomorrow" },
+                  ]
+                },
                 { word: "Cheyagalanu", native: "చేయగలను", meaning: "I can do", phonetic: "chay-yuh-guh-luh-nu", teach: "“I can do” is {w}." },
                 { word: "Cheyalenu", native: "చేయలేను", meaning: "I can't do", phonetic: "chay-yuh-lay-nu", teach: "And “I can't do” is {w}: same start, other ending." },
-                { word: "Matladagalanu", native: "మాట్లాడగలను", meaning: "I can speak", phonetic: "maat-laa-duh-guh-luh-nu" },
+                { word: "Matladagalanu", native: "మాట్లాడగలను", meaning: "I can speak", phonetic: "maat-laa-duh-guh-luh-nu",
+                  examples: [
+                    { text: "Nenu mellaga matladagalanu", native: "నేను మెల్లగా మాట్లాడగలను", meaning: "I can speak slowly" },
+                  ]
+                },
                 { word: "Sahaayam", native: "సహాయం", meaning: "Help", phonetic: "suh-haa-yum" }
             ],
             phrases: [
@@ -579,11 +654,19 @@ export const CURRICULUM = {
         {
             scenario: "Should & Must",
             vocabulary: [
-                { word: "Aali", native: "ఆలి", meaning: "(Must suffix)", phonetic: "aa-lih", teach: "Add {w} to the end of a word to mean “must”." },
+                { word: "Aali", native: "ఆలి", meaning: "(Must suffix)", phonetic: "aa-lih", teach: "Add {w} to the end of a word to mean “must”.",
+                  examples: [
+                    { text: "Nenu repu vellali", native: "నేను రేపు వెళ్ళాలి", meaning: "I must go tomorrow" },
+                  ]
+                },
                 { word: "Cheyali", native: "చేయాలి", meaning: "Must do", phonetic: "chay-yaa-lih" },
                 { word: "Vellali", native: "వెళ్ళాలి", meaning: "Must go", phonetic: "vehl-laa-lih" },
                 { word: "Thinali", native: "తినాలి", meaning: "Must eat", phonetic: "thih-naa-lih" },
-                { word: "Matladali", native: "మాట్లాడాలి", meaning: "Must speak", phonetic: "maat-laa-daa-lih" }
+                { word: "Matladali", native: "మాట్లాడాలి", meaning: "Must speak", phonetic: "maat-laa-daa-lih",
+                  examples: [
+                    { text: "Meeru mellaga matladali", native: "మీరు మెల్లగా మాట్లాడాలి", meaning: "You must speak slowly" },
+                  ]
+                }
             ],
             phrases: [
                 { prompt: "Say 'I must go'", correct: "Nenu vellali", native: "నేను వెళ్ళాలి", grammarNote: "Add *-aali* to mean “must”: *cheyali* is “must do”, *vellali* is “must go”.", meaning: "I must go", hint: "I + must go" },
@@ -623,7 +706,11 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Unte", native: "ఉంటే", meaning: "If there is", phonetic: "un-tay" },
                 { word: "Velthe", native: "వెళ్తే", meaning: "If going", phonetic: "vehl-thay" },
-                { word: "Thinte", native: "తింటే", meaning: "If eating", phonetic: "tihn-tay" },
+                { word: "Thinte", native: "తింటే", meaning: "If eating", phonetic: "tihn-tay",
+                  examples: [
+                    { text: "Meeru thinte, nenu tintanu", native: "మీరు తింటే, నేను తింటాను", meaning: "If you eat, I will eat" },
+                  ]
+                },
                 { word: "Chesthe", native: "చేస్తే", meaning: "If doing", phonetic: "chays-thay" },
                 { word: "Appudu", native: "అప్పుడు", meaning: "Then", phonetic: "uhp-pu-du" }
             ],
@@ -762,13 +849,25 @@ export const CURRICULUM = {
             opener: "Last one. 🐾 Thirty lessons ago you had no Telugu at all — let's finish the way you would actually finish a conversation.",
             farewell: "Selavu! 🐾 That is the course — thirty lessons, and you closed it in Telugu. You can greet someone, say where you are and where you are from, ask what a thing is and what it costs, talk about yesterday and tomorrow, say what you can and cannot do, and say how you feel. Dhanyavaadaalu for the company.",
             vocabulary: [
-                { word: "Perigaanu", native: "పెరిగాను", meaning: "I grew up", phonetic: "peh-rih-gaa-nu" },
-                { word: "Nundi", native: "నుండి", meaning: "From", phonetic: "nun-dih", teach: "“From” is {w}, and it comes AFTER the place: *Hyderabad nundi*." },
+                { word: "Perigaanu", native: "పెరిగాను", meaning: "I grew up", phonetic: "peh-rih-gaa-nu",
+                  examples: [
+                    { text: "Nenu ikkada perigaanu", native: "నేను ఇక్కడ పెరిగాను", meaning: "I grew up here" },
+                  ]
+                },
+                { word: "Nundi", native: "నుండి", meaning: "From", phonetic: "nun-dih", teach: "“From” is {w}, and it comes AFTER the place: *Hyderabad nundi*.",
+                  examples: [
+                    { text: "Meeru ekkada nundi?", native: "మీరు ఎక్కడ నుండి?", meaning: "Where are you from?" },
+                  ]
+                },
                 { word: "Selavu", native: "సెలవు", meaning: "Goodbye", phonetic: "seh-luh-vu",
                   teach: "{w} is how you say goodbye. Add *dhanyavaadaalu* from lesson 10 to end any conversation." },
                 { word: "Aakhari", native: "ఆఖరి", meaning: "Last / final", phonetic: "aa-khuh-rih" },
                 { word: "Malli", native: "మళ్ళీ", meaning: "Again", phonetic: "mul-lih",
-                  teach: "{w} means “again”." }
+                  teach: "{w} means “again”.",
+                  examples: [
+                    { text: "Nenu repu malli velthanu", native: "నేను రేపు మళ్ళీ వెళ్తాను", meaning: "I will go again tomorrow" },
+                  ]
+                }
             ],
             phrases: [
                 { prompt: "Say 'I can speak Telugu'", correct: "Nenu Telugu matladagalanu", native: "నేను తెలుగు మాట్లాడగలను", meaning: "I can speak Telugu", hint: "I + Telugu + speak + can",
@@ -803,9 +902,17 @@ export const CURRICULUM = {
                   teach: "“You” is {w}. Use it with someone you respect, or when talking to more than one person." },
                 { word: "Chennagiddeeni", native: "ಚೆನ್ನಾಗಿದ್ದೀನಿ", meaning: "I am fine", phonetic: "chehn-naa-gih-dee-nih", alt: ["chennagiddini", "chennagidini", "chennagiddene", "chennagidddeeni"],
                   teach: "“I am fine” is {w}. One word, a whole sentence. Learn it as one piece for now." },
-                { word: "Hege", native: "ಹೇಗೆ", meaning: "How", phonetic: "hay-geh" },
+                { word: "Hege", native: "ಹೇಗೆ", meaning: "How", phonetic: "hay-geh",
+                  examples: [
+                    { text: "Neevu hege iddeera?", native: "ನೀವು ಹೇಗೆ ಇದ್ದೀರಾ?", meaning: "How are you?" },
+                  ]
+                },
                 { word: "Iddeera", native: "ಇದ್ದೀರಾ", meaning: "Are you (polite)", phonetic: "ihd-dee-raa", alt: ["iddira", "iddiri"],
-                  teach: "{w} means “are you”. Say *hege iddeera* quickly and it becomes **hegiddeera?**, “how are you?” Both ways are right." }
+                  teach: "{w} means “are you”. Say *hege iddeera* quickly and it becomes **hegiddeera?**, “how are you?” Both ways are right.",
+                  examples: [
+                    { text: "Neevu hege iddeera?", native: "ನೀವು ಹೇಗೆ ಇದ್ದೀರಾ?", meaning: "How are you?" },
+                  ]
+                }
             ],
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskara, naanu chennagiddeeni", native: "ನಮಸ್ಕಾರ, ನಾನು ಚೆನ್ನಾಗಿದ್ದೀನಿ", meaning: "Hello, I am fine", hint: "Hello + I + I-am-fine",
@@ -923,7 +1030,12 @@ export const CURRICULUM = {
                 { word: "Haudu", native: "ಹೌದು", meaning: "Yes", phonetic: "how-du" },
                 { word: "Illa", native: "ಇಲ್ಲ", meaning: "No / not", phonetic: "ihl-luh",
                   teach: "“No” is {w}. Mind the last letter — *illi* with an i is “here”, from last lesson." },
-                { word: "Dhanyavada", native: "ಧನ್ಯವಾದ", meaning: "Thank you", phonetic: "dhun-yuh-vaa-duh", alt: ["dhanyavadagalu", "danyavada"] }
+                { word: "Dhanyavada", native: "ಧನ್ಯವಾದ", meaning: "Thank you", phonetic: "dhun-yuh-vaa-duh", alt: ["dhanyavadagalu", "danyavada"],
+                  examples: [
+                    { text: "Haudu, dhanyavada", native: "ಹೌದು, ಧನ್ಯವಾದ", meaning: "Yes, thank you" },
+                    { text: "Beda, dhanyavada", native: "ಬೇಡ, ಧನ್ಯವಾದ", meaning: "No thanks (I don't want it, thank you)" },
+                  ]
+                }
             ],
             phrases: [
                 { prompt: "Say 'I want water'", correct: "Neeru beku", native: "ನೀರು ಬೇಕು", meaning: "I want water", hint: "Water + want",
@@ -1046,8 +1158,17 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Pustakagalu", native: "ಪುಸ್ತಕಗಳು", meaning: "Books", phonetic: "pus-tuh-kuh-guh-lu",
                   teach: "“Books” is {w}: *pustaka* + **-galu**. Add -galu to the end of a thing to mean more than one." },
-                { word: "Manegalu", native: "ಮನೆಗಳು", meaning: "Houses", phonetic: "muh-neh-guh-lu" },
-                { word: "Hoovu", native: "ಹೂವು", meaning: "Flower", phonetic: "hoo-vu" },
+                { word: "Manegalu", native: "ಮನೆಗಳು", meaning: "Houses", phonetic: "muh-neh-guh-lu",
+                  examples: [
+                    { text: "Manegalu yelli?", native: "ಮನೆಗಳು ಎಲ್ಲಿ?", meaning: "Where are the houses?" },
+                  ]
+                },
+                { word: "Hoovu", native: "ಹೂವು", meaning: "Flower", phonetic: "hoo-vu",
+                  examples: [
+                    { text: "Idu hoovu", native: "ಇದು ಹೂವು", meaning: "This is a flower" },
+                    { text: "Hoovu beku", native: "ಹೂವು ಬೇಕು", meaning: "I want a flower" },
+                  ]
+                },
                 { word: "Hoovugalu", native: "ಹೂವುಗಳು", meaning: "Flowers", phonetic: "hoo-vu-guh-lu",
                   teach: "“Flowers” is {w}: *hoovu* + -galu, just like books." },
                 { word: "Snehitaru", native: "ಸ್ನೇಹಿತರು", meaning: "Friends", phonetic: "snay-hih-tuh-ru",
@@ -1191,7 +1312,11 @@ export const CURRICULUM = {
                   teach: "{w} means “later”. It goes where *eega* (“now”) goes: before the action word." },
                 { word: "Gante", native: "ಗಂಟೆ", meaning: "Hour / o'clock", phonetic: "gun-teh", alt: ["gantege", "ganthe"],
                   teach: "{w} is both “hour” and “o'clock”: *ondu gante* is “one hour” or “one o'clock”." },
-                { word: "Yaavaga", native: "ಯಾವಾಗ", meaning: "When", phonetic: "yaa-vaa-guh", alt: ["yavaga"], teach: "“When” is {w}." }
+                { word: "Yaavaga", native: "ಯಾವಾಗ", meaning: "When", phonetic: "yaa-vaa-guh", alt: ["yavaga"], teach: "“When” is {w}.",
+                  examples: [
+                    { text: "Oota yaavaga?", native: "ಊಟ ಯಾವಾಗ?", meaning: "When is the meal?" },
+                  ]
+                }
             ],
             phrases: [
                 { prompt: "Say 'yesterday, today, tomorrow'", correct: "Ninne, ivattu, naale", native: "ನಿನ್ನೆ, ಇವತ್ತು, ನಾಳೆ", meaning: "Yesterday, today, tomorrow", hint: "Yesterday + today + tomorrow",
@@ -1505,7 +1630,12 @@ export const CURRICULUM = {
                 { word: "Chennagittu", native: "ಚೆನ್ನಾಗಿತ್ತು", meaning: "It was good", phonetic: "chehn-naa-git-tu", alt: ["chennagitthu"],
                   teach: "*Chennagide* is “it is good”. {w} is “it was good”. The ending -ittu turns “is” into “was”." },
                 { word: "Gottu", native: "ಗೊತ್ತು", meaning: "I know", phonetic: "goht-tu", alt: ["gotthu"],
-                  teach: "*Nanage gottu*, “I know”. Knowing comes “to me”, like liking. Never *naanu gottu*." },
+                  teach: "*Nanage gottu*, “I know”. Knowing comes “to me”, like liking. Never *naanu gottu*.",
+                  examples: [
+                    { text: "Nanage gottu", native: "ನನಗೆ ಗೊತ್ತು", meaning: "I know" },
+                    { text: "Haudu, nanage gottu", native: "ಹೌದು, ನನಗೆ ಗೊತ್ತು", meaning: "Yes, I know" },
+                  ]
+                },
                 { word: "Gottilla", native: "ಗೊತ್ತಿಲ್ಲ", meaning: "I don't know", phonetic: "goht-tihl-luh", alt: ["gothilla", "gotilla"],
                   teach: "*Nanage gottilla*, “I don't know”. It's *gottu* + *illa*, joined into one word." },
                 { word: "Nenapide", native: "ನೆನಪಿದೆ", meaning: "I remember", phonetic: "neh-nuh-pih-deh", alt: ["nenapu ide"],

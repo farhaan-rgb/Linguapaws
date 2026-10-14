@@ -73,6 +73,10 @@ function tableFor(langName) {
         for (const v of lesson.vocabulary || []) {
             if (v?.word && v.native) { words.set(keyOf(v.word), v.native); align(v.word, v.native); }
             if (v?.word && v.phonetic) phonetics.set(keyOf(v.word), v.phonetic);
+            /* "See it in a sentence" examples written for words the course has
+               no sentence for: said whole, like a drill line. Not aligned into
+               `lexicon` and not `known` — they are display-only. */
+            for (const x of v?.examples || []) if (x?.text && x.native) phrases.set(keyOf(x.text), x.native);
             for (const t of keyOf(v?.word).split(' ')) if (t) known.add(t);
         }
         for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {

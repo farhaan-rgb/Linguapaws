@@ -17,7 +17,18 @@
    What makes a sentence usable: every other word in it has been taught by this
    point. A sentence that needs a word the learner has not met is not an example,
    it is another lesson. When nothing qualifies the answer is none — a weak
-   example is worse than the button not being there. */
+   example is worse than the button not being there.
+
+   Written examples. Thirty-one words in Kannada and Telugu had no course
+   sentence by the end of their own lesson (*Hege*, *Nundi*, *Malli*), so their
+   vocabulary entries carry an `examples` array written for this button alone.
+   A course sentence still wins whenever one qualifies: a written example is
+   used only when nothing the course teaches does. They are display-only — not
+   drills, never graded, and nothing in the engine, the SRS or the lexicon reads
+   them. They pass the same taught-words test as a course sentence, so a teach
+   screen never shows one that leans on a word later in the same lesson.
+   `tools/examples-check.mjs` holds them to that at the end of the lesson, and
+   checks their native script round-trips. */
 import { normalizeLatin, buildRealWordSet } from './lessonEngine.js';
 
 const MAX_ENDING = 3;   // -ge, -alli, -lo, -ki: the endings the courses teach
@@ -86,6 +97,16 @@ export function examplesFor(lessons = [], lessonIdx = 0, word = '', { teaching =
             seen.add(sig);
             found.push({ correct: d.correct, meaning: d.meaning, native: d.native || '', lessonIdx: i, len: toks.length });
         }
+    }
+
+    /* Nothing from the course: the entry's own written examples, if every word
+       in them has been taught by now. */
+    if (!found.length && entry?.examples?.length) {
+        const home = lessons.findIndex(l => (l.vocabulary || []).includes(entry));
+        return entry.examples
+            .filter(x => x?.text && x.meaning && tokensOf(x.text).every(t => isOwn(t) || isTaught(t)))
+            .slice(0, max)
+            .map(x => ({ correct: x.text, meaning: x.meaning, native: x.native || '', lessonIdx: home, written: true }));
     }
 
     /* Finished lessons first, then this one; shorter first within each. */
