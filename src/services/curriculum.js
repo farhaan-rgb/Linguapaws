@@ -1332,6 +1332,205 @@ export const CURRICULUM = {
                   acceptable: ["nanage bhaya adakke hoguttiddene", "nanage bhaya, adakke naanu hoguttiddene", "nanage bhaya, adakke hogtidini", "nanage bhaya, adakke manege hoguttiddene", "nanage bhaya, adakke hoguttene"] }
             ],
             farewell: "You can ask why, give a reason, and say what you like and what scares you."
+        },
+        {
+            scenario: "The 'How' (Hege)",
+            icon: "🎚️",
+            color: "#e0f2fe",
+            vocabulary: [
+                { word: "Hegide", native: "ಹೇಗಿದೆ", meaning: "How is it", phonetic: "hay-gih-deh",
+                  teach: "*Idu hegide?* means “how is this?”. For things, use {w}. For people it's *hegiddeera*, from lesson 1." },
+                { word: "Chennagi", native: "ಚೆನ್ನಾಗಿ", meaning: "Well", phonetic: "chehn-naa-gih", alt: ["chennaagi"],
+                  teach: "*Chennagi maadide*, “I did it well”. {w} says how you did something; *chennagide* says a thing is good." },
+                { word: "Tumba", native: "ತುಂಬಾ", meaning: "Very / a lot", phonetic: "tum-baa", alt: ["thumba"] },
+                { word: "Swalpa", native: "ಸ್ವಲ್ಪ", meaning: "A little", phonetic: "swul-puh", alt: ["svalpa"],
+                  teach: "{w} is “a little”, the opposite of *tumba*. *Swalpa neeru*, “a little water”." },
+                { word: "Mellage", native: "ಮೆಲ್ಲಗೆ", meaning: "Slowly", phonetic: "mehl-luh-geh", alt: ["mellege"],
+                  teach: "{w} means “slowly”. Its opposite is *bega*, “quickly”, from lesson 14." },
+                { word: "Kushi", native: "ಖುಷಿ", meaning: "Happy / joy", phonetic: "khu-shih", alt: ["khushi"],
+                  teach: "*Nanage kushi*, “I'm happy”. Like *nanage bhaya*, Kannada says it happens “to me”." },
+                { word: "Heli", native: "ಹೇಳಿ", meaning: "Say (please)", phonetic: "hay-lih",
+                  teach: "{w} asks someone to say something. Same polite -i as *kodi*. *Helide* is “I said”." }
+            ],
+            phrases: [
+                { prompt: "Point at a dish and ask 'How is this?'", correct: "Idu hegide?", native: "ಇದು ಹೇಗಿದೆ?", meaning: "How is this?", hint: "This + how-is-it?",
+                  acceptable: ["idu hegide", "hegide idu?"],
+                  grammarNote: "Question word last, as always. *Hegide* is *hege* and *ide* run together: “how is it”." },
+                { prompt: "Say 'The food is very good'", correct: "Oota tumba chennagide", native: "ಊಟ ತುಂಬಾ ಚೆನ್ನಾಗಿದೆ", meaning: "The food is very good", hint: "Food + very + is good",
+                  acceptable: ["oota thumba chennagide", "tumba chennagide"],
+                  grammarNote: "*Tumba* goes just before the word it makes stronger: *tumba chennagide*, “very good”." },
+                { prompt: "Say 'I am very happy'", correct: "Nanage tumba kushi", native: "ನನಗೆ ತುಂಬಾ ಖುಷಿ", meaning: "I am very happy", hint: "To me + very + happy",
+                  acceptable: ["nanage thumba kushi", "nanage tumba khushi", "tumba kushi"],
+                  grammarNote: "Not *naanu kushi*. Happiness, like fear and liking, comes *nanage*, “to me”." }
+            ],
+            conversations: [
+                { prompt: "Miko has tasted the curry. Ask her 'How is the food?'", correct: "Oota hegide?", native: "ಊಟ ಹೇಗಿದೆ?", meaning: "How is the food?", hint: "Food + how-is-it?",
+                  acceptable: ["oota hegide"] },
+                { prompt: "Miko is talking too fast. Ask 'A little slowly, please — say it'.", correct: "Swalpa mellage heli", native: "ಸ್ವಲ್ಪ ಮೆಲ್ಲಗೆ ಹೇಳಿ", meaning: "Please say it a little slowly", hint: "A little + slowly + say",
+                  acceptable: ["swalpa mellage heli.", "mellage heli", "svalpa mellage heli"],
+                  grammarNote: "The most useful sentence a learner owns. *Swalpa* softens it, *heli* makes it polite." },
+                { prompt: "Miko asks about the job. Say 'I did the work well'.", correct: "Naanu kelasa chennagi maadide", native: "ನಾನು ಕೆಲಸ ಚೆನ್ನಾಗಿ ಮಾಡಿದೆ", meaning: "I did the work well", hint: "I + work + well + did",
+                  acceptable: ["kelasa chennagi maadide", "naanu chennagi kelasa maadide", "naanu kelasa chennaagi maadide"],
+                  grammarNote: "*Chennagi* sits right before the action. *Chennagide* would say the work itself “is good”." },
+                { prompt: "Final check: say 'The food is very good, I am very happy'.", correct: "Oota tumba chennagide, nanage tumba kushi", native: "ಊಟ ತುಂಬಾ ಚೆನ್ನಾಗಿದೆ, ನನಗೆ ತುಂಬಾ ಖುಷಿ", meaning: "The food is very good, I am very happy", hint: "Food + very + is good, to me + very + happy",
+                  acceptable: ["oota tumba chennagide nanage tumba kushi", "oota thumba chennagide, nanage thumba kushi"] }
+            ],
+            farewell: "You can ask how things are, say how well something went, and ask anyone to slow down."
+        },
+        {
+            scenario: "Family",
+            icon: "👨‍👩‍👧",
+            color: "#fef3c7",
+            vocabulary: [
+                { word: "Amma", native: "ಅಮ್ಮ", meaning: "Mother", phonetic: "um-muh" },
+                { word: "Appa", native: "ಅಪ್ಪ", meaning: "Father", phonetic: "up-puh" },
+                { word: "Anna", native: "ಅಣ್ಣ", meaning: "Elder brother", phonetic: "un-nuh",
+                  teach: "{w} is your elder brother, the way *akka* is your elder sister." },
+                { word: "Tamma", native: "ತಮ್ಮ", meaning: "Younger brother", phonetic: "tum-muh", alt: ["thamma"],
+                  teach: "{w} is a younger brother. Kannada always says older or younger: *anna* or {w}." },
+                { word: "Tangi", native: "ತಂಗಿ", meaning: "Younger sister", phonetic: "tun-gih", alt: ["thangi"],
+                  teach: "{w} is a younger sister. Older is *akka*, younger is {w}." },
+                { word: "Kutumba", native: "ಕುಟುಂಬ", meaning: "Family", phonetic: "ku-tum-buh" },
+                { word: "Mattu", native: "ಮತ್ತು", meaning: "And", phonetic: "mut-tu", alt: ["matthu"],
+                  teach: "*Amma mattu appa*, “mother and father”. {w} joins two names or things." }
+            ],
+            phrases: [
+                { prompt: "Say 'my mother'", correct: "Nanna amma", native: "ನನ್ನ ಅಮ್ಮ", meaning: "My mother", hint: "My + mother" },
+                { prompt: "Introduce someone: 'This is my father'", correct: "Ivaru nanna appa", native: "ಇವರು ನನ್ನ ಅಪ್ಪ", meaning: "This is my father", hint: "This person + my + father",
+                  acceptable: ["ivaru nanna appa."],
+                  grammarNote: "For family, use *ivaru*, the polite “this person”, never *idu*. *Idu* is for things." },
+                { prompt: "Say 'mother and father'", correct: "Amma mattu appa", native: "ಅಮ್ಮ ಮತ್ತು ಅಪ್ಪ", meaning: "Mother and father", hint: "Mother + and + father",
+                  acceptable: ["amma, appa", "amma matthu appa"] }
+            ],
+            conversations: [
+                { prompt: "A boy waves at you from across the room. Tell Miko 'This is my younger brother'.", correct: "Ivaru nanna tamma", native: "ಇವರು ನನ್ನ ತಮ್ಮ", meaning: "This is my younger brother", hint: "This person + my + younger brother",
+                  acceptable: ["ivaru nanna thamma"] },
+                { prompt: "Miko said her elder brother was coming. Ask 'Where is your elder brother?'", correct: "Nimma anna yelli?", native: "ನಿಮ್ಮ ಅಣ್ಣ ಎಲ್ಲಿ?", meaning: "Where is your elder brother?", hint: "Your + elder brother + where?",
+                  acceptable: ["nimma anna yelli", "nimma anna elli?", "nimma anna elli"],
+                  grammarNote: "Same shape as *mane yelli?* from lesson 3. Swap in a person." },
+                { prompt: "Show Miko a photo of everyone at home. Say 'This is my family'.", correct: "Idu nanna kutumba", native: "ಇದು ನನ್ನ ಕುಟುಂಬ", meaning: "This is my family", hint: "This + my + family",
+                  grammarNote: "Here *idu* is right. You're pointing at a photo, a thing, not at one person." },
+                { prompt: "Final check: say 'These are my elder sister and younger sister'.", correct: "Ivaru nanna akka mattu tangi", native: "ಇವರು ನನ್ನ ಅಕ್ಕ ಮತ್ತು ತಂಗಿ", meaning: "These are my elder sister and younger sister", hint: "These people + my + elder sister + and + younger sister",
+                  acceptable: ["ivaru nanna akka matthu thangi", "ivaru nanna akka, tangi", "ivaru nanna akka mattu nanna tangi"],
+                  grammarNote: "*Ivaru* also covers two or more people: “these people”. One word, polite either way." }
+            ],
+            farewell: "You can introduce your whole family, older and younger, one person at a time or all together."
+        },
+        {
+            scenario: "Daily Routine",
+            icon: "🌅",
+            color: "#dcfce7",
+            vocabulary: [
+                { word: "Belagge", native: "ಬೆಳಗ್ಗೆ", meaning: "Morning / in the morning", phonetic: "beh-lug-geh", alt: ["beligge", "belige"],
+                  teach: "{w} is “morning”, and also “in the morning”. *Belagge naanu bande*, “I came in the morning”." },
+                { word: "Raatri", native: "ರಾತ್ರಿ", meaning: "Night / at night", phonetic: "raat-rih", alt: ["ratri", "rathri"],
+                  teach: "{w} is “night”. Like *belagge*, it goes before the action word." },
+                { word: "Edde", native: "ಎದ್ದೆ", meaning: "I got up", phonetic: "ehd-deh", alt: ["eddhe", "eddenu"],
+                  teach: "“I got up” is {w}. Same -e as *bande* and *hode*. Careful: *nidde* is “sleep”." },
+                { word: "Snaana", native: "ಸ್ನಾನ", meaning: "Bath", phonetic: "snaa-nuh", alt: ["snana"],
+                  teach: "{w} is a bath. You “do” it, like a meal: *snaana maadide*, “I had a bath”." },
+                { word: "Nidde", native: "ನಿದ್ದೆ", meaning: "Sleep", phonetic: "nihd-deh", alt: ["niddhe"],
+                  teach: "{w} is “sleep”. *Nidde maaduttene*, “I will sleep”. Any *maadu* ending from lessons 11 to 14 fits." },
+                { word: "Kaafi", native: "ಕಾಫಿ", meaning: "Coffee", phonetic: "kaa-fih", alt: ["kafi", "kaapi", "kaaphi", "coffee"] },
+                { word: "Kudide", native: "ಕುಡಿದೆ", meaning: "I drank", phonetic: "ku-dih-deh", alt: ["kudidenu"],
+                  teach: "“I drank” is {w}. Drinks take this word, not *tinde*: *neeru kudide*, “I drank water”." }
+            ],
+            phrases: [
+                { prompt: "Say 'I got up early in the morning'", correct: "Naanu belagge bega edde", native: "ನಾನು ಬೆಳಗ್ಗೆ ಬೇಗ ಎದ್ದೆ", meaning: "I got up early in the morning", hint: "I + morning + early + got up",
+                  acceptable: ["belagge bega edde", "naanu beligge bega edde", "naanu bega edde", "belagge naanu bega edde"],
+                  grammarNote: "*Bega* from lesson 14 also means “early”. *Bega edde*, “I got up early”." },
+                { prompt: "Say 'I had a bath'", correct: "Naanu snaana maadide", native: "ನಾನು ಸ್ನಾನ ಮಾಡಿದೆ", meaning: "I had a bath", hint: "I + bath + did",
+                  acceptable: ["snaana maadide", "naanu snana maadide"] },
+                { prompt: "Say 'I will sleep at night'", correct: "Naanu raatri nidde maaduttene", native: "ನಾನು ರಾತ್ರಿ ನಿದ್ದೆ ಮಾಡುತ್ತೇನೆ", meaning: "I will sleep at night", hint: "I + night + sleep + will do",
+                  acceptable: ["raatri nidde maaduttene", "naanu raatri nidde maadtini", "raatri naanu nidde maaduttene", "naanu ratri nidde maaduttene"],
+                  grammarNote: "Time word, then *nidde*, then the *maadu* ending. *Maaduttene* makes it “will”." }
+            ],
+            conversations: [
+                { prompt: "Miko asks you to come out today. Say 'I have work today' — Kannada says 'to me, work is there'.", correct: "Nanage ivattu kelasa ide", native: "ನನಗೆ ಇವತ್ತು ಕೆಲಸ ಇದೆ", meaning: "I have work today", hint: "To me + today + work + is there",
+                  acceptable: ["ivattu nanage kelasa ide", "nanage ivattu kelsa ide", "ivattu kelasa ide"],
+                  grammarNote: "To say “I have”, Kannada says “to me, it is there”: *nanage* + thing + *ide*." },
+                { prompt: "Miko asks what you had this morning. Say 'In the morning I drank coffee'.", correct: "Belagge naanu kaafi kudide", native: "ಬೆಳಗ್ಗೆ ನಾನು ಕಾಫಿ ಕುಡಿದೆ", meaning: "In the morning I drank coffee", hint: "Morning + I + coffee + drank",
+                  acceptable: ["belagge kaafi kudide", "naanu belagge kaafi kudide", "beligge naanu kaafi kudide", "belagge naanu coffee kudide"] },
+                { prompt: "Miko knocks on the bathroom door. Say 'I am having a bath now'.", correct: "Naanu eega snaana maaduttiddene", native: "ನಾನು ಈಗ ಸ್ನಾನ ಮಾಡುತ್ತಿದ್ದೇನೆ", meaning: "I am having a bath now", hint: "I + now + bath + am doing",
+                  acceptable: ["eega snaana maaduttiddene", "naanu eega snaana maadtidini", "eega snaana maadtidini"],
+                  grammarNote: "One new noun, three tenses: *snaana maadide*, *maaduttiddene*, *maaduttene*." },
+                { prompt: "Final check: tell Miko your morning — 'I got up early, had a bath, drank coffee'.", correct: "Naanu bega edde, snaana maadide, kaafi kudide", native: "ನಾನು ಬೇಗ ಎದ್ದೆ, ಸ್ನಾನ ಮಾಡಿದೆ, ಕಾಫಿ ಕುಡಿದೆ", meaning: "I got up early, had a bath, drank coffee", hint: "I + early + got up, bath + did, coffee + drank",
+                  acceptable: ["naanu bega edde snaana maadide kaafi kudide", "bega edde, snaana maadide, kaafi kudide", "naanu belagge bega edde, snaana maadide, kaafi kudide"] }
+            ],
+            farewell: "Morning to night, you can walk someone through your whole day."
+        },
+        {
+            scenario: "Colours & Clothes",
+            icon: "👕",
+            color: "#ede9fe",
+            vocabulary: [
+                { word: "Banna", native: "ಬಣ್ಣ", meaning: "Colour", phonetic: "bun-nuh" },
+                { word: "Kempu", native: "ಕೆಂಪು", meaning: "Red", phonetic: "kehm-pu" },
+                { word: "Bili", native: "ಬಿಳಿ", meaning: "White", phonetic: "bih-lih" },
+                { word: "Kappu", native: "ಕಪ್ಪು", meaning: "Black", phonetic: "kup-pu",
+                  teach: "{w} is black, *bili* is white. They go before the thing, like *dodda*: *kappu batte*." },
+                { word: "Hasiru", native: "ಹಸಿರು", meaning: "Green", phonetic: "huh-sih-ru" },
+                { word: "Batte", native: "ಬಟ್ಟೆ", meaning: "Clothes", phonetic: "but-teh",
+                  teach: "{w} means clothes, or cloth. *Bili batte*, “white clothes”." },
+                { word: "Yaava", native: "ಯಾವ", meaning: "Which", phonetic: "yaa-vuh", alt: ["yava"],
+                  teach: "*Yaava banna?*, “which colour?”. {w} sits before a thing. *Yenu* stands alone: *idu yenu?*" }
+            ],
+            phrases: [
+                { prompt: "Say 'red colour'", correct: "Kempu banna", native: "ಕೆಂಪು ಬಣ್ಣ", meaning: "Red colour", hint: "Red + colour" },
+                { prompt: "Say 'white clothes'", correct: "Bili batte", native: "ಬಿಳಿ ಬಟ್ಟೆ", meaning: "White clothes", hint: "White + clothes" },
+                { prompt: "In a shop, say 'I want black clothes'", correct: "Nanage kappu batte beku", native: "ನನಗೆ ಕಪ್ಪು ಬಟ್ಟೆ ಬೇಕು", meaning: "I want black clothes", hint: "To me + black + clothes + want",
+                  acceptable: ["kappu batte beku", "kappu batte kodi"],
+                  grammarNote: "Colour first, then the thing, then *beku*. Same order as *bisi neeru beku*." }
+            ],
+            conversations: [
+                { prompt: "Miko holds up a shirt. Ask 'Which colour is that?'", correct: "Adu yaava banna?", native: "ಅದು ಯಾವ ಬಣ್ಣ?", meaning: "Which colour is that?", hint: "That + which + colour?",
+                  acceptable: ["adu yaava banna", "adu yava banna?", "adu yava banna"],
+                  grammarNote: "*Adu yenu?* asks what a thing is. *Adu yaava banna?* asks which colour. *Yaava* needs a word after it." },
+                { prompt: "Miko asks your favourite colour. Say 'I like red'.", correct: "Nanage kempu ishta", native: "ನನಗೆ ಕೆಂಪು ಇಷ್ಟ", meaning: "I like red", hint: "To me + red + like",
+                  acceptable: ["nanage kempu banna ishta", "nanage kempu ista", "kempu ishta"] },
+                { prompt: "Miko points at a leaf and asks the colour. Say 'This is green'.", correct: "Idu hasiru", native: "ಇದು ಹಸಿರು", meaning: "This is green", hint: "This + green",
+                  acceptable: ["idu hasiru banna", "hasiru"] },
+                { prompt: "Final check: the shopkeeper brings white. Say 'I don't want white clothes, give black clothes'.", correct: "Bili batte beda, kappu batte kodi", native: "ಬಿಳಿ ಬಟ್ಟೆ ಬೇಡ, ಕಪ್ಪು ಬಟ್ಟೆ ಕೊಡಿ", meaning: "I don't want white clothes, give me black clothes", hint: "White + clothes + don't want, black + clothes + give",
+                  acceptable: ["bili batte beda kappu batte kodi", "nanage bili batte beda, kappu batte kodi", "bili batte beda, kappu batte beku", "nanage bili batte beda, kappu batte beku"] }
+            ],
+            farewell: "Red, white, black, green — you can pick out clothes and say which one you want."
+        },
+        {
+            scenario: "Review & Dialogue: Your Day",
+            icon: "🗓️",
+            color: "#fce7f3",
+            vocabulary: [
+                { word: "Chennagittu", native: "ಚೆನ್ನಾಗಿತ್ತು", meaning: "It was good", phonetic: "chehn-naa-git-tu", alt: ["chennagitthu"],
+                  teach: "*Chennagide* is “it is good”. {w} is “it was good”. The ending -ittu turns “is” into “was”." },
+                { word: "Gottu", native: "ಗೊತ್ತು", meaning: "Known", phonetic: "goht-tu", alt: ["gotthu"],
+                  teach: "*Nanage gottu*, “I know”. Knowing comes “to me”, like liking. Never *naanu gottu*." },
+                { word: "Gottilla", native: "ಗೊತ್ತಿಲ್ಲ", meaning: "Not known", phonetic: "goht-tihl-luh", alt: ["gothilla", "gotilla"],
+                  teach: "*Nanage gottilla*, “I don't know”. It's *gottu* + *illa*, joined into one word." },
+                { word: "Nenapide", native: "ನೆನಪಿದೆ", meaning: "Remembered", phonetic: "neh-nuh-pih-deh", alt: ["nenapu ide"],
+                  teach: "*Nanage nenapide*, “I remember”: “to me, the memory is there”. Same *nanage* + *ide* as *nanage kelasa ide*." },
+                { word: "Matte", native: "ಮತ್ತೆ", meaning: "Again", phonetic: "mut-teh", alt: ["matthe"],
+                  teach: "{w} means “again”. Mind the ending: *mattu* is “and”." }
+            ],
+            phrases: [
+                { prompt: "Say 'Today was good'", correct: "Ivattu chennagittu", native: "ಇವತ್ತು ಚೆನ್ನಾಗಿತ್ತು", meaning: "Today was good", hint: "Today + was good",
+                  acceptable: ["ivattu chennagitthu", "indu chennagittu"] },
+                { prompt: "Say 'I don't know'", correct: "Nanage gottilla", native: "ನನಗೆ ಗೊತ್ತಿಲ್ಲ", meaning: "I don't know", hint: "To me + not known",
+                  acceptable: ["gottilla", "nanage gothilla", "nanage gottu illa"] },
+                { prompt: "Say 'I remember'", correct: "Nanage nenapide", native: "ನನಗೆ ನೆನಪಿದೆ", meaning: "I remember", hint: "To me + remembered",
+                  acceptable: ["nenapide", "nanage nenapu ide"] }
+            ],
+            conversations: [
+                { prompt: "Miko asks how your day went. Say 'Today was very good'.", correct: "Ivattu tumba chennagittu", native: "ಇವತ್ತು ತುಂಬಾ ಚೆನ್ನಾಗಿತ್ತು", meaning: "Today was very good", hint: "Today + very + was good",
+                  acceptable: ["ivattu thumba chennagittu", "tumba chennagittu", "indu tumba chennagittu"] },
+                { prompt: "Miko asks where her book is. You have no idea. Say 'Sorry, I don't know'.", correct: "Kshamisi, nanage gottilla", native: "ಕ್ಷಮಿಸಿ, ನನಗೆ ಗೊತ್ತಿಲ್ಲ", meaning: "Sorry, I don't know", hint: "Sorry + to me + not known",
+                  acceptable: ["kshamisi nanage gottilla", "kshamisi, gottilla"] },
+                { prompt: "Say 'In the morning I did work, now I am going home'.", correct: "Belagge naanu kelasa maadide, eega manege hoguttiddene", native: "ಬೆಳಗ್ಗೆ ನಾನು ಕೆಲಸ ಮಾಡಿದೆ, ಈಗ ಮನೆಗೆ ಹೋಗುತ್ತಿದ್ದೇನೆ", meaning: "In the morning I did work, now I am going home", hint: "Morning + I + work + did, now + to-the-house + am going",
+                  acceptable: ["belagge kelasa maadide, eega manege hoguttiddene", "belagge naanu kelasa maadide eega manege hoguttiddene", "belagge naanu kelasa maadide, eega manege hogtidini", "belagge naanu kelasa maadide, eega naanu manege hoguttiddene", "belagge naanu kelasa maadide, eega manege hoguttene"],
+                  grammarNote: "Two times, two endings. *Maadide* is done; *hoguttiddene* is happening now." },
+                { prompt: "Final check: you're leaving. Say 'Thank you, I will come again tomorrow'.", correct: "Dhanyavada, naale matte baruttene", native: "ಧನ್ಯವಾದ, ನಾಳೆ ಮತ್ತೆ ಬರುತ್ತೇನೆ", meaning: "Thank you, I will come again tomorrow", hint: "Thank you + tomorrow + again + will come",
+                  acceptable: ["dhanyavada naale matte baruttene", "dhanyavada, naanu naale matte baruttene", "dhanyavada, naale matte bartini", "dhanyavadagalu, naale matte baruttene"] }
+            ],
+            farewell: "Twenty lessons: you can tell someone what you did, what you're doing, and when you'll be back."
         }
     ],
     Hindi: [
@@ -2272,6 +2471,16 @@ export const WORD_FAMILIES = {
         { name: 'Sounds alike', members: ['beda', 'bega'] },
         { name: 'To whom', members: ['nanage', 'nimage'] },
         { name: 'Why', members: ['yaake', 'adakke'] },
+        { name: 'A lot or a little', members: ['tumba', 'swalpa'] },
+        { name: 'Quickly or slowly', members: ['bega', 'mellage'] },
+        { name: 'Good, well, was good', members: ['chennagide', 'chennagi', 'chennagittu'] },
+        { name: 'Family', members: ['amma', 'appa', 'anna', 'akka', 'tamma', 'tangi'] },
+        { name: 'Morning or night', members: ['belagge', 'raatri'] },
+        { name: 'Ate or drank', members: ['tinde', 'kudide'] },
+        { name: 'Colours', members: ['kempu', 'bili', 'kappu', 'hasiru'] },
+        { name: 'What or which', members: ['yenu', 'yaava'] },
+        { name: 'Know or not', members: ['gottu', 'gottilla'] },
+        { name: 'And or again', members: ['mattu', 'matte'] },
     ],
     Telugu: [
         { name: 'Whose', members: ['naa', 'mee', 'ayana', 'ame'] },
