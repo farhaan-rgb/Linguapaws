@@ -965,9 +965,16 @@ function StepScreen({
        learner taps the mic, types, or leaves the screen. */
     useEffect(() => {
         if (step.kind === 'teach') return undefined;
-        const t = setTimeout(() => onSay([{ tip: step.prompt }]), 450);
+        /* Every memory check opens "How do you say …" — said aloud on every
+           one it grated by the third. The screen carries the question; the
+           voice says only what is being asked for: "That person, polite?" */
+        const meaning = step.item?.meaning?.trim();
+        const spoken = meaning && /^How do you say /.test(step.prompt || '')
+            ? (/[?!]$/.test(meaning) ? meaning : `${meaning}?`)
+            : step.prompt;
+        const t = setTimeout(() => onSay([{ tip: spoken }]), 450);
         return () => clearTimeout(t);
-    }, [step.kind, step.prompt, onSay]);
+    }, [step.kind, step.prompt, step.item, onSay]);
     useEffect(() => {
         if (phase !== 'retry' || !diagnosis) return undefined;
         const t = setTimeout(() => onSay([{ tip: diagnosis }]), 380);
