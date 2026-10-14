@@ -72,7 +72,10 @@ export function speakInBrowser(text, langCode, opts = {}) {
         if (requireVoice) return false;
     }
 
-    window.speechSynthesis.cancel();
+    /* Through `cancelSpeech`, not `speechSynthesis.cancel()`: a tap on a
+       speaker button must also drop the tip queue, or the queue's next item
+       starts the moment this one interrupts it. */
+    cancelSpeech();
     const utterance = new SpeechSynthesisUtterance(text);
     if (voice) utterance.voice = voice;
     utterance.lang = langCode;
@@ -80,4 +83,80 @@ export function speakInBrowser(text, langCode, opts = {}) {
     utterance.pitch = pitch;
     window.speechSynthesis.speak(utterance);
     return true;
+}
+
+/* ── A queue, for step mode's tips ─────────────────────────────────────────
+ *
+ * Step mode now reads its English prompts and explanations aloud as well as the
+ * target word, and a line like "*Nanna* means “my”" is two voices: the English
+ * voice for the English, the target path for the word. `speakInBrowser` cancels
+ * whatever is playing every time it is called, so chaining two calls to it
+ * would cut the first off. These utterances are chained on `onend` instead.
+ *
+ * `cancelSpeech` bumps a generation counter before it cancels: the browser
+ * reports the cancelled utterance as ended (Chrome fires `onerror` with
+ * `interrupted`), and without the counter that would start the next item.
+ *
+ * The gate is asked before every item, so a queue that is mid-sentence when the
+ * learner starts recording stops at the next boundary at worst — the mic tap
+ * also cancels outright, this is the second line of defence.
+ */
+let generation = 0;
+let gate = () => false;
+/* Chrome garbage-collects an utterance it is still speaking and then never
+   fires its `onend`, which would strand the queue. Holding them fixes that. */
+let held = [];
+
+/** `fn()` returning true means "do not speak now" (we are recording). */
+export function setSpeechGate(fn) {
+    gate = typeof fn === 'function' ? fn : () => false;
+}
+
+/** Stop whatever is playing and drop everything queued behind it. */
+export function cancelSpeech() {
+    generation += 1;
+    held = [];
+    try { window.speechSynthesis?.cancel(); } catch { /* no synthesis */ }
+}
+
+/**
+ * Speak `items` one after another, cancelling anything already playing.
+ * @param {{text: string, code: string, rate?: number}[]} items
+ * @returns {number} how many items were queued.
+ */
+export function queueSpeech(items) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return 0;
+    cancelSpeech();
+    const mine = generation;
+    const list = (items || []).filter(it => it && it.code && String(it.text || '').trim());
+    const next = (i) => {
+        if (mine !== generation || i >= list.length) return;
+        if (gate()) { cancelSpeech(); return; }
+        const it = list[i];
+        const u = new SpeechSynthesisUtterance(it.text);
+        const voice = pickVoice(it.code);
+        if (voice) u.voice = voice;
+        u.lang = it.code;
+        u.rate = it.rate ?? 1;
+        let done = false;
+        u.onend = u.onerror = () => {
+            if (done) return;
+            done = true;
+            next(i + 1);
+        };
+        held.push(u);
+        window.speechSynthesis.speak(u);
+    };
+    next(0);
+    return list.length;
+}
+
+/** The device's English voice code: Indian English where installed, since the
+ *  learners are in India, otherwise whatever English the device has. */
+export function englishCode() {
+    for (const code of ['en-IN', 'en-GB', 'en-US']) {
+        const v = pickVoice(code);
+        if (v && v.lang.replace('_', '-') === code) return code;
+    }
+    return 'en-US';
 }

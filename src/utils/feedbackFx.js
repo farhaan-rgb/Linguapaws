@@ -21,6 +21,19 @@ export const setFxOn = (on) => {
     try { localStorage.setItem(FX_KEY, on ? 'on' : 'off'); } catch { /* private mode */ }
 };
 
+/* Miko reading the step prompt and the explanations aloud, in English. Its
+   own switch because a learner can want the word said without the sentence
+   around it; under the sound switch, because muting the app mutes everything. */
+const TIPS_KEY = 'linguapaws_tips_voice';
+
+export const isTipsOn = () => {
+    try { return localStorage.getItem(TIPS_KEY) !== 'off'; } catch { return true; }
+};
+
+export const setTipsOn = (on) => {
+    try { localStorage.setItem(TIPS_KEY, on ? 'on' : 'off'); } catch { /* private mode */ }
+};
+
 let ctx = null;
 /** Created on the first play, which is always inside a click — the only moment
  *  a browser will let an audio context start. */

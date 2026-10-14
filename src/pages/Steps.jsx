@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     X, Volume2, VolumeX, Lightbulb, MessageCircle, ArrowRight, Check, Flame,
-    Mic, Square, Keyboard, Eye,
+    Mic, Square, Keyboard, Eye, MessageSquareText,
 } from 'lucide-react';
 
 import { CURRICULUM, WORD_FAMILIES, KNOWN_WORDS, isLanguageAvailable } from '../services/curriculum';
@@ -26,8 +26,10 @@ import * as fx from '../utils/feedbackFx';
 import { getAnswerMode, setAnswerMode } from '../utils/learnMode';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { aiService } from '../services/ai';
-import { speakInBrowser, waitForVoices, pickVoice } from '../services/speech';
-import { speechTextFor, englishVoiceTextFor } from '../services/speechScript';
+import {
+    speakInBrowser, waitForVoices, pickVoice, queueSpeech, cancelSpeech, setSpeechGate, englishCode,
+} from '../services/speech';
+import { speechTextFor, englishVoiceTextFor, tipSegments } from '../services/speechScript';
 import { getLangCode } from '../../shared/languages.js';
 import { hasBrahmicScript, isNonLatinScript } from '../../shared/transliterate.js';
 import { isUnhearable } from '../../shared/asr.js';
@@ -733,7 +735,7 @@ function GrammarPoints({ points, revealed, activeIdx, onFocusPoint }) {
 const NO_FAMILIES = [];
 
 function StepScreen({
-    step, lexicon, taughtLessons, families, onSpeak, onSettled, onMiss, onConfusion, onLockIn, onAdvance, isLast,
+    step, lexicon, taughtLessons, families, onSpeak, onSay, onSettled, onMiss, onConfusion, onLockIn, onAdvance, isLast,
     answerMode, onAnswerMode, voice, onListen, langName,
 }) {
     const inputRef = useRef(null);
@@ -841,11 +843,42 @@ function StepScreen({
        word twice inside a few seconds; a learner who just got it right has the
        speaker button on the success panel if they want it again. Tied to the
        sound switch, so muting the app really does mute it. */
+    /* Followed by why, read aloud: the explanation was on-screen only, and a
+       playtester found chat taught better for the plain reason that chat reads
+       every tip out. `onSay` drops the tip when "Read tips aloud" is off, which
+       leaves exactly the word this effect always said. The reveal line itself
+       ("No worries — here it is") is praise and is not read. */
     useEffect(() => {
-        if (phase !== 'revealed' || !fx.isFxOn()) return undefined;
-        const t = setTimeout(() => onSpeak(step.expected), 420);
+        if (phase !== 'revealed') return undefined;
+        const t = setTimeout(() => onSay([{ target: step.expected }, { tip: diagnosis }]), 420);
         return () => clearTimeout(t);
-    }, [phase, step.expected, onSpeak]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- once per reveal, with the diagnosis it was made with
+    }, [phase, step.expected, onSay]);
+
+    /* ── Miko reads the screen ──
+       The prompt when a drill or review screen opens; on a miss, what was
+       wrong (the engine's diagnosis, not the "Not quite" line above it); on a
+       correct answer, the grammar note. Never the praise — that is being
+       reworked and is not a tip. Each goes through the lesson's one queue, so
+       nothing talks over anything else, and the queue is dropped when the
+       learner taps the mic, types, or leaves the screen. */
+    useEffect(() => {
+        if (step.kind === 'teach') return undefined;
+        const t = setTimeout(() => onSay([{ tip: step.prompt }]), 450);
+        return () => clearTimeout(t);
+    }, [step.kind, step.prompt, onSay]);
+    useEffect(() => {
+        if (phase !== 'retry' || !diagnosis) return undefined;
+        const t = setTimeout(() => onSay([{ tip: diagnosis }]), 380);
+        return () => clearTimeout(t);
+    }, [phase, misses, diagnosis, onSay]);
+    useEffect(() => {
+        if (phase !== 'correct' || !grammarNote) return undefined;
+        const t = setTimeout(() => onSay([{ tip: grammarNote }]), 650);
+        return () => clearTimeout(t);
+    }, [phase, grammarNote, onSay]);
+    /* Moving on remounts this screen, so leaving it is where its speech ends. */
+    useEffect(() => () => cancelSpeech(), []);
 
     /* "Say 'Hello, I am fine'." already carries its meaning; printing the
        `meaning` field under it repeats the sentence back at the learner. */
@@ -1161,7 +1194,8 @@ function StepScreen({
                         <div key={shake} className={shake ? 'nudge' : undefined}>
                             <RevealPanel
                                 step={step} line={revealLine} onSpeak={onSpeak}
-                                locked={locked} lockText={lockText} setLockText={setLockText}
+                                locked={locked} lockText={lockText}
+                                setLockText={(v) => { cancelSpeech(); setLockText(v); }}
                                 onLockIn={lockIn} lockMiss={lockMiss}
                                 lockRef={lockRef} answerMode={answerMode}
                                 voice={voice} onListen={listenLock} langName={langName}
@@ -1191,6 +1225,7 @@ function StepScreen({
                                     ref={inputRef}
                                     value={answer}
                                     onChange={e => {
+                                        cancelSpeech();
                                         setAnswer(e.target.value);
                                         setHeardMiss('');
                                         if (phase === 'retry') setPhase('answering');
@@ -1441,6 +1476,7 @@ function Lesson({ scenarioParam, practice = false }) {
     const [gain, setGain] = useState(null);
     const [milestone, setMilestone] = useState(null);
     const [soundOn, setSoundOn] = useState(fx.isFxOn);
+    const [tipsOn, setTipsOnState] = useState(fx.isTipsOn);
 
     /* ── The voice path ──
        One recorder for the whole lesson rather than one per screen: a fresh
@@ -1532,22 +1568,53 @@ function Lesson({ scenarioParam, practice = false }) {
        mispronunciation, so a device with no Kannada voice keeps the Latin and
        `speakInBrowser` warns once, exactly as before. */
     const langCode = useMemo(() => getLangCode(targetLang), [targetLang]);
+    const targetText = useCallback((text) => (
+        /* Resolved at speak time, not at mount: Chrome fills the voice list
+           asynchronously, so asking too early answers "no voice" for a
+           device that has one. */
+        langCode && pickVoice(langCode)
+            ? speechTextFor(langName, text)
+            /* No voice for the language: an English voice reads `Mane` as
+               "main", so it gets the pronunciation guide instead. */
+            : englishVoiceTextFor(langName, text)
+    ), [langCode, langName]);
     const speak = useCallback((text) => {
         try {
-            const code = langCode || 'en-IN';
-            /* Resolved at speak time, not at mount: Chrome fills the voice list
-               asynchronously, so asking too early answers "no voice" for a
-               device that has one. */
-            const spoken = langCode && pickVoice(langCode)
-                ? speechTextFor(langName, text)
-                /* No voice for the language: an English voice reads `Mane` as
-                   "main", so it gets the pronunciation guide instead. */
-                : englishVoiceTextFor(langName, text);
-            speakInBrowser(spoken, code, {
+            speakInBrowser(targetText(text), langCode || 'en-IN', {
                 rate: 0.85, requireVoice: false, lang: targetLang,
             });
         } catch { /* no speech synthesis — the phonetic line still carries it */ }
-    }, [langCode, langName, targetLang]);
+    }, [langCode, targetLang, targetText]);
+
+    /* Miko reading the screen: `{target}` parts are said exactly as `speak`
+       says them; `{tip}` parts are English lines, read by the device's English
+       voice (free, no server), with the course's own words in them —
+       `*Nanna* means “my”` — split out and handed to the target path. Where the
+       device has no voice for the language, those words get the pronunciation
+       guide in the English voice rather than the target code, so one sentence
+       is not read by two different fallbacks. Tips are dropped when "Read tips
+       aloud" is off; everything is dropped when sound is off. */
+    const say = useCallback((parts) => {
+        try {
+            if (!fx.isFxOn()) return;
+            const tips = fx.isTipsOn();
+            const en = englishCode();
+            const hasVoice = !!(langCode && pickVoice(langCode));
+            const items = [];
+            for (const p of parts) {
+                if (p.target) {
+                    items.push({ text: targetText(p.target), code: langCode || 'en-IN', rate: 0.85 });
+                } else if (p.tip && tips) {
+                    for (const seg of tipSegments(langName, p.tip)) {
+                        if (!seg.target) items.push({ text: seg.text, code: en, rate: 1 });
+                        else if (hasVoice) items.push({ text: speechTextFor(langName, seg.text), code: langCode, rate: 0.85 });
+                        else items.push({ text: englishVoiceTextFor(langName, seg.text), code: en, rate: 0.85 });
+                    }
+                }
+            }
+            if (items.length) queueSpeech(items);
+        } catch { /* no speech synthesis — the screen still carries it */ }
+    }, [langCode, langName, targetText]);
 
     /* Say it before they try, not after. A learner whose language nothing can
        transcribe should not have to press a microphone, wait for a round trip
@@ -1649,6 +1716,8 @@ function Lesson({ scenarioParam, practice = false }) {
         const trouble = (kind) => setVoice({ status: 'idle', kind });
         if (finishing.current) return undefined;
         if (isRecordingRef.current) return finishListening('tap');
+        /* Miko stops talking the moment the learner reaches for the mic. */
+        cancelSpeech();
 
         if (!MIC_SUPPORTED) return trouble('unsupported');
         fx.unlockAudio();
@@ -1672,6 +1741,12 @@ function Lesson({ scenarioParam, practice = false }) {
         setVoice({ ...IDLE_VOICE, status: 'listening' });
         return undefined;
     }, [isRecordingRef, finishListening, startRecording, prepare]);
+
+    /* Never speak while recording: the queue asks this before every item. */
+    useEffect(() => {
+        setSpeechGate(() => isRecordingRef.current);
+        return () => { setSpeechGate(null); cancelSpeech(); };
+    }, [isRecordingRef]);
 
     /* Leaving mid-recording must not leave the mic open. */
     useEffect(() => () => { stopRecording(true); }, [stopRecording]);
@@ -1841,6 +1916,13 @@ function Lesson({ scenarioParam, practice = false }) {
         const next = !soundOn;
         fx.setFxOn(next);
         setSoundOn(next);
+        if (!next) cancelSpeech();
+    };
+    const toggleTips = () => {
+        const next = !tipsOn;
+        fx.setTipsOn(next);
+        setTipsOnState(next);
+        if (!next) cancelSpeech();
     };
 
     /* ── Guards ── */
@@ -1930,6 +2012,21 @@ function Lesson({ scenarioParam, practice = false }) {
                     }}>
                     {soundOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
                 </button>
+                {/* Under the sound switch: with sound off it reads as off too,
+                    whatever it is set to, because nothing will be said. */}
+                <button onClick={toggleTips}
+                    aria-label={tipsOn ? 'Stop reading tips aloud' : 'Read tips aloud'}
+                    aria-pressed={tipsOn}
+                    title={tipsOn ? 'Reading tips aloud' : 'Read tips aloud'}
+                    style={{
+                        width: 32, height: 32, borderRadius: 10, border: 'none', cursor: 'pointer',
+                        background: 'var(--card-bg)',
+                        color: tipsOn && soundOn ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                        opacity: soundOn ? 1 : 0.5,
+                        flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                    <MessageSquareText size={15} />
+                </button>
             </div>
 
             <div style={{
@@ -1963,6 +2060,7 @@ function Lesson({ scenarioParam, practice = false }) {
                     taughtLessons={taughtLessons}
                     families={WORD_FAMILIES[langName] || NO_FAMILIES}
                     onSpeak={speak}
+                    onSay={say}
                     onSettled={handleSettled}
                     onMiss={handleMiss}
                     onConfusion={handleConfusion}

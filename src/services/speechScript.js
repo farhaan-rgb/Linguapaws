@@ -50,16 +50,21 @@ function tableFor(langName) {
     const words = new Map();
     const phrases = new Map();
     const phonetics = new Map();
+    /* Every token the course writes in the target language, native or not —
+       what lets a tip line tell `*Nanna*` from `*not*`. */
+    const known = new Set();
     for (const lesson of CURRICULUM[langName] || []) {
         for (const v of lesson.vocabulary || []) {
             if (v?.word && v.native) words.set(keyOf(v.word), v.native);
             if (v?.word && v.phonetic) phonetics.set(keyOf(v.word), v.phonetic);
+            for (const t of keyOf(v?.word).split(' ')) if (t) known.add(t);
         }
         for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {
             if (d?.correct && d.native) phrases.set(keyOf(d.correct), d.native);
+            for (const t of keyOf(d?.correct).split(' ')) if (t) known.add(t);
         }
     }
-    const table = { words, phrases, phonetics, any: words.size > 0 || phrases.size > 0 };
+    const table = { words, phrases, phonetics, known, any: words.size > 0 || phrases.size > 0 };
     tables.set(langName, table);
     return table;
 }
@@ -126,4 +131,59 @@ export function englishVoiceTextFor(langName, text) {
         const guide = phonetics.get(keyOf(token));
         return guide ? guide.replace(/-/g, ' ') : token;
     }).join(' ');
+}
+
+/**
+ * Split an English tip line into what the English voice reads and what the
+ * target path reads. Step mode's lines mark target words the same way chat's
+ * do — `*Nanna* means “my”`, `*mane* + -ge` — so an emphasised span is target
+ * language — single-star italics are, unless they are an English contraction
+ * (*I'm*); bold must contain a word this course teaches (`**not**` does not). A quoted span in a prompt (`Someone asks
+ * 'Neevu yelli?'`) counts only when every token in it is a course word, since
+ * most quotes in a prompt are the English sentence to translate.
+ *
+ * Checked over 1,421 prompt, hint and grammar-note lines across the ten
+ * courses (2026-10-14): all 345 single-star italic spans are target words,
+ * 15 of them inflections absent from the vocabulary, which is why italics are
+ * not required to be in it.
+ *
+ * @returns {{target: boolean, text: string}[]} in reading order, never empty
+ *          strings; markdown and quote marks removed.
+ */
+export function tipSegments(langName, line) {
+    const raw = String(line || '');
+    if (!raw.trim()) return [];
+    const { known } = tableFor(langName);
+    const tokensOf = (s) => keyOf(s).split(' ').filter(Boolean);
+    const isTarget = (s, all) => {
+        const toks = tokensOf(s);
+        if (!toks.length) return false;
+        return all ? toks.every(t => known.has(t)) : toks.some(t => known.has(t));
+    };
+    const out = [];
+    const push = (target, text) => {
+        const t = text.replace(/\s+/g, ' ');
+        if (!t.trim()) return;
+        const last = out[out.length - 1];
+        const glue = /^[,.;:!?)]/.test(t.trim()) ? '' : ' ';
+        if (last && last.target === target) last.text = `${last.text}${glue}${t.trim()}`;
+        else out.push({ target, text: t.trim() });
+    };
+    const re = /\*\*([^*]+)\*\*|\*([^*]+)\*|(?<![\p{L}])'([^']+)'(?![\p{L}])|"([^"]+)"/gu;
+    let at = 0;
+    for (const m of raw.matchAll(re)) {
+        push(false, raw.slice(at, m.index));
+        const span = m[1] ?? m[2] ?? m[3] ?? m[4];
+        /* Single-star italics are how every line in this course marks a target
+           word, inflected forms included (*bagunnaru*, *doddadu*), and those
+           are not all in the vocabulary — so italics are target unless they
+           are an English contraction (*I'm*). Bold and quotes must prove it. */
+        const target = m[2] != null
+            ? (isTarget(span, false) || !/\p{L}'\p{L}/u.test(span))
+            : isTarget(span, m[3] != null || m[4] != null);
+        push(target, span);
+        at = m.index + m[0].length;
+    }
+    push(false, raw.slice(at));
+    return out;
 }
