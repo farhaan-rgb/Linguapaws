@@ -169,6 +169,10 @@ export function tipSegments(langName, line) {
     const push = (target, text) => {
         const t = text.replace(/\s+/g, ' ');
         if (!t.trim()) return;
+        /* Bare punctuation left between two spans — the full stop after a
+           closing *Idu* — is not a segment: on its own the English voice
+           reads "." as "dot". It is pause, not speech, so it is dropped. */
+        if (!/[\p{L}\p{N}]/u.test(t)) return;
         const last = out[out.length - 1];
         const glue = /^[,.;:!?)]/.test(t.trim()) ? '' : ' ';
         if (last && last.target === target) last.text = `${last.text}${glue}${t.trim()}`;
