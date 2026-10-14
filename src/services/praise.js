@@ -409,3 +409,12 @@ export function mapHereLine({ stepIdx = 0, stepTotal = 0 } = {}) {
     if (stepIdx > 0 && stepTotal > 0) return `${stepIdx} of ${stepTotal} screens done`;
     return 'Start here';
 }
+
+/** Tap-a-word: the popover's quiet labels and the header switch. */
+export const TAP = {
+    toggleOn: 'Tap words for meaning: on',
+    toggleOff: 'Tap words for meaning: off',
+    fromLesson: (n) => `from lesson ${n}`,
+    notYet: 'not taught yet',
+    hear: (word) => `Hear ${word}`,
+};

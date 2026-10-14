@@ -67,17 +67,19 @@ export function glossFor(langName, token, lessonNo = Infinity) {
     if (!k || k.includes(' ')) return null;
     const idx = indexFor(langName);
     const status = (lesson) => (lesson > lessonNo ? 'later' : 'taught');
+    /* "from lesson N" only for a word met before this lesson: one taught on
+       this very screen's lesson needs no provenance. */
     const hit = idx.taught.get(k);
-    if (hit) return { word: token, meaning: hit.meaning, lesson: hit.lesson, status: status(hit.lesson) };
+    if (hit) return { word: token, meaning: hit.meaning, lesson: hit.lesson, status: status(hit.lesson), earlier: hit.lesson < lessonNo };
     const via = viaEnding(idx, k);
     if (via) {
         const { stem, ending } = via;
         const lesson = Math.max(stem.lesson, ending.lesson || 0);
         const exact = keyOf(ending.example?.word) === k ? ending.example.meaning : '';
         return {
-            word: token, meaning: exact, lesson, status: status(lesson),
+            word: token, meaning: exact, lesson, status: status(lesson), earlier: lesson < lessonNo,
             parts: {
-                stem: stem.word.toLowerCase(), stemMeaning: stem.meaning,
+                stem: stem.word.toLowerCase(), stemMeaning: stem.meaning.charAt(0).toLowerCase() + stem.meaning.slice(1),
                 ending: `-${ending.ending}`, endingMeans: ending.needs || '',
             },
         };

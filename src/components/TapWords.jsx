@@ -20,14 +20,6 @@ import * as praise from '../services/praise';
    An unsettled recall screen hides its own answer: `TapHide` names the words a
    tap would give away, and they render as plain text until the screen settles. */
 
-const TAP_KEY = 'linguapaws_tap_meaning';
-export const isTapOn = () => {
-    try { return localStorage.getItem(TAP_KEY) !== 'off'; } catch { return true; }
-};
-export const setTapOn = (on) => {
-    try { localStorage.setItem(TAP_KEY, on ? 'on' : 'off'); } catch { /* private mode */ }
-};
-
 const TapCtx = createContext(null);
 const HideCtx = createContext(null);
 
@@ -42,15 +34,16 @@ export function TapHide({ words, children }) {
 }
 
 export function TapWordsProvider({ langName, lessonNo, on, speak, resetKey, children }) {
-    const [open, setOpen] = useState(null);   // { entry, rect, id }
+    const [state, setOpen] = useState(null);   // { entry, rect, id, at }
     const close = useCallback(() => setOpen(null), []);
-    useEffect(() => { setOpen(null); }, [resetKey, on]);
+    /* Moving to the next screen, or switching the feature off, closes it. */
+    const open = on && state?.at === resetKey ? state : null;
     const value = useMemo(() => ({
         on: !!on && !!langName, langName, lessonNo, speak,
         openId: open?.id ?? null,
-        toggle: (entry, el, id) => setOpen(o => (o?.id === id ? null
-            : { entry, rect: el.getBoundingClientRect(), id })),
-    }), [on, langName, lessonNo, speak, open]);
+        toggle: (entry, el, id) => setOpen(o => (o?.id === id && o?.at === resetKey ? null
+            : { entry, rect: el.getBoundingClientRect(), id, at: resetKey })),
+    }), [on, langName, lessonNo, speak, open, resetKey]);
     return (
         <TapCtx.Provider value={value}>
             {children}
@@ -118,14 +111,16 @@ export function TapPhrase({ text }) {
  *  with the words `tipSegments` reads as target language made tappable. */
 export function TapText({ text, accent = 'var(--accent-purple)' }) {
     const ctx = useContext(TapCtx);
+    const on = !!ctx?.on;
+    const lang = ctx?.langName;
     const targets = useMemo(() => {
-        if (!ctx?.on || !text) return null;
+        if (!on || !text) return null;
         const s = new Set();
-        for (const seg of tipSegments(ctx.langName, text)) {
+        for (const seg of tipSegments(lang, text)) {
             if (seg.target) for (const t of keyOf(seg.text).split(' ')) if (t) s.add(t);
         }
         return s;
-    }, [ctx?.on, ctx?.langName, text]);
+    }, [on, lang, text]);
     if (!targets || !targets.size) return <RichText text={text} accent={accent} />;
     const want = (k) => targets.has(k);
     const parts = String(text).split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).filter(Boolean);
@@ -194,7 +189,6 @@ function Popover({ open, speak, onClose }) {
     const label = entry.status === 'taught' ? praise.TAP.fromLesson(entry.lesson) : praise.TAP.notYet;
     return createPortal(
         <div ref={ref} role="dialog" aria-label={`${entry.word}: ${entry.meaning || parts?.stemMeaning || ''}`}
-            className="tap-pop"
             style={{
                 position: 'fixed', zIndex: 80, left: pos?.left ?? 0, top: pos?.top ?? 0,
                 visibility: pos ? 'visible' : 'hidden',
@@ -243,10 +237,10 @@ function Popover({ open, speak, onClose }) {
                     <Volume2 size={16} />
                 </button>
             </div>
-            {(entry.status !== 'taught' || entry.lesson < Infinity) && (entry.status !== 'taught' || entry.showLesson) && (
+            {(entry.status !== 'taught' || entry.earlier) && (
                 <p style={{
                     margin: '6px 0 0', fontSize: 11, fontWeight: 700, letterSpacing: 0.3,
-                    color: entry.status === 'taught' ? 'var(--text-secondary)' : '#b45309',
+                    color: 'var(--text-secondary)',
                 }}>{label}</p>
             )}
         </div>,

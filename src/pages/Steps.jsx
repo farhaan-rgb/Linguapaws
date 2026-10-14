@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     X, Volume2, VolumeX, Lightbulb, MessageCircle, ArrowRight, Check, Flame,
-    Mic, Square, Keyboard, Eye, MessageSquareText, BookOpen,
+    Mic, Square, Keyboard, Eye, MessageSquareText, BookOpen, BookA,
 } from 'lucide-react';
 
 import { CURRICULUM, WORD_FAMILIES, KNOWN_WORDS, WORD_ENDINGS, isLanguageAvailable } from '../services/curriculum';
@@ -35,7 +35,8 @@ import { speechTextFor, englishVoiceTextFor, tipSegments } from '../services/spe
 import { getLangCode } from '../../shared/languages.js';
 import { hasBrahmicScript, isNonLatinScript } from '../../shared/transliterate.js';
 import { isUnhearable } from '../../shared/asr.js';
-import RichText from '../components/RichText';
+import { TapText, TapPhrase, TapHide, TapWordsProvider } from '../components/TapWords';
+import { isTapOn, setTapOn } from '../utils/tapMeaning';
 import Burst from '../components/Burst';
 
 const MAX_SCENARIO_IDX = 29;
@@ -424,7 +425,7 @@ function SentenceExamples({ examples, onSpeak }) {
                                     margin: 0, fontFamily: 'var(--font-display)', fontWeight: 800,
                                     fontSize: 16, wordBreak: 'break-word',
                                 }}>
-                                    {ex.correct}
+                                    <TapPhrase text={ex.correct} />
                                 </p>
                                 <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
                                     {ex.meaning}
@@ -599,7 +600,7 @@ function FamilyCard({ family }) {
                     <span style={{
                         fontWeight: 800, fontFamily: 'var(--font-display)', minWidth: 64,
                         color: m.needed ? '#047857' : m.said ? '#b45309' : 'var(--text-main)',
-                    }}>{m.word}</span>
+                    }}><TapPhrase text={m.word} /></span>
                     <span style={{ flex: 1, color: 'var(--text-secondary)' }}>{m.meaning}</span>
                     {(m.said || m.needed) && (
                         <span style={{
@@ -637,7 +638,7 @@ function RevealPanel({
                 margin: '10px 0 0', fontFamily: 'var(--font-display)', fontWeight: 800,
                 fontSize: step.expected.length > 26 ? 21 : 26, lineHeight: 1.2, wordBreak: 'break-word',
             }}>
-                {step.expected}
+                <TapPhrase text={step.expected} />
             </p>
             {meaning && (
                 <p style={{ margin: '6px 0 0', fontSize: 13.5, color: 'var(--text-secondary)' }}>
@@ -656,7 +657,7 @@ function RevealPanel({
 
             {why && (
                 <p style={{ margin: '12px 0 0', fontSize: 13, lineHeight: 1.5, color: '#78350f' }}>
-                    <RichText text={why} />
+                    <TapText text={why} />
                 </p>
             )}
             {family && <FamilyCard family={family} />}
@@ -798,7 +799,7 @@ function GrammarPoints({ points, revealed, activeIdx, onFocusPoint }) {
                             }} />
                         )}
                         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6 }}>
-                            <RichText text={pt.text} />
+                            <TapText text={pt.text} />
                         </p>
                     </div>
                 );
@@ -821,6 +822,7 @@ function GrammarPoints({ points, revealed, activeIdx, onFocusPoint }) {
 }
 
 const NO_FAMILIES = [];
+const NO_HIDE = [];
 
 function StepScreen({
     step, lexicon, taughtLessons, families, onSpeak, onSay, onSettled, onMiss, onConfusion, onLockIn, onAdvance, isLast,
@@ -1242,8 +1244,11 @@ function StepScreen({
             ? { bg: '#fffbeb', btn: 'var(--primary-gradient)' }
             : null;
 
+    /* A tap must not give the answer away before the screen settles. */
+    const tapHidden = settled || step.kind === 'teach' ? NO_HIDE : [step.expected, ...(step.variants || [])];
+
     return (
-        <>
+        <TapHide words={tapHidden}>
             {phase === 'correct' && (
                 <Burst seed={step.index}
                     power={reward?.milestone ? 2 : reward?.effort === 'teach' ? 0 : 1} originY="36%" />
@@ -1264,7 +1269,7 @@ function StepScreen({
                             <div className="card" style={{ padding: 14, marginTop: 12 }}>
                                 {step.slice.filter(engine.teachAddsSomething).map(w => (
                                     <p key={w.word} style={{ margin: '0 0 6px', fontSize: 14, lineHeight: 1.6 }}>
-                                        <RichText text={w.teach.replaceAll('{w}', `**${w.word}**`)} />
+                                        <TapText text={w.teach.replaceAll('{w}', `**${w.word}**`)} />
                                     </p>
                                 ))}
                             </div>
@@ -1281,14 +1286,14 @@ function StepScreen({
                 {step.kind === 'review' && (
                     <PromptPanel muted={settled} sub={step.item.source === 'due' ? 'from an earlier lesson'
                         : step.item.contrast ? 'a pair you mixed up before' : null}>
-                        {step.prompt}
+                        <TapText text={step.prompt} />
                     </PromptPanel>
                 )}
 
                 {step.kind === 'drill' && (
                     <>
                         <PromptPanel muted={settled} sub={meaningAdds ? drill.meaning : null}>
-                            {step.prompt}
+                            <TapText text={step.prompt} />
                         </PromptPanel>
                         {drill.hint && !settled && (
                             showHint ? (
@@ -1362,6 +1367,7 @@ function StepScreen({
                                     style={{ margin: 0 }}>
                                 <input
                                     enterKeyHint="go"
+                                    data-answer-box="1"
                                     ref={inputRef}
                                     value={answer}
                                     onChange={e => {
@@ -1434,7 +1440,7 @@ function StepScreen({
                             You asked: {asked.q}
                         </p>
                         <p style={{ margin: '4px 0 0', fontSize: 13.5, lineHeight: 1.55 }}>
-                            <RichText text={asked.a} />
+                            <TapText text={asked.a} />
                         </p>
                     </div>
                 )}
@@ -1454,7 +1460,7 @@ function StepScreen({
                         </p>
                         {diagnosis && (
                             <p style={{ margin: '4px 0 0', fontSize: 13, lineHeight: 1.5, color: '#78350f' }}>
-                                <RichText text={diagnosis} />
+                                <TapText text={diagnosis} />
                             </p>
                         )}
                         {scaffold && (
@@ -1476,7 +1482,7 @@ function StepScreen({
                     <div className="card" style={{ padding: 11, marginTop: 12 }}>
                         {note && (
                             <p style={{ margin: '2px 2px 0', fontSize: 13, lineHeight: 1.55, color: '#b45309' }}>
-                                <RichText text={note.trim()} />
+                                <TapText text={note.trim()} />
                             </p>
                         )}
                         <GrammarPoints
@@ -1524,7 +1530,7 @@ function StepScreen({
                     </button>
                 </div>
             </div>
-        </>
+        </TapHide>
     );
 }
 
@@ -1640,6 +1646,7 @@ function Lesson({ scenarioParam, practice = false }) {
     const [milestone, setMilestone] = useState(null);
     const [soundOn, setSoundOn] = useState(fx.isFxOn);
     const [tipsOn, setTipsOnState] = useState(fx.isTipsOn);
+    const [tapOn, setTapOnState] = useState(isTapOn);
 
     /* ── The voice path ──
        One recorder for the whole lesson rather than one per screen: a fresh
@@ -2097,6 +2104,14 @@ function Lesson({ scenarioParam, practice = false }) {
         if (!next) cancelSpeech();
     };
 
+    const toggleTap = () => {
+        setTapOn(!tapOn);
+        setTapOnState(!tapOn);
+    };
+    /* Practice draws on finished lessons, so every word there is from an
+       earlier one and says which. */
+    const tapLessonNo = scenarioIdx + (practice ? 2 : 1);
+
     /* ── Guards ── */
     if (practiceLocked) {
         return (
@@ -2148,17 +2163,20 @@ function Lesson({ scenarioParam, practice = false }) {
     /* ── Summary ── */
     if (finished) {
         return (
-            <Summary
-                lesson={lesson} steps={steps} banked={banked} unaided={unaided} said={said}
-                score={score} onSpeak={speak} scenarioIdx={scenarioIdx} navigate={navigate}
-                hasNext={scenarioIdx + 1 < lessons.length}
-                practice={practice} watch={watch}
-            />
+            <TapWordsProvider langName={langName} lessonNo={tapLessonNo} on={tapOn} speak={speak} resetKey="summary">
+                <Summary
+                    lesson={lesson} steps={steps} banked={banked} unaided={unaided} said={said}
+                    score={score} onSpeak={speak} scenarioIdx={scenarioIdx} navigate={navigate}
+                    hasNext={scenarioIdx + 1 < lessons.length}
+                    practice={practice} watch={watch}
+                />
+            </TapWordsProvider>
         );
     }
 
     /* ── Running ── */
     return (
+        <TapWordsProvider langName={langName} lessonNo={tapLessonNo} on={tapOn} speak={speak} resetKey={index}>
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <StepStyles />
             <MilestoneBanner milestone={milestone} />
@@ -2203,6 +2221,18 @@ function Lesson({ scenarioParam, practice = false }) {
                         flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                     <MessageSquareText size={15} />
+                </button>
+                <button onClick={toggleTap}
+                    aria-label={tapOn ? praise.TAP.toggleOn : praise.TAP.toggleOff}
+                    aria-pressed={tapOn}
+                    title={tapOn ? praise.TAP.toggleOn : praise.TAP.toggleOff}
+                    style={{
+                        width: 32, height: 32, borderRadius: 10, border: 'none', cursor: 'pointer',
+                        background: 'var(--card-bg)',
+                        color: tapOn ? 'var(--accent-purple)' : 'var(--text-secondary)',
+                        flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                    <BookA size={15} />
                 </button>
             </div>
 
@@ -2252,6 +2282,7 @@ function Lesson({ scenarioParam, practice = false }) {
                 />
             </div>
         </div>
+        </TapWordsProvider>
     );
 }
 
@@ -2371,7 +2402,7 @@ export function Summary({
                                     margin: 0, fontWeight: 700, fontFamily: 'var(--font-display)',
                                     fontSize: 15, lineHeight: 1.35,
                                 }}>
-                                    {line.text}
+                                    <TapPhrase text={line.text} />
                                 </p>
                                 {line.meaning && (
                                     <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--text-secondary)' }}>
