@@ -1533,6 +1533,205 @@ export const CURRICULUM = {
                   acceptable: ["dhanyavada naale matte baruttene", "dhanyavada, naanu naale matte baruttene", "dhanyavada, naale matte bartini", "dhanyavadagalu, naale matte baruttene"] }
             ],
             farewell: "Twenty lessons: you can tell someone what you did, what you're doing, and when you'll be back."
+        },
+
+        // Phase 3: The "Connector" Phase (Lessons 21–30)
+        {
+            scenario: "Where Things Are",
+            icon: "📦",
+            color: "#e0f2fe",
+            vocabulary: [
+                { word: "Mele", native: "ಮೇಲೆ", meaning: "On / above", phonetic: "may-leh",
+                  teach: "{w} is “on” or “above”. It goes after the thing: *meju mele*, “on the table”. *Aamele*, “later”, is built from it." },
+                { word: "Kelage", native: "ಕೆಳಗೆ", meaning: "Under / below", phonetic: "keh-luh-geh", alt: ["kelge"],
+                  teach: "{w} is “under”, the opposite of *mele*. It also goes after the thing: *meju kelage*, “under the table”." },
+                { word: "Olage", native: "ಒಳಗೆ", meaning: "Inside", phonetic: "oh-luh-geh", alt: ["olge"],
+                  teach: "{w} means “inside”: *mane olage*, “inside the house”." },
+                { word: "Hattira", native: "ಹತ್ತಿರ", meaning: "Near", phonetic: "hut-tih-ruh", alt: ["hathira", "hattra"] },
+                { word: "Jote", native: "ಜೊತೆ", meaning: "With", phonetic: "joh-teh", alt: ["jothe"],
+                  teach: "{w} means “with”. Put “my” or “your” in front: *nanna jote*, “with me”; *nimma jote*, “with you”." },
+                { word: "Meju", native: "ಮೇಜು", meaning: "Table", phonetic: "may-ju", alt: ["mejina"] }
+            ],
+            phrases: [
+                { prompt: "Say 'on the table'", correct: "Meju mele", native: "ಮೇಜು ಮೇಲೆ", meaning: "On the table", hint: "Table + on",
+                  acceptable: ["mejina mele"],
+                  grammarNote: "These words go AFTER the thing: *meju mele*, “table on”. The opposite of English. You'll also hear *mejina mele*; both are right." },
+                { prompt: "Say 'inside the house'", correct: "Mane olage", native: "ಮನೆ ಒಳಗೆ", meaning: "Inside the house", hint: "House + inside",
+                  acceptable: ["maneya olage", "maneyolage"] },
+                { prompt: "Say 'with me'", correct: "Nanna jote", native: "ನನ್ನ ಜೊತೆ", meaning: "With me", hint: "My + with",
+                  acceptable: ["nanna jothe"],
+                  grammarNote: "Kannada says “my with”: *nanna jote*. Not *naanu jote*." }
+            ],
+            conversations: [
+                { prompt: "Miko phones and asks where you are. Say 'I am inside the house'.", correct: "Naanu mane olage iddene", native: "ನಾನು ಮನೆ ಒಳಗೆ ಇದ್ದೇನೆ", meaning: "I am inside the house", hint: "I + house + inside + I-am",
+                  acceptable: ["mane olage iddene", "naanu mane olage iddeeni", "naanu mane olage iddini", "naanu mane olage", "naanu maneya olage iddene", "naanu maneyalli iddene"],
+                  grammarNote: "Place first, *iddene* (“I am”, from lesson 11) last. *Naanu mane olage* alone is fine too." },
+                { prompt: "Miko can't find her book. You can see it on the floor, under the table. Say 'The book is under the table'.", correct: "Pustaka meju kelage ide", native: "ಪುಸ್ತಕ ಮೇಜು ಕೆಳಗೆ ಇದೆ", meaning: "The book is under the table", hint: "Book + table + under + it-is",
+                  acceptable: ["pustaka mejina kelage ide", "meju kelage ide", "pustaka meju kelage"],
+                  grammarNote: "Same shape as *mane alli ide*, from lesson 3: thing, place, then *ide*." },
+                { prompt: "Miko is heading out and asks if you're coming. Say 'I will come with you'.", correct: "Naanu nimma jote baruttene", native: "ನಾನು ನಿಮ್ಮ ಜೊತೆ ಬರುತ್ತೇನೆ", meaning: "I will come with you", hint: "I + your + with + will come",
+                  acceptable: ["nimma jote baruttene", "naanu nimma jote bartini", "nimma jote bartini", "naanu nimma jothe baruttene"] },
+                { prompt: "Final check: you and Miko live close by. Say 'My house is near your house'.", correct: "Nanna mane nimma mane hattira ide", native: "ನನ್ನ ಮನೆ ನಿಮ್ಮ ಮನೆ ಹತ್ತಿರ ಇದೆ", meaning: "My house is near your house", hint: "My + house + your + house + near + it-is",
+                  acceptable: ["nanna mane nimma mane hattira", "nanna mane nimma maneya hattira ide", "nanna mane nimma mane hathira ide"],
+                  grammarNote: "Read it as “my house | your house near | is”. The place word sits after the house it's measured from." }
+            ],
+            farewell: "On, under, inside, near, with — you can say where anything is, and who you're with."
+        },
+        {
+            scenario: "Can & Can't",
+            icon: "💪",
+            color: "#fef3c7",
+            vocabulary: [
+                { word: "Kannada", native: "ಕನ್ನಡ", meaning: "Kannada (the language)", phonetic: "kun-nuh-duh",
+                  teach: "The language is called {w} in Kannada too." },
+                { word: "Baruttade", native: "ಬರುತ್ತದೆ", meaning: "Can (know how to)", phonetic: "buh-rut-tuh-deh", alt: ["baratte", "barutte"],
+                  teach: "*Nanage Kannada baruttade*, “I can speak Kannada”: literally “Kannada comes to me”. Said short, it's *baratte*." },
+                { word: "Baruvudilla", native: "ಬರುವುದಿಲ್ಲ", meaning: "Can't (don't know how)", phonetic: "buh-ru-vu-dihl-luh", alt: ["baralla", "barodilla"],
+                  teach: "{w} is “can't”, for a skill: *nanage Kannada baruvudilla*. Said short, it's *baralla*." },
+                { word: "Aaguttade", native: "ಆಗುತ್ತದೆ", meaning: "Can (manage)", phonetic: "aa-gut-tuh-deh", alt: ["aagatte", "aagutte", "agutte"],
+                  teach: "*Nanage aaguttade*, “I can manage it”. Use it for time and plans, not skills. Said short: *aagatte*." },
+                { word: "Aaguvudilla", native: "ಆಗುವುದಿಲ್ಲ", meaning: "Can't (manage)", phonetic: "aa-gu-vu-dihl-luh", alt: ["aagalla", "agalla", "aagodilla"],
+                  teach: "*Nanage aaguvudilla*, “I can't make it”. The polite way to say no to a plan. Said short: *aagalla*." },
+                { word: "Sahaaya", native: "ಸಹಾಯ", meaning: "Help", phonetic: "suh-haa-yuh", alt: ["sahaya", "sahay"],
+                  teach: "{w} is “help”. You “do” help, like a meal: *sahaaya maaduttene*, “I will help”." }
+            ],
+            phrases: [
+                { prompt: "Say 'I can speak Kannada' — Kannada says 'Kannada comes to me'", correct: "Nanage Kannada baruttade", native: "ನನಗೆ ಕನ್ನಡ ಬರುತ್ತದೆ", meaning: "I can speak Kannada", hint: "To me + Kannada + comes",
+                  acceptable: ["nanage kannada baratte", "nanage kannada barutte", "kannada baruttade", "kannada baratte"],
+                  grammarNote: "It's *nanage*, “to me”, like liking and knowing. Mind the ending: *baruttene* is “I will come”." },
+                { prompt: "Say 'I can't speak Kannada'", correct: "Nanage Kannada baruvudilla", native: "ನನಗೆ ಕನ್ನಡ ಬರುವುದಿಲ್ಲ", meaning: "I can't speak Kannada", hint: "To me + Kannada + doesn't come",
+                  acceptable: ["nanage kannada baralla", "kannada baruvudilla", "kannada baralla"] },
+                { prompt: "Miko asks if 5 o'clock works for you. Say 'I can manage'.", correct: "Nanage aaguttade", native: "ನನಗೆ ಆಗುತ್ತದೆ", meaning: "I can manage", hint: "To me + it works",
+                  acceptable: ["aaguttade", "nanage aagatte", "nanage aagutte", "aagatte"] }
+            ],
+            conversations: [
+                { prompt: "A shopkeeper asks if you speak Kannada. Say 'I know a little Kannada'.", correct: "Nanage swalpa Kannada baruttade", native: "ನನಗೆ ಸ್ವಲ್ಪ ಕನ್ನಡ ಬರುತ್ತದೆ", meaning: "I know a little Kannada", hint: "To me + a little + Kannada + comes",
+                  acceptable: ["nanage swalpa kannada baratte", "swalpa kannada baruttade", "swalpa kannada baratte", "nanage svalpa kannada baruttade"],
+                  grammarNote: "*Swalpa*, “a little”, from lesson 16, goes before *Kannada*. The sentence everyone will love hearing from you." },
+                { prompt: "Miko asks you to come over tomorrow, but you're busy. Say 'Sorry, tomorrow I can't'.", correct: "Kshamisi, naale nanage aaguvudilla", native: "ಕ್ಷಮಿಸಿ, ನಾಳೆ ನನಗೆ ಆಗುವುದಿಲ್ಲ", meaning: "Sorry, tomorrow I can't", hint: "Sorry + tomorrow + to me + can't manage",
+                  acceptable: ["kshamisi naale nanage aaguvudilla", "kshamisi, nanage naale aaguvudilla", "kshamisi, naale aaguvudilla", "kshamisi, naale nanage aagalla", "kshamisi, naale aagalla", "kshamisi, nanage naale aagalla"] },
+                { prompt: "Miko is carrying too many books. Offer: 'I will help'.", correct: "Naanu sahaaya maaduttene", native: "ನಾನು ಸಹಾಯ ಮಾಡುತ್ತೇನೆ", meaning: "I will help", hint: "I + help + will do",
+                  acceptable: ["sahaaya maaduttene", "naanu sahaaya maadtini", "sahaaya maadtini", "naanu sahaya maaduttene"],
+                  grammarNote: "Here it's *naanu*: you're doing something, not something happening “to you”." },
+                { prompt: "Final check: someone talks to you very fast. Say 'I don't know much Kannada, please say it slowly'.", correct: "Nanage tumba Kannada baruvudilla, mellage heli", native: "ನನಗೆ ತುಂಬಾ ಕನ್ನಡ ಬರುವುದಿಲ್ಲ, ಮೆಲ್ಲಗೆ ಹೇಳಿ", meaning: "I don't know much Kannada, please say it slowly", hint: "To me + much + Kannada + doesn't come, slowly + say",
+                  acceptable: ["nanage tumba kannada baruvudilla mellage heli", "nanage tumba kannada baralla, mellage heli", "tumba kannada baruvudilla, mellage heli", "nanage tumba kannada baruvudilla, swalpa mellage heli", "nanage thumba kannada baralla, swalpa mellage heli"] }
+            ],
+            farewell: "You can say what you can and can't do — and ask anyone to slow down for you."
+        },
+        {
+            scenario: "Must & Must Not",
+            icon: "⚠️",
+            color: "#dcfce7",
+            vocabulary: [
+                { word: "Hogabeku", native: "ಹೋಗಬೇಕು", meaning: "Must go", phonetic: "hoh-guh-bay-ku", alt: ["hogbeku", "hogbek"],
+                  teach: "Add *beku* to an action and it means “must”: {w}, “must go”. It's the same *beku* as “want”, from lesson 4." },
+                { word: "Maadabeku", native: "ಮಾಡಬೇಕು", meaning: "Must do", phonetic: "maa-duh-bay-ku", alt: ["maadbeku", "madbeku", "madabeku"] },
+                { word: "Tinnabeku", native: "ತಿನ್ನಬೇಕು", meaning: "Must eat", phonetic: "tihn-nuh-bay-ku", alt: ["tinbeku", "tinnbeku"] },
+                { word: "Kudiyabeku", native: "ಕುಡಿಯಬೇಕು", meaning: "Must drink", phonetic: "ku-dih-yuh-bay-ku", alt: ["kudibeku", "kudeebeku"],
+                  teach: "{w} is “must drink”. It shares its start with *kudide*, “I drank”, from lesson 18." },
+                { word: "Maadabaaradu", native: "ಮಾಡಬಾರದು", meaning: "Must not do", phonetic: "maa-duh-baa-ruh-du", alt: ["maadbaardu", "madbardu", "maadabardu"],
+                  teach: "Swap *beku* for *baaradu* to forbid: {w}, “must not do”. *Idu maadabaaradu*, “don't do this”." },
+                { word: "Tadavaagide", native: "ತಡವಾಗಿದೆ", meaning: "It's late", phonetic: "tuh-duh-vaa-gih-deh", alt: ["tadavagide", "tadaagide"],
+                  teach: "{w} means “it's late”. It ends in *ide*, like *chennagide*." }
+            ],
+            phrases: [
+                { prompt: "Say 'I must go'", correct: "Naanu hogabeku", native: "ನಾನು ಹೋಗಬೇಕು", meaning: "I must go", hint: "I + must go",
+                  acceptable: ["hogabeku", "naanu hogbeku", "hogbeku"],
+                  grammarNote: "With “must”, the person is *naanu*. The *beku* goes on the end of the action, as one word." },
+                { prompt: "Say 'I must do work'", correct: "Naanu kelasa maadabeku", native: "ನಾನು ಕೆಲಸ ಮಾಡಬೇಕು", meaning: "I must do work", hint: "I + work + must do",
+                  acceptable: ["kelasa maadabeku", "naanu kelasa maadbeku", "kelasa maadbeku", "naanu kelsa maadabeku"] },
+                { prompt: "Miko hasn't eaten all day. Tell her 'You must eat'.", correct: "Neevu tinnabeku", native: "ನೀವು ತಿನ್ನಬೇಕು", meaning: "You must eat", hint: "You + must eat",
+                  acceptable: ["neevu tinbeku", "neevu oota maadabeku", "tinnabeku"],
+                  grammarNote: "Unlike *maaduttene*, *beku* doesn't change for “I” or “you”. Only *naanu* or *neevu* tells you who." }
+            ],
+            conversations: [
+                { prompt: "Miko says it's 10 at night. Say 'It's late, I must go home now'.", correct: "Tadavaagide, naanu eega manege hogabeku", native: "ತಡವಾಗಿದೆ, ನಾನು ಈಗ ಮನೆಗೆ ಹೋಗಬೇಕು", meaning: "It's late, I must go home now", hint: "It's late, I + now + to-the-house + must go",
+                  acceptable: ["tadavaagide naanu eega manege hogabeku", "tadavaagide, eega manege hogabeku", "tadavaagide, naanu eega manege hogbeku", "tadavagide, naanu eega manege hogabeku", "tadavaagide, eega naanu manege hogabeku"] },
+                { prompt: "Miko looks tired after a long walk. Tell her 'You must drink water'.", correct: "Neevu neeru kudiyabeku", native: "ನೀವು ನೀರು ಕುಡಿಯಬೇಕು", meaning: "You must drink water", hint: "You + water + must drink",
+                  acceptable: ["neeru kudiyabeku", "neevu neeru kudibeku", "neeru kudibeku"] },
+                { prompt: "Miko's little brother reaches for a hot pan. Say 'Don't do this' — 'this must not be done'.", correct: "Idu maadabaaradu", native: "ಇದು ಮಾಡಬಾರದು", meaning: "You must not do this", hint: "This + must not do",
+                  acceptable: ["idu maadbaardu", "idu madbardu", "idu maadabardu"] },
+                { prompt: "Final check: say 'Tomorrow morning I must do work'.", correct: "Naale belagge naanu kelasa maadabeku", native: "ನಾಳೆ ಬೆಳಗ್ಗೆ ನಾನು ಕೆಲಸ ಮಾಡಬೇಕು", meaning: "Tomorrow morning I must do work", hint: "Tomorrow + morning + I + work + must do",
+                  acceptable: ["naale belagge kelasa maadabeku", "naanu naale belagge kelasa maadabeku", "naale belagge naanu kelasa maadbeku", "naale belagge kelasa maadbeku"],
+                  grammarNote: "Times first, the action last, as always. *Belagge* is from lesson 18." }
+            ],
+            farewell: "Must go, must eat, must not touch — you can say what has to happen, and what mustn't."
+        },
+        {
+            scenario: "And, But, Or, Because",
+            icon: "🔗",
+            color: "#ede9fe",
+            vocabulary: [
+                { word: "Aadare", native: "ಆದರೆ", meaning: "But", phonetic: "aa-duh-reh", alt: ["aadre", "adre", "adare"],
+                  teach: "“But” is {w}. It starts the second half: *idu beku, aadare adu beda*." },
+                { word: "Athava", native: "ಅಥವಾ", meaning: "Or", phonetic: "uh-thuh-vaa", alt: ["athavaa", "athva", "athwa"] },
+                { word: "Yaakendare", native: "ಯಾಕೆಂದರೆ", meaning: "Because", phonetic: "yaa-kehn-duh-reh", alt: ["yaakandre", "yakandre", "yaakendre"],
+                  teach: "{w} is “because”, and the reason comes after it. *Adakke*, from lesson 15, works the other way: reason first." },
+                { word: "Kooda", native: "ಕೂಡ", meaning: "Too / also", phonetic: "koo-duh", alt: ["kuda", "koodaa"],
+                  teach: "{w} means “too”. It goes right after the person: *naanu kooda*, “me too”." },
+                { word: "Chaha", native: "ಚಹಾ", meaning: "Tea", phonetic: "chuh-haa", alt: ["chahaa", "chaa", "tea"] }
+            ],
+            phrases: [
+                { prompt: "Offer a guest a choice: 'Coffee or tea?'", correct: "Kaafi athava chaha?", native: "ಕಾಫಿ ಅಥವಾ ಚಹಾ?", meaning: "Coffee or tea?", hint: "Coffee + or + tea?",
+                  acceptable: ["kaafi athava chaha", "kaafi athavaa chaha?", "coffee athava chaha?"] },
+                { prompt: "At a stall, point at two things. Say 'I want this, but not that'.", correct: "Nanage idu beku, aadare adu beda", native: "ನನಗೆ ಇದು ಬೇಕು, ಆದರೆ ಅದು ಬೇಡ", meaning: "I want this, but not that", hint: "To me + this + want, but + that + don't want",
+                  acceptable: ["idu beku, aadare adu beda", "idu beku aadare adu beda", "nanage idu beku aadare adu beda", "nanage idu beku, aadre adu beda"],
+                  grammarNote: "*Aadare* sits between the two halves, as in English. Each half keeps its own *beku* or *beda* at the end." },
+                { prompt: "Miko is going out. Say 'I am coming too'.", correct: "Naanu kooda baruttene", native: "ನಾನು ಕೂಡ ಬರುತ್ತೇನೆ", meaning: "I am coming too", hint: "I + too + will come",
+                  acceptable: ["naanu kooda bartini", "naanu kuda baruttene", "naanu kooda baruttini"] }
+            ],
+            conversations: [
+                { prompt: "Miko asks what you drink. Say 'I like coffee, but I don't like tea'.", correct: "Nanage kaafi ishta, aadare chaha ishta illa", native: "ನನಗೆ ಕಾಫಿ ಇಷ್ಟ, ಆದರೆ ಚಹಾ ಇಷ್ಟ ಇಲ್ಲ", meaning: "I like coffee, but I don't like tea", hint: "To me + coffee + like, but + tea + like + not",
+                  acceptable: ["nanage kaafi ishta aadare chaha ishta illa", "nanage kaafi ishta, aadre chaha ishta illa", "nanage kaafi ishta, aadare chaha ishta ella", "nanage kaafi ishta, aadare nanage chaha ishta illa"] },
+                { prompt: "Miko says 'Nanage kaafi ishta'. Say 'I like it too'.", correct: "Nanage kooda ishta", native: "ನನಗೆ ಕೂಡ ಇಷ್ಟ", meaning: "I like it too", hint: "To me + too + like",
+                  acceptable: ["nanage kuda ishta", "nanage kooda kaafi ishta"],
+                  grammarNote: "*Kooda* follows whoever it's about. Here that's *nanage*, so it's *nanage kooda*, not *naanu kooda*." },
+                { prompt: "Miko asks you to come out tonight. Say 'I can't, because I have work'.", correct: "Nanage aaguvudilla, yaakendare nanage kelasa ide", native: "ನನಗೆ ಆಗುವುದಿಲ್ಲ, ಯಾಕೆಂದರೆ ನನಗೆ ಕೆಲಸ ಇದೆ", meaning: "I can't, because I have work", hint: "To me + can't manage, because + to me + work + is there",
+                  acceptable: ["nanage aaguvudilla yaakendare nanage kelasa ide", "aaguvudilla, yaakendare nanage kelasa ide", "nanage aagalla, yaakandre nanage kelasa ide", "nanage aaguvudilla, yaakendare kelasa ide", "nanage kelasa ide, adakke aaguvudilla", "nanage kelasa ide, adakke nanage aaguvudilla"],
+                  grammarNote: "The same reason, the other way round: *nanage kelasa ide, adakke aaguvudilla*. Both are everyday Kannada." },
+                { prompt: "Final check: Miko offers you a meal. Say 'I want coffee or water, but I don't want food'.", correct: "Nanage kaafi athava neeru beku, aadare oota beda", native: "ನನಗೆ ಕಾಫಿ ಅಥವಾ ನೀರು ಬೇಕು, ಆದರೆ ಊಟ ಬೇಡ", meaning: "I want coffee or water, but I don't want food", hint: "To me + coffee + or + water + want, but + food + don't want",
+                  acceptable: ["nanage kaafi athava neeru beku aadare oota beda", "kaafi athava neeru beku, aadare oota beda", "nanage kaafi athava neeru beku, aadre oota beda"] }
+            ],
+            farewell: "And, but, or, because, too — you can join your sentences up now, the way people really talk."
+        },
+        {
+            scenario: "The 'If'",
+            icon: "🔀",
+            color: "#fce7f3",
+            vocabulary: [
+                { word: "Hodare", native: "ಹೋದರೆ", meaning: "If (someone) goes", phonetic: "hoh-duh-reh", alt: ["hodre"],
+                  teach: "Take *hode*, “I went”, and swap the -e for -are: {w}, “if you go”. One word, no separate “if”." },
+                { word: "Bandare", native: "ಬಂದರೆ", meaning: "If (someone) comes", phonetic: "bun-duh-reh", alt: ["bandre"],
+                  teach: "*Bande*, “I came”, becomes {w}, “if you come”. The same swap." },
+                { word: "Maadidare", native: "ಮಾಡಿದರೆ", meaning: "If (someone) does", phonetic: "maa-dih-duh-reh", alt: ["maadidre", "madidre", "madidare"] },
+                { word: "Iddare", native: "ಇದ್ದರೆ", meaning: "If there is", phonetic: "ihd-duh-reh", alt: ["iddre"],
+                  teach: "{w} means “if there is”: *neeru iddare*, “if there's water”. It's the “if” of *ide*." },
+                { word: "Haagaadare", native: "ಹಾಗಾದರೆ", meaning: "Then / in that case", phonetic: "haa-gaa-duh-reh", alt: ["haagadre", "hagadre", "hagaadare", "haagaadre"],
+                  teach: "{w} means “in that case”. Use it to answer news: “Busy today?” “*Haagaadare*, tomorrow.”" }
+            ],
+            phrases: [
+                { prompt: "Say 'if you go'", correct: "Neevu hodare", native: "ನೀವು ಹೋದರೆ", meaning: "If you go", hint: "You + if-go",
+                  acceptable: ["neevu hodre"],
+                  grammarNote: "The “if” is the ending, so it comes last: *neevu hodare*, “you if-go”. English puts “if” first." },
+                { prompt: "Say 'if there is water'", correct: "Neeru iddare", native: "ನೀರು ಇದ್ದರೆ", meaning: "If there is water", hint: "Water + if-there-is",
+                  acceptable: ["neeru iddre"] },
+                { prompt: "Say 'if I do the work'", correct: "Naanu kelasa maadidare", native: "ನಾನು ಕೆಲಸ ಮಾಡಿದರೆ", meaning: "If I do the work", hint: "I + work + if-do",
+                  acceptable: ["kelasa maadidare", "naanu kelasa maadidre", "naanu kelsa maadidare"] }
+            ],
+            conversations: [
+                { prompt: "Miko isn't sure she'll come to the party. Say 'If you come, I will come'.", correct: "Neevu bandare, naanu baruttene", native: "ನೀವು ಬಂದರೆ, ನಾನು ಬರುತ್ತೇನೆ", meaning: "If you come, I will come", hint: "You + if-come, I + will come",
+                  acceptable: ["neevu bandare naanu baruttene", "neevu bandare, baruttene", "neevu bandare, naanu bartini", "neevu bandre, naanu baruttene", "neevu bandare bartini"],
+                  grammarNote: "*Bandare*, “if you come”. *Baruttene*, “I will come”. Same root, *baru*, two different jobs." },
+                { prompt: "At a café, ask politely: 'If there is coffee, please give it'.", correct: "Kaafi iddare, kodi", native: "ಕಾಫಿ ಇದ್ದರೆ, ಕೊಡಿ", meaning: "If there is coffee, please give it", hint: "Coffee + if-there-is, give",
+                  acceptable: ["kaafi iddare kodi", "kaafi iddare, nanage kodi", "kaafi iddre, kodi", "coffee iddare, kodi"],
+                  grammarNote: "A soft way to order: “if there's any”. *Kodi*, “please give”, is from lesson 10." },
+                { prompt: "Miko says she's busy today. Say 'In that case, I will come tomorrow'.", correct: "Haagaadare, naanu naale baruttene", native: "ಹಾಗಾದರೆ, ನಾನು ನಾಳೆ ಬರುತ್ತೇನೆ", meaning: "In that case, I will come tomorrow", hint: "In that case, I + tomorrow + will come",
+                  acceptable: ["haagaadare naanu naale baruttene", "haagaadare, naale baruttene", "hagadre, naanu naale bartini", "haagaadare, naale naanu baruttene", "haagaadare, naanu naale bartini"] },
+                { prompt: "Final check: say 'If I do the work today, I will come tomorrow'.", correct: "Ivattu naanu kelasa maadidare, naale baruttene", native: "ಇವತ್ತು ನಾನು ಕೆಲಸ ಮಾಡಿದರೆ, ನಾಳೆ ಬರುತ್ತೇನೆ", meaning: "If I do the work today, I will come tomorrow", hint: "Today + I + work + if-do, tomorrow + will come",
+                  acceptable: ["ivattu naanu kelasa maadidare naale baruttene", "ivattu kelasa maadidare, naale baruttene", "naanu ivattu kelasa maadidare, naale baruttene", "ivattu naanu kelasa maadidare, naale bartini", "ivattu naanu kelasa maadidare, naanu naale baruttene"],
+                  grammarNote: "The “if” half comes first and ends in -are. The second half is a normal sentence." }
+            ],
+            farewell: "If you go, if you come, if there's coffee — you can make plans that depend on something now."
         }
     ],
     Hindi: [
