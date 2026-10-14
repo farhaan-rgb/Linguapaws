@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     X, Volume2, VolumeX, Lightbulb, MessageCircle, ArrowRight, Check, Flame,
-    Mic, Square, Keyboard, Eye, MessageSquareText,
+    Mic, Square, Keyboard, Eye, MessageSquareText, BookOpen,
 } from 'lucide-react';
 
 import { CURRICULUM, WORD_FAMILIES, KNOWN_WORDS, isLanguageAvailable } from '../services/curriculum';
@@ -19,6 +19,7 @@ import {
     ensureContrast, recordConfusion, recordContrastCheck,
     fetchPracticeSources, recordMissedScreen, recordMissedCheck,
 } from '../services/srs';
+import { examplesFor } from '../services/examples';
 import { getStoredJSON } from '../utils/storage';
 import { api } from '../services/api';
 import { resumeIndex, savedStepFor, completedLessonFor } from '../services/lessonResume';
@@ -387,6 +388,52 @@ function WordCard({ wordObj, onSpeak, compact = false, won = false }) {
                 </span>
                 <SpeakButton text={wordObj.word} onSpeak={onSpeak} size={compact ? 30 : 38} />
             </div>
+        </div>
+    );
+}
+
+/** "See it in a sentence": the course's own sentences that use this word,
+ *  collapsed until asked for and never read aloud unasked. A word known in
+ *  isolation is not yet a word a learner can use — a Kannada learner who had
+ *  *Ide* could not say where it goes. */
+function SentenceExamples({ examples, onSpeak }) {
+    const [open, setOpen] = useState(false);
+    if (!examples.length) return null;
+    return (
+        <div style={{ marginTop: 12 }}>
+            {!open ? (
+                <button onClick={() => setOpen(true)}
+                    style={{
+                        margin: '0 auto', display: 'flex', alignItems: 'center', gap: 6,
+                        background: 'none', border: 'none', padding: '4px 0', cursor: 'pointer',
+                        fontSize: 13, fontWeight: 600, color: 'var(--accent-purple)',
+                    }}>
+                    <BookOpen size={14} /> See it in a sentence
+                </button>
+            ) : (
+                <div className="card" style={{ padding: 12, animation: 'pop-in 0.3s ease-out' }}>
+                    {examples.map((ex, i) => (
+                        <div key={ex.correct} style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            paddingTop: i ? 10 : 0, marginTop: i ? 10 : 0,
+                            borderTop: i ? '1px solid rgba(168,85,247,0.12)' : 'none',
+                        }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{
+                                    margin: 0, fontFamily: 'var(--font-display)', fontWeight: 800,
+                                    fontSize: 16, wordBreak: 'break-word',
+                                }}>
+                                    {ex.correct}
+                                </p>
+                                <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
+                                    {ex.meaning}
+                                </p>
+                            </div>
+                            <SpeakButton text={ex.correct} onSpeak={onSpeak} size={32} />
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -814,6 +861,17 @@ function StepScreen({
     const drill = step.kind === 'drill' ? step.drill : null;
     const settled = phase === 'correct' || phase === 'revealed';
 
+    /* Words only: a phrase or conversation screen is already a sentence, and a
+       contrast pair is two words, not one. */
+    const exampleWord = step.kind === 'teach' ? step.slice?.[0]?.word
+        : (step.kind === 'review' && !step.item?.contrast) ? step.item?.word : null;
+    const examples = useMemo(() => (exampleWord
+        ? examplesFor(taughtLessons, taughtLessons.length - 1, exampleWord, { teaching: step.kind === 'teach' })
+        : []), [exampleWord, taughtLessons, step.kind]);
+    /* A memory check shows them only once it is settled: before that, a sentence
+       holding the word is the answer. */
+    const showExamples = step.kind === 'review' && settled;
+
     const grammarNote = drill?.grammarNote;
     const points = useMemo(
         () => (grammarNote ? engine.grammarPoints(grammarNote) : []),
@@ -1184,6 +1242,7 @@ function StepScreen({
                                 Your turn — say {step.slice.map(w => w.word).join(', then ')}
                             </p>
                         )}
+                        <SentenceExamples examples={examples} onSpeak={onSpeak} />
                     </>
                 )}
 
@@ -1317,6 +1376,10 @@ function StepScreen({
                         </>
                     )}
                 </div>
+
+                {showExamples && (
+                    <SentenceExamples examples={examples} onSpeak={onSpeak} />
+                )}
 
                 {/* A miss says what was actually wrong. No red — amber, because
                     the learner has another try and the screen should look like

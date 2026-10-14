@@ -347,6 +347,19 @@ if (typeText !== null) {
     }, 90);
 }
 
+/* `?tap=<button text>` taps one button once the drivers above have finished —
+   for a control that only opens on request, like "See it in a sentence". */
+const tapText = params.get('tap');
+if (tapText) {
+    const tick = setInterval(() => {
+        if (window.__driverBusy || window.__typeBusy) return;
+        const b = [...document.querySelectorAll('button')].find(el => el.textContent.includes(tapText));
+        if (!b) return;
+        b.click();
+        clearInterval(tick);
+    }, 300);
+}
+
 /* The microphone, once whichever driver put us on this screen has finished.
    One tap starts it; the states that need a transcript take a second tap to
    stop and hand the stub blob to the stubbed transcriber. */
