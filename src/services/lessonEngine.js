@@ -306,16 +306,62 @@ export const buildSynonymMap = (lessons = []) => {
     return map;
 };
 
+/* Pairs that look like one word slightly misspelled and are two words the
+   course teaches AGAINST each other. No typo tolerance, no shorter accepted
+   variant and no "the tutor just said it" allowance may let one stand for the
+   other.
+
+   - *naanu* "I" / *nanage* "to me" (Telugu *nenu* / *naaku*): feelings, liking,
+     knowing and remembering come *nanage*, and the lessons say "never *naanu*"
+     in so many words. A round-K4 tester wrote `naanu tumba kushi` straight after
+     that note and was told "Spot on!", because `tumba kushi` is an accepted
+     dropped-subject form and an extra word is tolerated. Same for `naanu
+     gottilla` against *nanage gottilla*.
+   - *matte* "again" / *mattu* "and": one edit apart. The memory check refused
+     it; the chat teach step praised it with a spelling note, because the tutor's
+     own line had just said "mind the ending: *mattu* is and".
+   - *hogi* "having gone" / *hogu* "go": *hogi baruttene* is the leave-taking,
+     *hogu baruttene* is not a sentence, and it was accepted as one letter out. */
+export const DISTINCT_WORDS = [
+    ['naanu', 'nanage'],
+    ['nenu', 'naaku'],
+    ['matte', 'mattu'],
+    ['hogi', 'hogu'],
+];
+const DISTINCT_INDEX = new Map(DISTINCT_WORDS.flatMap((g, i) => g.map(w => [w, i])));
+/** True when a and b are different members of one DISTINCT_WORDS group. */
+export const distinctWords = (a, b) => {
+    const x = normalizeLatin(a), y = normalizeLatin(b);
+    if (!x || !y || x === y) return false;
+    const gx = DISTINCT_INDEX.get(x);
+    return gx !== undefined && gx === DISTINCT_INDEX.get(y);
+};
+
 export const tokenCoverage = (actual, expected, lexicon = new Map()) => {
-    const { synonyms, words } = asLexicon(lexicon);
-    const canon = (t) => synonyms.get(t) || t;
     const said = normalizeLatin(actual).split(' ').filter(Boolean);
     const need = normalizeLatin(expected).split(' ').filter(Boolean);
     if (!need.length) return 1;
 
+    const pool = [...said];
+    let hits = 0;
+    for (const token of need) {
+        if (/[[\]()]/.test(token)) { hits++; continue; }
+        const i = pool.findIndex(raw => tokenMatches(raw, token, lexicon));
+        if (i !== -1) { hits++; pool.splice(i, 1); }
+    }
+    return hits / need.length;
+};
+
+/* Does one learner token count as one target token? The per-word rule behind
+   tokenCoverage, exported so the ORDER checks can locate words the same way the
+   coverage check finds them — an order check that only saw exact spellings let
+   `naanu maaduttiddene kelasa` through on the strength of a listed variant
+   spelled `maadtidini`, which it could not see was out of place. */
+export const tokenMatches = (raw, token, lexicon = new Map()) => {
+    const { synonyms, words } = asLexicon(lexicon);
+    const canon = (t) => synonyms.get(t) || t;
     /* Two real, different words of this course are never typos of each other. */
     const bothReal = (a, b) => words.has(a) && words.has(b) && a !== b;
-
     /* An `alt` that EXTENDS its headword is an inflection, not a spelling: -ga on
        a feeling (*badhaga*), -ki on a noun (*paniki*). Canonicalising both to the
        base made them interchangeable in either direction, so a learner could keep
@@ -327,59 +373,50 @@ export const tokenCoverage = (actual, expected, lexicon = new Map()) => {
         return Boolean(base) && t !== base && (t.startsWith(base) || base.startsWith(t));
     };
     const inflectionMismatch = (a, b) => (isInflection(a) || isInflection(b)) && a !== b;
-
-    const pool = [...said];
-    let hits = 0;
-    for (const token of need) {
-        if (/[[\]()]/.test(token)) { hits++; continue; }
-        const want = canon(token);
-        const i = pool.findIndex(raw => {
-            /* Compared BOTH ways: canonicalised, so an `alt` spelling counts as
-               the word it stands for, and raw, so a typo of the alt still counts.
-               Canonicalising alone turned *santhoshamga* into *santhosham*, three
-               characters away from the learner's *santhoshamgaa*, and a plain
-               vowel slip was marked wrong while the same slip on *baga* passed. */
-            if (raw === token || isSpellingSlip(raw, token)) return true;
-            if (inflectionMismatch(raw, token)) return false;
-            const s = canon(raw);
-            if (s === want) return true;
-            if (bothReal(s, want)) return false;
-            /* The SHORTER word must be substantial. Gated on the longer one, a
-               stray two-letter fragment of English could stand in for a real
-               target word and satisfy the coverage check — "ve" out of "I've"
-               passed for *veyi*.
-               Short target words still need a route in, or `Me` for *Mee* is
-               marked wrong: allowed when the lengths differ by at most one and
-               the words start alike, which "ve"/"veyi" (two apart) does not. */
-            const short = Math.min(s.length, want.length) < 4;
-            if (short) {
-                if (Math.abs(s.length - want.length) > 1) return false;
-                if (s[0] !== want[0]) return false;
-                return vowelSkeleton(s) === vowelSkeleton(want)
-                    && !differsOnlyByPersonEnding(s, want);
-            }
-            if (isSpellingSlip(s, want)) return true;
-            /* What makes a one-edit difference a MEANING error rather than a typo
-               is not how short the word is — it is whether the learner's token is
-               itself a word of this course. `bothReal` above already refuses
-               `illa` for *illi* and `alli` for *illi* on exactly that test.
-               I briefly gated this on length instead (under six characters, forgive
-               nothing), which was redundant with `bothReal` and broke real typos: a
-               learner typed `Hega Iddeera` for *hege iddeera*, one letter out, and
-               was told "iddeera means Are you (polite) — here you want the word for
-               You (polite)" — a wrong diagnosis of the wrong word, which then led
-               them into a worse answer. *Hega* is not a Kannada word, so nothing
-               was ambiguous about it.
-               The length gate survives only for callers with no lexicon to consult,
-               where `bothReal` cannot answer and caution is the right default. */
-            if (!words.size && Math.min(s.length, want.length) < 6) return false;
-            return levenshtein(s, want) <= 1
-                && !differsOnlyByPersonEnding(s, want)
-                && !differsOnlyByDeicticInitial(s, want);
-        });
-        if (i !== -1) { hits++; pool.splice(i, 1); }
+    const want = canon(token);
+    if (distinctWords(raw, token) || distinctWords(canon(raw), want)) return false;
+    /* Compared BOTH ways: canonicalised, so an `alt` spelling counts as
+       the word it stands for, and raw, so a typo of the alt still counts.
+       Canonicalising alone turned *santhoshamga* into *santhosham*, three
+       characters away from the learner's *santhoshamgaa*, and a plain
+       vowel slip was marked wrong while the same slip on *baga* passed. */
+    if (raw === token || isSpellingSlip(raw, token)) return true;
+    if (inflectionMismatch(raw, token)) return false;
+    const s = canon(raw);
+    if (s === want) return true;
+    if (bothReal(s, want)) return false;
+    /* The SHORTER word must be substantial. Gated on the longer one, a
+       stray two-letter fragment of English could stand in for a real
+       target word and satisfy the coverage check — "ve" out of "I've"
+       passed for *veyi*.
+       Short target words still need a route in, or `Me` for *Mee* is
+       marked wrong: allowed when the lengths differ by at most one and
+       the words start alike, which "ve"/"veyi" (two apart) does not. */
+    const short = Math.min(s.length, want.length) < 4;
+    if (short) {
+        if (Math.abs(s.length - want.length) > 1) return false;
+        if (s[0] !== want[0]) return false;
+        return vowelSkeleton(s) === vowelSkeleton(want)
+            && !differsOnlyByPersonEnding(s, want);
     }
-    return hits / need.length;
+    if (isSpellingSlip(s, want)) return true;
+    /* What makes a one-edit difference a MEANING error rather than a typo
+       is not how short the word is — it is whether the learner's token is
+       itself a word of this course. `bothReal` above already refuses
+       `illa` for *illi* and `alli` for *illi* on exactly that test.
+       I briefly gated this on length instead (under six characters, forgive
+       nothing), which was redundant with `bothReal` and broke real typos: a
+       learner typed `Hega Iddeera` for *hege iddeera*, one letter out, and
+       was told "iddeera means Are you (polite) — here you want the word for
+       You (polite)" — a wrong diagnosis of the wrong word, which then led
+       them into a worse answer. *Hega* is not a Kannada word, so nothing
+       was ambiguous about it.
+       The length gate survives only for callers with no lexicon to consult,
+       where `bothReal` cannot answer and caution is the right default. */
+    if (!words.size && Math.min(s.length, want.length) < 6) return false;
+    return levenshtein(s, want) <= 1
+        && !differsOnlyByPersonEnding(s, want)
+        && !differsOnlyByDeicticInitial(s, want);
 };
 
 /* The learner who says the right thing and then adds a question about it.
@@ -474,6 +511,67 @@ const answerIsOffered = (actual, expected) => {
     return tail.length === need.length && tail.every((t, i) => t === need[i]);
 };
 
+/* Where each target word sits in what the learner said, located with the
+   coverage rule so a spelling slip or an `alt` still counts as the word.
+   Null when a target word is not there at all — that is coverage's business. */
+const locateTokens = (actual, v, lexicon) => {
+    /* A [name] slot matches whatever the learner put there, so it cannot take
+       part in an ordering check — and leaving it in made every target that has
+       one exempt, which is how a swap inside the capstone sentence passed. */
+    const need = normalizeLatin(v).split(' ').filter(Boolean)
+        .filter(t => !/[[\]()]/.test(t) && t !== 'name' && t !== 'place');
+    const said = normalizeLatin(actual).split(' ').filter(Boolean);
+    const used = new Set();
+    const at = [];
+    for (const t of need) {
+        let i = said.findIndex((x, k) => !used.has(k) && x === t);
+        if (i === -1) i = said.findIndex((x, k) => !used.has(k) && tokenMatches(x, t, lexicon));
+        if (i === -1) return null;
+        used.add(i);
+        at.push(i);
+    }
+    return { need, at };
+};
+
+/* Coverage is order-blind and the ratio forgives a swap, so `peru naa` passed
+   for *naa peru* with no comment. Rejection requires a genuine PERMUTATION:
+   every word of the target present, and not in the target's order. Anything
+   else — a missing word, extra words — is coverage's business. */
+const isPermutedAgainst = (actual, v, lexicon) => {
+    const loc = locateTokens(actual, v, lexicon);
+    if (!loc || loc.need.length < 2) return false;
+    return loc.at.some((p, k) => k > 0 && p < loc.at[k - 1]);
+};
+
+/** Which target word is out of place, for a learner who has every word right
+ *  and the order wrong. The words that are already in order are the longest
+ *  increasing run of positions; the first one outside it is the misplaced one.
+ *  `naanu nodide mane` for *naanu mane nodide* used to be told "naanu comes
+ *  first" — naanu WAS first; nodide was the word to move. */
+export const misplacedWord = (actual, v, lexicon = new Map()) => {
+    const loc = locateTokens(actual, v, lexicon);
+    if (!loc || loc.need.length < 2) return null;
+    const { need, at } = loc;
+    if (!at.some((p, k) => k > 0 && p < at[k - 1])) return null;
+    const n = at.length;
+    const len = Array(n).fill(1), prev = Array(n).fill(-1);
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < i; j++) {
+            if (at[j] < at[i] && len[j] + 1 > len[i]) { len[i] = len[j] + 1; prev[i] = j; }
+        }
+    }
+    /* Ties go to the run that keeps the EARLIER target words, so the word named
+       is a later one — in a verb-last language, usually the verb that wandered
+       forward, which is the thing the lesson's note is about. */
+    let end = 0;
+    for (let i = 1; i < n; i++) if (len[i] > len[end]) end = i;
+    const keep = new Set();
+    for (let i = end; i !== -1; i = prev[i]) keep.add(i);
+    const k = need.findIndex((_, i) => !keep.has(i));
+    if (k === -1) return null;
+    return { word: need[k], index: k, last: k === n - 1, first: k === 0, need };
+};
+
 /** Best ratio and coverage across a target and every accepted variant. */
 export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()) => {
     const given = [expected, ...variants].filter(Boolean);
@@ -535,46 +633,67 @@ export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()
        the target present, and not in the target's order. Anything else — a missing
        word, extra words — is coverage's business, not this check's, so the
        variation the curriculum lists as `acceptable` is untouched. */
-    const isPermutedAgainst = (v) => {
-        /* A [name] slot matches whatever the learner put there, so it cannot take
-           part in an ordering check — and leaving it in made every target that has
-           one exempt, which is how a swap inside the capstone sentence passed. */
-        const need = normalizeLatin(v).split(' ').filter(Boolean)
-            .filter(t => !/[[\]()]/.test(t) && t !== 'name' && t !== 'place');
-        if (need.length < 2) return false;
-        const said = normalizeLatin(actual).split(' ').filter(Boolean);
-        // every target word must be there, or this is not a reordering
-        if (!need.every(t => said.includes(t))) return false;
-        let at = -1;
-        for (const t of need) {
-            const i = said.indexOf(t, at + 1);
-            if (i === -1) return true;    // present, but not after the previous one
-            at = i;
-        }
-        return false;
-    };
-    /* Order is judged against the canonical answer, and a reordering is allowed
-       only where the curriculum lists that reordering itself.
+    const tokenCount = (v) => normalizeLatin(v).split(' ')
+        .filter(t => t && !/[[\]()]/.test(t) && t !== 'name' && t !== 'place').length;
+    /* Order is judged against the canonical answer AND its dropped-pronoun forms,
+       and a reordering is allowed only where the curriculum lists that reordering
+       itself.
+
        Neither half alone works. Judging against "any variant" let a SHORTER
        accepted form rescue a scrambled longer one — `Unnaru meeru ela` contains
        "meeru ela" in sequence, so it passed for *Meeru ela unnaru* with a stray
        verb in front. Judging against the canonical alone rejected five answers the
        curriculum declares correct, because Telugu really does allow the time word
        on either side of the pronoun and the course says so.
-       So: a listed variant licenses an ordering only if it is as long as the
-       canonical — a full alternative phrasing, not a shorter form that happens to
-       sit in order inside a scrambled answer. */
-    const tokenCount = (v) => normalizeLatin(v).split(' ')
-        .filter(t => t && !/[[\]()]/.test(t) && t !== 'name' && t !== 'place').length;
-    const ordered = !isPermutedAgainst(expected)
-        || given.slice(1).some(v => tokenCount(v) === tokenCount(expected)
-            && !isPermutedAgainst(v)
+       So: a listed variant licenses an ordering only if it is as long as the form
+       the answer was found scrambled against.
+
+       The dropped-pronoun forms are included because a round-K4 tester typed
+       `maaduttiddene kelasa` — verb first, against a note saying "the action word
+       goes last" — and only the canonical *Naanu kelasa maaduttiddene* was
+       checked, so the order was never seen as the problem. Words are located with
+       the coverage rule (`tokenMatches`), not exact spelling: exact matching let
+       `naanu maaduttiddene kelasa` past, rescued by a variant spelled
+       `maadtidini` that it could not see was out of place. */
+    const canonicalForms = [expected, ...pronounVariants(expected)];
+    const scrambledAgainst = canonicalForms.filter(v => isPermutedAgainst(actual, v, lexicon));
+    const longest = Math.max(0, ...scrambledAgainst.map(tokenCount));
+    const ordered = !scrambledAgainst.length
+        || all.some(v => tokenCount(v) >= longest
+            && !isPermutedAgainst(actual, v, lexicon)
             && tokenCoverage(actual, v, lexicon) === 1);
+
+    /* A word said that the answer contrasts it with (see DISTINCT_WORDS). Extra
+       words are tolerated in general, so `naanu tumba kushi` covered the accepted
+       `tumba kushi` and passed for *Nanage tumba kushi*. An accepted form
+       licenses the answer only if it has every pair-member the learner used (as
+       many times), and does not want the PARTNER of one they used in its place.
+       Counted per form rather than across all of them, because a sentence can
+       use both — *nanage bhaya, adakke naanu hoguttiddene* — and `naanu bhaya`
+       must not borrow the second clause's *naanu* to cover the first. */
+    const countMembers = (v) => {
+        const m = new Map();
+        for (const t of normalizeLatin(v).split(' ')) {
+            if (DISTINCT_INDEX.has(t)) m.set(t, (m.get(t) || 0) + 1);
+        }
+        return m;
+    };
+    const saidMembers = countMembers(actual);
+    const contrastOk = !saidMembers.size || given.some(v => {
+        const want = countMembers(v);
+        for (const [t, n] of saidMembers) if ((want.get(t) || 0) < n) return false;
+        for (const y of want.keys()) {
+            if (saidMembers.has(y)) continue;
+            if ([...saidMembers.keys()].some(t => distinctWords(t, y))) return false;
+        }
+        return true;
+    });
 
     return {
         ratio,
         coverage,
-        accepted: ratio >= THRESHOLD && covered && offered && ordered && polarityOk && copulaOk,
+        accepted: ratio >= THRESHOLD && covered && offered && ordered && polarityOk && copulaOk
+            && contrastOk,
     };
 };
 
@@ -995,7 +1114,9 @@ export const answerWasRevealed = (text, expected) => {
 /** Never mark a learner wrong for saying back what the tutor just modelled.
     Narrow: must appear in the tutor's turn, be length-comparable, and share a
     word with the real answer — so echoing the English hint fails. */
-export const tutorModelled = (said, tutorText, expected) => {
+export const tutorModelled = (said, tutorText, expected, lexicon = new Map()) => {
+    const { words, synonyms } = asLexicon(lexicon);
+    const canon = (w) => synonyms.get(w) || w;
     const a = normalizeLatin(said);
     const t = normalizeLatin(tutorText || '');
     const e = normalizeLatin(expected || '');
@@ -1011,8 +1132,15 @@ export const tutorModelled = (said, tutorText, expected) => {
        apart and mean here and there, so a learner echoing the WRONG half of a pair
        the tutor modelled slipped through this door after the main matcher had
        closed it. Same two guards as everywhere else. */
+    /* And a word the answer is taught AGAINST never counts as echoing it: the
+       Matte teach line says "mind the ending: *mattu* is and", so a learner who
+       typed `mattu` had echoed the tutor and was told "Correct" — for the one
+       word the line was warning them off. Two different real course words, or a
+       DISTINCT_WORDS pair, are not one word misspelled. */
+    if (saidTokens.some(x => wantTokens.some(y => distinctWords(x, y)))) return false;
     return saidTokens.some(x => wantTokens.some(y =>
         x === y || (Math.max(x.length, y.length) >= 4 && levenshtein(x, y) <= 1
+            && !(words.has(x) && words.has(y) && canon(x) !== canon(y))
             && !differsOnlyByPersonEnding(x, y)
             && !differsOnlyByDeicticInitial(x, y))));
 };
@@ -1633,16 +1761,34 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
     const got = normalizeLatin(said).split(' ').filter(Boolean);
     if (!need.length || !got.length) return null;
 
-    // Right words, wrong order.
-    const allPresent = need.every(t => got.includes(t));
-    if (allPresent && need.length > 1) {
-        let at = -1, ordered = true;
-        for (const t of need) {
-            const i = got.indexOf(t, at + 1);
-            if (i === -1) { ordered = false; break; }
-            at = i;
-        }
-        if (!ordered) return `All the right words — the order is not. ${need[0]} comes first.`;
+    /* Right words, wrong order — named by the word that is out of place, and
+       checked against the dropped-pronoun forms too. It used to compare only the
+       canonical answer and always name its first word: `maaduttiddene kelasa`
+       (verb first, *naanu* optional) was told "the word for I is missing", and
+       `naanu nodide mane` was told "naanu comes first" when naanu WAS first. */
+    for (const v of [expected, ...pronounVariants(expected), ...variants]) {
+        const m = misplacedWord(said, v, lexicon);
+        if (!m) continue;
+        const order = m.need.join(' ');
+        if (m.last) return hide
+            ? `All the right words — the order is not. ${m.word} goes last.`
+            : `All the right words — the order is not. ${m.word} goes last: ${order}.`;
+        if (m.first) return hide
+            ? `All the right words — the order is not. ${m.word} comes first.`
+            : `All the right words — the order is not. ${m.word} comes first: ${order}.`;
+        return hide
+            ? `All the right words — the order is not. ${m.word} goes right after ${m.need[m.index - 1]}.`
+            : `All the right words — the order is not. ${m.word} goes right after ${m.need[m.index - 1]}: ${order}.`;
+    }
+
+    /* One of a pair the course teaches against each other (DISTINCT_WORDS). */
+    for (const g of got) {
+        const other = need.find(t => distinctWords(g, t));
+        if (!other) continue;
+        const mine = meanings.get(g), want = meanings.get(other);
+        return mine && want && cleanGloss(mine) !== cleanGloss(want)
+            ? `${g} means "${mine}" — here you want ${hide ? 'the other one' : other}, "${want}".`
+            : (hide ? `Not ${g} — it is the other word of the pair.` : `Not ${g} but ${other}.`);
     }
 
     /* An ending that changes who — or what — is meant.

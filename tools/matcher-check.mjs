@@ -103,6 +103,77 @@ console.log(`### Shorter answer accepted for a longer target (${overlaps.length}
 if (!overlaps.length) console.log('_None._\n');
 for (const o of overlaps) console.log(`- L${o.lesson}: \`${o.said}\` accepted for \`${o.target}\``);
 
+/* A word the course teaches AGAINST another (E.DISTINCT_WORDS) may never stand
+   in for it. Round K4: `naanu tumba kushi` passed for *Nanage tumba kushi* and
+   `naanu gottilla` for *Nanage gottilla*, each straight after a note saying
+   "not naanu". Every drill whose answer uses one member of a pair is tried with
+   the other member swapped in, in every listed form; unless the course lists
+   the swapped sentence itself, it must be rejected. */
+const swapPasses = [];
+lessons.forEach((lesson, i) => {
+    for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {
+        if (!d.correct) continue;
+        const listed = new Set([d.correct, ...(d.acceptable || [])].map(E.normalizeLatin));
+        for (const form of [d.correct, ...(d.acceptable || [])]) {
+            const toks = E.normalizeLatin(form).split(' ');
+            toks.forEach((t, k) => {
+                for (const group of E.DISTINCT_WORDS) {
+                    if (!group.includes(t)) continue;
+                    for (const other of group.filter(w => w !== t)) {
+                        const said = toks.map((x, j) => (j === k ? other : x)).join(' ');
+                        if (listed.has(said)) continue;
+                        if (E.scoreAnswer(said, d.correct, d.acceptable || [], syn).accepted) {
+                            swapPasses.push({ lesson: i + 1, correct: d.correct, said });
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+console.log(`\n## A taught-against word accepted in its partner's place (${swapPasses.length})\n`);
+if (!swapPasses.length) console.log('_None._\n');
+for (const f of swapPasses) console.log(`- L${f.lesson} \`${f.said}\` accepted for \`${f.correct}\``);
+
+/* Pinned verdicts from real tester turns: [language, said, target, variants-from-
+   drill?, must-accept]. A regression here is a learner told the wrong thing. */
+const PINNED = {
+    Kannada: [
+        ['naanu tumba kushi', 'Nanage tumba kushi', false],   // K4 L16
+        ['naanu gottilla', 'Nanage gottilla', false],         // K4 L20
+        ['mattu', 'Matte', false],                            // K4 L20, teach step
+        ['maaduttiddene kelasa', 'Naanu kelasa maaduttiddene', false], // K4 L11, verb first
+        ['naanu maaduttiddene kelasa', 'Naanu kelasa maaduttiddene', false],
+        ['kelasa maaduttiddene', 'Naanu kelasa maaduttiddene', true],
+        ['tinnuttene aamele', 'Naanu aamele tinnuttene', false], // K4 L14
+        ['aamele tinnuttene', 'Naanu aamele tinnuttene', true],
+        ['hogu baruttene', 'Hogi baruttene', false],          // K4 L14
+        ['raatrige nidde maaduttene', 'Naanu raatri nidde maaduttene', true], // K4 L18
+        ['ivaru nanna kutumba', 'Idu nanna kutumba', true],   // K4 L17
+        ['naanu nodide mane', 'Naanu mane nodide', false],    // K4 L13
+    ],
+};
+const drillFor = (target) => {
+    for (const lesson of lessons) {
+        for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {
+            if (E.normalizeLatin(d.correct) === E.normalizeLatin(target)) return d;
+        }
+        for (const v of lesson.vocabulary || []) {
+            if (E.normalizeLatin(v.word) === E.normalizeLatin(target)) return { correct: v.word, acceptable: v.alt || [] };
+        }
+    }
+    return { correct: target, acceptable: [] };
+};
+const pinnedWrong = [];
+for (const [said, target, want] of PINNED[lang] || []) {
+    const d = drillFor(target);
+    const got = E.scoreAnswer(said, d.correct, d.acceptable || [], syn).accepted;
+    if (got !== want) pinnedWrong.push({ said, target, want });
+}
+console.log(`\n## Pinned tester verdicts that changed (${pinnedWrong.length} of ${(PINNED[lang] || []).length})\n`);
+if (!pinnedWrong.length) console.log('_None._\n');
+for (const f of pinnedWrong) console.log(`- \`${f.said}\` for \`${f.target}\`: should be ${f.want ? 'accepted' : 'rejected'}`);
+
 /* Can plain English pass a drill?
    A tester wrote "I can't do this one. I've never been taught a word for 'price'
    or for 'how much' in Telugu. All I have is the numbers and 'rupayalu'." and was
@@ -213,4 +284,5 @@ for (const n of longSpoken) {
     console.log(`    ${n.spoken.slice(0, 120)}...`);
 }
 
-process.exit(rejected.length || misshapen.length || falsePasses.length || longSpoken.length ? 1 : 0);
+process.exit(rejected.length || misshapen.length || falsePasses.length || longSpoken.length
+    || swapPasses.length || pinnedWrong.length ? 1 : 0);

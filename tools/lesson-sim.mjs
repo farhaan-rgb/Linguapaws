@@ -657,7 +657,7 @@ async function turn(s, said) {
         ].filter(Boolean);
         const r = wanted ? E.scoreAnswer(said, wanted, alts, syn) : { accepted: false };
         const ok = wanted && !askingOnly
-            && (r.accepted || E.tutorModelled(said, lastTutor, wanted));
+            && (r.accepted || E.tutorModelled(said, lastTutor, wanted, synonyms(s)));
 
         if (isQuestion && !ok) {
             /* Matches the app's teachIsQuestion branch: asking for help during
@@ -714,7 +714,7 @@ async function turn(s, said) {
         const item = s.reviewSet[round] || s.reviewSet[0];
         const alts = E.altsFor(CURRICULUM[s.lang] || [], item.word);
         const r = E.scoreAnswer(said, item.word, alts, syn);
-        const ok = !askingOnly && (r.accepted || E.tutorModelled(said, lastTutor, item.word));
+        const ok = !askingOnly && (r.accepted || E.tutorModelled(said, lastTutor, item.word, synonyms(s)));
         const revealed = E.answerWasRevealed(lastTutor, item.word);
 
         /* Guarded on !ok the way the app guards on !hasCorrectMatch. Without it a
@@ -773,7 +773,7 @@ async function turn(s, said) {
         const item = lesson.phrases?.[idx];
         if (!item) { s.step += 1; push('assistant', 'Let’s move on.'); return out; }
         const r = E.scoreAnswer(said, item.correct, item.acceptable || [], syn);
-        const ok = !askingOnly && (r.accepted || E.tutorModelled(said, lastTutor, item.correct));
+        const ok = !askingOnly && (r.accepted || E.tutorModelled(said, lastTutor, item.correct, synonyms(s)));
 
         if (!ok && surrendered) {
             s.step += 1;
@@ -843,7 +843,7 @@ async function turn(s, said) {
     const cIdx = s.step - 11;
     const item = lesson.conversations?.[cIdx];
     const r = item ? E.scoreAnswer(said, item.correct, item.acceptable || [], syn) : { accepted: false };
-    const ok = item && !askingOnly && (r.accepted || E.tutorModelled(said, lastTutor, item.correct));
+    const ok = item && !askingOnly && (r.accepted || E.tutorModelled(said, lastTutor, item.correct, synonyms(s)));
     if (item && !ok && surrendered) {
         s.step += 1;
         const next = E.drillPrompt(lesson.conversations, cIdx + 1);

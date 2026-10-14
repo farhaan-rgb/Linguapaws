@@ -524,22 +524,12 @@ export default function Chat() {
        A learner did exactly that — the tutor offered "Neevu hegiddira?", they
        typed it, and the matcher rejected it because only the split form was on
        the accepted list. Whatever else is true, that must not happen. */
-    const tutorModelled = (said, tutorText, expected) => {
-        const a = normalizeLatin(said);
-        const t = normalizeLatin(tutorText || '');
-        const e = normalizeLatin(expected || '');
-        if (a.length < 4 || !t.includes(a) || !e) return false;
-        const saidTokens = a.split(' ').filter(Boolean);
-        const wantTokens = e.split(' ').filter(Boolean);
-        if (saidTokens.length < wantTokens.length - 1) return false;
-        // must overlap the real answer, so echoing the English hint fails
-        /* Same guards the engine applies: `illi`/`alli` are one edit apart and mean
-           here and there, so this door must not reopen what the matcher closed. */
-        return saidTokens.some(x => wantTokens.some(y =>
-            x === y || (Math.max(x.length, y.length) >= 4 && levenshtein(x, y) <= 1
-                && !engine.differsOnlyByPersonEnding(x, y)
-                && !engine.differsOnlyByDeicticInitial(x, y))));
-    };
+    /* The engine's copy, not a local one: this page carried its own, which had
+       drifted (it accepted one word of a two-word step) and lacked the guards the
+       engine added since — a learner echoing `mattu` from the Matte teach line
+       was told "Correct" here while the harness, using the engine, refused it. */
+    const tutorModelled = (said, tutorText, expected) =>
+        engine.tutorModelled(said, tutorText, expected, LEXICON);
 
     /** How much help this answer needed — drives how far the word climbs. */
     const gradeOutcome = ({ correct, misses, revealed }) => {

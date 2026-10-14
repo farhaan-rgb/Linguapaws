@@ -848,7 +848,7 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Ask 'What is this?'", correct: "Idu yenu?", native: "ಇದು ಏನು?", meaning: "What is this?", hint: "This + what?",
                   acceptable: ["idu enu?", "idu yenu", "idu enu"],
-                  grammarNote: "“This” comes first, and *yenu* (“what”) goes last. In Kannada, question words go at the end." },
+                  grammarNote: "“This” comes first, and *yenu* (“what”) goes last. In Kannada, question words usually go at the end." },
                 { prompt: "Say 'This is a book'", correct: "Idu pustaka", native: "ಇದು ಪುಸ್ತಕ", meaning: "This is a book", hint: "This + book",
                   grammarNote: "There's no word for “is” here, and none is needed. Kannada just puts the two words side by side." },
                 { prompt: "Ask 'What is that?'", correct: "Adu yenu?", native: "ಅದು ಏನು?", meaning: "What is that?", hint: "That + what?",
@@ -881,8 +881,8 @@ export const CURRICULUM = {
                   teach: "“There” is {w}. *Illi* is here, {w} is there. Only the first sound changes, like *idu* and *adu*." },
                 { word: "Ide", native: "ಇದೆ", meaning: "It is / there is", phonetic: "ih-deh",
                   teach: "{w} means “it is” or “there is”, for things: *mane alli ide*, “the house is there”. For yourself, leave it out: *naanu illi*, “I am here”." },
-                { word: "Hoguttene", native: "ಹೋಗುತ್ತೇನೆ", meaning: "I go / I am going", phonetic: "hoh-gut-tay-neh", alt: ["hogtini", "hoguttini"],
-                  teach: "“I am going” is {w}. The -ttene at the end already means “I”, so you don't need *naanu*." },
+                { word: "Hoguttene", native: "ಹೋಗುತ್ತೇನೆ", meaning: "I go / I will go", phonetic: "hoh-gut-tay-neh", alt: ["hogtini", "hoguttini"],
+                  teach: "“I go” or “I will go” is {w}, and in everyday talk it also covers “I'm going”. The -ttene at the end already means “I”, so you don't need *naanu*." },
                 { word: "Hogu", native: "ಹೋಗು", meaning: "Go", phonetic: "hoh-gu", alt: ["hogi"],
                   teach: "“Go!” is {w} — telling someone to go." }
             
@@ -1284,9 +1284,9 @@ export const CURRICULUM = {
                   grammarNote: "No word for “it” is needed. Kannada leaves it out when it's clear." },
                 { prompt: "Say 'I will look at the book later'.", correct: "Naanu aamele pustaka noduttene", native: "ನಾನು ಆಮೇಲೆ ಪುಸ್ತಕ ನೋಡುತ್ತೇನೆ", meaning: "I will look at the book later", hint: "I + later + book + will see",
                   acceptable: ["aamele pustaka noduttene", "naanu aamele pustaka nodtini", "aamele pustaka nodtini", "naanu pustaka aamele noduttene"] },
-                { prompt: "You're leaving Miko's house. Say goodbye the Kannada way — 'I'll go and come back'.", correct: "Hogi baruttene", native: "ಹೋಗಿ ಬರುತ್ತೇನೆ", meaning: "Goodbye (I'll go and come back)", hint: "Go + will come",
+                { prompt: "You're leaving Miko's house. Say goodbye the Kannada way — 'I'll go and come back'.", correct: "Hogi baruttene", native: "ಹೋಗಿ ಬರುತ್ತೇನೆ", meaning: "Goodbye (I'll go and come back)", hint: "Having gone + will come",
                   acceptable: ["hogi bartini", "hogbartini", "hogi barteeni", "hogi baruttini", "hogbarteeni"],
-                  grammarNote: "Kannada rarely says a flat “bye”. *Hogi baruttene*, “I'll go and come back”, is a promise to return." },
+                  grammarNote: "Here *hogi* is not the polite “go!” from lesson 10. Put before another action word, *hogi* means “having gone”: *hogi baruttene*, “having gone, I will come”. Not *hogu*. Kannada rarely says a flat “bye”; this is a promise to return." },
                 { prompt: "Final check: say 'Today I am working, tomorrow I will come'.", correct: "Ivattu naanu kelasa maaduttiddene, naale baruttene", native: "ಇವತ್ತು ನಾನು ಕೆಲಸ ಮಾಡುತ್ತಿದ್ದೇನೆ, ನಾಳೆ ಬರುತ್ತೇನೆ", meaning: "Today I am working, tomorrow I will come", hint: "Today + I + work + am doing, tomorrow + will come",
                   acceptable: ["ivattu kelasa maaduttiddene, naale baruttene", "ivattu naanu kelasa maaduttiddene naale baruttene", "ivattu naanu kelasa maadtidini, naale bartini", "ivattu kelasa maadtidini, naale bartini"],
                   grammarNote: "Two times, two endings: -ttiddene for right now, -ttene for later." }
@@ -1321,7 +1321,8 @@ export const CURRICULUM = {
             ],
             conversations: [
                 { prompt: "Miko pushes the food away. Ask 'Why don't you want it?'", correct: "Yaake beda?", native: "ಯಾಕೆ ಬೇಡ?", meaning: "Why don't you want it?", hint: "Why + don't want?",
-                  acceptable: ["yaake beda", "yake beda?", "nimage yaake beda?"] },
+                  acceptable: ["yaake beda", "yake beda?", "nimage yaake beda?"],
+                  grammarNote: "*Yaake* is the one question word that often comes first. *Adu yaake?* and *Yaake beda?* are both everyday Kannada." },
                 { prompt: "You're at a stall with Miko. Ask what they want.", correct: "Nimage yenu beku?", native: "ನಿಮಗೆ ಏನು ಬೇಕು?", meaning: "What do you want?", hint: "To you + what + want?",
                   acceptable: ["nimage enu beku?", "nimage yenu beku", "nimage enu beku", "yenu beku?"],
                   grammarNote: "*Nanage* is “to me”, *nimage* is “to you”. Swap one for the other and the same sentence asks instead of tells." },
@@ -1355,7 +1356,7 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Point at a dish and ask 'How is this?'", correct: "Idu hegide?", native: "ಇದು ಹೇಗಿದೆ?", meaning: "How is this?", hint: "This + how-is-it?",
                   acceptable: ["idu hegide", "hegide idu?"],
-                  grammarNote: "Question word last, as always. *Hegide* is *hege* and *ide* run together: “how is it”." },
+                  grammarNote: "*Hegide* goes last, like *yenu* and *yelli*. It's *hege* and *ide* run together: “how is it”." },
                 { prompt: "Say 'The food is very good'", correct: "Oota tumba chennagide", native: "ಊಟ ತುಂಬಾ ಚೆನ್ನಾಗಿದೆ", meaning: "The food is very good", hint: "Food + very + is good",
                   acceptable: ["oota thumba chennagide", "tumba chennagide"],
                   grammarNote: "*Tumba* goes just before the word it makes stronger: *tumba chennagide*, “very good”." },
@@ -1408,8 +1409,9 @@ export const CURRICULUM = {
                 { prompt: "Miko said her elder brother was coming. Ask 'Where is your elder brother?'", correct: "Nimma anna yelli?", native: "ನಿಮ್ಮ ಅಣ್ಣ ಎಲ್ಲಿ?", meaning: "Where is your elder brother?", hint: "Your + elder brother + where?",
                   acceptable: ["nimma anna yelli", "nimma anna elli?", "nimma anna elli"],
                   grammarNote: "Same shape as *mane yelli?* from lesson 3. Swap in a person." },
-                { prompt: "Show Miko a photo of everyone at home. Say 'This is my family'.", correct: "Idu nanna kutumba", native: "ಇದು ನನ್ನ ಕುಟುಂಬ", meaning: "This is my family", hint: "This + my + family",
-                  grammarNote: "Here *idu* is right. You're pointing at a photo, a thing, not at one person." },
+                { prompt: "Show Miko a photo of everyone at home. Pointing at the photo, say 'This is my family'.", correct: "Idu nanna kutumba", native: "ಇದು ನನ್ನ ಕುಟುಂಬ", meaning: "This is my family", hint: "This (the photo) + my + family",
+                  acceptable: ["idu nanna kutumba.", "ivaru nanna kutumba"],
+                  grammarNote: "Pointing at a photo, a thing, *idu* is the usual word. *Ivaru nanna kutumba* is also right, and is what you'd say with the family standing in front of you." },
                 { prompt: "Final check: say 'These are my elder sister and younger sister'.", correct: "Ivaru nanna akka mattu tangi", native: "ಇವರು ನನ್ನ ಅಕ್ಕ ಮತ್ತು ತಂಗಿ", meaning: "These are my elder sister and younger sister", hint: "These people + my + elder sister + and + younger sister",
                   acceptable: ["ivaru nanna akka matthu thangi", "ivaru nanna akka, tangi", "ivaru nanna akka mattu nanna tangi"],
                   grammarNote: "*Ivaru* also covers two or more people: “these people”. One word, polite either way." }
@@ -1442,8 +1444,8 @@ export const CURRICULUM = {
                 { prompt: "Say 'I had a bath'", correct: "Naanu snaana maadide", native: "ನಾನು ಸ್ನಾನ ಮಾಡಿದೆ", meaning: "I had a bath", hint: "I + bath + did",
                   acceptable: ["snaana maadide", "naanu snana maadide"] },
                 { prompt: "Say 'I will sleep at night'", correct: "Naanu raatri nidde maaduttene", native: "ನಾನು ರಾತ್ರಿ ನಿದ್ದೆ ಮಾಡುತ್ತೇನೆ", meaning: "I will sleep at night", hint: "I + night + sleep + will do",
-                  acceptable: ["raatri nidde maaduttene", "naanu raatri nidde maadtini", "raatri naanu nidde maaduttene", "naanu ratri nidde maaduttene"],
-                  grammarNote: "Time word, then *nidde*, then the *maadu* ending. *Maaduttene* makes it “will”." }
+                  acceptable: ["raatri nidde maaduttene", "naanu raatri nidde maadtini", "raatri naanu nidde maaduttene", "naanu ratri nidde maaduttene", "naanu raatrige nidde maaduttene", "raatrige nidde maaduttene", "raatrige naanu nidde maaduttene"],
+                  grammarNote: "Time word, then *nidde*, then the *maadu* ending. *Maaduttene* makes it “will”. *Raatrige*, with the -ge “at” from lesson 12, is just as right." }
             ],
             conversations: [
                 { prompt: "Miko asks you to come out today. Say 'I have work today' — Kannada says 'to me, work is there'.", correct: "Nanage ivattu kelasa ide", native: "ನನಗೆ ಇವತ್ತು ಕೆಲಸ ಇದೆ", meaning: "I have work today", hint: "To me + today + work + is there",
@@ -1502,11 +1504,11 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Chennagittu", native: "ಚೆನ್ನಾಗಿತ್ತು", meaning: "It was good", phonetic: "chehn-naa-git-tu", alt: ["chennagitthu"],
                   teach: "*Chennagide* is “it is good”. {w} is “it was good”. The ending -ittu turns “is” into “was”." },
-                { word: "Gottu", native: "ಗೊತ್ತು", meaning: "Known", phonetic: "goht-tu", alt: ["gotthu"],
+                { word: "Gottu", native: "ಗೊತ್ತು", meaning: "I know", phonetic: "goht-tu", alt: ["gotthu"],
                   teach: "*Nanage gottu*, “I know”. Knowing comes “to me”, like liking. Never *naanu gottu*." },
-                { word: "Gottilla", native: "ಗೊತ್ತಿಲ್ಲ", meaning: "Not known", phonetic: "goht-tihl-luh", alt: ["gothilla", "gotilla"],
+                { word: "Gottilla", native: "ಗೊತ್ತಿಲ್ಲ", meaning: "I don't know", phonetic: "goht-tihl-luh", alt: ["gothilla", "gotilla"],
                   teach: "*Nanage gottilla*, “I don't know”. It's *gottu* + *illa*, joined into one word." },
-                { word: "Nenapide", native: "ನೆನಪಿದೆ", meaning: "Remembered", phonetic: "neh-nuh-pih-deh", alt: ["nenapu ide"],
+                { word: "Nenapide", native: "ನೆನಪಿದೆ", meaning: "I remember", phonetic: "neh-nuh-pih-deh", alt: ["nenapu ide"],
                   teach: "*Nanage nenapide*, “I remember”: “to me, the memory is there”. Same *nanage* + *ide* as *nanage kelasa ide*." },
                 { word: "Matte", native: "ಮತ್ತೆ", meaning: "Again", phonetic: "mut-teh", alt: ["matthe"],
                   teach: "{w} means “again”. Mind the ending: *mattu* is “and”." }
