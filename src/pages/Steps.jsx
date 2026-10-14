@@ -688,6 +688,9 @@ function RevealPanel({
                         )}
                         <div style={{ display: 'flex', gap: 8 }}>
                             <input
+                                /* Answers are romanised Kannada/Telugu: an English spellchecker
+                                   underlines every word, and phone autocorrect rewrites them. */
+                                spellCheck={false} autoCorrect="off" autoCapitalize="off" autoComplete="off"
                                 ref={lockRef}
                                 /* Enter belongs to this box while the cursor is
                                    in it: here it locks in, it does not skip on. */
@@ -1382,6 +1385,9 @@ function StepScreen({
                                 <form onSubmit={(e) => { e.preventDefault(); if (!settled) check(); }}
                                     style={{ margin: 0 }}>
                                 <input
+                                    /* Answers are romanised Kannada/Telugu: an English spellchecker
+                                       underlines every word, and phone autocorrect rewrites them. */
+                                    spellCheck={false} autoCorrect="off" autoCapitalize="off" autoComplete="off"
                                     enterKeyHint="go"
                                     data-answer-box="1"
                                     ref={inputRef}

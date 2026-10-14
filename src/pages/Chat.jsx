@@ -2988,6 +2988,9 @@ export default function Chat() {
                             border: '1px solid #e2e8f0'
                         }}>
                             <textarea
+                                /* Answers are romanised Kannada/Telugu: an English spellchecker
+                                   underlines every word, and phone autocorrect rewrites them. */
+                                spellCheck={false} autoCorrect="off" autoCapitalize="off" autoComplete="off"
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 placeholder={t.type_message}
