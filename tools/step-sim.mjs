@@ -21,11 +21,14 @@
  *   node tools/leak-check.mjs .lesson-sim/<session>.json
  *
  * ── The channel ──
- * Step mode speaks the target and nothing else. Every grammar note, spelling
- * note and verdict clause is screen-only — where chat speaks its notes aloud.
- * So the transcript marks each line 🔊 or 👁, the same distinction `lesson-sim`
+ * The transcript marks each line 🔊 or 👁, the same distinction `lesson-sim`
  * draws, because a tester judging by ear needs to know which half of the
- * teaching never reaches them.
+ * teaching never reaches them. Since 91ee345 Miko also reads the drill prompt,
+ * the miss explanation, the reveal's explanation and the grammar note aloud
+ * ("Read tips aloud", on by default). Those print as `🔊 Spoken:` lines, split
+ * the way the app splits them (speechScript.tipSegments): ‹…› goes to the
+ * language's voice, the rest to the English voice. Round K5's tester, seeing
+ * only 👁 on those lines, reported step mode as silent apart from the target.
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -39,6 +42,16 @@ const E = await import(join(ROOT, 'src/services/lessonEngine.js'));
 const P = await import(join(ROOT, 'src/services/praise.js'));
 const { buildLessonSteps, stepCaption } = await import(join(ROOT, 'src/services/stepPlan.js'));
 const { CURRICULUM } = await import(join(ROOT, 'src/services/curriculum.js'));
+const { tipSegments } = await import(join(ROOT, 'src/services/speechScript.js'));
+const { answerFromFacts } = await import(join(ROOT, 'src/services/courseFacts.js'));
+
+/** A tip line as Steps.jsx's `say` queues it. */
+const spoken = (lang, line) => {
+    const segs = tipSegments(lang, line);
+    return segs.length
+        ? `🔊 Spoken:  ${segs.map(g => (g.target ? `‹${g.text}›` : g.text)).join(' ')}`
+        : null;
+};
 
 /* ── args ──────────────────────────────────────────────────────────────── */
 const argv = process.argv.slice(2);
@@ -129,11 +142,13 @@ function render(s, steps) {
 
     if (step.kind === 'review') {
         out.push(`👁  ${step.prompt}`);
+        if (s.misses === 0) out.push(spoken(s.lang, step.prompt));
         if (step.item.source === 'due') out.push('   (from an earlier lesson)');
     }
 
     if (step.kind === 'drill') {
         out.push(`👁  ${step.prompt}`);
+        if (s.misses === 0) out.push(spoken(s.lang, step.prompt));
         /* The hint is behind a tap until the learner misses, when the screen
            opens it for them. Showing it here unasked would make every drill
            easier than the one in the app. */
@@ -141,7 +156,7 @@ function render(s, steps) {
         else if (step.drill?.hint) out.push('   [a hint is available — ask for it with --hint]');
     }
     out.push('   > _');
-    return out.join('\n');
+    return out.filter(Boolean).join('\n');
 }
 
 /* ── the reward layer, as text ─────────────────────────────────────────── */
@@ -196,11 +211,22 @@ function say(s, text) {
         const out = celebrate(s, step, s.misses);
         const note = E.spellingNote(said, step.expected, step.variants, lexicon);
         if (note) out.push(`👁  ${note.trim()}`);
-        if (step.drill?.grammarNote) out.push(`👁  💡 ${step.drill.grammarNote}`);
+        if (step.drill?.grammarNote) {
+            out.push(`👁  💡 ${step.drill.grammarNote}`);
+            out.push(spoken(s.lang, step.drill.grammarNote));
+        }
         s.phase = 'correct';
         s.stumbled = s.misses > 0;
         out.push('   (--next for the next screen)');
-        return out;
+        return out.filter(Boolean);
+    }
+
+    /* A question is answered from the course, never graded — as Steps.jsx. */
+    if (E.isPureQuestion(said, step.expected, { lexicon })) {
+        const reply = answerFromFacts(said, s.lang, s.scenarioIdx)
+            || "The course hasn't covered that yet — it's not a wrong answer, so take your time.";
+        return [`👁  You asked: ${said}`, `👁  ${reply}`, spoken(s.lang, reply), '   (not counted as a try — answer when ready)']
+            .filter(Boolean);
     }
 
     s.misses += 1;
@@ -212,16 +238,17 @@ function say(s, text) {
         s.phase = 'revealed';
         s.stumbled = true;
         const out = [`👁  ${P.revealLineFor(step.index)}`, `🔊 ${step.expected}`];
+        if (diagnosis) out.push(`👁  ${diagnosis.replace(/\*\*/g, '')}`, spoken(s.lang, diagnosis));
         if (step.kind === 'drill' && step.drill?.meaning) out.push(`   “${step.drill.meaning}”`);
         out.push('👁  Write it out once — that is how it stops being someone else\'s word.');
         out.push('   (--say it back to lock it in, or --next to move on)');
-        return out;
+        return out.filter(Boolean);
     }
 
     const out = [`👁  ${P.missLineFor(step.index + s.misses)}`];
-    if (diagnosis) out.push(`👁  ${diagnosis.replace(/\*\*/g, '')}`);
+    if (diagnosis) out.push(`👁  ${diagnosis.replace(/\*\*/g, '')}`, spoken(s.lang, diagnosis));
     if (step.drill?.hint) out.push(`   💡 hint: ${step.drill.hint}`);
-    return out;
+    return out.filter(Boolean);
 }
 
 /* ── main ──────────────────────────────────────────────────────────────── */

@@ -12,6 +12,8 @@ import { useTranslation } from '../hooks/useTranslation';
 import { getStoredJSON, setStoredJSON } from '../utils/storage';
 import { CURRICULUM, AVAILABLE_LANGUAGES, isLanguageAvailable } from '../services/curriculum';
 import * as engine from '../services/lessonEngine';
+import { courseFactsFor, groundedAnswerRule } from '../services/courseFacts';
+import { speakableText } from '../services/speechScript';
 import { toLatin, hasBrahmicScript } from '../../shared/transliterate.js';
 import {
     getReviewSet,
@@ -316,7 +318,8 @@ export default function Chat() {
             .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')  // Supplementary emoji block fallback
             .replace(/[\u2600-\u27BF\uFE00-\uFE0F]/g, ''); // Misc symbols + variation selectors
 
-        text = cleanupDisplayText(stripTargetScript(text));
+        // "Then / in that case" and "If (someone) goes" were read symbol by symbol.
+        text = speakableText(cleanupDisplayText(stripTargetScript(text)));
         if (isNativeEnglish()) text = stripLatinDiacritics(text);
 
         // Phase 2: Replace transliterated phrase with native script for authentic TTS
@@ -1792,6 +1795,13 @@ export default function Chat() {
                 : '';
 
             let evalNote = '';
+            /* Round K5: answers to learner questions contradicted the course
+               (baruttade "it comes" against the grader's "can"). Every question
+               branch below carries the course's own facts for the words asked
+               about, from whichever lesson taught them — same block lesson-sim
+               sends (services/courseFacts.js). */
+            const questionGrounding = groundedAnswerRule(
+                courseFactsFor(text, targetLangName, scenarioIdxForMatch), nativeLang?.name || 'English');
             if (isLastScenarioStep) {
                 /* The old wording ordered a CELEBRATION of "mastering this topic"
                    and promised the learner they could "simply keep chatting" — so
@@ -1830,7 +1840,7 @@ export default function Chat() {
             } else if (isContinueRequest) {
                 evalNote = `[SYSTEM: The user is asking to move on, not answering. Do NOT grade or correct their message, and do NOT say they were wrong. Briefly acknowledge and present the next challenge for this scenario.]`;
             } else if (isCurrentlyInReview) {
-                evalNote = `[SYSTEM: The learner asked you a QUESTION instead of answering: "${actual}". Do NOT grade it, do NOT say they were wrong, and do NOT tell them the answer to the quiz. Answer their question directly and briefly in ${nativeLang?.name || 'English'} — if they asked whether another word also works, say plainly whether it does and how it differs. Then re-ask the quiz question: what is the ${targetLangName} word for "${expectedCorrectionStr ? (reviewItem?.meaning || 'that word') : 'that word'}"?]`;
+                evalNote = `[SYSTEM: The learner asked you a QUESTION instead of answering: "${actual}". Do NOT grade it, do NOT say they were wrong, and do NOT tell them the answer to the quiz. Answer their question directly and briefly in ${nativeLang?.name || 'English'} — if they asked whether another word also works, say plainly whether it does and how it differs. Then re-ask the quiz question: what is the ${targetLangName} word for "${expectedCorrectionStr ? (reviewItem?.meaning || 'that word') : 'that word'}"?]` + questionGrounding;
             } else if (!isContinueRequest
                 && engine.isPureQuestion(text, expectedCorrectionStr, { lexicon: LEXICON })) {
                 /* Round K4: a learner's question in a phrase drill fell through to
@@ -1840,9 +1850,9 @@ export default function Chat() {
                 const sameTask = isCurrentlyInBasic
                     ? drillPrompt(scenarioDataForMatch.phrases, currentInScenario - 8)
                     : (isCurrentlyInConvo ? drillPrompt(scenarioDataForMatch.conversations, currentInScenario - 11) : null);
-                evalNote = `[SYSTEM: The learner asked you a QUESTION instead of answering: "${actual}". Do NOT grade it, do NOT say "not quite", "try again" or that they were wrong, and do NOT give them the answer${expectedCorrectionStr ? ` ("${expectedCorrectionStr}")` : ''}. Answer their question directly and briefly in ${nativeLang?.name || 'English'}, from what this lesson has taught. If they ask whether a word is needed, say plainly whether it can be left out — describe it, never write the sentence out. Do NOT move on to a new task.${sameTask ? ` Then re-ask exactly: ${sameTask}` : ''}]`;
+                evalNote = `[SYSTEM: The learner asked you a QUESTION instead of answering: "${actual}". Do NOT grade it, do NOT say "not quite", "try again" or that they were wrong, and do NOT give them the answer${expectedCorrectionStr ? ` ("${expectedCorrectionStr}")` : ''}. Answer their question directly and briefly in ${nativeLang?.name || 'English'}, from what this lesson has taught. If they ask whether a word is needed, say plainly whether it can be left out — describe it, never write the sentence out. Do NOT move on to a new task.${sameTask ? ` Then re-ask exactly: ${sameTask}` : ''}]` + questionGrounding;
             } else if (isHelpRequest) {
-                evalNote = `[SYSTEM: HELP REQUEST. The user is stuck. Give a helpful hint then re-ask the prompt.]`;
+                evalNote = `[SYSTEM: HELP REQUEST. The user is stuck. Give a helpful hint then re-ask the prompt.]` + (looksLikeQuestion(text) ? questionGrounding : '');
             } else if (lastWasFailure) {
                 evalNote = `[SYSTEM: RETRY. User failed previously. Show the hint and re-ask the same prompt.]`;
             } else {

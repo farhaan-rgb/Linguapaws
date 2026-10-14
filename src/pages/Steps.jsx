@@ -20,6 +20,7 @@ import {
     fetchPracticeSources, recordMissedScreen, recordMissedCheck,
 } from '../services/srs';
 import { examplesFor } from '../services/examples';
+import { answerFromFacts } from '../services/courseFacts';
 import { getStoredJSON } from '../utils/storage';
 import { api } from '../services/api';
 import { resumeIndex, savedStepFor, completedLessonFor } from '../services/lessonResume';
@@ -851,6 +852,8 @@ function StepScreen({
      *  Not a miss: recognisers mishear Indic languages often enough that a
      *  rejected transcript is not evidence the learner was wrong. */
     const [heardMiss, setHeardMiss] = useState('');
+    /** A learner's question and the course's answer to it. Not a miss. */
+    const [asked, setAsked] = useState(null);
     const [lockHeard, setLockHeard] = useState('');
     /** How many of the grammar note's points have been shown, and which one the
      *  underline is currently sitting on (null = follow the newest). */
@@ -971,6 +974,11 @@ function StepScreen({
         return () => clearTimeout(t);
     }, [phase, misses, diagnosis, onSay]);
     useEffect(() => {
+        if (!asked?.a) return undefined;
+        const t = setTimeout(() => onSay([{ tip: asked.a }]), 300);
+        return () => clearTimeout(t);
+    }, [asked, onSay]);
+    useEffect(() => {
         if (phase !== 'correct' || !grammarNote) return undefined;
         const t = setTimeout(() => onSay([{ tip: grammarNote }]), 650);
         return () => clearTimeout(t);
@@ -1006,6 +1014,23 @@ function StepScreen({
            past the screen. "Heard: …" stays, so they see what the recogniser
            made of it — and the box is left as it was. */
         setHeardMiss(!accepted && spoken ? said : '');
+        setAsked(null);
+
+        /* Round K5, L22: "wait why is it nanage and not naanu?" came back "Not
+           this one — you have another try". A question is answered, never
+           graded — same engine test chat uses. The answer is the course's own
+           facts for the words asked about (courseFacts.js), not a model call:
+           a step screen has no conversation to ground a reply in, and these
+           lines are what the chat model is now told to answer from anyway. */
+        if (!accepted && engine.isPureQuestion(said, step.expected, { lexicon })) {
+            const reply = answerFromFacts(said, langName, Math.max(0, (taughtLessons?.length || 1) - 1));
+            setAsked({
+                q: said,
+                a: reply || "The course hasn't covered that yet — it's not a wrong answer, so take your time.",
+            });
+            setAnswer('');
+            return;
+        }
 
         if (accepted) {
             // Forgive the typo, but say what the spelling was — a learner accepted
@@ -1379,6 +1404,23 @@ function StepScreen({
 
                 {showExamples && (
                     <SentenceExamples examples={examples} onSpeak={onSpeak} />
+                )}
+
+                {/* A question asked in the answer box, answered from the course.
+                    Neutral colour: nothing was graded. */}
+                {!settled && asked && (
+                    <div data-testid="question-answer" style={{
+                        margin: '10px 0 0', padding: '11px 13px', borderRadius: 14,
+                        background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.22)',
+                        animation: 'pop-in 0.3s ease-out',
+                    }}>
+                        <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, color: 'var(--text-muted, #6b7280)' }}>
+                            You asked: {asked.q}
+                        </p>
+                        <p style={{ margin: '4px 0 0', fontSize: 13.5, lineHeight: 1.55 }}>
+                            <RichText text={asked.a} />
+                        </p>
+                    </div>
                 )}
 
                 {/* A miss says what was actually wrong. No red — amber, because

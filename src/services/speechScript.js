@@ -187,6 +187,26 @@ const MISS_SLOTS = new RegExp(MISS_TEMPLATES.map(t => `(?:${t})`).join('|'), 'gu
 const MISS_SLOT_GROUPS = (MISS_TEMPLATES.join('').match(/\(\[/g) || []).length;
 
 /**
+ * A line as it should be HEARD. Meanings are written for the eye — "Then / in
+ * that case", "If (someone) goes", "Town / hometown" — and round K5 heard every
+ * "You can now say:" summary read them out symbol by symbol. A slash between
+ * words is said as "or"; brackets go and their words stay. A doubled stop left
+ * where a quoted sentence ends a prompt (`'I have no change.'.`, `"Really?"?`)
+ * is said once. Display text is never touched; this is for voices only.
+ */
+export function speakableText(text) {
+    return String(text || '')
+        .replace(/([\p{L}'’)?!.])\s*\/\s*(?=[\p{L}(*-])/gu, '$1 or ')
+        .replace(/\s*\(([^()]*)\)\s*/g, (m, inner, at, all) => {
+            const before = at > 0 ? ' ' : '';
+            const after = at + m.length < all.length && !/^[,.;:!?]/.test(all.slice(at + m.length)) ? ' ' : '';
+            return `${before}${inner.trim()}${after}`;
+        })
+        .replace(/([.?!])(["'”’]?)[.?!]+/g, '$1$2')
+        .replace(/[ \t]{2,}/g, ' ');
+}
+
+/**
  * Split an English tip line into what the English voice reads and what the
  * target path reads. Step mode's lines mark target words the same way chat's
  * do — `*Nanna* means “my”`, `*mane* + -ge` — so an emphasised span is target
@@ -206,7 +226,7 @@ const MISS_SLOT_GROUPS = (MISS_TEMPLATES.join('').match(/\(\[/g) || []).length;
 export function tipSegments(langName, line) {
     /* A first-letter outline (`I__`, `A____ hesaru`, `K----`) is for the eye.
        Read as written it came out "I dot"; say what it means instead. */
-    const raw = String(line || '')
+    const raw = speakableText(line)
         .replace(/(starts? (?:with )?)(\p{L})[_\-\u2013\u2014]{2,}/gu, '$1$2')
         .replace(/(?<![\p{L}])(\p{L})[_\-\u2013\u2014]{2,}/gu, 'a word starting with $1')
         .replace(/[_]{2,}/g, 'a word')
@@ -236,20 +256,38 @@ export function tipSegments(langName, line) {
         return all ? toks.every(t => known.has(t)) : toks.some(t => known.has(t));
     };
     const out = [];
+    let brk = false;
     const push = (target, text) => {
         const t = text.replace(/\s+/g, ' ');
         if (!t.trim()) return;
         /* Bare punctuation left between two spans — the full stop after a
            closing *Idu* — is not a segment: on its own the English voice
            reads "." as "dot". It is pause, not speech, so it is dropped. */
-        if (!/[\p{L}\p{N}]/u.test(t)) return;
+        if (!/[\p{L}\p{N}]/u.test(t)) {
+            /* ...but a full stop between two target spans still ends one
+               utterance — `*naanu ishta*. *Naanu* means` was queued as the one
+               Kannada phrase "naanu ishta Naanu". */
+            if (/[.!?;]/.test(t)) brk = true;
+            return;
+        }
         const last = out[out.length - 1];
         const glue = /^[,.;:!?)]/.test(t.trim()) ? '' : ' ';
-        if (last && last.target === target) last.text = `${last.text}${glue}${t.trim()}`;
+        if (last && last.target === target && !brk) last.text = `${last.text}${glue}${t.trim()}`;
         else out.push({ target, text: t.trim() });
+        brk = false;
     };
+    /* A course word opening the line bare — `Male is "rain"`, the shape every
+       teaching line takes once its {w} is filled in without markup — is the
+       word being taught, not English. Round K5 heard that Male in an English
+       accent. Only at the very start, only before is/means, and only a word
+       this course teaches, so an English sentence that opens "It is" stays
+       English. */
+    const lead = /^(\p{L}+)(?=\s+(?:is|means)\b)/u.exec(raw);
+    if (lead && known.has(keyOf(lead[1])) && TRANSLITERATED.has(langName)) {
+        push(true, lead[1]);
+    }
     const re = /\*\*([^*]+)\*\*|\*([^*]+)\*|(?<![\p{L}])'([^']+)'(?![\p{L}])|"([^"]+)"/gu;
-    let at = 0;
+    let at = out.length ? lead[1].length : 0;
     for (const m of raw.matchAll(re)) {
         push(false, raw.slice(at, m.index));
         const span = m[1] ?? m[2] ?? m[3] ?? m[4];

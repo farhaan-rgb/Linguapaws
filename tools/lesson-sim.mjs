@@ -31,6 +31,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
 
 const E = await import(join(ROOT, 'src/services/lessonEngine.js'));
+const F = await import(join(ROOT, 'src/services/courseFacts.js'));
+const { speakableText } = await import(join(ROOT, 'src/services/speechScript.js'));
 
 /* Node can read the system wordlist; the engine's browser-safe curated list is
    only a floor. Passing this in stops good replies being discarded for ordinary
@@ -422,10 +424,13 @@ async function explain(s, said, target, lesson, note) {
     const grounding = shortlist.length
         ? `\n[The lesson's own explanations, most likely relevant first. Answer the learner FROM these — quote or paraphrase, but do not contradict them and do not invent a different reason. If none of them addresses the question, say briefly and honestly that this course has not covered it yet.\n${shortlist.map((t, i) => `(${i + 1}) ${t}`).join('\n')}]`
         : '';
+    /* The course's facts for every word the question names, from whichever
+       lesson taught it — the same block Chat.jsx sends (courseFacts.js). */
+    const facts = F.groundedAnswerRule(F.courseFactsFor(said, s.lang, s.scenarioIdx));
     const ask = (extra = '') => askModel(
         conversationalRules(s.lang, 'English', levelForStep(s.step)),
         s.messages.concat([{ role: 'user', content: said }]),
-        note + grounding + extra,
+        note + grounding + facts + extra,
         { target: target || '', allowed: taughtSoFar(s), englishOnly: s.step < 11, lang: s.lang },
     );
     let reply = await ask();
@@ -1043,7 +1048,7 @@ for (const m of replies) console.log(render(m.content, m.role));
    point, which is the only question that matters for a voice-first app. */
 function render(content, role) {
     if (role === 'system') {
-        const spoken = E.spokenFormOfNote(content);
+        const spoken = speakableText(E.spokenFormOfNote(content));
         const full = String(content || '').replace(/\n+/g, ' ').trim();
         const lines = [`👁  On screen: ${full}`];
         if (spoken) lines.push(`🔊 Spoken:    ${spoken}`);
@@ -1061,7 +1066,7 @@ function render(content, role) {
             .replace(/\n+/g, ' ')
             .replace(/\s{2,}/g, ' ')
             .trim();
-        const heard = E.spokenFormOfNote(body);
+        const heard = speakableText(E.spokenFormOfNote(body));
         const tail = guides.map(g => `\n        say it like: ${g}`).join('');
         return `🔊 Tutor: ${heard}${tail}`;
     }
