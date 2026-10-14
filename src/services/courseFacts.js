@@ -71,12 +71,14 @@ export const wordsAskedAbout = (question, lang, scenarioIdx) => {
     const rest = tokens.filter(t => !QUESTION_FRAME.has(t) && t !== normalizeLatin(lang));
     if (!rest.length) return [];
     const asked = ` ${rest.join(' ')} `;
+    const whole = ` ${tokens.join(' ')} `; // "I am fine" is itself made of frame words
     const byMeaning = new Map();
     for (const e of idx.values()) {
         const gist = gistOf(e.meaning);
         if (!gist || byMeaning.has(e.word)) continue;
         // The whole meaning, as words: "go" must not match inside "going".
-        if (asked.includes(` ${gist} `)) byMeaning.set(e.word, { e, len: gist.length });
+        const hit = asked.includes(` ${gist} `) || (gist.includes(' ') && whole.includes(` ${gist} `));
+        if (hit) byMeaning.set(e.word, { e, len: gist.length });
     }
     // Longest meaning first: "I am fine" before "I".
     return [...byMeaning.values()].sort((a, b) => b.len - a.len).map(x => x.e);
