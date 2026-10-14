@@ -20,7 +20,7 @@ import {
     fetchPracticeSources, recordMissedScreen, recordMissedCheck,
 } from '../services/srs';
 import { examplesFor } from '../services/examples';
-import { answerFromFacts } from '../services/courseFacts';
+import { answerFromFacts, wordsAskedAbout } from '../services/courseFacts';
 import { getStoredJSON } from '../utils/storage';
 import { api } from '../services/api';
 import { resumeIndex, savedStepFor, completedLessonFor } from '../services/lessonResume';
@@ -1036,7 +1036,19 @@ function StepScreen({
            a step screen has no conversation to ground a reply in, and these
            lines are what the chat model is now told to answer from anyway. */
         if (!accepted && engine.isPureQuestion(said, step.expected, { lexicon })) {
-            const reply = answerFromFacts(said, langName, Math.max(0, (taughtLessons?.length || 1) - 1));
+            const upTo = Math.max(0, (taughtLessons?.length || 1) - 1);
+            const reply = answerFromFacts(said, langName, upTo);
+            /* Asking "what is tomorrow?" on "Tomorrow I am going home" hands over
+               Naale exactly as tapping "Tomorrow" does, so it counts the same:
+               not a miss, but no longer unaided. A question about a word the
+               answer does not use gives nothing away. */
+            if (reply && step.kind !== 'teach') {
+                const inAnswer = new Set([step.expected, ...(step.variants || [])]
+                    .flatMap(a => engine.normalizeLatin(a).split(' ')));
+                const givesAway = wordsAskedAbout(said, langName, upTo)
+                    .some(e => [e.word, ...(e.alt || [])].some(w => inAnswer.has(engine.normalizeLatin(w))));
+                if (givesAway) setHelped(true);
+            }
             setAsked({
                 q: said,
                 a: reply || "The course hasn't covered that yet — it's not a wrong answer, so take your time.",

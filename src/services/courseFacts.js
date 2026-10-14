@@ -42,8 +42,9 @@ const QUESTION_FRAME = new Set(('what whats is does do how say said mean means m
     + 'for in a an of again was it its please you i me to again called tell').split(' '));
 
 /** An English meaning as a learner would type it: "Tomorrow", not
- *  "Tomorrow (adverb)". */
-const gistOf = (meaning) => normalizeLatin(String(meaning || '').replace(/\s*\(.*?\)/g, ''));
+ *  "Tomorrow (adverb)" — and each side of "House / home". */
+const gistsOf = (meaning) => String(meaning || '').replace(/\s*\(.*?\)/g, '')
+    .split('/').map(normalizeLatin).filter(Boolean);
 
 /** The taught words a question names. Exact spellings and alts first; then a
  *  token of four letters or more that a taught word starts with ("hoga" for
@@ -74,11 +75,12 @@ export const wordsAskedAbout = (question, lang, scenarioIdx) => {
     const whole = ` ${tokens.join(' ')} `; // "I am fine" is itself made of frame words
     const byMeaning = new Map();
     for (const e of idx.values()) {
-        const gist = gistOf(e.meaning);
-        if (!gist || byMeaning.has(e.word)) continue;
-        // The whole meaning, as words: "go" must not match inside "going".
-        const hit = asked.includes(` ${gist} `) || (gist.includes(' ') && whole.includes(` ${gist} `));
-        if (hit) byMeaning.set(e.word, { e, len: gist.length });
+        if (byMeaning.has(e.word)) continue;
+        for (const gist of gistsOf(e.meaning)) {
+            // The whole meaning, as words: "go" must not match inside "going".
+            const hit = asked.includes(` ${gist} `) || (gist.includes(' ') && whole.includes(` ${gist} `));
+            if (hit) { byMeaning.set(e.word, { e, len: gist.length }); break; }
+        }
     }
     // Longest meaning first: "I am fine" before "I".
     return [...byMeaning.values()].sort((a, b) => b.len - a.len).map(x => x.e);
