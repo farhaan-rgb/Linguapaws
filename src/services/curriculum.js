@@ -3060,6 +3060,49 @@ export const WORD_FAMILIES = {
     ],
 };
 
+/* ── Word endings the course teaches, for explaining misses only ───────────
+   A learner who writes *Hoovegalu* for "flower" has applied the -galu they
+   learned from *manegalu* — reasoning, not a missing word. Step mode's
+   `missHelp` uses this to say so. NEVER used for grading.
+
+   Only endings a lesson actually teaches as an ending, in its own text:
+     lesson  — 1-based lesson that first teaches it; unused before then
+     means   — what it does, as a clause ("makes it more than one")
+     needs   — what the answer needs, when the learner left it off
+     bare    — "This asks for …" when they added it and should not have
+     example — the course word that carries it, first taught
+   `changes` are the stem-end swaps the course teaches before an ending
+   (Telugu *pusthakam* → *pusthaka*-lu, *illu* → *inti*-ki).
+
+   Left out on purpose: Kannada -alli (only ever an accepted alternative,
+   never shown), Telugu -lo (written as a separate word, *inti lo*), Telugu
+   -ku (*naaku* is taught as a word, not as naa + -ku), Telugu question -a
+   (one letter: it would explain every typo that ends in a). */
+export const WORD_ENDINGS = {
+    Kannada: {
+        endings: [
+            { ending: 'ge', lesson: 3, means: 'means “to”', needs: '“to”',
+                example: { word: 'manege', meaning: 'to the house' } },
+            { ending: 'galu', lesson: 8, means: 'makes it more than one', needs: 'more than one',
+                bare: 'just one {gloss}', example: { word: 'manegalu', meaning: 'houses' } },
+            { ending: 'illa', lesson: 20, means: 'makes it “not”', needs: '“not”',
+                example: { word: 'gottilla', meaning: 'I don\'t know' } },
+            { ending: 'ya', lesson: 27, means: 'turns it into a question', needs: 'the question form',
+                example: { word: 'ideya', meaning: 'is there?' } },
+        ],
+        changes: [],
+    },
+    Telugu: {
+        endings: [
+            { ending: 'ki', lesson: 3, means: 'means “to”', needs: '“to”',
+                example: { word: 'paniki', meaning: 'to work' } },
+            { ending: 'lu', lesson: 8, means: 'makes it more than one', needs: 'more than one',
+                bare: 'just one {gloss}', example: { word: 'pusthakalu', meaning: 'books' } },
+        ],
+        changes: [['am', 'a'], ['udu', 'u'], ['illu', 'inti']],
+    },
+};
+
 /* ── Words the course does not teach, for explaining misses only ───────────
    A learner who writes *Ivu dodda pustaka* has written real Kannada — *ivu* is
    "these" — and being told "close, the word is Idu" treats a meaning error as
