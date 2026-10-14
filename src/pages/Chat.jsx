@@ -2231,7 +2231,7 @@ export default function Chat() {
                 alignItems: 'center',
                 gap: '12px'
             }}>
-                <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}>
+                <button onClick={() => navigate('/lessons')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}>
                     <ChevronLeft size={24} />
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>

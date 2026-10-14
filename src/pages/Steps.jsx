@@ -292,6 +292,46 @@ function MilestoneBanner({ milestone }) {
     );
 }
 
+/** "Leave this lesson?" — the X sits under a thumb, and one stray tap used to
+ *  drop a learner out of a lesson with no way back. The place is saved after
+ *  every screen, so the sheet can say so; practice is not, so it says that. */
+function LeaveSheet({ practice, onStay, onLeave }) {
+    return (
+        <div role="dialog" aria-modal="true" onClick={onStay}
+            style={{
+                position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(20,10,40,0.35)',
+                display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                animation: 'pop-in 0.2s ease-out',
+            }}>
+            <div onClick={e => e.stopPropagation()}
+                style={{
+                    width: '100%', maxWidth: 500, background: '#fff', padding: '22px 18px 26px',
+                    borderRadius: '22px 22px 0 0', boxShadow: '0 -8px 30px rgba(80,40,140,0.18)',
+                }}>
+                <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 19 }}>
+                    {practice ? 'Leave practice?' : 'Leave this lesson?'}
+                </h3>
+                <p style={{ margin: '8px 0 18px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    {practice
+                        ? 'This practice round will not be saved.'
+                        : 'Your place is saved. You will pick up right here next time.'}
+                </p>
+                <button onClick={onStay} className="btn-primary"
+                    style={{ width: '100%', padding: 13, fontSize: 15 }}>
+                    Keep going
+                </button>
+                <button onClick={onLeave}
+                    style={{
+                        width: '100%', marginTop: 8, padding: 12, border: 'none', background: 'transparent',
+                        cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 700, fontSize: 14,
+                    }}>
+                    {practice ? 'Leave practice' : 'Leave lesson'}
+                </button>
+            </div>
+        </div>
+    );
+}
+
 /** `won` turns the card the learner is looking at into the celebration, rather
  *  than printing the same word a second time underneath it.
  *
@@ -1458,6 +1498,7 @@ function Lesson({ scenarioParam, practice = false }) {
     const [banked, setBanked] = useState([]);
     const [unaided, setUnaided] = useState(0);
     const [finished, setFinished] = useState(false);
+    const [confirmLeave, setConfirmLeave] = useState(false);
     /* Every sentence the learner actually produced, for the summary. Not the
        lesson's phrase list — the ones they got out themselves. */
     const [said, setSaid] = useState([]);
@@ -2000,9 +2041,14 @@ function Lesson({ scenarioParam, practice = false }) {
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <StepStyles />
             <MilestoneBanner milestone={milestone} />
+            {confirmLeave && (
+                <LeaveSheet practice={practice}
+                    onStay={() => setConfirmLeave(false)}
+                    onLeave={() => { setVoice(IDLE_VOICE); navigate('/lessons'); }} />
+            )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 16px 10px' }}>
-                <button onClick={() => navigate(practice ? '/lessons' : '/')}
+                <button onClick={() => (index > 0 ? setConfirmLeave(true) : navigate('/lessons'))}
                     aria-label={practice ? 'Leave practice' : 'Leave lesson'}
                     style={{
                         width: 32, height: 32, borderRadius: 10, border: 'none', cursor: 'pointer',
@@ -2310,13 +2356,13 @@ export function Summary({
                     <MessageCircle size={15} style={{ verticalAlign: -3 }} /> Practise this scenario in chat
                 </button>
             </>)}
-            <button onClick={() => navigate('/')}
+            <button onClick={() => navigate('/lessons')}
                 style={{
                     width: '100%', marginTop: 8, padding: '11px', border: 'none',
                     background: 'transparent', cursor: 'pointer',
                     color: 'var(--text-secondary)', fontWeight: 600,
                 }}>
-                Back home
+                Back to lessons
             </button>
         </div>
     );
