@@ -1134,6 +1134,204 @@ export const CURRICULUM = {
                   grammarNote: "Start with *kshamisi* to stop a stranger politely. The rest is lesson 3, unchanged." }
             ],
             farewell: "Ten lessons in, you can greet, ask, want, refuse, count, point, describe and thank. That is a real toolkit."
+        },
+
+        // Phase 2: The "Action" Phase (Lessons 11–20)
+        {
+            scenario: "Present Continuous",
+            icon: "⏳",
+            color: "#e0f2fe",
+            vocabulary: [
+                { word: "Iddene", native: "ಇದ್ದೇನೆ", meaning: "I am", phonetic: "ihd-day-neh", alt: ["iddeeni", "iddini"],
+                  teach: "{w} means “I am”: *naanu illi iddene*, “I am here”. Every action word in this lesson ends with it, the way *chennagiddeeni* does." },
+                { word: "Maaduttiddene", native: "ಮಾಡುತ್ತಿದ್ದೇನೆ", meaning: "I am doing", phonetic: "maa-dut-tihd-day-neh", alt: ["maadtidini", "madtidini", "maaduttidini", "maadtiddini", "maduttiddene"],
+                  teach: "“I am doing” is {w}. You'll hear it said short, too: *maadtidini*. Both are right." },
+                { word: "Hoguttiddene", native: "ಹೋಗುತ್ತಿದ್ದೇನೆ", meaning: "I am going (right now)", phonetic: "hoh-gut-tihd-day-neh", alt: ["hogtidini", "hoguttidini", "hogtiddini"],
+                  teach: "{w} is “I am going”, on the way right now. *Hoguttene*, from lesson 3, covers “I go” and “I will go”. The extra -idd- makes it right now." },
+                { word: "Tinnuttiddene", native: "ತಿನ್ನುತ್ತಿದ್ದೇನೆ", meaning: "I am eating", phonetic: "tihn-nut-tihd-day-neh", alt: ["tintidini", "tinnuttidini", "tintiddini"] },
+                { word: "Eega", native: "ಈಗ", meaning: "Now", phonetic: "ee-guh", alt: ["iga"] },
+                { word: "Kelasa", native: "ಕೆಲಸ", meaning: "Work", phonetic: "keh-luh-suh", alt: ["kelsa"] }
+            ],
+            phrases: [
+                { prompt: "Say 'I am doing work'", correct: "Naanu kelasa maaduttiddene", native: "ನಾನು ಕೆಲಸ ಮಾಡುತ್ತಿದ್ದೇನೆ", meaning: "I am doing work", hint: "I + work + am doing",
+                  acceptable: ["kelasa maaduttiddene", "naanu kelasa maadtidini", "kelasa maadtidini", "naanu kelasa maaduttidini", "naanu kelsa maadtidini"],
+                  grammarNote: "The action word goes last: *kelasa maaduttiddene*, “work I am doing”. The -ene at the end already means “I”, so *naanu* is optional." },
+                { prompt: "Say 'I am going now'", correct: "Naanu eega hoguttiddene", native: "ನಾನು ಈಗ ಹೋಗುತ್ತಿದ್ದೇನೆ", meaning: "I am going now", hint: "I + now + am going",
+                  acceptable: ["eega hoguttiddene", "naanu eega hogtidini", "eega hogtidini", "eega naanu hoguttiddene", "naanu eega hoguttidini", "naanu eega hoguttene", "eega hoguttene", "naanu eega hogtini"],
+                  grammarNote: "*Hoguttene* from lesson 3 works here too. *Hoguttiddene* adds -idd- to say you are on your way right now." },
+                { prompt: "Say 'I am having a meal' — Kannada 'does' a meal", correct: "Naanu oota maaduttiddene", native: "ನಾನು ಊಟ ಮಾಡುತ್ತಿದ್ದೇನೆ", meaning: "I am having a meal", hint: "I + meal + am doing",
+                  acceptable: ["oota maaduttiddene", "naanu oota maadtidini", "oota maadtidini", "naanu oota maaduttidini"],
+                  grammarNote: "For a meal, Kannada says “do”: *oota maadu*. With no food named, use “eat”: *naanu tinnuttiddene*, “I am eating”." }
+            ],
+            conversations: [
+                { prompt: "Miko phones and asks what you're up to. Say 'I am doing work'.", correct: "Naanu kelasa maaduttiddene", native: "ನಾನು ಕೆಲಸ ಮಾಡುತ್ತಿದ್ದೇನೆ", meaning: "I am doing work", hint: "I + work + am doing",
+                  acceptable: ["kelasa maaduttiddene", "naanu kelasa maadtidini", "kelasa maadtidini", "naanu kelasa maaduttidini"] },
+                { prompt: "Tell someone 'I am going home now'.", correct: "Naanu eega manege hoguttiddene", native: "ನಾನು ಈಗ ಮನೆಗೆ ಹೋಗುತ್ತಿದ್ದೇನೆ", meaning: "I am going home now", hint: "I + now + to-the-house + am going",
+                  acceptable: ["eega manege hoguttiddene", "naanu eega manege hogtidini", "eega manege hogtidini", "eega naanu manege hoguttiddene", "naanu manege eega hoguttiddene", "naanu eega manege hoguttidini", "naanu eega manege hoguttene", "eega manege hoguttene", "naanu eega manege hogtini"],
+                  grammarNote: "When first, then where, then the action. *Manege* (“to the house”) is from lesson 3." },
+                { prompt: "Miko offers you a plate, but you already have one. Say 'I am eating now'.", correct: "Naanu eega tinnuttiddene", native: "ನಾನು ಈಗ ತಿನ್ನುತ್ತಿದ್ದೇನೆ", meaning: "I am eating now", hint: "I + now + am eating",
+                  acceptable: ["eega tinnuttiddene", "naanu eega tintidini", "eega tintidini", "naanu eega tinnuttidini", "naanu eega oota maaduttiddene", "eega oota maaduttiddene"] },
+                { prompt: "Final check: say 'I am here, I am doing work'.", correct: "Naanu illi iddene, kelasa maaduttiddene", native: "ನಾನು ಇಲ್ಲಿ ಇದ್ದೇನೆ, ಕೆಲಸ ಮಾಡುತ್ತಿದ್ದೇನೆ", meaning: "I am here, I am doing work", hint: "I + here + I-am, work + am doing",
+                  acceptable: ["naanu illi iddene kelasa maaduttiddene", "naanu illi iddeeni, kelasa maadtidini", "naanu illi iddini, kelasa maadtidini", "illi iddene, kelasa maaduttiddene", "naanu illi, kelasa maaduttiddene"],
+                  grammarNote: "*Iddene* alone is “I am”. Inside *maaduttiddene* it turns “do” into “am doing”." }
+            ],
+            farewell: "You can say what you are doing right now — the first thing anyone asks on the phone."
+        },
+        {
+            scenario: "The 'When' (Time)",
+            icon: "⏰",
+            color: "#fef3c7",
+            vocabulary: [
+                { word: "Ivattu", native: "ಇವತ್ತು", meaning: "Today", phonetic: "ih-vut-tu", alt: ["ivathu", "ivaththu", "indu"],
+                  teach: "“Today” is {w}. In writing you'll also see *indu*, which means the same." },
+                { word: "Naale", native: "ನಾಳೆ", meaning: "Tomorrow", phonetic: "naa-leh", alt: ["nale"] },
+                { word: "Ninne", native: "ನಿನ್ನೆ", meaning: "Yesterday", phonetic: "nihn-neh",
+                  teach: "“Yesterday” is {w}. *Naale* is ahead of you, {w} is behind. Both end in -e, so listen to the start." },
+                { word: "Aamele", native: "ಆಮೇಲೆ", meaning: "Later", phonetic: "aa-may-leh", alt: ["amele"],
+                  teach: "{w} means “later”. It goes where *eega* (“now”) goes: before the action word." },
+                { word: "Gante", native: "ಗಂಟೆ", meaning: "Hour / o'clock", phonetic: "gun-teh", alt: ["gantege", "ganthe"],
+                  teach: "{w} is both “hour” and “o'clock”: *ondu gante* is “one hour” or “one o'clock”." },
+                { word: "Yaavaga", native: "ಯಾವಾಗ", meaning: "When", phonetic: "yaa-vaa-guh", alt: ["yavaga"], teach: "“When” is {w}." }
+            ],
+            phrases: [
+                { prompt: "Say 'yesterday, today, tomorrow'", correct: "Ninne, ivattu, naale", native: "ನಿನ್ನೆ, ಇವತ್ತು, ನಾಳೆ", meaning: "Yesterday, today, tomorrow", hint: "Yesterday + today + tomorrow",
+                  acceptable: ["ninne ivattu naale", "ninne, indu, naale", "ninne, ivathu, naale"] },
+                { prompt: "Say 'Today I am doing work'", correct: "Ivattu naanu kelasa maaduttiddene", native: "ಇವತ್ತು ನಾನು ಕೆಲಸ ಮಾಡುತ್ತಿದ್ದೇನೆ", meaning: "Today I am doing work", hint: "Today + I + work + am doing",
+                  acceptable: ["ivattu kelasa maaduttiddene", "naanu ivattu kelasa maaduttiddene", "ivattu naanu kelasa maadtidini", "ivattu kelasa maadtidini"],
+                  grammarNote: "The time word usually comes first, and the action word always comes last." },
+                { prompt: "Say 'Tomorrow I am going home'", correct: "Naale naanu manege hoguttene", native: "ನಾಳೆ ನಾನು ಮನೆಗೆ ಹೋಗುತ್ತೇನೆ", meaning: "Tomorrow I am going home", hint: "Tomorrow + I + to-the-house + I-go",
+                  acceptable: ["naale manege hoguttene", "naanu naale manege hoguttene", "naale manege hogtini", "naale naanu manege hogtini", "naale naanu manege hoguttiddene", "naale manege hoguttiddene", "naale manege hogtidini"],
+                  grammarNote: "For a plan, *hoguttene* from lesson 3 is the usual choice: it covers “I go” and “I will go”. *Hoguttiddene* also works here." }
+            ],
+            conversations: [
+                { prompt: "Miko says she is going to Bangalore. Ask 'When?'", correct: "Yaavaga?", native: "ಯಾವಾಗ?", meaning: "When?", hint: "One word",
+                  acceptable: ["yaavaga", "yavaga?", "yavaga"] },
+                { prompt: "Say 'I am eating now, I will go later'.", correct: "Naanu eega tinnuttiddene, aamele hoguttene", native: "ನಾನು ಈಗ ತಿನ್ನುತ್ತಿದ್ದೇನೆ, ಆಮೇಲೆ ಹೋಗುತ್ತೇನೆ", meaning: "I am eating now, I will go later", hint: "I + now + am eating, later + I-go",
+                  acceptable: ["eega tinnuttiddene, aamele hoguttene", "naanu eega tinnuttiddene aamele hoguttene", "eega tintidini, aamele hogtini", "naanu eega tintidini, amele hogtini", "naanu eega oota maaduttiddene, aamele hoguttene"],
+                  grammarNote: "*Eega* is now, *aamele* is later. Each goes just before its own action word." },
+                { prompt: "Miko asks when you'll come by. Say 'tomorrow, at one o'clock'.", correct: "Naale ondu gantege", native: "ನಾಳೆ ಒಂದು ಗಂಟೆಗೆ", meaning: "Tomorrow, at one o'clock", hint: "Tomorrow + one + o'clock-at",
+                  acceptable: ["naale, ondu gantege", "naale ondu gante"],
+                  grammarNote: "Add -ge to *gante* for “at”: *ondu gantege*, “at one o'clock”. It's the same -ge as in *manege*." },
+                { prompt: "Final check: say 'Today I am here, tomorrow I am going'.", correct: "Ivattu naanu illi iddene, naale hoguttene", native: "ಇವತ್ತು ನಾನು ಇಲ್ಲಿ ಇದ್ದೇನೆ, ನಾಳೆ ಹೋಗುತ್ತೇನೆ", meaning: "Today I am here, tomorrow I am going", hint: "Today + I + here + I-am, tomorrow + I-go",
+                  acceptable: ["ivattu naanu illi iddene naale hoguttene", "ivattu illi iddene, naale hoguttene", "ivattu naanu illi iddini, naale hogtini", "ivattu naanu illi iddeeni, naale hogtini", "ivattu naanu illi, naale hoguttene", "ivattu naanu illi iddene, naale hoguttiddene"] }
+            ],
+            farewell: "Yesterday, today, tomorrow, now and later — you can put any action in time."
+        },
+        {
+            scenario: "Simple Past Tense",
+            icon: "📜",
+            color: "#dcfce7",
+            vocabulary: [
+                { word: "Maadide", native: "ಮಾಡಿದೆ", meaning: "I did", phonetic: "maa-dih-deh", alt: ["madide", "maadidenu"],
+                  teach: "“I did” is {w}. In the past, the “I” ending is just -e. It looks like *ide* (“it is”), but here it means “I did”." },
+                { word: "Hode", native: "ಹೋದೆ", meaning: "I went", phonetic: "hoh-deh", alt: ["hodhe", "hodenu"],
+                  teach: "{w} means “I went”. The start changes in ways you can't predict: *hogu* → *hode*, *tinnu* → *tinde*. Learn each one." },
+                { word: "Tinde", native: "ತಿಂದೆ", meaning: "I ate", phonetic: "tihn-deh", alt: ["thinde", "tindenu"] },
+                { word: "Nodide", native: "ನೋಡಿದೆ", meaning: "I saw", phonetic: "noh-dih-deh", alt: ["nodidenu"] },
+                { word: "Helide", native: "ಹೇಳಿದೆ", meaning: "I said / I told", phonetic: "hay-lih-deh", alt: ["helidenu"] },
+                { word: "Bande", native: "ಬಂದೆ", meaning: "I came", phonetic: "bun-deh", alt: ["bandenu"] }
+            ],
+            phrases: [
+                { prompt: "Say 'I went home'", correct: "Naanu manege hode", native: "ನಾನು ಮನೆಗೆ ಹೋದೆ", meaning: "I went home", hint: "I + to-the-house + went",
+                  acceptable: ["manege hode", "naanu manege hodhe"],
+                  grammarNote: "*Hoguttene* is “I go”, *hode* is “I went”. They don't look alike, so learn *hode* as its own word." },
+                { prompt: "Say 'I saw the house'", correct: "Naanu mane nodide", native: "ನಾನು ಮನೆ ನೋಡಿದೆ", meaning: "I saw the house", hint: "I + house + saw",
+                  acceptable: ["mane nodide"],
+                  grammarNote: "Here it's *mane*, not *manege*. You saw the house, you didn't go to it." },
+                { prompt: "Say 'I came yesterday'", correct: "Naanu ninne bande", native: "ನಾನು ನಿನ್ನೆ ಬಂದೆ", meaning: "I came yesterday", hint: "I + yesterday + came",
+                  acceptable: ["ninne bande", "ninne naanu bande"] }
+            ],
+            conversations: [
+                { prompt: "Miko asks where you were yesterday. Say 'Yesterday I went home'.", correct: "Ninne naanu manege hode", native: "ನಿನ್ನೆ ನಾನು ಮನೆಗೆ ಹೋದೆ", meaning: "Yesterday I went home", hint: "Yesterday + I + to-the-house + went",
+                  acceptable: ["ninne manege hode", "naanu ninne manege hode"] },
+                { prompt: "Say 'I did the work yesterday'.", correct: "Naanu ninne kelasa maadide", native: "ನಾನು ನಿನ್ನೆ ಕೆಲಸ ಮಾಡಿದೆ", meaning: "I did the work yesterday", hint: "I + yesterday + work + did",
+                  acceptable: ["ninne kelasa maadide", "ninne naanu kelasa maadide", "naanu ninne kelasa madide"],
+                  grammarNote: "*Maaduttiddene* is “I am doing”, *maadide* is “I did”. The time word helps, but the ending says it." },
+                { prompt: "Miko offers you food. Refuse it — you already ate.", correct: "Beda, naanu tinde", native: "ಬೇಡ, ನಾನು ತಿಂದೆ", meaning: "No thanks, I ate", hint: "Don't want + I + ate",
+                  acceptable: ["beda naanu tinde", "beda, tinde", "illa, naanu tinde", "beda, naanu oota maadide", "beda, oota maadide"],
+                  grammarNote: "*Beda, tinde* is how people really turn down food. *Oota maadide*, “I had a meal”, works too." },
+                { prompt: "Final check: a friend asks if you told Miko. Say 'Yes, I told'.", correct: "Haudu, naanu helide", native: "ಹೌದು, ನಾನು ಹೇಳಿದೆ", meaning: "Yes, I told", hint: "Yes + I + told",
+                  acceptable: ["haudu naanu helide", "haudu, helide"] }
+            ],
+            farewell: "You can talk about yesterday now — where you went, what you did, what you ate."
+        },
+        {
+            scenario: "Simple Future Tense",
+            icon: "🔮",
+            color: "#ede9fe",
+            vocabulary: [
+                { word: "Maaduttene", native: "ಮಾಡುತ್ತೇನೆ", meaning: "I will do", phonetic: "maa-dut-tay-neh", alt: ["maadtini", "madtini", "maaduttini"],
+                  teach: "“I will do” is {w}. It ends like *hoguttene*. Compare *maaduttiddene*, “I am doing”: drop the -idd- and you get “I will do”." },
+                { word: "Baruttene", native: "ಬರುತ್ತೇನೆ", meaning: "I will come", phonetic: "buh-rut-tay-neh", alt: ["bartini", "baruttini", "barteeni"] },
+                { word: "Tinnuttene", native: "ತಿನ್ನುತ್ತೇನೆ", meaning: "I will eat", phonetic: "tihn-nut-tay-neh", alt: ["tintini", "tinnuttini"] },
+                { word: "Noduttene", native: "ನೋಡುತ್ತೇನೆ", meaning: "I will see", phonetic: "noh-dut-tay-neh", alt: ["nodtini", "noduttini"] },
+                { word: "Bega", native: "ಬೇಗ", meaning: "Soon / quickly", phonetic: "bay-guh",
+                  teach: "{w} means “soon” or “quickly”. Mind the middle letter: *beda* is “don't want”." }
+            ],
+            phrases: [
+                { prompt: "Say 'I will come tomorrow'", correct: "Naanu naale baruttene", native: "ನಾನು ನಾಳೆ ಬರುತ್ತೇನೆ", meaning: "I will come tomorrow", hint: "I + tomorrow + will come",
+                  acceptable: ["naale baruttene", "naale naanu baruttene", "naanu naale bartini", "naale bartini"] },
+                { prompt: "Say 'I will eat later'", correct: "Naanu aamele tinnuttene", native: "ನಾನು ಆಮೇಲೆ ತಿನ್ನುತ್ತೇನೆ", meaning: "I will eat later", hint: "I + later + will eat",
+                  acceptable: ["aamele tinnuttene", "naanu aamele tintini", "aamele tintini", "naanu amele tinnuttene"],
+                  grammarNote: "*Tinnuttiddene* is “I am eating”. Drop the -idd- and it's *tinnuttene*, “I will eat”." },
+                { prompt: "Say 'I will come soon' — careful, not 'don't want'", correct: "Naanu bega baruttene", native: "ನಾನು ಬೇಗ ಬರುತ್ತೇನೆ", meaning: "I will come soon", hint: "I + soon + will come",
+                  acceptable: ["bega baruttene", "naanu bega bartini", "bega bartini"],
+                  grammarNote: "*Bega* is “soon”, *beda* is “don't want”. One letter apart, so check the middle." }
+            ],
+            conversations: [
+                { prompt: "Miko asks if you'll finish the job. Say 'I will do it tomorrow'.", correct: "Naanu naale maaduttene", native: "ನಾನು ನಾಳೆ ಮಾಡುತ್ತೇನೆ", meaning: "I will do it tomorrow", hint: "I + tomorrow + will do",
+                  acceptable: ["naale maaduttene", "naanu naale maadtini", "naale maadtini", "naanu naale kelasa maaduttene", "naale naanu maaduttene"],
+                  grammarNote: "No word for “it” is needed. Kannada leaves it out when it's clear." },
+                { prompt: "Say 'I will look at the book later'.", correct: "Naanu aamele pustaka noduttene", native: "ನಾನು ಆಮೇಲೆ ಪುಸ್ತಕ ನೋಡುತ್ತೇನೆ", meaning: "I will look at the book later", hint: "I + later + book + will see",
+                  acceptable: ["aamele pustaka noduttene", "naanu aamele pustaka nodtini", "aamele pustaka nodtini", "naanu pustaka aamele noduttene"] },
+                { prompt: "You're leaving Miko's house. Say goodbye the Kannada way — 'I'll go and come back'.", correct: "Hogi baruttene", native: "ಹೋಗಿ ಬರುತ್ತೇನೆ", meaning: "Goodbye (I'll go and come back)", hint: "Go + will come",
+                  acceptable: ["hogi bartini", "hogbartini", "hogi barteeni", "hogi baruttini", "hogbarteeni"],
+                  grammarNote: "Kannada rarely says a flat “bye”. *Hogi baruttene*, “I'll go and come back”, is a promise to return." },
+                { prompt: "Final check: say 'Today I am working, tomorrow I will come'.", correct: "Ivattu naanu kelasa maaduttiddene, naale baruttene", native: "ಇವತ್ತು ನಾನು ಕೆಲಸ ಮಾಡುತ್ತಿದ್ದೇನೆ, ನಾಳೆ ಬರುತ್ತೇನೆ", meaning: "Today I am working, tomorrow I will come", hint: "Today + I + work + am doing, tomorrow + will come",
+                  acceptable: ["ivattu kelasa maaduttiddene, naale baruttene", "ivattu naanu kelasa maaduttiddene naale baruttene", "ivattu naanu kelasa maadtidini, naale bartini", "ivattu kelasa maadtidini, naale bartini"],
+                  grammarNote: "Two times, two endings: -ttiddene for right now, -ttene for later." }
+            ],
+            farewell: "Did, doing, will do — you can talk about all three now."
+        },
+        {
+            scenario: "Asking 'Why'",
+            icon: "🤔",
+            color: "#fce7f3",
+            vocabulary: [
+                { word: "Yaake", native: "ಯಾಕೆ", meaning: "Why", phonetic: "yaa-keh", alt: ["yake"], teach: "“Why” is {w}." },
+                { word: "Adakke", native: "ಅದಕ್ಕೆ", meaning: "That's why", phonetic: "uh-duk-keh",
+                  teach: "{w} means “that's why”. *Yaake?* asks why; {w} answers it." },
+                { word: "Nanage", native: "ನನಗೆ", meaning: "To me", phonetic: "nuh-nuh-geh",
+                  teach: "{w} means “to me”. For liking and wanting, Kannada says “to me”: *nanage ishta*, “I like it”, never *naanu ishta*." },
+                { word: "Nimage", native: "ನಿಮಗೆ", meaning: "To you", phonetic: "nih-muh-geh",
+                  teach: "{w} means “to you”. *Nanage* and {w} pair up like *nanna* and *nimma*." },
+                { word: "Ishta", native: "ಇಷ್ಟ", meaning: "Like", phonetic: "ihsh-tuh", alt: ["ista"] },
+                { word: "Bhaya", native: "ಭಯ", meaning: "Fear", phonetic: "bhuh-yuh", alt: ["baya"],
+                  teach: "{w} is “fear”. *Nanage bhaya* means “I'm scared”." }
+            ],
+            phrases: [
+                { prompt: "Point at something odd and ask 'Why that?'", correct: "Adu yaake?", native: "ಅದು ಯಾಕೆ?", meaning: "Why that?", hint: "That + why?",
+                  acceptable: ["adu yaake", "adu yake?", "yaake adu?"] },
+                { prompt: "Say 'I like this'", correct: "Nanage idu ishta", native: "ನನಗೆ ಇದು ಇಷ್ಟ", meaning: "I like this", hint: "To me + this + like",
+                  acceptable: ["idu nanage ishta", "nanage idu ista"],
+                  grammarNote: "Kannada says “to me, this is liked”. So it's *nanage*, not *naanu*." },
+                { prompt: "Say 'I want water' — the full way, with 'to me'", correct: "Nanage neeru beku", native: "ನನಗೆ ನೀರು ಬೇಕು", meaning: "I want water", hint: "To me + water + want",
+                  acceptable: ["nanage neeru beku."],
+                  grammarNote: "Lesson 4 said just *neeru beku*. *Nanage* makes the “I” clear. *Naanu neeru beku* is wrong: wanting takes *nanage*." }
+            ],
+            conversations: [
+                { prompt: "Miko pushes the food away. Ask 'Why don't you want it?'", correct: "Yaake beda?", native: "ಯಾಕೆ ಬೇಡ?", meaning: "Why don't you want it?", hint: "Why + don't want?",
+                  acceptable: ["yaake beda", "yake beda?", "nimage yaake beda?"] },
+                { prompt: "You're at a stall with Miko. Ask what they want.", correct: "Nimage yenu beku?", native: "ನಿಮಗೆ ಏನು ಬೇಕು?", meaning: "What do you want?", hint: "To you + what + want?",
+                  acceptable: ["nimage enu beku?", "nimage yenu beku", "nimage enu beku", "yenu beku?"],
+                  grammarNote: "*Nanage* is “to me”, *nimage* is “to you”. Swap one for the other and the same sentence asks instead of tells." },
+                { prompt: "Miko asks 'Yaake beda?'. Say 'I don't like it, that's why I don't want it'.", correct: "Nanage ishta illa, adakke beda", native: "ನನಗೆ ಇಷ್ಟ ಇಲ್ಲ, ಅದಕ್ಕೆ ಬೇಡ", meaning: "I don't like it, that's why I don't want it", hint: "To me + like + not, that's why + don't want",
+                  acceptable: ["nanage ishta illa adakke beda", "ishta illa, adakke beda", "nanage ista illa, adakke beda", "nanage idu ishta illa, adakke beda"],
+                  grammarNote: "*Illa* after *ishta* makes it “don't like”. *Adakke* starts the answer to *yaake*." },
+                { prompt: "Final check: Miko asks why you're going home. Say 'I'm scared, that's why I'm going'.", correct: "Nanage bhaya, adakke hoguttiddene", native: "ನನಗೆ ಭಯ, ಅದಕ್ಕೆ ಹೋಗುತ್ತಿದ್ದೇನೆ", meaning: "I'm scared, that's why I'm going", hint: "To me + fear, that's why + am going",
+                  acceptable: ["nanage bhaya adakke hoguttiddene", "nanage bhaya, adakke naanu hoguttiddene", "nanage bhaya, adakke hogtidini", "nanage bhaya, adakke manege hoguttiddene", "nanage bhaya, adakke hoguttene"] }
+            ],
+            farewell: "You can ask why, give a reason, and say what you like and what scares you."
         }
     ],
     Hindi: [
@@ -2066,6 +2264,14 @@ export const WORD_FAMILIES = {
         { name: 'Numbers', members: ['ondu', 'eradu', 'mooru', 'naalku', 'aidu'] },
         { name: 'Size', members: ['dodda', 'chikka'] },
         { name: 'Good or bad', members: ['olleya', 'ketta'] },
+        { name: 'When', members: ['ninne', 'ivattu', 'naale'] },
+        { name: 'Now or later', members: ['eega', 'aamele'] },
+        { name: 'Did, doing, will do', members: ['maadide', 'maaduttiddene', 'maaduttene'] },
+        { name: 'Went, going, will go', members: ['hode', 'hoguttiddene', 'hoguttene'] },
+        { name: 'Ate, eating, will eat', members: ['tinde', 'tinnuttiddene', 'tinnuttene'] },
+        { name: 'Sounds alike', members: ['beda', 'bega'] },
+        { name: 'To whom', members: ['nanage', 'nimage'] },
+        { name: 'Why', members: ['yaake', 'adakke'] },
     ],
     Telugu: [
         { name: 'Whose', members: ['naa', 'mee', 'ayana', 'ame'] },
