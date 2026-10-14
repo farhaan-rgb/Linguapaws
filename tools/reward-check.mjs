@@ -8,8 +8,11 @@
  * Step mode answers a learner three times per screen, and each of the three can
  * silently come out empty:
  *
- *   the verdict        — never empty, and never the same line twice running
- *   the achievement    — what they just did; empty is a wasted moment
+ *   the verdict        — never empty, never the same line twice running, and
+ *                        sized to the screen: a teach screen gets a plain nod
+ *   the achievement    — what they just did. Empty on a teach screen, by design
+ *                        (repeating a word still on screen achieves nothing
+ *                        worth announcing); empty anywhere else is a wasted moment
  *   the miss feedback  — `explainMiss`, or the curriculum hint, or the scaffold
  *
  * The third is the one worth guarding. Before this feature a wrong answer on a
@@ -58,14 +61,22 @@ for (const lang of languages) {
             const at = `${where} step ${si + 1} (${step.phase})`;
 
             // 1. The verdict, and no two the same in a row.
-            const verdict = praise.verdictFor({ misses: 0, cleared: si });
+            const verdict = praise.verdictFor({ step, misses: 0, cleared: si });
+            const teach = step.kind === 'teach';
+            if (teach && !praise.TEACH_ACK.includes(verdict)) problems.push(`${at}: a teach screen got "${verdict}"`);
+            if (!teach && praise.TEACH_ACK.includes(verdict)) problems.push(`${at}: a recall screen got the teach nod`);
+            if (teach && praise.countsForStreak(step)) problems.push(`${at}: a teach screen counts towards the streak`);
             if (!verdict) problems.push(`${at}: no verdict`);
             if (verdict && verdict === previous) problems.push(`${at}: verdict repeats "${verdict}"`);
             previous = verdict;
 
             // 2. What they just did.
-            const did = praise.achievementFor({ step, lang, combo: 1 });
-            if (!did) problems.push(`${at}: nothing to say about "${step.expected}"`);
+            const did = praise.achievementFor({ step, lang });
+            if (teach && did) problems.push(`${at}: a teach screen claims an achievement: "${did}"`);
+            if (!teach && !did) problems.push(`${at}: nothing to say about "${step.expected}"`);
+            if (!teach && !praise.achievementFor({ step, lang, misses: 1 })) {
+                problems.push(`${at}: nothing to say after a fix`);
+            }
 
             // 3. A miss leaves them something to work with.
             const diagnosis = engine.explainMiss(NONSENSE, step.expected, step.variants, lexicon);
@@ -81,6 +92,14 @@ for (const lang of languages) {
     });
 }
 
+/* Lines that were not true, and must not come back: claims about the learner's
+   future, or a bonus the points do not pay. */
+const FALSE = /ahead of the lesson|counts double|fluency|did not stop to think/i;
+[...praise.TEACH_ACK, ...praise.CLEAN_PRAISE, ...praise.RECOVERED_PRAISE, ...praise.CONTRAST_PRAISE,
+ ...Object.values(praise.MILESTONES).flatMap(m => [m.title, m.blurb])]
+    .filter(line => FALSE.test(line))
+    .forEach(line => problems.push(`untrue line: "${line}"`));
+
 /* The points arithmetic, which is small enough to state exactly. */
 const cases = [
     [{ correct: true, misses: 0, combo: 1 }, praise.CLEAN_POINTS],
@@ -95,7 +114,7 @@ cases.forEach(([input, want]) => {
 
 console.log(`${screens} screens across ${languages.join(', ')}`);
 if (!problems.length) {
-    console.log('every screen has a verdict, an achievement and something to say on a miss');
+    console.log('every screen has a verdict sized to it, an achievement where one is earned, and something to say on a miss');
     process.exit(0);
 }
 problems.slice(0, 40).forEach(p => console.log(`  ✗ ${p}`));

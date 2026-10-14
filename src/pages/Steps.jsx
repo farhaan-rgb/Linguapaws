@@ -1115,7 +1115,8 @@ function StepScreen({
     return (
         <>
             {phase === 'correct' && (
-                <Burst seed={step.index} power={reward?.milestone ? 2 : 1} originY="36%" />
+                <Burst seed={step.index}
+                    power={reward?.milestone ? 2 : reward?.effort === 'teach' ? 0 : 1} originY="36%" />
             )}
 
             <div style={{ flex: 1, padding: '0 16px', maxWidth: 500, width: '100%', margin: '0 auto' }}>
@@ -1795,17 +1796,22 @@ function Lesson({ scenarioParam, practice = false }) {
                 : [...prev, { text: step.expected, meaning: step.drill?.meaning || '' }]);
         }
 
+        /* The streak counts recall screens only. A teach screen asks the learner
+           to repeat a word still in front of them; it neither builds the streak
+           nor breaks it, so "three in a row" is three answers they had to find. */
+        const recall = praise.countsForStreak(step);
+
         if (correct) {
             t.cleared += 1;
             if (misses === 0) {
-                t.combo += 1;
+                if (recall) t.combo += 1;
                 t.best = Math.max(t.best, t.combo);
                 setUnaided(n => n + 1);
             } else {
                 t.recovered += 1;
             }
         }
-        t.combo = correct && misses === 0 ? t.combo : 0;
+        if (recall) t.combo = correct && misses === 0 ? t.combo : 0;
         t.stumbled = !correct || misses > 0;
 
         // The SRS hears the first attempt only — not the eventual re-ask.
@@ -1834,8 +1840,8 @@ function Lesson({ scenarioParam, practice = false }) {
                    recovered: t.recovered, locks: t.locks, bonus: t.bonus });
         if (!correct) return null;
 
-        const hit = praise.milestoneFor(t.combo);
-        const points = praise.pointsFor({ correct: true, misses, combo: t.combo });
+        const hit = recall && misses === 0 ? praise.milestoneFor(t.combo) : null;
+        const points = praise.pointsFor({ correct: true, misses, combo: recall ? t.combo : 0 });
         t.bonus += points.bonus;
         setScore(s => ({ ...s, bonus: t.bonus }));
         award(points.total);
@@ -1844,22 +1850,26 @@ function Lesson({ scenarioParam, practice = false }) {
             setMilestone(hit);
             setTimeout(() => setMilestone(null), 2300);
             fx.playMilestone();
+        } else if (!recall) {
+            fx.playAck();
         } else {
             fx.playCorrect(t.combo);
         }
 
         return {
-            verdict: praise.verdictFor({ misses, cleared: t.cleared - 1 }),
-            achievement: praise.achievementFor({ step, lang: langName, combo: t.combo }),
+            verdict: praise.verdictFor({ step, misses, cleared: t.cleared - 1 }),
+            achievement: praise.achievementFor({ step, lang: langName, misses }),
+            effort: praise.effortFor(step, misses),
             recovery: wasStumbled && misses === 0,
             points, combo: t.combo, milestone: hit,
         };
     }, [step, langName, scenarioIdx, award, practice]);
 
     const handleMiss = useCallback(() => {
+        if (!praise.countsForStreak(step)) return;
         tally.current.combo = 0;
         setScore(s => ({ ...s, combo: 0 }));
-    }, []);
+    }, [step]);
 
     const handleConfusion = useCallback((pairs) => {
         (pairs || []).forEach(p => recordConfusion({

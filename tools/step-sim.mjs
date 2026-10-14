@@ -147,24 +147,26 @@ function render(s, steps) {
 /* ── the reward layer, as text ─────────────────────────────────────────── */
 function celebrate(s, step, misses) {
     const out = [];
+    /* As in the app: only recall screens build or break the streak. */
+    const recall = P.countsForStreak(step);
     if (misses === 0) {
-        s.combo += 1;
+        if (recall) s.combo += 1;
         s.best = Math.max(s.best, s.combo);
         s.unaided += 1;
-    } else {
+    } else if (recall) {
         s.combo = 0;
     }
     s.cleared += 1;
-    const points = P.pointsFor({ correct: true, misses, combo: s.combo });
+    const points = P.pointsFor({ correct: true, misses, combo: recall ? s.combo : 0 });
     s.points += points.total;
 
-    const milestone = P.milestoneFor(s.combo);
+    const milestone = recall && misses === 0 ? P.milestoneFor(s.combo) : null;
     if (milestone) out.push(`🎉 ${milestone.icon} ${milestone.title} — ${milestone.blurb}`);
     if (s.stumbled && misses === 0) out.push(`👁  ${P.RECOVERY_LINE}`);
 
     out.push(`🔊 ${step.expected}`);
-    out.push(`👁  ${P.verdictFor({ misses, cleared: s.cleared - 1 })}`);
-    const did = P.achievementFor({ step, lang: s.lang, combo: s.combo });
+    out.push(`👁  ${P.verdictFor({ step, misses, cleared: s.cleared - 1 })}`);
+    const did = P.achievementFor({ step, lang: s.lang, misses });
     if (did) out.push(`👁  ${did}`);
     out.push(`👁  +${points.base} 🐾${points.bonus ? ` · +${points.bonus} streak bonus` : ''}`);
     return out;
@@ -202,7 +204,7 @@ function say(s, text) {
     }
 
     s.misses += 1;
-    s.combo = 0;
+    if (P.countsForStreak(step)) s.combo = 0;
     const diagnosis = E.explainMiss(said, step.expected, step.variants, lexicon)
         || (step.drill?.hint ? '' : P.scaffoldFor(step.expected));
 

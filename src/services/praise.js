@@ -3,47 +3,84 @@
  *
  * Split out of Steps.jsx for two reasons. Copy is the part of this feature most
  * likely to be rewritten, and it is the part worth checking mechanically:
- * `tools/praise-check.mjs` runs long simulated lessons through these functions
+ * `tools/reward-check.mjs` walks every screen of the course through these functions
  * and fails if a learner would ever see the same line twice in a row, or be
  * told something the screen contradicts.
  *
  * Nothing here is random. Every pick is a function of how many answers the
  * learner has cleared, so the sequence varies for the learner, repeats for a
  * screenshot, and can be asserted in a test.
+ *
+ * None of the praise is read aloud. Miko's read-aloud speaks the word and the
+ * tips; a spoken verdict on every screen would be exactly the noise this file
+ * is trying to turn down.
  */
 
 /** Rotate through a list rather than sampling it — no repeats, ever. */
 const pick = (list, seed) => list[Math.abs(Math.trunc(seed)) % list.length];
 
 /* ── Verdicts ──────────────────────────────────────────────────────────────
-   Two registers. A first-try answer gets a flat statement of fact; an answer
-   that took a second go gets credit for the second go, because that is the one
-   that actually teaches. Neither gushes: a tutor that shouts "AMAZING!!" at a
-   learner for typing two words they were shown ninety seconds ago is not
-   praising them, it is talking to itself.                                    */
+   Scaled to what the screen asked of the learner, because praise that is the
+   same size everywhere stops meaning anything. A Kannada playtester stopped
+   reading these by lesson 15: "Three in a row — you are ahead of the lesson"
+   for repeating a word Miko had said four seconds earlier.
+
+     teach     — repeat a word just shown. A plain nod, nothing more.
+     recall    — a memory check, a phrase built, a reply, right first time.
+                 The warm lines live here, and only here.
+     fixed     — right after a miss. Names the fix, which is the real event.
+     contrast  — a mixed-up pair put right. Its own fact, said plainly.
+
+   Every line has to be true of every screen it can land on. Lists are
+   disjoint, so two screens of different weight never read the same.       */
+
+/** How much the screen asked of the learner. Everything below keys off this. */
+export function effortFor(step, misses = 0) {
+    if (step?.kind === 'teach') return 'teach';
+    if (misses > 0) return 'fixed';
+    if (step?.kind === 'review' && step.item?.contrast) return 'contrast';
+    return 'recall';
+}
+
+/** Only these count towards a streak, a milestone, or a streak bonus. */
+export const countsForStreak = (step) => effortFor(step) !== 'teach';
+
+export const TEACH_ACK = [
+    'Got it.',
+    "That's the one.",
+    'Right.',
+    "That's it.",
+];
 
 export const CLEAN_PRAISE = [
+    'Spot on.',
+    'Right first time.',
     'Nailed it.',
     'Exactly right.',
-    "That's it.",
-    'Spot on.',
-    'Perfect.',
-    'Clean.',
-    'Straight through.',
 ];
 
 export const RECOVERED_PRAISE = [
+    'You fixed it.',
     'Got there.',
-    "That's the one.",
+    'Fixed.',
     'You worked it out.',
-    'There it is.',
-    'Second go, and it counts double for memory.',
+];
+
+export const CONTRAST_PRAISE = [
+    'Those two are sorted now.',
+    'Right one, not the lookalike.',
 ];
 
 /** The verdict headline. `cleared` is how many answers the learner has cleared
  *  in this lesson, which is what keeps the line moving. */
-export const verdictFor = ({ misses = 0, cleared = 0 } = {}) =>
-    (misses > 0 ? pick(RECOVERED_PRAISE, cleared) : pick(CLEAN_PRAISE, cleared));
+export function verdictFor({ step = null, misses = 0, cleared = 0 } = {}) {
+    switch (effortFor(step, misses)) {
+        case 'teach':    return pick(TEACH_ACK, cleared);
+        case 'fixed':    return pick(RECOVERED_PRAISE, cleared);
+        case 'contrast': return pick(CONTRAST_PRAISE, cleared);
+        default:         return pick(CLEAN_PRAISE, cleared);
+    }
+}
 
 /* ── Encouragement ─────────────────────────────────────────────────────────
    A miss is the most fragile moment in the lesson — it is where people quit.
@@ -193,33 +230,31 @@ export const LOCK_IN_PROMPT = {
 
 const wordCount = (text) => String(text || '').trim().split(/\s+/).filter(Boolean).length;
 
-export function achievementFor({ step, lang = '', combo = 0 } = {}) {
+export function achievementFor({ step, lang = '', misses = 0 } = {}) {
     if (!step) return '';
     const language = lang || 'the language';
 
-    if (step.kind === 'teach') {
-        const n = (step.slice || []).length;
-        return n > 1 ? `${n} new words banked.` : "Banked — that one's yours now.";
-    }
+    /* Repeating a word that is still on the screen is not an achievement, and
+       saying it is one cheapens every line that is. */
+    if (step.kind === 'teach') return '';
 
     if (step.kind === 'review') {
-        if (step.item?.contrast) return 'Both in the right place — that pair is coming apart.';
+        const c = step.item?.contrast;
+        if (c) return misses > 0
+            ? 'You caught the mix-up and put it right.'
+            : 'Both in the right place, first try.';
+        if (misses > 0) return 'It came back on the second look.';
         return step.item?.source === 'due'
             ? 'Still there, from an earlier lesson.'
-            : 'Straight back out again — that is memory forming.';
+            : 'Back out from memory.';
     }
 
     const n = wordCount(step.expected);
-    if (step.phase === 'conversation') {
-        return combo >= 3
-            ? `A real reply in ${language}, and you did not stop to think.`
-            : `A real reply, in ${language}.`;
-    }
+    if (step.phase === 'conversation') return `A real reply, in ${language}.`;
     if (n >= 3) return `A whole sentence — ${n} words of ${language}.`;
     if (n >= 2) return 'You built that out of words you already had.';
     /* A handful of drills across the course want a single word back — a number,
-       an apology, a plural. `reward-check` found five of them landing on an
-       empty clause, which is a screen that celebrates nothing. */
+       an apology, a plural. */
     return 'Exactly the word this one needed.';
 }
 
@@ -245,14 +280,15 @@ export function scaffoldFor(expected) {
 }
 
 /* ── Streak ────────────────────────────────────────────────────────────────
-   Milestones are deliberately sparse. A banner on every second answer is
-   wallpaper; four in a lesson still land.                                   */
+   Counts recall screens only — a teach screen neither adds to it nor breaks
+   it — so "three in a row" means three answers the learner had to find.
+   Every blurb is a count of what happened, not a forecast about the learner. */
 
 export const MILESTONES = {
-    3:  { icon: '🔥', title: 'Three in a row',   blurb: 'You are ahead of the lesson.' },
-    5:  { icon: '⚡', title: 'Five straight',    blurb: 'Nothing has caught you out yet.' },
-    8:  { icon: '🌟', title: 'Eight in a row',   blurb: 'This is fluency-shaped.' },
-    12: { icon: '👑', title: 'Twelve unbroken',  blurb: 'Almost the whole lesson, clean.' },
+    3:  { icon: '🔥', title: 'Three in a row',  blurb: 'Three checks, right first time.' },
+    5:  { icon: '⚡', title: 'Five straight',   blurb: 'Nothing has caught you out yet.' },
+    8:  { icon: '🌟', title: 'Eight in a row',  blurb: 'Eight checks without a miss.' },
+    12: { icon: '👑', title: 'Twelve unbroken', blurb: 'Twelve checks and not one slip.' },
 };
 
 export const milestoneFor = (combo) => MILESTONES[combo] || null;

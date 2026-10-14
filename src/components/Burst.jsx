@@ -3,9 +3,10 @@ import React, { useMemo } from 'react';
 /**
  * The particle burst behind a right answer.
  *
- * Three sizes, because a burst that is the same every time stops being a
- * reward after four screens: `power` 1 is a routine correct answer, 2 a streak
- * milestone, 3 the end of the lesson.
+ * Four sizes, because a burst that is the same every time stops being a
+ * reward after four screens: `power` 0 is a teach screen (a word repeated
+ * straight back), 1 a recall answer, 2 a streak milestone, 3 the end of the
+ * lesson.
  *
  * Deterministic from `seed` — the same answer produces the same burst, so a
  * preview screenshot is reproducible and nothing here needs a stable random
@@ -34,7 +35,7 @@ const reducedMotion = () => {
 export default function Burst({ seed = 0, power = 1, originY = '44%' }) {
     const parts = useMemo(() => {
         const r = rng(seed + power * 977);
-        const count = power >= 3 ? 54 : power === 2 ? 30 : 16;
+        const count = power >= 3 ? 54 : power === 2 ? 30 : power === 1 ? 16 : 7;
         return Array.from({ length: count }, (_, i) => {
             /* Power 3 rains from above the fold; 1 and 2 burst outward from the
                card, biased upward — confetti that only ever falls reads as an
@@ -42,7 +43,9 @@ export default function Burst({ seed = 0, power = 1, originY = '44%' }) {
             const angle = power >= 3
                 ? Math.PI / 2 + (r() - 0.5) * 0.6
                 : (i / count) * Math.PI * 2 + (r() - 0.5) * 0.5;
-            const reach = (power >= 3 ? 240 + r() * 420 : (power === 2 ? 120 : 78) + r() * 90);
+            const reach = (power >= 3 ? 240 + r() * 420
+                : power === 0 ? 46 + r() * 34
+                : (power === 2 ? 120 : 78) + r() * 90);
             return {
                 dx: Math.cos(angle) * reach * (power >= 3 ? 0.35 : 1),
                 dy: Math.sin(angle) * reach * (power >= 3 ? 1 : 0.78) * (power >= 3 ? 1 : -1),

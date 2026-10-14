@@ -94,6 +94,12 @@ export const playCorrect = (combo = 1) => play(() => {
     buzz(12);
 });
 
+/** A teach screen: the word was on screen a moment ago, so the sound is a
+ *  nod rather than a chime — one soft note, no rising third, no buzz. */
+export const playAck = () => play(() => {
+    note(G5, 0, 0.16, 0.06);
+});
+
 /** A miss. Falls rather than rises, quiet, and over quickly. Not a buzzer:
  *  a buzzer is a punishment sound and this is not a punishment. */
 export const playMiss = () => play(() => {
