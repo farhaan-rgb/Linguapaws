@@ -80,6 +80,16 @@ const CASES = [
     // A dropped syllable is a spelling slip, not a missing word.
     ['Telugu', 6, 'snehudu', 'Snehithudu', false, /^Close, check the spelling of snehudu\.$/, /missing/],
     ['Telugu', 6, 'snehudu', 'Snehithudu', true, /snehithudu/, /missing/],
+    // Authored traps (curriculum `traps`): the "why not X" written for the answer a faithful learner gives.
+    ['Kannada', 11, 'Hoguttene', 'Hoguttiddene', false, /^\*Hoguttene\* is “I go” or “I will go”, from lesson 3\. For right now, on the way, add \*-idd-\* before the ending: H___________\.$/],
+    ['Kannada', 11, 'Hoguttene', 'Hoguttiddene', true, /add \*-idd-\* before the ending: \*Hoguttiddene\*\.$/],
+    ['Kannada', 11, 'Hogittene', 'Hoguttiddene', false, /^\*Hogittene\* sounds like \*hoguttene\*, which is “I go”.*-idd-/],
+    ['Kannada', 12, 'Naanu manege hoguttiddene', 'Naanu manege hoguttene', false, /^\*Hoguttiddene\* is only for right now.*: H________\.$/, /\*hoguttene\*/i],
+    // A trap whose word is not taught yet never fires.
+    ['Kannada', 3, 'Hoguttiddene', 'Hoguttene', false, null, /-idd-/],
+    // The needed word keeps its qualifier.
+    ['Kannada', 11, 'Maaduttiddene', 'Hoguttiddene', false, /This asks for “I am going \(right now\)”\.$/],
+    ['Kannada', 25, 'Hodare', 'Bandare', false, /This asks for “if \(someone\) comes”/],
 ];
 
 let fail = 0;

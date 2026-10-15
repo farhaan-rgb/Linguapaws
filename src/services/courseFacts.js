@@ -103,6 +103,30 @@ export const wordsAskedAbout = (question, lang, scenarioIdx) => {
 };
 
 const meaningOf = (w, idx) => idx.get(norm(w));
+
+/* Both sides of an authored trap (curriculum `traps`), named in one question:
+   "why hoguttiddene and not hoguttene" gets the line written for exactly that
+   confusion. `{answer}` is the word the trap belongs to. */
+const trapPairs = (asked) => {
+    const words = new Map(asked.map(e => [norm(e.word), e]));
+    return asked.flatMap(e => (e.traps || [])
+        .filter(t => t.why && words.has(norm(t.said)) && norm(t.said) !== norm(e.word))
+        .map(t => ({ owner: e, said: words.get(norm(t.said)), why: t.why.replace(/\{answer\}/g, `*${e.word}*`) })));
+};
+const trapAsked = (question, asked) => {
+    const pairs = trapPairs(asked);
+    if (!pairs.length) return '';
+    if (pairs.length === 1) return pairs[0].why;
+    /* Both directions are authored: the word after "not" / "instead of" is
+       the one the learner said; otherwise the first-named is the one asked about. */
+    const tokens = normalizeLatin(String(question || '')).split(' ').filter(Boolean);
+    const posOf = (e) => tokens.findIndex(t => [e.word, ...(e.alt || [])].map(norm).includes(t)
+        || (t.length >= 5 && levenshtein(t, norm(e.word)) <= 2));
+    const negated = (e) => { const i = posOf(e); return i > 0 && /^(not|of|than)$/.test(tokens[i - 1]); };
+    const pick = pairs.find(p => negated(p.said))
+        || [...pairs].sort((a, b) => posOf(a.owner) - posOf(b.owner))[0];
+    return pick.why;
+};
 const plain = (s) => String(s || '').replace(/\*/g, '');
 
 /* No full stop after a meaning that already ends a sentence: “Really?”. */
@@ -118,6 +142,9 @@ export const courseFactsFor = (question, lang, scenarioIdx) => {
     for (const e of asked) {
         const teach = e.teach ? ` ${plain(e.teach.replaceAll('{w}', e.word))}` : '';
         facts.push(`${e.word} (lesson ${e.lesson}) means "${e.meaning}"${endStop(e.meaning)}${teach}`);
+    }
+    for (const p of trapPairs(asked)) {
+        facts.push(`Why ${p.owner.word} and not ${p.said.word}: ${plain(p.why)}`);
     }
     for (const pair of DISTINCT_WORDS) {
         if (!pair.some(m => keys.has(norm(m)))) continue;
@@ -160,6 +187,8 @@ export const answerFromFacts = (question, lang, scenarioIdx) => {
     const idx = indexFor(lang, scenarioIdx);
     const asked = wordsAskedAbout(question, lang, scenarioIdx).slice(0, 3);
     if (!asked.length) return '';
+    const trap = trapAsked(question, asked);
+    if (trap) return trap;
     const lines = asked.map(e => {
         const teach = e.teach ? e.teach.replaceAll('{w}', `*${e.word}*`) : '';
         // A teaching line that already gives the meaning is the whole answer.

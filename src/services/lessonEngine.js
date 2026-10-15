@@ -2128,15 +2128,22 @@ export const cleanGloss = (meaning) => {
 };
 
 /** "His / her (respectful)" -> the part of it this question is about. */
-export const glossFor = (meaning, context = '') => {
-    const raw = cleanGloss(meaning);
+export const glossFor = (meaning, context = '', { keepNotes = false } = {}) => {
+    /* `keepNotes`: the word a learner is being sent TO keeps its qualifier.
+       "This asks for “I am going”" dropped the "(right now)" of *hoguttiddene*
+       — the one cue that separates it from *hoguttene*, which lesson 3 drilled
+       as "I am going home". Without it the line read as if the learner had
+       been right. */
+    /* Not a note that spells out the answer's parts: "(guruvu + lu)". */
+    const whole = String(meaning || '').replace(/\s*\([^)]*\+[^)]*\)/g, '').trim();
+    const raw = keepNotes && /\S\s*\([^)]*\)/.test(whole) ? whole : cleanGloss(meaning);
     if (!raw) return '';
     const tail = (raw.match(/\((respectful|polite)\)\s*$/i) || [])[1]?.toLowerCase() || '';
     let core = raw.replace(/\s*\((respectful|polite)\)\s*$/i, '');
     const parts = core.split(/\s*\/\s*/).filter(Boolean);
     if (parts.length > 1) {
         const ctx = ` ${String(context).toLowerCase()} `;
-        const hit = parts.find(p => new RegExp(`\\b${p.toLowerCase().replace(/[^a-z' ]/g, '')}\\b`).test(ctx));
+        const hit = parts.find(p => new RegExp(`\\b${p.toLowerCase().replace(/\([^)]*\)/g, '').replace(/[^a-z' ]/g, '').trim()}\\b`).test(ctx));
         core = hit || parts.join(' or ');
     }
     if (!/^I\b/.test(core)) core = core.charAt(0).toLowerCase() + core.slice(1);
@@ -2162,6 +2169,30 @@ const taughtWords = (lessons = []) => {
 };
 
 const capital = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+
+/** The authored "why not X" lines (`traps: [{ said, why }]` in curriculum.js)
+ *  that apply to an answer: the drill whose answer it is, then each taught
+ *  word in it, each with `word`: the answer token it belongs to ('' for a
+ *  drill's own). `why` may carry `{answer}` — the needed word, outlined before
+ *  the reveal and shown after. */
+export const trapsFor = (expected, lessons = []) => {
+    const want = normalizeLatin(expected);
+    const tokens = new Set(want.split(' ').filter(Boolean));
+    const out = [];
+    for (const lesson of lessons) {
+        for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {
+            if (d.traps && normalizeLatin(d.correct) === want) out.push(...d.traps.map(t => ({ ...t, word: '' })));
+        }
+    }
+    for (const lesson of lessons) {
+        for (const v of lesson.vocabulary || []) {
+            if (!v.traps) continue;
+            const hit = [v.word, ...(v.alt || [])].map(normalizeLatin).find(w => tokens.has(w));
+            if (hit) out.push(...v.traps.map(t => ({ ...t, word: hit })));
+        }
+    }
+    return out;
+};
 
 /** Expected answer with every word the learner missed cut to its first letter. */
 export const missScaffold = (said, expected, lexicon = new Map()) => {
@@ -2382,6 +2413,56 @@ export const missHelp = (said, expected, {
         .find(x => normalizeLatin(x) === t) || t).replace(/[^\p{L}\p{N}'’-]/gu, '') || t;
     const answerFor = (t) => (reveal ? `*${capital(shownWord(t))}*` : outlineOf(capital(shownWord(t))));
 
+    /* An authored "why not X" (curriculum `traps`) beats anything worked out
+       here: it was written for the exact wrong answer a faithful learner
+       gives, and it can say what the generic lines cannot — *hoguttene* was
+       taught as "I am going home", so "it means I go" reads as "you were
+       right". Checked first, and matched on the trap's word, its taught
+       spellings, or a near-miss of it that is not nearer the answer. */
+    const trapLine = (() => {
+        const traps = trapsFor(expected, taughtLessons);
+        if (!traps.length) return null;
+        const whole = got.join(' ');
+        for (const trap of traps) {
+            const key = normalizeLatin(trap.said);
+            if (!key || !trap.why) continue;
+            const entry = taught.get(key);
+            /* A word not taught yet cannot be the learner's confusion. */
+            if (!key.includes(' ') && !entry) continue;
+            let hit = null; let near = false;
+            if (key.includes(' ')) {
+                if (whole === key) hit = key;
+            } else {
+                hit = got.find(g => g === key || (taught.get(g) && taught.get(g) === entry && !has(need, g)));
+                if (!hit) {
+                    hit = got.find(g => !has(need, g) && !taught.has(g) && g.length >= 4
+                        && (levenshtein(g, key) <= (Math.min(g.length, key.length) >= 7 ? 2 : 1) || isSpellingSlip(g, key))
+                        && need.every(t => levenshtein(g, t) > levenshtein(g, key)));
+                    near = !!hit;
+                }
+            }
+            if (!hit) continue;
+            const t = trap.word || missing[0] || need[0];
+            const why = trap.why.replace(/\{answer\}/g, answerFor(t));
+            /* "*Hogittene* sounds like *hoguttene*, which is ..." — not the
+               word twice in a row, which is how the voice read it. */
+            const like = `*${capital(hit)}* sounds like *${(entry ? entry.word : trap.said).toLowerCase()}*`;
+            const lead = `*${capital(trap.said)}* is `;
+            const line = !near ? why
+                : why.startsWith(lead) ? `${like}, which is ${why.slice(lead.length)}` : `${like}. ${why}`;
+            const wantEntry = taught.get(t);
+            /* The pair is recorded for the misspelling too: matching an
+               authored trap is what makes it a confusion, not a typo. */
+            const pairs = entry && wantEntry && entry.word !== wantEntry.word ? [{
+                said: entry.word, saidMeaning: entry.meaning,
+                needed: wantEntry.word, neededMeaning: wantEntry.meaning,
+            }] : [];
+            return { line: finish(line, { skip: [hit] }), family: null, scaffold, pairs };
+        }
+        return null;
+    })();
+    if (trapLine) return trapLine;
+
     const endingLine = endingMiss(got, need, {
         endings, lessonNo: taughtLessons.length, taught, answerFor, reveal,
     });
@@ -2496,7 +2577,7 @@ export const missHelp = (said, expected, {
             said: entry.word, saidMeaning: entry.meaning,
             needed: wantEntry.word, neededMeaning: wantEntry.meaning,
         });
-        const want = wantEntry ? glossFor(wantEntry.meaning, meaning) : '';
+        const want = wantEntry ? glossFor(wantEntry.meaning, meaning, { keepNotes: true }) : '';
         if (t && insteadKey && entry.when) {
             const nouns = need.filter(n => n !== t).map(n => taught.get(n)).filter(Boolean)
                 .map(e => glossParts(e.meaning)[0]).filter(p => p && !p.includes(' '));

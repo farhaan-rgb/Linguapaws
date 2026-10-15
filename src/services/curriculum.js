@@ -991,7 +991,8 @@ export const CURRICULUM = {
                 { word: "Ide", native: "ಇದೆ", meaning: "It is / there is", phonetic: "ih-deh",
                   teach: "{w} means “it is” or “there is”, for things: *mane alli ide*, “the house is there”. For yourself, leave it out: *naanu illi*, “I am here”." },
                 { word: "Hoguttene", native: "ಹೋಗುತ್ತೇನೆ", meaning: "I go / I will go", phonetic: "hoh-gut-tay-neh", alt: ["hogtini", "hoguttini"],
-                  teach: "“I go” or “I will go” is {w}, and in everyday talk it also covers “I'm going”. The -ttene at the end already means “I”, so you don't need *naanu*." },
+                  teach: "“I go” or “I will go” is {w}, and in everyday talk it also covers “I'm going”. The -ttene at the end already means “I”, so you don't need *naanu*.",
+                  traps: [{ said: "Hoguttiddene", why: "*Hoguttiddene* is only for right now, on the way. The everyday “I go” or “I will go” has no *-idd-*: {answer}." }] },
                 { word: "Hogu", native: "ಹೋಗು", meaning: "Go", phonetic: "hoh-gu", alt: ["hogi"],
                   teach: "“Go!” is {w} — telling someone to go." }
             
@@ -1270,7 +1271,8 @@ export const CURRICULUM = {
                 { word: "Maaduttiddene", native: "ಮಾಡುತ್ತಿದ್ದೇನೆ", meaning: "I am doing", phonetic: "maa-dut-tihd-day-neh", alt: ["maadtidini", "madtidini", "maaduttidini", "maadtiddini", "maduttiddene"],
                   teach: "“I am doing” is {w}. You'll hear it said short, too: *maadtidini*. Both are right." },
                 { word: "Hoguttiddene", native: "ಹೋಗುತ್ತಿದ್ದೇನೆ", meaning: "I am going (right now)", phonetic: "hoh-gut-tihd-day-neh", alt: ["hogtidini", "hoguttidini", "hogtiddini"],
-                  teach: "{w} is “I am going”, on the way right now. *Hoguttene*, from lesson 3, covers “I go” and “I will go”. The extra -idd- makes it right now." },
+                  teach: "{w} is “I am going”, on the way right now. *Hoguttene*, from lesson 3, covers “I go” and “I will go”. The extra -idd- makes it right now.",
+                  traps: [{ said: "Hoguttene", why: "*Hoguttene* is “I go” or “I will go”, from lesson 3. For right now, on the way, add *-idd-* before the ending: {answer}." }] },
                 { word: "Tinnuttiddene", native: "ತಿನ್ನುತ್ತಿದ್ದೇನೆ", meaning: "I am eating", phonetic: "tihn-nut-tihd-day-neh", alt: ["tintidini", "tinnuttidini", "tintiddini"] },
                 { word: "Eega", native: "ಈಗ", meaning: "Now", phonetic: "ee-guh", alt: ["iga"] },
                 { word: "Kelasa", native: "ಕೆಲಸ", meaning: "Work", phonetic: "keh-luh-suh", alt: ["kelsa"] }
