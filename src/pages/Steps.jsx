@@ -93,6 +93,9 @@ const logTiming = (path, endAt, extra = '') => {
 
 /** Counts a number up to its new value. Used on the paw total and the summary
  *  tiles — a number that lands is a number that gets read. */
+/** "Don't know", "idk", "no idea", "show me" — giving up, typed or said. */
+const DONT_KNOW = /^(?:i\s+)?(?:(?:really\s+)?(?:do\s*n['’]?o?t|dont|dunno)(?:\s+know)?|idk|no\s+idea|not\s+sure|no\s+clue|pass|skip|show\s+me|tell\s+me|help)[\s.!?]*$/i;
+
 function useCountUp(value, ms = 520) {
     const [shown, setShown] = useState(value);
     /* What is on screen right now, not what the last run was aiming at — a
@@ -1113,10 +1116,19 @@ function StepScreen({
         ? step.slice[0].phonetic : null;
 
     /** `spoken` answers come straight from the transcriber, unconfirmed. */
+    /* Typing "don't know" is the "I don't know — show me" button in words.
+       It was being read as a question with nothing in it to look up, and
+       answered "The course hasn't covered that yet" on a lesson-11 screen. */
+    const giveUpRef = useRef(null);
     const grade = useCallback((raw, spoken = false, heardNative = '') => {
         if (settled) return;
         const said = String(raw || '').trim();
         if (!said) return;
+        if (DONT_KNOW.test(said)) {
+            setAnswer('');
+            giveUpRef.current?.();
+            return;
+        }
 
         /* A transcript gets the benefit of the doubt (native-script match,
            glide and length) — decided in the engine, not here. */
@@ -1157,7 +1169,7 @@ function StepScreen({
             }
             setAsked({
                 q: said,
-                a: reply || "The course hasn't covered that yet — it's not a wrong answer, so take your time.",
+                a: reply || "I can explain words from the course — name the one you're unsure about. Or tap “I don't know — show me”.",
             });
             setAnswer('');
             return;
@@ -1249,6 +1261,7 @@ function StepScreen({
         fx.playMiss();
         onSettled({ correct: false, revealed: true, misses: next });
     }, [settled, misses, onMiss, step, onSettled, lexicon, taughtLessons, families, langName, drill]);
+    giveUpRef.current = giveUp;
 
     const lockInWith = useCallback((raw, spoken = false, heardNative = '') => {
         const said = String(raw || '').trim();
@@ -1266,7 +1279,7 @@ function StepScreen({
             const reply = answerFromFacts(said, langName, upTo, { expected: step.expected, reveal: true });
             setAsked({
                 q: said,
-                a: reply || "The course hasn't covered that yet — the answer is above whenever you're ready.",
+                a: reply || "I can explain words from the course — name the one you're unsure about. The answer is above whenever you're ready.",
             });
             setLockText('');
             setLockMiss(false);
