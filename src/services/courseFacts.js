@@ -17,7 +17,7 @@
  * Shared by Chat.jsx, Steps.jsx and tools/lesson-sim.mjs, so all three answer
  * the same question the same way. */
 import { CURRICULUM, WORD_FAMILIES } from './curriculum.js';
-import { DISTINCT_WORDS, normalizeLatin } from './lessonEngine.js';
+import { DISTINCT_WORDS, normalizeLatin, levenshtein } from './lessonEngine.js';
 
 const norm = (w) => normalizeLatin(String(w || '')).replace(/\s+/g, '');
 
@@ -67,8 +67,24 @@ export const wordsAskedAbout = (question, lang, scenarioIdx) => {
             if (k.length > t.length && k.startsWith(t)) { found.set(e.word, e); break; }
         }
     }
+    /* A misspelling is a question about the word it misspells: "why not
+       hogittene" is asking about Hoguttene. One letter off, two on a long word,
+       same first letter — and never a word the course teaches against it. */
+    for (const t of tokens) {
+        if (t.length < 5 || idx.has(t) || QUESTION_FRAME.has(t)) continue;
+        let best = null;
+        for (const [k, e] of idx) {
+            if (k[0] !== t[0] || Math.abs(k.length - t.length) > 2) continue;
+            const d = levenshtein(k, t);
+            if (d <= (t.length >= 8 ? 2 : 1) && (!best || d < best.d)) best = { d, e };
+        }
+        if (best) found.set(best.e.word, best.e);
+    }
     if (found.size) return [...found.values()];
 
+    /* "Why" asks about a choice, not for a word: "why not hogittene" must not
+       look up Illa for "not". */
+    if (tokens[0] === 'why') return [];
     const rest = tokens.filter(t => !QUESTION_FRAME.has(t) && t !== normalizeLatin(lang));
     if (!rest.length) return [];
     const asked = ` ${rest.join(' ')} `;
@@ -147,8 +163,8 @@ export const answerFromFacts = (question, lang, scenarioIdx) => {
     const lines = asked.map(e => {
         const teach = e.teach ? e.teach.replaceAll('{w}', `*${e.word}*`) : '';
         // A teaching line that already gives the meaning is the whole answer.
-        const gist = String(e.meaning).toLowerCase().replace(/\s*\(.*\)$/, '');
-        if (teach && teach.toLowerCase().includes(gist)) return teach;
+        // Either side of "I go / I will go" counts as the meaning.
+        if (teach && gistsOf(e.meaning).some(g => normalizeLatin(teach).includes(g))) return teach;
         return `*${e.word}* means “${e.meaning}”${endStop(e.meaning)}${teach ? ` ${teach}` : ''}`;
     });
     const keys = new Set(asked.map(e => norm(e.word)));
