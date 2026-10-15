@@ -158,16 +158,20 @@ function SpeakButton({ text, onSpeak, size = 38 }) {
    permission, a dead mic or a failed transcription is an inconvenience and
    never a wall.                                                             */
 
-function AnswerModeSwitch({ mode, onChange }) {
+/* `locked` while the mic is open or its answer is on the way. Switching then
+   used to hide the mic without stopping it: the recording ran on to its cap
+   and answered the screen the learner had just chosen to type on. */
+function AnswerModeSwitch({ mode, onChange, locked = false }) {
     const seg = (id, Icon, label, spoken) => {
         const on = mode === id;
         return (
             <button
-                key={id} onClick={() => onChange(id)}
+                key={id} onClick={() => onChange(id)} disabled={locked}
                 aria-pressed={on} aria-label={spoken}
                 style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
-                    padding: '5px 11px', borderRadius: 99, border: 'none', cursor: 'pointer',
+                    padding: '5px 11px', borderRadius: 99, border: 'none',
+                    cursor: locked ? 'default' : 'pointer',
                     background: on ? '#fff' : 'transparent',
                     boxShadow: on ? '0 2px 8px -3px rgba(88,28,135,0.4)' : 'none',
                     color: on ? 'var(--accent-purple)' : 'var(--text-secondary)',
@@ -183,6 +187,7 @@ function AnswerModeSwitch({ mode, onChange }) {
             style={{
                 display: 'inline-flex', gap: 2, padding: 3, borderRadius: 99,
                 background: 'rgba(168,85,247,0.09)',
+                opacity: locked ? 0.5 : 1, transition: 'opacity 0.2s',
             }}>
             {seg('type', Keyboard, 'Type', 'Answer by typing')}
             {seg('speak', Mic, 'Speak', 'Answer out loud')}
@@ -1403,7 +1408,8 @@ function StepScreen({
                             <div style={{
                                 display: 'flex', justifyContent: 'flex-end', marginBottom: 9,
                             }}>
-                                <AnswerModeSwitch mode={answerMode} onChange={onAnswerMode} />
+                                <AnswerModeSwitch mode={answerMode} onChange={onAnswerMode}
+                                    locked={['opening', 'listening', 'working'].includes(voice.status)} />
                             </div>
                             <div key={shake} className={shake ? 'nudge' : undefined}>
                                 {/* The microphone is the answer in speak mode —
