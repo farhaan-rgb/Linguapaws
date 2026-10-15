@@ -20,7 +20,7 @@ import {
     fetchPracticeSources, recordMissedScreen, recordMissedCheck,
 } from '../services/srs';
 import { examplesFor } from '../services/examples';
-import { answerFromFacts, wordsAskedAbout } from '../services/courseFacts';
+import { answerFromFacts, whyNotAnswer, wordsAskedAbout } from '../services/courseFacts';
 import { getStoredJSON } from '../utils/storage';
 import { api } from '../services/api';
 import { resumeIndex, savedStepFor, completedLessonFor } from '../services/lessonResume';
@@ -654,7 +654,7 @@ function FamilyCard({ family }) {
 function RevealPanel({
     step, line, onSpeak, locked, lockText, setLockText, onLockIn, lockMiss,
     lockRef, answerMode, voice, onListen, langName, lockHeard = '',
-    why = '', family = null,
+    why = '', family = null, whyNot = null,
 }) {
     const meaning = step.kind === 'drill' ? step.drill?.meaning : null;
     /* This panel's button says Lock it in, not Check, so it names its own. */
@@ -696,6 +696,25 @@ function RevealPanel({
                 <p style={{ margin: '12px 0 0', fontSize: 13, lineHeight: 1.5, color: '#78350f' }}>
                     <TapText text={why} />
                 </p>
+            )}
+            {/* One of their own earlier answers, explained — collapsed, because
+                the answer is what this panel is for and the line above already
+                said why the last try missed. */}
+            {whyNot && (
+                <details data-testid="why-not" style={{
+                    margin: '12px auto 0', maxWidth: 340, textAlign: 'left',
+                    borderRadius: 12, background: 'rgba(255,255,255,0.65)',
+                    border: '1px solid rgba(180,83,9,0.18)', padding: '8px 12px',
+                }}>
+                    <summary style={{
+                        cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#b45309',
+                    }}>
+                        <TapText text={praise.whyNotLabel(whyNot.said)} />
+                    </summary>
+                    <p style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.5, color: '#78350f' }}>
+                        <TapText text={whyNot.line} />
+                    </p>
+                </details>
             )}
             {family && <FamilyCard family={family} />}
 
@@ -884,6 +903,8 @@ function StepScreen({
     const [scaffold, setScaffold] = useState('');
     /** The last wrong answer, so "show me" after a miss can still say what it meant. */
     const lastWrongRef = useRef('');
+    /** Every wrong answer on this screen, in order, for the reveal's "Why not …?". */
+    const [wrongs, setWrongs] = useState([]);
     const [missLine, setMissLine] = useState('');
     const [revealLine, setRevealLine] = useState('');
     const [shake, setShake] = useState(0);
@@ -1009,6 +1030,32 @@ function StepScreen({
        and it was being read out in place of the answer. Only an explanation
        that says what the learner's own words meant survives the reveal. */
     const revealWhy = diagnosis && !/\bis missing\b/i.test(diagnosis) ? diagnosis : '';
+
+    /* "Why not *Hoguttene*?" — the screen knows every answer the learner gave,
+       and the reveal used to explain only the last one. The most informative
+       earlier one gets a collapsed row: an authored trap first, then a taught
+       word said in place of the needed one. Gibberish, which the engine has
+       nothing to say about, gets none, and neither does an answer whose
+       explanation is the line already on the panel (*Hogittene* then
+       *Hoguttene* hit the same trap). Explanation only — nothing is graded. */
+    const whyNot = useMemo(() => {
+        if (phase !== 'revealed' || !wrongs.length) return null;
+        const opts = {
+            variants: step.variants, lexicon, taughtLessons, families,
+            meaning: drill?.meaning || '', reveal: true, language: langName,
+            knownWords: KNOWN_WORDS[langName] || NO_KNOWN, endings: WORD_ENDINGS[langName] || null,
+        };
+        const seen = new Set();
+        const helps = wrongs.filter(w => !seen.has(engine.normalizeLatin(w)) && seen.add(engine.normalizeLatin(w)))
+            .map(said => ({ said, help: engine.missHelp(said, step.expected, opts) }));
+        const keyOf = (h) => (h.trap ? `trap:${h.trap}` : h.pairs?.[0] ? `pair:${h.pairs[0].said}` : '');
+        const lastKey = revealWhy
+            ? keyOf(engine.missHelp(wrongs[wrongs.length - 1], step.expected, opts)) : '';
+        const cands = helps.filter(({ help }) => help.line && keyOf(help)
+            && keyOf(help) !== lastKey && !revealWhy.includes(help.line));
+        const best = cands.find(c => c.help.trap) || cands[0];
+        return best ? { said: best.said, line: best.help.line } : null;
+    }, [phase, wrongs, step, lexicon, taughtLessons, families, drill, langName, revealWhy]);
     useEffect(() => {
         if (phase !== 'revealed') return undefined;
         const t = setTimeout(() => onSay([
@@ -1093,7 +1140,10 @@ function StepScreen({
            lines are what the chat model is now told to answer from anyway. */
         if (!accepted && engine.isPureQuestion(said, step.expected, { lexicon })) {
             const upTo = Math.max(0, (taughtLessons?.length || 1) - 1);
-            const reply = answerFromFacts(said, langName, upTo);
+            /* Against this screen's answer, outlined: "why not hoguttene" on
+               the *Hoguttiddene* screen says what separates them, not only
+               what *hoguttene* means — and that counts as help too. */
+            const reply = answerFromFacts(said, langName, upTo, { expected: step.expected, reveal: false });
             /* Asking "what is tomorrow?" on "Tomorrow I am going home" hands over
                Naale exactly as tapping "Tomorrow" does, so it counts the same:
                not a miss, but no longer unaided. A question about a word the
@@ -1103,7 +1153,7 @@ function StepScreen({
                     .flatMap(a => engine.normalizeLatin(a).split(' ')));
                 const givesAway = wordsAskedAbout(said, langName, upTo)
                     .some(e => [e.word, ...(e.alt || [])].some(w => inAnswer.has(engine.normalizeLatin(w))));
-                if (givesAway) setHelped(true);
+                if (givesAway || whyNotAnswer(said, langName, upTo, { expected: step.expected })) setHelped(true);
             }
             setAsked({
                 q: said,
@@ -1125,6 +1175,7 @@ function StepScreen({
         const next = misses + 1;
         setMisses(next);
         lastWrongRef.current = said;
+        setWrongs(w => [...w, said]);
         /* The flame goes out here, not at the end of the screen. A streak that
            survives a miss and only dies on a full reveal is a streak nobody can
            lose, and a counter nobody can lose is not worth having. */
@@ -1180,6 +1231,7 @@ function StepScreen({
         setMisses(next);
         onMiss();
         setHeardMiss('');
+        setAsked(null);
         /* After a miss, the reveal names the word and shows the family card
            that the first miss held back. */
         if (lastWrongRef.current) {
@@ -1205,6 +1257,22 @@ function StepScreen({
             ? engine.scoreSpoken(said, step.expected, step.variants, lexicon,
                 { heardNative, expectedNative: step.native })
             : engine.scoreAnswer(said, step.expected, step.variants, lexicon);
+        /* "Why is it hoguttiddene and not hoguttene?" typed in the lock-in
+           box got "Almost — copy it exactly". A question here is answered,
+           against the answer now on screen, and the box cleared. The screen
+           is already revealed, so it changes no score. */
+        if (!accepted && engine.isPureQuestion(said, step.expected, { lexicon })) {
+            const upTo = Math.max(0, (taughtLessons?.length || 1) - 1);
+            const reply = answerFromFacts(said, langName, upTo, { expected: step.expected, reveal: true });
+            setAsked({
+                q: said,
+                a: reply || "The course hasn't covered that yet — the answer is above whenever you're ready.",
+            });
+            setLockText('');
+            setLockMiss(false);
+            setLockHeard('');
+            return;
+        }
         if (!accepted) {
             setLockHeard(spoken ? said : '');
             setLockMiss(!spoken);
@@ -1216,7 +1284,7 @@ function StepScreen({
         setLockHeard('');
         fx.playLockIn();
         onLockIn();
-    }, [locked, step, lexicon, onLockIn]);
+    }, [locked, step, lexicon, onLockIn, taughtLessons, langName]);
     const lockIn = useCallback(() => lockInWith(lockText, false), [lockInWith, lockText]);
 
     /* The transcript reaches the engine through the same `grade` the typist
@@ -1409,7 +1477,7 @@ function StepScreen({
                                 lockRef={lockRef} answerMode={answerMode}
                                 voice={voice} onListen={listenLock} langName={langName}
                                 lockHeard={lockHeard}
-                                why={revealWhy} family={family}
+                                why={revealWhy} family={family} whyNot={whyNot}
                             />
                         </div>
                     )}
@@ -1506,7 +1574,7 @@ function StepScreen({
 
                 {/* A question asked in the answer box, answered from the course.
                     Neutral colour: nothing was graded. */}
-                {!settled && asked && (
+                {(!settled || phase === 'revealed') && asked && (
                     <div data-testid="question-answer" style={{
                         margin: '10px 0 0', padding: '11px 13px', borderRadius: 14,
                         background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.22)',

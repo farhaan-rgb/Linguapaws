@@ -17,7 +17,7 @@
  * Shared by Chat.jsx, Steps.jsx and tools/lesson-sim.mjs, so all three answer
  * the same question the same way. */
 import { CURRICULUM, WORD_FAMILIES } from './curriculum.js';
-import { DISTINCT_WORDS, normalizeLatin, levenshtein } from './lessonEngine.js';
+import { DISTINCT_WORDS, normalizeLatin, levenshtein, outlineOf } from './lessonEngine.js';
 
 const norm = (w) => normalizeLatin(String(w || '')).replace(/\s+/g, '');
 
@@ -107,11 +107,12 @@ const meaningOf = (w, idx) => idx.get(norm(w));
 /* Both sides of an authored trap (curriculum `traps`), named in one question:
    "why hoguttiddene and not hoguttene" gets the line written for exactly that
    confusion. `{answer}` is the word the trap belongs to. */
-const trapPairs = (asked) => {
+const shown = (w) => `*${w}*`;
+const trapPairs = (asked, fill = shown) => {
     const words = new Map(asked.map(e => [norm(e.word), e]));
     return asked.flatMap(e => (e.traps || [])
         .filter(t => t.why && words.has(norm(t.said)) && norm(t.said) !== norm(e.word))
-        .map(t => ({ owner: e, said: words.get(norm(t.said)), why: t.why.replace(/\{answer\}/g, `*${e.word}*`) })));
+        .map(t => ({ owner: e, said: words.get(norm(t.said)), why: t.why.replace(/\{answer\}/g, fill(e.word)) })));
 };
 const trapAsked = (question, asked) => {
     const pairs = trapPairs(asked);
@@ -181,9 +182,45 @@ export const groundedAnswerRule = (facts, nativeLang = 'English') => facts.lengt
     ? `\n[COURSE FACTS — the only things you may say about these words. Answer the learner's question ONLY from these facts, in plain ${nativeLang}, in 2-3 sentences. Do not add meanings, roots, origins, rules or forms that are not written here, and do not contradict them. If these facts do not answer the question, say "The course hasn't covered that yet." rather than guessing. Answer, then stop: no scene-setting, no new task, no "keep practicing".\n${facts.map(f => `- ${f}`).join('\n')}]`
     : `\n[Answer in plain ${nativeLang}, in 2-3 sentences, only from what this course has taught. If the course has not taught what they asked, say "The course hasn't covered that yet." rather than guessing. Answer, then stop: no scene-setting, no new task.]`;
 
+/** "Why not hoguttene?" asked on a screen whose answer is known: the word
+ *  asked about, compared with the answer word it stands in for. Asked on the
+ *  Kannada L11 reveal, the question names only the learner's word, so without
+ *  the screen's answer it was answered with what *hoguttene* means and nothing
+ *  about why it was not right here.
+ *
+ *  The authored trap line when there is one, else both meanings. `reveal`
+ *  false (the answer not yet shown) puts the answer in as its outline, the
+ *  same first-miss rule missHelp keeps. '' when the question is not a
+ *  "why / why not", names no taught word, or names only the answer's own. */
+export const whyNotAnswer = (question, lang, scenarioIdx, { expected = '', reveal = false } = {}) => {
+    if (!expected) return '';
+    const q = normalizeLatin(String(question || ''));
+    if (!/^(why|how come)\b/.test(q) && !/\b(not|instead|than|isnt)\b/.test(q)) return '';
+    const idx = indexFor(lang, scenarioIdx);
+    const inAnswer = [...new Map(normalizeLatin(expected).split(' ').map(t => idx.get(norm(t)))
+        .filter(Boolean).map(e => [e.word, e])).values()];
+    if (!inAnswer.length) return '';
+    const own = new Set(inAnswer.map(e => e.word));
+    const said = wordsAskedAbout(question, lang, scenarioIdx).find(e => !own.has(e.word));
+    if (!said) return '';
+    const fill = reveal ? shown : (w) => outlineOf(w.charAt(0).toUpperCase() + w.slice(1));
+    const trap = trapPairs([said, ...inAnswer], fill).find(p => own.has(p.owner.word) && p.said.word === said.word);
+    if (trap) return trap.why;
+    // The answer word it most likely stands in for: nearest in spelling.
+    const want = [...inAnswer].sort((a, b) => levenshtein(norm(said.word), norm(a.word))
+        - levenshtein(norm(said.word), norm(b.word)))[0];
+    if (!want.meaning || !said.meaning) return '';
+    return `*${said.word}* means “${said.meaning}”${endStop(said.meaning)} `
+        + `This asks for “${want.meaning}”${reveal ? `: *${want.word}*.` : endStop(want.meaning)}`;
+};
+
 /** A model-free answer, for step mode: what the course says about each word
- *  the question names, shortest useful first. */
-export const answerFromFacts = (question, lang, scenarioIdx) => {
+ *  the question names, shortest useful first. With `{ expected }` — the
+ *  answer of the screen it was asked on — a "why not X" is answered against
+ *  that answer (whyNotAnswer). */
+export const answerFromFacts = (question, lang, scenarioIdx, { expected = '', reveal = false } = {}) => {
+    const versus = whyNotAnswer(question, lang, scenarioIdx, { expected, reveal });
+    if (versus) return versus;
     const idx = indexFor(lang, scenarioIdx);
     const asked = wordsAskedAbout(question, lang, scenarioIdx).slice(0, 3);
     if (!asked.length) return '';

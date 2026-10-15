@@ -115,6 +115,10 @@ export const REVEAL_LINES = [
 export const missLineFor = (seed = 0) => pick(MISS_LINES, seed);
 export const revealLineFor = (seed = 0) => pick(REVEAL_LINES, seed);
 
+/** The collapsed row on a reveal that explains one of the learner's own wrong
+ *  answers: they know what they typed, so the question is theirs, not ours. */
+export const whyNotLabel = (said) => `Why not *${said}*?`;
+
 /** Caption on a screen re-asked at the end of its round, after its answer
  *  had to be shown. */
 export const RETRY_TAG = 'One more go';

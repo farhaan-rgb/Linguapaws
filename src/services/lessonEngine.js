@@ -2266,7 +2266,7 @@ const glossParts = (m) => cleanGloss(m).toLowerCase().replace(/\([^)]*\)/g, '')
 const pronounGroups = (m) => new Set(glossParts(m)
     .map(p => PRONOUN_GROUPS.findIndex(g => g.includes(p.split(' ')[0])))
     .filter(i => i >= 0));
-const outlineOf = (word) => `${word[0]}${'_'.repeat(Math.max(word.length - 1, 1))}`;
+export const outlineOf = (word) => `${word[0]}${'_'.repeat(Math.max(word.length - 1, 1))}`;
 
 /* ── A taught ending on a taught stem ──────────────────────────────────────
    *Hoovegalu* for "flower" is the -galu of *manegalu* applied to *hoovu*: the
@@ -2457,7 +2457,9 @@ export const missHelp = (said, expected, {
                 said: entry.word, saidMeaning: entry.meaning,
                 needed: wantEntry.word, neededMeaning: wantEntry.meaning,
             }] : [];
-            return { line: finish(line, { skip: [hit] }), family: null, scaffold, pairs };
+            /* `trap`: which authored line fired, so the reveal can tell two
+               wrong answers that hit the same confusion from two that did not. */
+            return { line: finish(line, { skip: [hit] }), family: null, scaffold, pairs, trap: normalizeLatin(trap.said) };
         }
         return null;
     })();
