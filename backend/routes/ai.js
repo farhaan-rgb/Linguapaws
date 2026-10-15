@@ -9,6 +9,7 @@ const { findLanguage, getGoogleVoice } = require('../../shared/languages.js');
 const { asrLadder } = require('../../shared/asr.js');
 const { romanise, SCRIPT_BY_LANGUAGE } = require('../../shared/transliterate.js');
 const { sttTokenHandler } = require('../services/sttStream');
+const askMiko = require('../services/askMiko');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -354,6 +355,31 @@ router.post('/chat', async (req, res) => {
         return res.status(502).json({ error: err.message || 'AI request failed' });
     }
 });
+
+// POST /api/ai/ask — "Ask Miko" on a step-mode screen. See services/askMiko.js.
+router.post('/ask', async (req, res) => {
+    let ask;
+    try { ask = askMiko.readAsk(req.body); } catch (err) { return res.status(400).json({ error: err.message }); }
+    if (askMiko.rateLimited(req.user?._id)) {
+        return res.status(429).json({ error: 'Too many questions at once. Give it a minute.' });
+    }
+    try {
+        const reply = await router.generate(askMiko.buildAskMessages(ask), {
+            temperature: 0.2, max_tokens: 220,
+            /* gpt-4o-mini told the ide/alli learner that *Mane ide* means "the house
+               is there" — the opposite of the point. Gemini, when configured, keeps
+               its own model: a GPT name in a Gemini URL is a 404. */
+            ...(process.env.GEMINI_API_KEY ? {} : { model: process.env.ASK_MODEL || 'gpt-4.1-mini' }),
+        });
+        const { text, redacted } = askMiko.redactAnswer(String(reply || '').trim(), ask);
+        res.json({ answer: text, redacted });
+    } catch (err) {
+        console.error('[ask] failed:', err.message);
+        res.status(502).json({ error: 'Miko could not answer just now.' });
+    }
+});
+/* The model call, swappable so the route can be tested without a network. */
+router.generate = generateWithFallback;
 
 // POST /api/ai/speech
 router.post('/speech', async (req, res) => {

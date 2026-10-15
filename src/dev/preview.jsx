@@ -138,6 +138,17 @@ if (voiceState && voiceState !== 'real') {
     };
 }
 
+/* `?askreply=<text>` answers "Ask Miko" with that text after a short wait, so
+   the box, its loading state and the answer can be looked at without a server.
+   The body sent is kept on window.__askBody for inspection. */
+const askReply = params.get('askreply');
+if (askReply) {
+    const realPost = api.post.bind(api);
+    api.post = (path, body) => (path === '/api/ai/ask'
+        ? new Promise(r => { window.__askBody = body; setTimeout(() => r({ answer: askReply }), 600); })
+        : realPost(path, body));
+}
+
 const screen = params.get('screen');
 
 /* Header renders the signed-in avatar unconditionally, so the home preview needs

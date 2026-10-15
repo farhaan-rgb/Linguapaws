@@ -201,6 +201,31 @@ focused button already turns Enter into a click and must not be handled twice;
 the revealed panel's own box owns Enter, where it locks in; and 500ms after a
 screen settles, so a fast double-press cannot spend the celebration unread.
 
+## Ask Miko
+
+A quiet "Ask Miko" on every screen, and "Ask Miko about this sentence" inside an
+opened "See it in a sentence". Trigger: a Kannada learner looking at *Mane alli
+ide* asked why it is not just *Mane ide* if *ide* means "there is". The answer is
+about English ("there is a house" announces existence; "the house is there" names
+a place, which needs *alli*), and step mode could not give it: the answer box only
+looks words up (`answerFromFacts`) and chat does not know the screen.
+
+`POST /api/ai/ask` (`backend/services/askMiko.js`) is chat's grounded question
+path with the screen attached: its prompt, its example sentences, and
+`courseFactsFor` for every word on it. The answer goes in only once the learner
+can see it (a teach screen, or settled). Before that the model is told not to give
+it, and the server cuts any word of the answer that slips through to its outline
+(*B___*) — `gpt-4.1-mini` ignores the instruction about half the time, so the
+redaction is the guarantee, not the prompt. Because of that, asking is never help.
+`gpt-4o-mini` was tried first and told the learner *Mane ide* means "the house is
+there", the opposite of the point; `ASK_MODEL` overrides.
+
+Its own box, so a question is never graded; the document Enter handler skips
+anything inside `[data-ask-miko]`. 300 characters, one in flight, 1.5 s apart;
+6 a minute and 150 a day per user on the server (in memory). Answers go through
+the tips queue, so they are read only with "Read tips aloud" on. Not mirrored in
+`step-sim` (it would need the network). Preview: `&askreply=<text>` stubs the reply.
+
 ## Switching
 
 `How you learn` is the first card on Home — `Step by step ⇄ Chat`, stored in

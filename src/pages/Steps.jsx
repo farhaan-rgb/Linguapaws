@@ -432,11 +432,114 @@ function WordCard({ wordObj, onSpeak, compact = false, won = false }) {
     );
 }
 
+/* ── Ask Miko ──
+   A question about this screen, answered by the model from the course's facts
+   (POST /api/ai/ask, backend/services/askMiko.js). Its own box, never the
+   answer box, so a question is never graded — and the document's Enter handler
+   leaves it alone. The server keeps an unseen answer out of the reply; asking
+   is not help. */
+const ASK_MAX = 300;
+function AskMiko({ context, onSay, label = 'Ask Miko', style }) {
+    const [open, setOpen] = useState(false);
+    const [q, setQ] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [reply, setReply] = useState(null);
+    const lastAt = useRef(0);
+    const inputRef = useRef(null);
+    useEffect(() => { if (open) inputRef.current?.focus(); }, [open]);
+
+    const submit = async () => {
+        const question = q.trim().slice(0, ASK_MAX);
+        // Debounced: one question in flight, and not two in 1.5 s.
+        if (!question || loading || Date.now() - lastAt.current < 1500) return;
+        if (reply?.q === question && !reply.error) return;
+        lastAt.current = Date.now();
+        setLoading(true);
+        cancelSpeech();
+        try {
+            const { answer } = await api.post('/api/ai/ask', { question, ...context() });
+            setReply({ q: question, a: answer });
+            onSay?.([{ tip: answer }]);
+        } catch (err) {
+            const busy = /too many/i.test(err.message);
+            setReply({ q: question, error: true,
+                a: busy ? 'That is a lot of questions at once. Give it a minute.' : 'Miko could not answer just now. Try again in a moment.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const close = () => { cancelSpeech(); setOpen(false); setReply(null); setQ(''); };
+
+    if (!open) {
+        return (
+            <button type="button" onClick={() => setOpen(true)} data-ask-miko="1"
+                style={{
+                    margin: '10px auto 0', display: 'flex', alignItems: 'center', gap: 6,
+                    background: 'none', border: 'none', padding: '4px 0', cursor: 'pointer',
+                    fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', ...style,
+                }}>
+                <MessageCircle size={14} /> {label}
+            </button>
+        );
+    }
+    return (
+        <div data-ask-miko="1" style={{
+            margin: '10px 0 0', padding: '10px 11px', borderRadius: 14,
+            background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)',
+            animation: 'pop-in 0.3s ease-out', textAlign: 'left', ...style,
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <MessageCircle size={13} /> Ask Miko about this
+                </span>
+                <button type="button" onClick={close} aria-label="Close Ask Miko"
+                    style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex' }}>
+                    <X size={16} />
+                </button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); submit(); }}
+                style={{ margin: 0, display: 'flex', gap: 7 }}>
+                <input ref={inputRef} data-ask-box="1" value={q} maxLength={ASK_MAX}
+                    onChange={(e) => setQ(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); e.stopPropagation(); submit(); } }}
+                    placeholder="Why is it said this way?"
+                    enterKeyHint="send" autoComplete="off"
+                    style={{
+                        flex: 1, minWidth: 0, padding: '10px 12px', fontSize: 14,
+                        borderRadius: 'var(--radius-md)', border: '1.5px solid rgba(99,102,241,0.25)',
+                        background: '#fff', outline: 'none', fontFamily: 'var(--font-main)',
+                    }} />
+                <button type="submit" disabled={!q.trim() || loading}
+                    style={{
+                        padding: '0 13px', borderRadius: 'var(--radius-md)', border: 'none',
+                        background: 'var(--primary-gradient)', color: '#fff', fontWeight: 700, fontSize: 13.5,
+                        cursor: !q.trim() || loading ? 'default' : 'pointer',
+                        opacity: !q.trim() || loading ? 0.45 : 1,
+                    }}>
+                    {loading ? '…' : 'Ask'}
+                </button>
+            </form>
+            {loading && (
+                <p style={{ margin: '8px 2px 0', fontSize: 13, color: 'var(--text-secondary)' }}>Miko is thinking…</p>
+            )}
+            {!loading && reply && (
+                <div data-testid="ask-miko-answer" style={{ margin: '9px 2px 0' }}>
+                    <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>You asked: {reply.q}</p>
+                    <p style={{ margin: '3px 0 0', fontSize: 13.5, lineHeight: 1.55, color: reply.error ? '#b45309' : undefined }}>
+                        {reply.error ? reply.a : <TapText text={reply.a} />}
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+}
+
 /** "See it in a sentence": the course's own sentences that use this word,
  *  collapsed until asked for and never read aloud unasked. A word known in
  *  isolation is not yet a word a learner can use — a Kannada learner who had
  *  *Ide* could not say where it goes. */
-function SentenceExamples({ examples, onSpeak }) {
+function SentenceExamples({ examples, onSpeak, askContext = null, onSay }) {
     const [open, setOpen] = useState(false);
     if (!examples.length) return null;
     return (
@@ -472,6 +575,11 @@ function SentenceExamples({ examples, onSpeak }) {
                             <SpeakButton text={ex.correct} onSpeak={onSpeak} size={32} />
                         </div>
                     ))}
+                    {/* "Why not just Mane ide?" is asked looking at the sentence. */}
+                    {askContext && (
+                        <AskMiko onSay={onSay} label="Ask Miko about this sentence"
+                            context={() => ({ ...askContext(), examples: examples.map(e => ({ correct: e.correct, meaning: e.meaning })) })} />
+                    )}
                 </div>
             )}
         </div>
@@ -945,6 +1053,18 @@ function StepScreen({
        holding the word is the answer. */
     const showExamples = step.kind === 'review' && settled;
 
+    /* What "Ask Miko" sends about this screen. The answer goes only as a thing
+       to keep out of the reply until the learner can see it: a teach screen
+       shows its word, a settled screen has said it. */
+    const askContext = useCallback(() => ({
+        lang: langName,
+        lessonIdx: Math.max(0, (taughtLessons?.length || 1) - 1),
+        prompt: step.kind === 'teach' ? (step.slice || []).map(w => `${w.word} (${w.meaning})`).join(', ') : step.prompt,
+        expected: step.expected,
+        variants: step.variants || [],
+        answerShown: settled || step.kind === 'teach',
+    }), [langName, taughtLessons, step, settled]);
+
     const grammarNote = drill?.grammarNote;
     const points = useMemo(
         () => (grammarNote ? engine.grammarPoints(grammarNote) : []),
@@ -1370,6 +1490,8 @@ function StepScreen({
             /* The revealed screen's own box owns Enter: there it locks in, and
                that is the action the screen is asking for. */
             if (el?.dataset?.lockBox) return;
+            // Ask Miko's box owns its Enter too: a question is never an answer.
+            if (el?.closest?.('[data-ask-miko]')) return;
             if (settled) {
                 /* Two quick presses — check, then advance — would spend the
                    celebration before it has been read. */
@@ -1432,7 +1554,7 @@ function StepScreen({
                                 Your turn — say {step.slice.map(w => w.word).join(', then ')}
                             </p>
                         )}
-                        <SentenceExamples examples={examples} onSpeak={onSpeak} />
+                        <SentenceExamples examples={examples} onSpeak={onSpeak} askContext={askContext} onSay={onSay} />
                     </>
                 )}
 
@@ -1582,7 +1704,7 @@ function StepScreen({
                 </div>
 
                 {showExamples && (
-                    <SentenceExamples examples={examples} onSpeak={onSpeak} />
+                    <SentenceExamples examples={examples} onSpeak={onSpeak} askContext={askContext} onSay={onSay} />
                 )}
 
                 {/* A question asked in the answer box, answered from the course.
@@ -1650,6 +1772,8 @@ function StepScreen({
                         />
                     </div>
                 )}
+
+                <AskMiko context={askContext} onSay={onSay} />
 
                 <div style={{ height: 130 }} />
             </div>
