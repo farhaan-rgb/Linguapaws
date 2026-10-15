@@ -73,7 +73,22 @@ if (params.get('answer') || voiceState) {
         params.get('answer') === 'type' ? 'type' : 'speak');
 }
 
-if (voiceState) {
+/* ?voice=real&token=<jwt> — the real microphone, the real recogniser and both
+   speech paths, for measuring them (Chrome's --use-file-for-fake-audio-capture
+   plays a clip as the mic). Only /api/ai/* reaches the server: every other call
+   — progress, SRS, word bank — is refused here, so a measuring run writes
+   nothing to the database. `?live=off` forces the upload path. */
+if (voiceState === 'real') {
+    if (params.get('token')) localStorage.setItem('linguapaws_token', params.get('token'));
+    if (params.get('live') === 'off') window.__LIVE_STT_OFF = true;
+    for (const m of ['get', 'post', 'put', 'delete']) {
+        const real = api[m].bind(api);
+        api[m] = (path, ...rest) => (String(path).startsWith('/api/ai/')
+            ? real(path, ...rest) : Promise.reject(new Error('preview: not sent')));
+    }
+}
+
+if (voiceState && voiceState !== 'real') {
     const track = { kind: 'audio', stop() {} };
     const stream = { active: true, getTracks: () => [track] };
     const md = navigator.mediaDevices;
@@ -366,7 +381,7 @@ if (tapText) {
 if (voiceState) {
     const mic = () => [...document.querySelectorAll('button')].find(b =>
         /Record your answer|Stop recording/.test(b.getAttribute('aria-label') || ''));
-    const taps = ['listening', 'denied', 'none', 'offline'].includes(voiceState) ? 1 : 2;
+    const taps = ['listening', 'denied', 'none', 'offline', 'real'].includes(voiceState) ? 1 : 2;
     let done = 0;
     const tick = setInterval(() => {
         if (window.__driverBusy || window.__typeBusy) return;

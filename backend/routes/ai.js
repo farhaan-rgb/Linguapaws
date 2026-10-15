@@ -8,6 +8,7 @@ const requireAuth = require('../middleware/auth');
 const { findLanguage, getGoogleVoice } = require('../../shared/languages.js');
 const { asrLadder } = require('../../shared/asr.js');
 const { romanise, SCRIPT_BY_LANGUAGE } = require('../../shared/transliterate.js');
+const { sttTokenHandler } = require('../services/sttStream');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -392,6 +393,10 @@ function isUsableCorrection(corrected, rawText) {
     if (rawText && c.length > rawText.length * 3 + 40) return false;
     return true;
 }
+
+// GET /api/ai/stt-token — a short-lived credential for live recognition in
+// the browser. See services/sttStream.js.
+router.get('/stt-token', sttTokenHandler);
 
 // POST /api/ai/transcribe
 /*

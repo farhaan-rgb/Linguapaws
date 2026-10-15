@@ -20,6 +20,7 @@ const settingsRoutes = require('./routes/settings');
 const aiRoutes = require('./routes/ai');
 const progressRoutes = require('./routes/progress');
 const chatsRoutes = require('./routes/chats');
+const { attachSttRelay } = require('./services/sttStream');
 
 const app = express();
 
@@ -91,7 +92,9 @@ mongoose
     })
     .then(() => {
         console.log('✅  MongoDB connected');
-        app.listen(PORT, () => console.log(`🚀  Server running on http://localhost:${PORT}`));
+        const server = app.listen(PORT, () => console.log(`🚀  Server running on http://localhost:${PORT}`));
+        /* Live speech recognition's websocket relay — services/sttStream.js. */
+        attachSttRelay(server);
     })
     .catch((err) => {
         console.error('❌  MongoDB connection failed:', err.message);

@@ -34,7 +34,7 @@ export const VAD = {
     tickMs: 30,
 };
 
-function startVad(stream, onStop) {
+function startVad(stream, onStop, meter = {}) {
     const timers = [];
     let ctx = null;
     /* Held for the life of the recording on purpose. Nothing else references
@@ -115,11 +115,11 @@ function startVad(stream, onStop) {
 
             if (!spoke) {
                 loudFor = smooth > speechBar ? loudFor + VAD.tickMs : 0;
-                if (loudFor >= VAD.speechHoldMs) { spoke = true; lastVoice = now; }
+                if (loudFor >= VAD.speechHoldMs) { spoke = true; lastVoice = now; meter.spoke = true; meter.lastVoice = now; }
                 else if (now - t0 > VAD.noSpeechMs && heardSignal) stop('nospeech');
                 return;
             }
-            if (smooth > silenceBar) lastVoice = now;
+            if (smooth > silenceBar) { lastVoice = now; meter.lastVoice = now; }
             else if (now - lastVoice > VAD.silenceMs) stop('silence');
         }, VAD.tickMs));
     } catch {
@@ -139,6 +139,9 @@ export const useAudioRecorder = () => {
     const audioChunks = useRef([]);
     const isRecordingRef = useRef(false); // ref-based flag avoids stale closure issues
     const vadStop = useRef(null);
+    /* When the learner last made a sound above the room, by the VAD's own bar
+       (performance.now()). Read by step mode to time end-of-speech → verdict. */
+    const meter = useRef({ spoke: false, lastVoice: 0 });
 
     const prepare = useCallback(async () => {
         if (streamRef.current && streamRef.current.active) return streamRef.current;
@@ -182,10 +185,11 @@ export const useAudioRecorder = () => {
             isRecordingRef.current = true;
             setIsRecording(true);
             if (opts.vad?.onAutoStop) {
+                meter.current = { spoke: false, lastVoice: 0 };
                 vadStop.current = startVad(stream, (reason) => {
                     vadStop.current = null;
                     if (isRecordingRef.current) opts.vad.onAutoStop(reason);
-                });
+                }, meter.current);
             }
         } catch (err) {
             console.error("Error accessing microphone:", err);
@@ -227,7 +231,9 @@ export const useAudioRecorder = () => {
         return Promise.resolve(null);
     }, []);
 
-    return { isRecording, isRecordingRef, startRecording, stopRecording, prepare, audioUrl };
+    const speechMeter = useCallback(() => meter.current, []);
+
+    return { isRecording, isRecordingRef, startRecording, stopRecording, prepare, audioUrl, speechMeter };
 };
 
 

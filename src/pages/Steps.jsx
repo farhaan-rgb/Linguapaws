@@ -33,7 +33,8 @@ import {
 } from '../services/speech';
 import { speechTextFor, englishVoiceTextFor, tipSegments } from '../services/speechScript';
 import { getLangCode } from '../../shared/languages.js';
-import { hasBrahmicScript, isNonLatinScript } from '../../shared/transliterate.js';
+import { hasBrahmicScript, isNonLatinScript, romanise, SCRIPT_BY_LANGUAGE } from '../../shared/transliterate.js';
+import { liveSupported, prefetchToken, createLiveContext, startLive } from '../services/liveStt';
 import { isUnhearable } from '../../shared/asr.js';
 import { TapText, TapPhrase, TapEnglish, TapHide, TapWordsProvider } from '../components/TapWords';
 import { isTapOn, setTapOn } from '../utils/tapMeaning';
@@ -69,7 +70,24 @@ const isUnromanisable = (text) => isNonLatinScript(text) && !hasBrahmicScript(te
  *  knows and which changes as they type — so it is built at render, where both
  *  facts are in hand. Storing it here is what let a message about an empty box
  *  survive into a state where the box was not empty. */
-const IDLE_VOICE = { status: 'idle', kind: null };
+const IDLE_VOICE = { status: 'idle', kind: null, hearing: '' };
+
+/** What the live recogniser has heard so far, in the alphabet the course is
+ *  taught in. Same table as the server and the grader — a learner who has only
+ *  ever seen `Namaskara` cannot read ನಮಸ್ಕಾರ. */
+const hearingText = (native) => {
+    const r = romanise(native || '');
+    return r.romanised ? r.text : (isUnromanisable(native) ? '' : String(native || ''));
+};
+
+/* Timings, end of speech to verdict, for the console and the measuring
+   harness. `endAt` is the VAD's last above-the-room tick (performance.now()). */
+const logTiming = (path, endAt, extra = '') => {
+    if (!endAt) return;
+    const ms = Math.round(performance.now() - endAt);
+    console.info(`[stt-timing] ${path}: end of speech -> verdict ${ms}ms${extra}`);
+    (window.__sttTimings = window.__sttTimings || []).push({ path, ms, at: performance.now() });
+};
 
 /* ── Pieces ─────────────────────────────────────────────────────────────── */
 
@@ -175,7 +193,7 @@ function AnswerModeSwitch({ mode, onChange }) {
 /** The microphone itself. One control, four states, and the label says which —
  *  a mic that silently changes colour leaves the learner guessing whether it
  *  is listening, which is the fastest way to lose a recording. */
-function MicRow({ status, onTap, heard = false, tone = 'purple' }) {
+function MicRow({ status, onTap, heard = false, tone = 'purple', hearing = '' }) {
     /* Inside the revealed panel everything is amber, and a purple control in
        the middle of it reads as belonging to a different screen. */
     const amber = tone === 'amber';
@@ -187,6 +205,7 @@ function MicRow({ status, onTap, heard = false, tone = 'purple' }) {
                 : heard ? praise.VOICE.again
                     : praise.VOICE.idle;
     return (
+        <>
         <button
             onClick={onTap} disabled={busy}
             aria-label={listening ? 'Stop recording' : 'Record your answer'}
@@ -215,6 +234,17 @@ function MicRow({ status, onTap, heard = false, tone = 'purple' }) {
             </span>
             {label}
         </button>
+        {/* Live recognition's running guess, so the learner sees they are
+            being heard while they speak. Only while it is still a guess. */}
+        {hearing && (listening || busy) && (
+            <p aria-live="polite" style={{
+                margin: '7px 2px 0', fontSize: 13, lineHeight: 1.4, textAlign: 'center',
+                color: amber ? '#92400e' : 'var(--text-secondary)',
+            }}>
+                Hearing: <strong style={{ color: amber ? '#b45309' : 'var(--accent-purple)' }}>{hearing}</strong>
+            </p>
+        )}
+        </>
     );
 }
 
@@ -683,7 +713,7 @@ function RevealPanel({
                         {answerMode === 'speak' && (
                             <div style={{ marginBottom: 8 }}>
                                 <MicRow status={voice.status} onTap={onListen}
-                                    tone="amber" heard={!!lockHeard} />
+                                    tone="amber" heard={!!lockHeard} hearing={voice.hearing} />
                             </div>
                         )}
                         <div style={{ display: 'flex', gap: 8 }}>
@@ -1381,7 +1411,7 @@ function StepScreen({
                                     state, including every way the mic can fail. */}
                                 {speakMode && (
                                     <div style={{ marginBottom: 9 }}>
-                                        <MicRow status={voice.status} onTap={listen} heard={!!heardMiss} />
+                                        <MicRow status={voice.status} onTap={listen} heard={!!heardMiss} hearing={voice.hearing} />
                                     </div>
                                 )}
                                 {/* A form, so a phone keyboard's Enter submits. Android keyboards
@@ -1686,7 +1716,7 @@ function Lesson({ scenarioParam, practice = false }) {
     /* Destructured, not held as an object: the hook returns a fresh one every
        render, and a dependency that changes every render would tear down the
        cleanup below — stopping the recording the learner had just started. */
-    const { isRecordingRef, startRecording, stopRecording, prepare } = useAudioRecorder();
+    const { isRecordingRef, startRecording, stopRecording, prepare, speechMeter } = useAudioRecorder();
     const [answerMode, setAnswerModeState] = useState(getAnswerMode);
     const [voice, setVoice] = useState(IDLE_VOICE);
 
@@ -1856,19 +1886,65 @@ function Lesson({ scenarioParam, practice = false }) {
      *  learner and no chance to help them. */
     const listenCtx = useRef(null);
     const finishing = useRef(false);
+    /** The live session (services/liveStt.js) running beside the recorder, if
+     *  this tap got one. */
+    const liveRef = useRef(null);
     const finishListening = useCallback(async (reason) => {
         const ctx = listenCtx.current;
         if (!ctx || finishing.current) return undefined;
         finishing.current = true;
         const { expected, variants, prompt, onText } = ctx;
+        const live = liveRef.current;
+        liveRef.current = null;
+        const meter = speechMeter();
+        const endAt = meter.spoke ? meter.lastVoice : 0;
         const trouble = (kind) => setVoice({ status: 'idle', kind });
         try {
-            setVoice({ ...IDLE_VOICE, status: 'working' });
-            let blob = null;
-            try { blob = await stopRecording(true); } catch { blob = null; }
-            /* Nothing rose above the room in 2.5s. Sending silence to the
-               transcriber costs a round trip and comes back empty anyway. */
-            if (reason === 'nospeech') return trouble('empty');
+            setVoice(v => ({ ...IDLE_VOICE, status: 'working', hearing: v.hearing || '' }));
+            /* The recorder has been making a clip all along. It is stopped now
+               but only waited for if the live path cannot answer — that clip is
+               the fallback, so a learner never says it twice because the fast
+               path fell over. */
+            const blobP = stopRecording(true).catch(() => null);
+            if (reason === 'nospeech') {
+                live?.abort();
+                await blobP;
+                /* Nothing rose above the room in 2.5s. Sending silence to the
+                   transcriber costs a round trip and comes back empty anyway. */
+                return trouble('empty');
+            }
+
+            /* ── Live result ──
+               The same post-processing the transcribe route does, in the same
+               order, with the same shared table — so a learner is graded the
+               same whichever path heard them. Anything the server would hand
+               to its gpt-4o-mini corrector (a Latin-script transcript) goes to
+               the server instead, unchanged. */
+            const heard = live ? await live.finish() : null;
+            if (heard?.native) {
+                const roman = romanise(heard.native);
+                const want = SCRIPT_BY_LANGUAGE[String(targetLang?.id || '').toLowerCase()] || null;
+                const dgEnd = heard.speechEndAt ? ` (deepgram word-end -> verdict ${Math.round(performance.now() - heard.speechEndAt)}ms)` : '';
+                if (roman.romanised && want && roman.script !== want) {
+                    console.warn(`[live-stt] WRONG SCRIPT: expected ${want}, heard ${roman.script}: ${JSON.stringify(roman.native)}`);
+                    logTiming(`live/${heard.why}`, endAt, dgEnd);
+                    return trouble('wronglang');
+                }
+                if (!roman.romanised && !roman.translatable) {
+                    logTiming(`live/${heard.why}`, endAt, dgEnd);
+                    return trouble('script');
+                }
+                if (roman.romanised) {
+                    const text = roman.text;
+                    setVoice(IDLE_VOICE);
+                    onText(text, roman.native);
+                    logTiming(`live/${heard.why}`, endAt, dgEnd);
+                    return undefined;
+                }
+                console.info('[live-stt] Latin transcript; sending the clip through the server corrector');
+            }
+
+            const blob = await blobP;
             if (!blob || !blob.size) return trouble('empty');
             if (navigator.onLine === false) return trouble('offline');
             /* The step knows its own answer, which is more than chat can tell
@@ -1899,12 +1975,13 @@ function Lesson({ scenarioParam, practice = false }) {
                 : text;
             setVoice(IDLE_VOICE);
             onText(shown, result.native || (hasBrahmicScript(text) ? text : ''));
+            logTiming('upload', endAt);
             return undefined;
         } finally {
             finishing.current = false;
             listenCtx.current = null;
         }
-    }, [stopRecording, nativeLang, targetLang, lexicon]);
+    }, [stopRecording, speechMeter, nativeLang, targetLang, lexicon]);
     /* The recorder's auto-stop fires from a timer set when recording began, so
        it reaches the current `finishListening` through a ref, not the one in
        scope at the tap. */
@@ -1923,8 +2000,12 @@ function Lesson({ scenarioParam, practice = false }) {
         if (navigator.onLine === false) return trouble('offline');
         if (ctx.onStart) ctx.onStart();
         setVoice({ ...IDLE_VOICE, status: 'opening' });
+        /* Before the first await: iOS only starts an AudioContext from inside
+           the tap. */
+        const liveCtx = liveSupported(targetLang) ? createLiveContext() : null;
         const stream = await prepare();
         if (!stream) {
+            liveCtx?.close().catch(() => {});
             /* Denied and absent are different problems with different fixes,
                and telling someone to allow a microphone they do not own is
                worse than saying nothing. */
@@ -1938,8 +2019,21 @@ function Lesson({ scenarioParam, practice = false }) {
         listenCtx.current = ctx;
         await startRecording({ vad: { onAutoStop: (reason) => finishRef.current(reason) } });
         setVoice({ ...IDLE_VOICE, status: 'listening' });
+        if (liveCtx) {
+            liveRef.current = startLive({
+                stream, ctx: liveCtx, lang: targetLang,
+                /* An endpoint after "Nanna" on a "Nanna hesaru Ravi" screen is
+                   a beginner's pause, not the end of the answer. */
+                expectWords: (String(ctx.expected || '').match(/\S+/g) || []).length || 1,
+                onPartial: (native) => {
+                    const hearing = hearingText(native);
+                    setVoice(v => (v.status === 'listening' || v.status === 'working' ? { ...v, hearing } : v));
+                },
+                onEndpoint: () => finishRef.current('live'),
+            });
+        }
         return undefined;
-    }, [isRecordingRef, finishListening, startRecording, prepare]);
+    }, [isRecordingRef, finishListening, startRecording, prepare, targetLang]);
 
     /* Never speak while recording: the queue asks this before every item. */
     useEffect(() => {
@@ -1948,7 +2042,14 @@ function Lesson({ scenarioParam, practice = false }) {
     }, [isRecordingRef]);
 
     /* Leaving mid-recording must not leave the mic open. */
-    useEffect(() => () => { stopRecording(true); }, [stopRecording]);
+    useEffect(() => () => { stopRecording(true); liveRef.current?.abort(); }, [stopRecording]);
+
+    /* The live-recognition credential is fetched when a speak screen opens,
+       not when the mic is tapped, so the tap never waits on it. Cached until
+       near expiry, so this is one request every couple of minutes. */
+    useEffect(() => {
+        if (answerMode === 'speak' && targetLang && !noEars) prefetchToken(targetLang);
+    }, [answerMode, targetLang, noEars, index]);
 
     const award = useCallback((n) => {
         tally.current.points += n;
