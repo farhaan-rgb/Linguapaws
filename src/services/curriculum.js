@@ -23,9 +23,10 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Namaskaram", native: "నమస్కారం", meaning: "Hello", phonetic: "nuh-mus-kaa-rum", alt: ["namaste"] },
                 { word: "Nenu", native: "నేను", meaning: "I", phonetic: "nay-nu" },
-                { word: "Meeru", native: "మీరు", meaning: "You", phonetic: "mee-ru", alt: ["nuvvu"] },
+                { word: "Meeru", native: "మీరు", meaning: "You (polite)", phonetic: "mee-ru", alt: ["nuvvu"],
+                  teach: "{w} is the polite “you”: for elders, strangers, or more than one person. Friends say *nuvvu*, and that is accepted too." },
                 { word: "Unnaru", native: "ఉన్నారు", meaning: "You are", phonetic: "un-naa-ru", alt: ["unnavu"],
-                  teach: "“You are” is {w}. Use it with anyone you'd call *Meeru*." },
+                  teach: "{w} is “you are”, the polite form that goes with *meeru*. With a friend it is *unnavu*." },
                 { word: "Bagunnanu", native: "బాగున్నాను", meaning: "I'm fine", phonetic: "baa-gun-naa-nu", alt: ["bagunna"] },
                 { word: "Ela", native: "ఎలా", meaning: "How", phonetic: "eh-laa" }
             ],
