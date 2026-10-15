@@ -329,7 +329,10 @@ export default function Settings() {
                                     style={{ overflow: 'hidden' }}
                                 >
                                     <div style={{ borderTop: '1px solid #f1f5f9', marginTop: '16px', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        {[...LANGUAGES.filter(l => l.id !== selectedLang?.id), { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🏢', landmarkName: 'Golden Temple, Amritsar' }].map((lang) => (
+                                        {/* Only languages with a course. Greyed-out "coming soon" rows
+                                            made a settings list look like a menu of options it was not. */}
+                                        {[...LANGUAGES.filter(l => l.id !== selectedLang?.id), { id: 'pa', name: 'Punjabi', native: 'ਪੰਜਾਬੀ', landmark: '🏢', landmarkName: 'Golden Temple, Amritsar' }]
+                                            .filter(l => isLanguageAvailable(l.name)).map((lang) => (
                                             <motion.button
                                                 key={lang.id}
                                                 whileTap={isLanguageAvailable(lang.name) ? { scale: 0.99 } : undefined}
