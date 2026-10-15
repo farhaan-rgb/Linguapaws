@@ -152,6 +152,18 @@ const PINNED = {
         ['ivaru nanna kutumba', 'Idu nanna kutumba', true],   // K4 L17
         ['naanu nodide mane', 'Naanu mane nodide', false],    // K4 L13
     ],
+    Telugu: [
+        ['naaku annam oddu', 'Annam oddu', true],             // rt16 L4, after "to say I: naaku neeru kaavali"
+        ['naaku rendu kaavali', 'Rendu kaavali', true],       // rt16 L7
+        ['nenu rendu kaavali', 'Rendu kaavali', false],
+        ['illu ekkada undi', 'Illu ekkada?', true],           // rt16 L3
+        ['okati pusthakam', 'Oka pusthakam', false],          // rt16 L7
+        ['idhi evaru', 'Evaru?', false],                      // rt16 L6, after "idhi for a person is rude"
+        ['miko, meeru ela', 'Miko, meeru ela unnaru?', false], // rt16 L1, Farhaan: unnaru required
+        ['miko, ela unnaru', 'Miko, meeru ela unnaru?', true],
+        ['meeru ela', 'Meeru ela unnaru', false],
+        ['nenu ippudu vellu', 'Nenu ippudu velthunnanu', false],
+    ],
 };
 const drillFor = (target) => {
     for (const lesson of lessons) {

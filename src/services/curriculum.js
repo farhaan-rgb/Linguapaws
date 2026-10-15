@@ -33,7 +33,7 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Hello, I am fine'", correct: "Namaskaram, nenu bagunnanu", native: "నమస్కారం, నేను బాగున్నాను", meaning: "Hello, I am fine", hint: "Hello + I + fine", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"],
                   grammarNote: "*Bagunnanu* is *baga* (“well”) + *unnanu* (“I am”), joined into one word. That's why there's no separate “am”. In fast speech you'll also hear *bagunna*." },
-                { prompt: "Ask 'How are you?'", correct: "Meeru ela unnaru", native: "మీరు ఎలా ఉన్నారు", meaning: "How are you?", hint: "You + how + are?", acceptable: ["meeru ela unnaru?", "meeru ela", "ela unnaru", "ela unnaru?"],
+                { prompt: "Ask 'How are you?'", correct: "Meeru ela unnaru", native: "మీరు ఎలా ఉన్నారు", meaning: "How are you?", hint: "You + how + are?", acceptable: ["meeru ela unnaru?", "ela unnaru", "ela unnaru?"],
                   grammarNote: "The end of the word tells you who: *unnanu* is “I am”, *unnaru* is “you are”. *Unnaru* also means “he is” or “she is”, said with respect. With a close friend, say *unnavu*." },
                 { prompt: "Say 'I'm fine — you?'", correct: "Nenu bagunnanu, meeru?", native: "నేను బాగున్నాను, మీరు?", meaning: "I am fine, and you?", hint: "I + fine + you?", acceptable: ["nenu bagunna, meeru?", "bagunnanu, meeru?", "bagunna, meeru?"],
                   grammarNote: "You can usually skip *nenu*: *bagunnanu* already means “I am fine”. Here you keep it, because you're comparing yourself with them: *Nenu bagunnanu, meeru?*, “**I'm** fine, and you?”" }
@@ -41,15 +41,14 @@ export const CURRICULUM = {
             conversations: [
                 { prompt: "A shopkeeper greets you. Say hello and that you are fine.", correct: "Namaskaram, nenu bagunnanu", native: "నమస్కారం, నేను బాగున్నాను", meaning: "Hello, I am fine", hint: "Basic greeting + state", acceptable: ["namaskaram, nenu bagunna", "namaskaram bagunnanu", "namaskaram bagunna"],
                   grammarNote: "Change the ending and you change who: *bagunnanu* is “I am fine”, *bagunnaru* is “you are fine”. You'll see this on lots of words." },
-                { prompt: "Ask Miko how they are doing — start with their name.", correct: "Miko, meeru ela", native: "మికో, మీరు ఎలా", meaning: "Miko, how are you?", hint: "Name + you + how + are?",
-                  acceptable: ["meeru ela unnaru?", "meeru ela", "ela unnaru?",
-                      "miko, meeru ela unnaru?", "miko meeru ela unnaru", "miko, meeru ela unnaru", "miko meeru ela unnaru?"],
-                  grammarNote: "Starting with the name, *Miko, meeru ela...*, is normal, just like in English. Ending with *unnaru* is the full, respectful way." },
+                { prompt: "Ask Miko how they are doing — start with their name.", correct: "Miko, meeru ela unnaru?", native: "మికో, మీరు ఎలా ఉన్నారు?", meaning: "Miko, how are you?", hint: "Name + you + how + are?",
+                  acceptable: ["Miko, ela unnaru?", "meeru ela unnaru?", "ela unnaru?"],
+                  grammarNote: "Starting with the name is normal, just like English. *Meeru* can be dropped, because *unnaru* already means “you are”." },
                 { prompt: "Someone asks how you are. Answer: 'I am fine'.", correct: "Nenu bagunnanu", native: "నేను బాగున్నాను", meaning: "I am fine", hint: "Direct answer", acceptable: ["nenu bagunna", "bagunnanu", "bagunna"],
                   grammarNote: "In relaxed speech people clip this to *bagunna*, dropping the -nu. You will hear both, and either is accepted here." },
-                { prompt: "Say hello, tell them you are fine, and ask how they are.", correct: "Namaskaram, nenu bagunnanu. Meeru ela", native: "నమస్కారం, నేను బాగున్నాను. మీరు ఎలా", meaning: "Hello, I am fine, how are you?", hint: "Full intro",
-                  acceptable: ["namaskaram, nenu bagunna. meeru ela", "namaskaram, nenu bagunnanu. meeru ela unnaru?", "namaskaram, nenu bagunna. meeru ela unnaru?", "namaskaram nenu bagunna meeru ela unnaru?", "namaskaram, nenu bagunna. meeru ela unnaru"],
-                  grammarNote: "That's the whole greeting in one go: hello, how you are, and asking back. *Unnaru* at the end is respectful; you'll be understood with or without it." }
+                { prompt: "Say hello, tell them you are fine, and ask how they are.", correct: "Namaskaram, nenu bagunnanu. Meeru ela unnaru?", native: "నమస్కారం, నేను బాగున్నాను. మీరు ఎలా ఉన్నారు?", meaning: "Hello, I am fine, how are you?", hint: "Full intro",
+                  acceptable: ["namaskaram, nenu bagunna. meeru ela unnaru?", "namaskaram, nenu bagunnanu. ela unnaru?", "namaskaram, nenu bagunna. ela unnaru?"],
+                  grammarNote: "That's the whole greeting in one go: hello, how you are, and asking back. *Meeru* can be dropped here too, because *unnaru* already means “you are”." }
             ]
         },
         {
@@ -64,7 +63,7 @@ export const CURRICULUM = {
                 { word: "Peru", native: "పేరు", meaning: "Name", phonetic: "pay-ru" }
             ],
             phrases: [
-                { prompt: "Ask 'What is this?'", correct: "Idhi emiti?", native: "ఇది ఏమిటి?", grammarNote: "Question words go LAST in Telugu. So *emiti* (“what”) ends the sentence, and *idhi* or *adhi* starts it.", meaning: "What is this?", hint: "This + what?" },
+                { prompt: "Ask 'What is this?'", correct: "Idhi emiti?", native: "ఇది ఏమిటి?", grammarNote: "Question words usually come near the end in Telugu, after the thing you're asking about. So *idhi* or *adhi* starts the sentence and *emiti* (“what”) follows it.", meaning: "What is this?", hint: "This + what?" },
                 { prompt: "Say 'This is a book'", correct: "Idhi pusthakam", native: "ఇది పుస్తకం", meaning: "This is a book", hint: "This + book" },
                 { prompt: "Say 'This book'", correct: "Ee pusthakam", native: "ఈ పుస్తకం", meaning: "This book", hint: "This(+noun) + book",
                   grammarNote: "*Ee pusthakam* is just “this book”, not a full sentence. Use *idhi* instead and you get *idhi pusthakam*, “this is a book”." }
@@ -74,7 +73,7 @@ export const CURRICULUM = {
                 { prompt: "Point to a distant object and ask 'What is that?'", correct: "Adhi emiti?", native: "అది ఏమిటి?", meaning: "What is that?", hint: "Distant question" },
                 { prompt: "Tell Miko 'This is a book'", correct: "Idhi pusthakam", native: "ఇది పుస్తకం", meaning: "This is a book", hint: "Simple statement" },
                 { prompt: "Ask a stranger what their name is using words you know.", correct: "Meeru peru emiti?", native: "మీరు పేరు ఏమిటి?", meaning: "What is your name?", hint: "You + name + what?", acceptable: ["mee peru emiti?"],
-                  grammarNote: "This is the casual way to ask. The neater way uses *mee* (“your”), from lesson 5: *Mee peru emiti?*. Both are accepted here." }
+                  grammarNote: "You'll be understood. Before a noun, *meeru* shortens to *mee* (“your”), the way *idhi* becomes *ee*, so the natural question is *Mee peru emiti?*. Both are accepted here, and *mee* comes back in lesson 5." }
             ]
         },
         {
@@ -84,22 +83,22 @@ export const CURRICULUM = {
                 { word: "Vellu", native: "వెళ్ళు", meaning: "Go", phonetic: "vehl-lu", alt: ["vellandi"],
                   teach: "“Go” is {w}. To say “please go”, add -andi: *vellandi*. You'll add -andi to other words to make them polite too." },
                 { word: "Undi", native: "ఉంది", meaning: "It is / there is", phonetic: "un-dih",
-                  teach: "{w} means “it is” or “there is”, for things, not people. It goes at the end when you say where something is." },
+                  teach: "{w} means “it is” or “there is”, and it goes at the end of the sentence. You'll use it mostly for things and places; for how a person is, the ending changes, as in *unnaru*." },
                 { word: "Ikkada", native: "ఇక్కడ", meaning: "Here", phonetic: "ihk-kuh-duh" },
                 { word: "Akkada", native: "అక్కడ", meaning: "There", phonetic: "uhk-kuh-duh" },
                 { word: "Illu", native: "ఇల్లు", meaning: "House", phonetic: "ihl-lu", alt: ["inti", "intiki"],
                   teach: "“House” is {w}. To say “to the house”, say *intiki*. Similarly, *pani* (“work”) becomes *paniki*, “to work”." }
             ],
             phrases: [
-                { prompt: "Ask 'Where is the house?'", correct: "Illu ekkada?", native: "ఇల్లు ఎక్కడ?", grammarNote: "*Ekkada* (“where”) goes at the end. Telugu question words always do.", meaning: "Where is the house?", hint: "House + where?", acceptable: ["inti ekkada?"] },
-                { prompt: "Say 'I am going to the house'", correct: "Nenu intiki velthunnanu", native: "నేను ఇంటికి వెళ్తున్నాను", meaning: "I am going to the house", hint: "I + to the house + am going", acceptable: ["nenu intiki vellu", "intiki velthunnanu"],
-                  grammarNote: "Here's *intiki*, “to the house”. The -ki goes on the end of the word, never in front." },
+                { prompt: "Ask 'Where is the house?'", correct: "Illu ekkada?", native: "ఇల్లు ఎక్కడ?", grammarNote: "*Ekkada* (“where”) comes after the thing you're asking about. *Illu ekkada?* is enough; the fuller *illu ekkada undi?* is fine too, with *undi* after the question word, just as *unnaru* follows *ela*.", meaning: "Where is the house?", hint: "House + where?", acceptable: ["inti ekkada?", "illu ekkada undi?"] },
+                { prompt: "Say 'Please go to the house'", correct: "Intiki vellandi", native: "ఇంటికి వెళ్ళండి", meaning: "Please go to the house", hint: "To the house + go (please)", acceptable: ["intiki vellu"],
+                  grammarNote: "Here's *intiki*, “to the house”. The -ki goes on the end of the word, never in front. “I am going” is a different form, *velthunnanu*, which comes in lesson 11." },
                 { prompt: "Say 'Go there'", correct: "Akkada vellandi", native: "అక్కడ వెళ్ళండి", meaning: "Go there", hint: "There + go" }
             ],
             conversations: [
-                { prompt: "Ask Miko where the home is.", correct: "Illu ekkada?", native: "ఇల్లు ఎక్కడ?", meaning: "Where is the home?", hint: "Location question", acceptable: ["inti ekkada?"] },
+                { prompt: "Ask Miko where the home is.", correct: "Illu ekkada?", native: "ఇల్లు ఎక్కడ?", meaning: "Where is the home?", hint: "Location question", acceptable: ["inti ekkada?", "illu ekkada undi?"] },
                 { prompt: "Tell someone to go there.", correct: "Akkada vellandi", native: "అక్కడ వెళ్ళండి", meaning: "Go there", hint: "Direction" },
-                { prompt: "Someone asks 'Meeru ekkada?' Connect 'I am here' with 'You?' (from Scenario 1).", correct: "Nenu ikkada, meeru?", native: "నేను ఇక్కడ, మీరు?", meaning: "I am here, and you?", hint: "I + here + you?" },
+                { prompt: "Someone asks 'Meeru ekkada?' Connect 'I am here' with 'You?' (from lesson 1).", correct: "Nenu ikkada, meeru?", native: "నేను ఇక్కడ, మీరు?", meaning: "I am here, and you?", hint: "I + here + you?" },
                 { prompt: "Say 'The house is there'.", correct: "Illu akkada undi", native: "ఇల్లు అక్కడ ఉంది", meaning: "The house is there", hint: "House + there + is", acceptable: ["inti akkada undi"],
                   grammarNote: "The action word goes last in Telugu. *Undi* matters here: *illu akkada* alone is just “house there”. Adding *undi* makes it “the house is there”." }
             ]
@@ -114,17 +113,17 @@ export const CURRICULUM = {
                 { word: "Sare", native: "సరే", meaning: "Okay", phonetic: "suh-ray" }
             ],
             phrases: [
-                { prompt: "Say 'I want water'", correct: "Neeru kaavali", native: "నీరు కావాలి", meaning: "I want water", hint: "Water + want",
+                { prompt: "Say 'I want water'", correct: "Neeru kaavali", native: "నీరు కావాలి", meaning: "I want water", hint: "Water + want", acceptable: ["naaku neeru kaavali"],
                   grammarNote: "Two words, no “I”. *Neeru kaavali* means “water is wanted”, and it's how you ask for water anywhere. To say “I” clearly: *naaku neeru kaavali*." },
-                { prompt: "Say 'I don't want food'", correct: "Annam oddu", native: "అన్నం వద్దు", meaning: "I don't want food", hint: "Food + don't want",
+                { prompt: "Say 'I don't want food'", correct: "Annam oddu", native: "అన్నం వద్దు", meaning: "I don't want food", hint: "Food + don't want", acceptable: ["naaku annam oddu"],
                   grammarNote: "*Oddu* means “don't want”. Use it instead of *kaavali*, not with it: *annam kaavali* (want food), *annam oddu* (don't want food)." },
-                { prompt: "Say 'Okay, I want this' (Use 'This' from Scenario 2)", correct: "Sare, idhi kaavali", native: "సరే, ఇది కావాలి", meaning: "Okay, I want this", hint: "Okay + this + want" }
+                { prompt: "Say 'Okay, I want this' (use 'this' from lesson 2)", correct: "Sare, idhi kaavali", native: "సరే, ఇది కావాలి", meaning: "Okay, I want this", hint: "Okay + this + want", acceptable: ["sare, naaku idhi kaavali"] }
             ],
             conversations: [
-                { prompt: "Miko offers you water. Accept, and say you want it.", correct: "Sare, neeru kaavali", native: "సరే, నీరు కావాలి", meaning: "Okay, I want water", hint: "Okay + water + want" },
-                { prompt: "Miko offers you food you don't like. Say 'Food don't want'.", correct: "Annam oddu", native: "అన్నం వద్దు", meaning: "I don't want food", hint: "Food + don't want" },
-                { prompt: "Point to a book (from Scenario 2) and say 'Book want'.", correct: "Pusthakam kaavali", native: "పుస్తకం కావాలి", meaning: "I want the book", hint: "Book + want" },
-                { prompt: "Point far away and say 'That don't want' (Use 'That' from Scenario 2).", correct: "Adhi oddu", native: "అది వద్దు", meaning: "I don't want that", hint: "That + don't want" }
+                { prompt: "Miko offers you water. Accept, and say you want it.", correct: "Sare, neeru kaavali", native: "సరే, నీరు కావాలి", meaning: "Okay, I want water", hint: "Okay + water + want", acceptable: ["sare, naaku neeru kaavali"] },
+                { prompt: "Miko offers you food you don't like. Say 'Food don't want'.", correct: "Annam oddu", native: "అన్నం వద్దు", meaning: "I don't want food", hint: "Food + don't want", acceptable: ["naaku annam oddu"] },
+                { prompt: "Point to a book (from lesson 2) and say 'Book want'.", correct: "Pusthakam kaavali", native: "పుస్తకం కావాలి", meaning: "I want the book", hint: "Book + want", acceptable: ["naaku pusthakam kaavali"] },
+                { prompt: "Point far away and say 'That don't want' (use 'that' from lesson 2).", correct: "Adhi oddu", native: "అది వద్దు", meaning: "I don't want that", hint: "That + don't want", acceptable: ["naaku adhi oddu"] }
             ]
         },
         {
@@ -134,14 +133,15 @@ export const CURRICULUM = {
                 { word: "Naaku", native: "నాకు", meaning: "To me / I have", phonetic: "naa-ku",
                   teach: "{w} means “to me”. Telugu has no word for “have”. To say “I have a book”, say “to me a book there is”: *Naaku pusthakam undi*." },
                 { word: "Mee", native: "మీ", meaning: "Your", phonetic: "mee" },
-                { word: "Ayana", native: "ఆయన", meaning: "He (respectful) / his", phonetic: "uh-yuh-nuh", teach: "{w} is “he”, and also “his”." },
-                { word: "Ame", native: "ఆమె", meaning: "Her", phonetic: "uh-meh" },
+                { word: "Ayana", native: "ఆయన", meaning: "He (respectful) / his", phonetic: "aa-yuh-nuh", teach: "{w} is “he”, and also “his”, said with respect: for elders, teachers and strangers." },
+                { word: "Ame", native: "ఆమె", meaning: "She / her (respectful)", phonetic: "aa-meh", teach: "{w} is “she”, and also “her”. Like *ayana*, it is the respectful form." },
                 { word: "Katha", native: "కథ", meaning: "Story", phonetic: "kuh-thuh" }
             ],
             phrases: [
-                { prompt: "Say 'My name'", correct: "Naa peru", native: "నా పేరు", grammarNote: "*Ayana* means “he” or “his”, said with respect. Use it for elders, teachers and strangers.", meaning: "My name", hint: "My + name" },
+                { prompt: "Say 'My name'", correct: "Naa peru", native: "నా పేరు", grammarNote: "*Naa* (“my”) goes in front of the thing, like *ee* does: *naa peru*, “my name”.", meaning: "My name", hint: "My + name" },
                 { prompt: "Say 'Your book'", correct: "Mee pusthakam", native: "మీ పుస్తకం", meaning: "Your book", hint: "Your + book" },
-                { prompt: "Say 'His story'", correct: "Ayana katha", native: "ఆయన కథ", meaning: "His story", hint: "His + story" }
+                { prompt: "Say 'His story'", correct: "Ayana katha", native: "ఆయన కథ", meaning: "His story", hint: "His + story",
+                  grammarNote: "*Ayana* means “he” or “his”, said with respect. Use it for elders, teachers and strangers." }
             ],
             conversations: [
                 { prompt: "Introduce yourself — greet Miko and tell them your name.", correct: "Namaskaram, naa peru [name]", native: "నమస్కారం, నా పేరు [name]", meaning: "Hello, my name is ...", hint: "Greeting + my + name + your name",
@@ -200,18 +200,17 @@ export const CURRICULUM = {
                 }
             ],
             phrases: [
-                { prompt: "Say 'One book'", correct: "Oka pusthakam", native: "ఒక పుస్తకం", meaning: "One book", hint: "One + book", acceptable: ["okati pusthakam"],
-                  grammarNote: "*Okati* became *oka* because a thing comes after it. When you're just counting, it stays *okati*." },
+                { prompt: "Say 'One book'", correct: "Oka pusthakam", native: "ఒక పుస్తకం", meaning: "One book", hint: "One + book", grammarNote: "*Okati* became *oka* because a thing comes after it. When you're just counting, it stays *okati*." },
                 { prompt: "Say 'Four'", correct: "Naalugu", native: "నాలుగు", meaning: "Four", hint: "Just the number",
-                  grammarNote: "When counting, say the numbers as you learned them. Next lesson you'll put them in front of things, like *oka pusthakam*." },
+                  grammarNote: "When counting, say the numbers as you learned them. In front of a thing they go first, as in *oka pusthakam*; next lesson adds the “many” ending: *rendu pusthakalu*." },
                 { prompt: "Miko asks how many books you want. Answer 'Three'.", correct: "Moodu", native: "మూడు", meaning: "Three", hint: "Just the number" }
             ],
             conversations: [
                 { prompt: "Miko asks how many friends came. Answer 'Two'.", correct: "Rendu", native: "రెండు", meaning: "Two", hint: "Just the number" },
-                { prompt: "Say 'I want two'.", correct: "Rendu kaavali", native: "రెండు కావాలి", meaning: "I want two", hint: "Number + want" },
+                { prompt: "Say 'I want two'.", correct: "Rendu kaavali", native: "రెండు కావాలి", meaning: "I want two", hint: "Number + want", acceptable: ["naaku rendu kaavali"] },
                 { prompt: "Tell Miko you have one sister.", correct: "Naaku oka akka undi", native: "నాకు ఒక అక్క ఉంది", meaning: "I have one sister", hint: "To me + one + sister + there is",
                   acceptable: ["naaku oka akka undhi", "oka akka undi"],
-                  grammarNote: "This is how you say “I have”: “to me one sister there is”, *naaku* + *undi*. Every “I have” sentence works this way." },
+                  grammarNote: "This is how you say “I have”: “to me one sister there is”, *naaku* + *undi*. Every “I have” sentence works this way, and it stays *undi* even when what you have is a person." },
                 { prompt: "Count 1, 2, 3.", correct: "Okati, rendu, moodu", native: "ఒకటి, రెండు, మూడు", meaning: "1, 2, 3", hint: "Consecutive" }
             ]
         },
@@ -221,7 +220,7 @@ export const CURRICULUM = {
             color: "#fff1f2",
             vocabulary: [
                 { word: "Lu", native: "లు", meaning: "(Plural suffix)", phonetic: "lu",
-                  teach: "Add {w} to mean more than one. Ends in a vowel? Add -lu: *kurchi* → *kurchilu*. Ends in -am? Swap for -alu: *pusthakam* → *pusthakalu*. Ends in -udu? Swap for -ulu: *snehithudu* → *snehithulu*.",
+                  teach: "Add {w} to mean more than one. Ends in a vowel? Add -lu: *kurchi* (“chair”) → *kurchilu*. Ends in -am? Swap for -alu: *pusthakam* → *pusthakalu*. Ends in -udu? Swap for -ulu: *snehithudu* → *snehithulu*.",
                   examples: [
                     { text: "Naa guruvulu", native: "నా గురువులు", meaning: "My teachers (guruvu + lu)" },
                   ]
@@ -248,11 +247,11 @@ export const CURRICULUM = {
             conversations: [
                 { prompt: "Tell Miko you have many friends.", correct: "Naaku chala snehithulu unnaru", native: "నాకు చాలా స్నేహితులు ఉన్నారు", meaning: "I have many friends", hint: "To me + many + friends + are",
                   acceptable: ["naaku chala snehithulu undi", "chala snehithulu unnaru"],
-                  grammarNote: "Same “to me there is” shape as *naaku oka akka undi*. But with more than one person, *undi* becomes *unnaru*." },
+                  grammarNote: "Same “to me there is” shape as *naaku oka akka undi*. With many people, *unnaru* is the usual ending, though you'll hear *undi* here too." },
                 { prompt: "Ask 'Where are the books?'", correct: "Pusthakalu ekkada?", native: "పుస్తకాలు ఎక్కడ?", meaning: "Where are the books?", hint: "Books + where?",
                   acceptable: ["pusthakalu ekkada unnayi?"],
                   grammarNote: "No word for “are” needed: *pusthakalu ekkada* is a full question. Careful speakers add *unnayi*, but leaving it out is fine." },
-                { prompt: "Say 'I don't want these chairs'.", correct: "Ee kurchilu oddu", native: "ఈ కుర్చీలు వద్దు", meaning: "I don't want these chairs", hint: "These + chairs + don't want",
+                { prompt: "Say 'I don't want these chairs'.", correct: "Ee kurchilu oddu", native: "ఈ కుర్చీలు వద్దు", meaning: "I don't want these chairs", hint: "These + chairs + don't want", acceptable: ["naaku ee kurchilu oddu"],
                   grammarNote: "*Ee* (“this”/“these”) doesn't change: *ee kurchi* is “this chair”, *ee kurchilu* “these chairs”. Only the thing changes." },
                 { prompt: "Miko asks how many books. Say 'Three books'.", correct: "Moodu pusthakalu", native: "మూడు పుస్తకాలు", meaning: "Three books", hint: "Three + books" }
             ]
@@ -287,10 +286,10 @@ export const CURRICULUM = {
             ],
             conversations: [
                 { prompt: "Tell Miko 'This is a big book'.", correct: "Idhi pedda pusthakam", native: "ఇది పెద్ద పుస్తకం", meaning: "This is a big book", hint: "This + big + book" },
-                { prompt: "Ask for hot water.", correct: "Vedi neeru kaavali", native: "వేడి నీరు కావాలి", meaning: "I want hot water", hint: "Hot + water + want", acceptable: ["vedi neeru"] },
+                { prompt: "Ask for hot water.", correct: "Vedi neeru kaavali", native: "వేడి నీరు కావాలి", meaning: "I want hot water", hint: "Hot + water + want", acceptable: ["vedi neeru", "naaku vedi neeru kaavali"] },
                 { prompt: "Say 'He is a good teacher'.", correct: "Ayana manchi guruvu", native: "ఆయన మంచి గురువు", meaning: "He is a good teacher", hint: "He + good + teacher" },
                 { prompt: "Say 'That is bad'.", correct: "Adhi chedu", native: "అది చెడు", meaning: "That is bad", hint: "That + bad",
-                  grammarNote: "Nothing goes between the two words: *adhi chedu*, “that is bad”, *idhi manchi*, “this is good”. Use *undi* only for where something is: *illu akkada undi*." }
+                  grammarNote: "Nothing goes between the two words: *adhi chedu*, “that is bad”, *idhi manchi*, “this is good”. *Undi* is for where something is (*illu akkada undi*) and for what you have (*naaku katha undi*); it is also hiding inside *bagundi*." }
             ]
         },
         {
@@ -299,7 +298,8 @@ export const CURRICULUM = {
             color: "#fee2e2",
             vocabulary: [
                 { word: "Bhojanam", native: "భోజనం", meaning: "Meal", phonetic: "bhoh-juh-num" },
-                { word: "Billu", native: "బిల్లు", meaning: "Bill", phonetic: "bihl-lu" },
+                { word: "Billu", native: "బిల్లు", meaning: "Bill", phonetic: "bihl-lu",
+                  teach: "{w} is the English “bill”, said the Telugu way with a short -u on the end. Plain *bill* is understood too, and counts." },
                 { word: "Ivvandi", native: "ఇవ్వండి", meaning: "Give (please)", phonetic: "ihv-vun-dih", teach: "A polite “please give” is {w}." },
                 { word: "Dhanyavaadaalu", native: "ధన్యవాదాలు", meaning: "Thank you", phonetic: "dhun-yuh-vaa-daa-lu", alt: ["dhanyavadalu", "danyavadhalu"] },
                 { word: "Kurchondi", native: "కూర్చోండి", meaning: "Sit (please)", phonetic: "koor-choh-ndih", teach: "A polite “please sit” is {w}.",
@@ -313,13 +313,14 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Please give the bill'", correct: "Billu ivvandi", native: "బిల్లు ఇవ్వండి", grammarNote: "The -andi at the end makes it polite. You can add it to other action words too.", meaning: "Please give the bill", hint: "Bill + give" },
                 { prompt: "Say 'Thank you Miko'", correct: "Dhanyavaadaalu Miko", native: "ధన్యవాదాలు మికో", meaning: "Thank you Miko", hint: "Thanks + Name" },
-                { prompt: "Say 'I want a meal'", correct: "Bhojanam kaavali", native: "భోజనం కావాలి", meaning: "I want a meal", hint: "Meal + want" }
+                { prompt: "Say 'I want a meal'", correct: "Bhojanam kaavali", native: "భోజనం కావాలి", meaning: "I want a meal", hint: "Meal + want", acceptable: ["naaku bhojanam kaavali"] }
             ],
             conversations: [
                 { prompt: "Order a meal and water.", correct: "Bhojanam mariyu neeru kaavali", native: "భోజనం మరియు నీరు కావాలి", meaning: "I want a meal and water", hint: "Meal + and + water + want",
-                  acceptable: ["bhojanam kaavali, neeru kaavali", "bhojanam mariyu neeru"],
+                  acceptable: ["bhojanam kaavali, neeru kaavali", "bhojanam mariyu neeru", "naaku bhojanam mariyu neeru kaavali"],
                   grammarNote: "*Mariyu* (“and”) joins the two things, and one *kaavali* covers both. People also just say *bhojanam kaavali, neeru kaavali*. Both are accepted here." },
-                { prompt: "Ask the waiter for the bill.", correct: "Billu ivvandi", native: "బిల్లు ఇవ్వండి", meaning: "Please give the bill", hint: "Bill + give" },
+                { prompt: "Ask the waiter for the bill.", correct: "Billu ivvandi", native: "బిల్లు ఇవ్వండి", meaning: "Please give the bill", hint: "Bill + give", acceptable: ["billu kaavali", "naaku billu kaavali"],
+                  grammarNote: "*Billu kaavali*, “I want the bill”, works too, the same *kaavali* as lesson 4. *Ivvandi* is the polite “please give”." },
                 { prompt: "Say 'This meal is good'.", correct: "Ee bhojanam bagundi", native: "ఈ భోజనం బాగుంది", meaning: "This meal is good", hint: "This + meal + good" },
                 { prompt: "Final check: Say hello, thank you.", correct: "Namaskaram, dhanyavaadaalu", native: "నమస్కారం, ధన్యవాదాలు", meaning: "Hello, thank you", hint: "Greet + Thanks" }
             ]
@@ -533,7 +534,7 @@ export const CURRICULUM = {
             ],
             phrases: [
                 { prompt: "Say 'I have work today'", correct: "Naaku eeroju pani undi", native: "నాకు ఈరోజు పని ఉంది", meaning: "I have work today", hint: "To me + today + work + there is", acceptable: ["eeroju naaku pani undi", "naaku pani undi"] },
-                { prompt: "Say 'I want a bath'", correct: "Snanam kaavali", native: "స్నానం కావాలి", meaning: "I want a bath", hint: "Bath + want" },
+                { prompt: "Say 'I want a bath'", correct: "Snanam kaavali", native: "స్నానం కావాలి", meaning: "I want a bath", hint: "Bath + want", acceptable: ["naaku snanam kaavali"] },
                 { prompt: "Say 'I am cooking food'", correct: "Nenu annam vanta chestunnanu", native: "నేను అన్నం వంట చేస్తున్నాను", meaning: "I am cooking food", hint: "I + food + cook + doing" }
             ],
             conversations: [
@@ -555,11 +556,11 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Red color'", correct: "Erupu rangu", native: "ఎరుపు రంగు", meaning: "Red color", hint: "Red + color" },
                 { prompt: "Say 'White clothes'", correct: "Telupu batta", native: "తెలుపు బట్ట", meaning: "White clothes", hint: "White + clothes" },
-                { prompt: "Say 'I want black'", correct: "Nalupu kaavali", native: "నలుపు కావాలి", meaning: "I want black", hint: "Black + want" }
+                { prompt: "Say 'I want black'", correct: "Nalupu kaavali", native: "నలుపు కావాలి", meaning: "I want black", hint: "Black + want", acceptable: ["naaku nalupu kaavali"] }
             ],
             conversations: [
                 { prompt: "Miko asks your favorite color. Say 'I like red'.", correct: "Naaku erupu ishtam", native: "నాకు ఎరుపు ఇష్టం", meaning: "I like red", hint: "My + like + red" },
-                { prompt: "Say 'I want red clothes'.", correct: "Erupu batta kaavali", native: "ఎరుపు బట్ట కావాలి", meaning: "I want red clothes", hint: "Red + clothes + want",
+                { prompt: "Say 'I want red clothes'.", correct: "Erupu batta kaavali", native: "ఎరుపు బట్ట కావాలి", meaning: "I want red clothes", hint: "Red + clothes + want", acceptable: ["naaku erupu batta kaavali"],
                   grammarNote: "Colour words go straight in front of the thing: *erupu batta*, “red clothes”. Same with *telupu batta* and *nalupu batta*." },
                 { prompt: "Point to a white shirt: 'This is white'.", correct: "Idhi telupu", native: "ఇది తెలుపు", meaning: "This is white", hint: "This + white" },
                 { prompt: "Ask 'What colour is that?'", correct: "Adhi em rangu?", native: "అది ఏం రంగు?", meaning: "What colour is that?", hint: "That + what + colour?", acceptable: ["adhi emiti rangu?"],
@@ -691,12 +692,12 @@ export const CURRICULUM = {
                 { word: "Sare", native: "సరే", meaning: "Okay", phonetic: "suh-ray" }
             ],
             phrases: [
-                { prompt: "Say 'I want water and food'", correct: "Neeru, annam kaavali", native: "నీరు, అన్నం కావాలి", grammarNote: "*Mariyu* is formal. In everyday speech people just list things with no “and”, like you did here.", meaning: "Water and food want", hint: "Water + and + food + want" },
-                { prompt: "Say 'I want this but not that'", correct: "Idhi kaavali kani adhi oddu", native: "ఇది కావాలి కానీ అది వద్దు", meaning: "I want this but that don't want", hint: "This + want + but + that + don't want" },
+                { prompt: "Say 'I want water and food'", correct: "Neeru, annam kaavali", native: "నీరు, అన్నం కావాలి", grammarNote: "*Mariyu* is formal. In everyday speech people just list things with no “and”, like you did here.", meaning: "Water and food want", hint: "Water + and + food + want", acceptable: ["naaku neeru, annam kaavali"] },
+                { prompt: "Say 'I want this but not that'", correct: "Idhi kaavali kani adhi oddu", native: "ఇది కావాలి కానీ అది వద్దు", meaning: "I want this but that don't want", hint: "This + want + but + that + don't want", acceptable: ["naaku idhi kaavali kani adhi oddu"] },
                 { prompt: "Say 'This or that?'", correct: "Idhi leda adhi?", native: "ఇది లేదా అది?", meaning: "This or that?", hint: "This + or + that?" }
             ],
             conversations: [
-                { prompt: "Miko asks what you want. Say 'Coffee and water'.", correct: "Coffee, neeru kaavali", native: "కాఫీ, నీరు కావాలి", meaning: "Coffee and water want", hint: "Coffee + and + water + want" },
+                { prompt: "Miko asks what you want. Say 'Coffee and water'.", correct: "Coffee, neeru kaavali", native: "కాఫీ, నీరు కావాలి", meaning: "Coffee and water want", hint: "Coffee + and + water + want", acceptable: ["naaku coffee, neeru kaavali"] },
                 { prompt: "Say 'I want to go but I have work'.", correct: "Nenu vellali kani naaku pani undi", native: "నేను వెళ్ళాలి కానీ నాకు పని ఉంది", meaning: "I must go but I have work", hint: "I + go(must) + but + I + work" },
                 { prompt: "Say 'Because I'm happy'.", correct: "Endukante nenu santhoshamga unnanu", native: "ఎందుకంటే నేను సంతోషంగా ఉన్నాను", meaning: "Because I am happy", hint: "Because + I + happy" },
                 { prompt: "Final check: 'Rice or bread?' (Annam leda roti?)", correct: "Annam leda roti", native: "అన్నం లేదా రొట్టె", meaning: "Rice or bread", hint: "Rice + or + bread" }
@@ -806,7 +807,7 @@ export const CURRICULUM = {
             ],
             phrases: [
                 { prompt: "Say 'It's very hot today'", correct: "Eeroju chala enda", native: "ఈరోజు చాలా ఎండ", meaning: "Today very hot", hint: "Today + very + heat", acceptable: ["eeroju chala enda undi"] },
-                { prompt: "Say 'I want a bus ticket'", correct: "Bus ticketu kaavali", native: "బస్సు టికెట్టు కావాలి", meaning: "I want a bus ticket", hint: "Bus + ticket + want" },
+                { prompt: "Say 'I want a bus ticket'", correct: "Bus ticketu kaavali", native: "బస్సు టికెట్టు కావాలి", meaning: "I want a bus ticket", hint: "Bus + ticket + want", acceptable: ["naaku bus ticketu kaavali"] },
                 { prompt: "Say 'Safe trip'", correct: "Manchi prayanam", native: "మంచి ప్రయాణం", meaning: "Good trip", hint: "Good + trip" }
             ],
             conversations: [

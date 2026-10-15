@@ -335,7 +335,13 @@ export const buildSynonymMap = (lessons = []) => {
      *baruttide* ("I will come" / "it is coming") was not a pair at all, so a
      learner mixing the two outer words passed as one letter out.
    - *kalite* "I learned" (Kannada L30) / *kalide*: graded "Exactly right" in
-     round K4. One letter, and it changes the word. */
+     round K4. One letter, and it changes the word.
+   - *okati* / *oka* (Telugu L7): "one" counting, and "one" in front of a
+     thing. `okati pusthakam` was "Spot on" straight under a note saying *okati*
+     becomes *oka* before a noun.
+   - *idhi* / *adhi* / *ayana*: "this" and "that" are for things, and L6 says
+     using them for a person is rude. `idhi evaru` passed for *Evaru?* one
+     screen after that note, because extra words are tolerated. */
 export const DISTINCT_WORDS = [
     ['naanu', 'nanage'],
     ['nenu', 'naaku'],
@@ -347,6 +353,8 @@ export const DISTINCT_WORDS = [
     ['hauda', 'haudu'],
     ['aagilla', 'aagalla'],
     ['kalite', 'kalide'],
+    ['okati', 'oka'],
+    ['idhi', 'adhi', 'ayana'],
 ];
 const DISTINCT_INDEX = new Map(DISTINCT_WORDS.flatMap((g, i) => g.map(w => [w, i])));
 /** True when a and b are different members of one DISTINCT_WORDS group. */
