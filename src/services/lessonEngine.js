@@ -589,7 +589,15 @@ export const misplacedWord = (actual, v, lexicon = new Map()) => {
     for (let i = end; i !== -1; i = prev[i]) keep.add(i);
     const k = need.findIndex((_, i) => !keep.has(i));
     if (k === -1) return null;
-    return { word: need[k], index: k, last: k === n - 1, first: k === 0, need };
+    /* `said` is each target word as the learner wrote it, and `exact` whether
+       every one was written exactly so. `vellu akkada` for *akkada vellandi* is
+       an order miss through the lexicon, but it is not "all the right words". */
+    const saidToks = normalizeLatin(actual).split(' ').filter(Boolean);
+    const said = at.map(p => saidToks[p]);
+    return {
+        word: need[k], index: k, last: k === n - 1, first: k === 0, need,
+        said, exact: said.every((w, i) => w === need[i]),
+    };
 };
 
 /** Best ratio and coverage across a target and every accepted variant. */
@@ -1217,9 +1225,15 @@ const OPENING_INTERROGATIVES = new Set([
     'shouldnt', 'wasnt', 'werent', 'hasnt', 'havent',
 ]);
 
+/* What a learner says before the question proper: "wait, do I use adhi or aa
+   here?" opens with *wait*, and was graded as an attempt at *Adhi emiti*. */
+const QUESTION_LEADINS = new Set(['wait', 'hmm', 'hm', 'um', 'umm', 'uh', 'oh', 'ok', 'okay',
+    'so', 'sorry', 'hey', 'but', 'and', 'also', 'actually', 'quick', 'question', 'hold', 'on']);
 export const opensAsQuestion = (text) => {
-    const first = normalizeLatin(text).split(' ').filter(Boolean)[0];
-    return Boolean(first) && OPENING_INTERROGATIVES.has(first);
+    const toks = normalizeLatin(text).split(' ').filter(Boolean);
+    let i = 0;
+    while (i < toks.length - 1 && i < 3 && QUESTION_LEADINS.has(toks[i])) i++;
+    return Boolean(toks[i]) && OPENING_INTERROGATIVES.has(toks[i]);
 };
 
 export const looksLikeQuestion = (t) => {
@@ -1253,7 +1267,8 @@ export const isLearnerQuestion = (text, { accepted = false, lexicon = new Map(),
     const toks = normalizeLatin(raw.replace(/'/g, '')).split(' ').filter(Boolean);
     if (toks.length < 2) return false;
     const english = toks.filter(t => !taught.has(t)
-        && (ENGLISH_TELLS.has(t) || OPENING_INTERROGATIVES.has(t) || looksEnglish(t, extraEnglish)));
+        && (ENGLISH_TELLS.has(t) || OPENING_INTERROGATIVES.has(t) || QUESTION_LEADINS.has(t)
+            || looksEnglish(t, extraEnglish)));
     return english.length * 2 > toks.length;
 };
 
@@ -1819,6 +1834,42 @@ export const ONE_QUESTION_RULE =
 /* What an ending actually signals. Mood is in here as well as person, because
    the pair that trips learners most is *unnaru* against *unnara* — a statement
    against a question — and calling that "the wrong person" is simply false. */
+/* Two spellings the voice would say the same way: aspiration written as an
+   h (*undhi* and *undi*), a doubled letter, a long vowel. */
+const soundKey = (w) => String(w || '').toLowerCase()
+    .replace(/([bcdgjkpt])h/g, '$1').replace(/ee/g, 'i').replace(/oo/g, 'u').replace(/aa/g, 'a')
+    .replace(/(.)\1+/g, '$1');
+export const soundAlike = (a, b) => a !== b && soundKey(a) === soundKey(b);
+
+/* A syllable dropped from a long word: *snehudu* for *snehithudu*. One
+   contiguous run of two or three letters, holding a vowel, taken out of a
+   word of seven letters or more — what a learner writing a long word from
+   memory does, and what "the word for Friend is missing" misdescribes. */
+export const droppedSyllable = (g, t) => {
+    if (!g || !t || t.length < 7 || g.length < 5) return false;
+    const k = t.length - g.length;
+    if (k < 2 || k > 3) return false;
+    for (let i = 1; i + k < t.length; i++) {
+        if (t.slice(0, i) + t.slice(i + k) === g && /[aeiou]/.test(t.slice(i, i + k))) return true;
+    }
+    return false;
+};
+
+/* Does a word's meaning belong to the sentence asked for? Its gloss, or one
+   part of it ("I am", "To me / I have"), has every word in the prompt or in
+   the glosses of the answer's own words — or it is a pronoun the prompt says. */
+const meaningFits = (meaning, prompt, answerGlosses = []) => {
+    if (!meaning) return false;
+    const words = (x) => String(x || '').toLowerCase().replace(/\([^)]*\)/g, ' ')
+        .replace(/[^a-z' ]/g, ' ').split(/\s+/).filter(Boolean);
+    const pool = new Set([...words(prompt), ...answerGlosses.flatMap(words)]);
+    if (!pool.size) return false;
+    const parts = String(meaning).replace(/\([^)]*\)/g, ' ').split(/\s*\/\s*/).map(words).filter(p => p.length);
+    if (parts.some(p => p.every(w => pool.has(w)))) return true;
+    const PRONOUNS = ['i', 'me', 'my', 'you', 'your', 'he', 'his', 'she', 'her', 'we', 'our', 'they', 'their'];
+    return parts.some(p => PRONOUNS.includes(p[0]) && words(prompt).includes(p[0]));
+};
+
 const ENDING_MEANS = {
     nu: 'I', ru: 'you', vu: 'you (a friend)', di: 'it', du: 'he',
     ra: 'a question', ya: 'a question', mu: 'we',
@@ -1850,19 +1901,38 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
        canonical answer and always name its first word: `maaduttiddene kelasa`
        (verb first, *naanu* optional) was told "the word for I is missing", and
        `naanu nodide mane` was told "naanu comes first" when naanu WAS first. */
-    for (const v of [expected, ...pronounVariants(expected), ...variants]) {
+    const forms = [expected, ...pronounVariants(expected), ...variants];
+    /* Not an order miss at all when some accepted form has the words in the
+       learner's order: `Ivatte naanu kelasa maaduttiddene` is in the order of
+       the answer itself, and was told "ivatte goes right after naanu" because
+       an accepted variant puts *naanu* first. */
+    const inSomeOrder = forms.some(v => {
+        const loc = locateTokens(said, v, lexicon);
+        /* A whole form, word for word in count — "ela unnaru" sits in order
+           inside `ela meeru unnaru`, which is still out of order. */
+        return loc && loc.need.length >= 2 && loc.need.length === got.length
+            && !loc.at.some((p, k) => k > 0 && p < loc.at[k - 1]);
+    });
+    for (const v of inSomeOrder ? [] : forms) {
         const m = misplacedWord(said, v, lexicon);
         if (!m) continue;
         const order = m.need.join(' ');
+        /* "All the right words" only when they are — word for word. Otherwise
+           the order is named with the learner's own words, so a first miss
+           never prints a form they did not write (`vellandi` for `vellu`):
+           the whole sentence, and any word of it, waits for the reveal. */
+        const lead = m.exact ? 'All the right words — the order is not.' : 'The order is off.';
+        const word = hide ? m.said[m.index] : m.word;
+        const after = hide ? m.said[m.index - 1] : m.need[m.index - 1];
         if (m.last) return hide
-            ? `All the right words — the order is not. ${m.word} goes last.`
-            : `All the right words — the order is not. ${m.word} goes last: ${order}.`;
+            ? `${lead} ${word} goes last.`
+            : `${lead} ${word} goes last: ${order}.`;
         if (m.first) return hide
-            ? `All the right words — the order is not. ${m.word} comes first.`
-            : `All the right words — the order is not. ${m.word} comes first: ${order}.`;
+            ? `${lead} ${word} comes first.`
+            : `${lead} ${word} comes first: ${order}.`;
         return hide
-            ? `All the right words — the order is not. ${m.word} goes right after ${m.need[m.index - 1]}.`
-            : `All the right words — the order is not. ${m.word} goes right after ${m.need[m.index - 1]}: ${order}.`;
+            ? `${lead} ${word} goes right after ${after}.`
+            : `${lead} ${word} goes right after ${after}: ${order}.`;
     }
 
     /* One of a pair the course teaches against each other (DISTINCT_WORDS). */
@@ -1933,6 +2003,13 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
         const missing = need.find(t => !got.some(x => x === t || canon(x) === canon(t)));
         const wanted = missing ? (meanings.get(missing) || meanings.get(canon(missing))) : null;
         if (wanted) return `${g} means "${meaning}" — here you want the word for "${wanted}".`;
+        /* An extra word whose meaning IS in the sentence asked for — *unnanu*
+           in "I am here", *nenu* in "I want water" — is not the wrong idea.
+           Telling a learner the word the prompt needs is "not what this asks
+           for" sends them hunting for a different meaning that is not there. */
+        if (meaningFits(meaning, opts.prompt, need.map(t => meanings.get(t) || meanings.get(canon(t))))) {
+            return `${g} means "${meaning}", which fits, but this sentence leaves it out.`;
+        }
         return `${g} means "${meaning}", which is not what this asks for.`;
     }
 
@@ -1961,6 +2038,12 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
         for (const t of need) {
             if (got.includes(t)) continue;
             const near = got.find(g => Math.min(g.length, t.length) >= 3 && levenshtein(g, t) <= 1);
+            /* *undhi* and *undi* are one sound. "You wrote undhi, and the word
+               is undi", read aloud, is the same word twice — the point is the
+               spelling, so that is what the line says. */
+            if (near && soundAlike(near, t)) return hide
+                ? `Close, check the spelling of ${near}.`
+                : `Close, check the spelling: the word is ${t}.`;
             if (near) return hide
                 ? `Close, you wrote ${near}; the word you want starts with ${outline(t)}.`
                 : `${opts.clean ? 'Close, ' : 'Close — '}you wrote ${near}, and the word is ${t}.`;
@@ -1972,7 +2055,8 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
     const missing = need.filter(t => !got.some(g => g === t || canon(g) === canon(t)
         || (Math.min(g.length, t.length) >= 3 && levenshtein(g, t) <= 1)
         || (opts.clean && Math.min(g.length, t.length) >= 5 && levenshtein(g, t) <= 2)
-        || (Math.min(g.length, t.length) >= 4 && isSpellingSlip(g, t))));
+        || (Math.min(g.length, t.length) >= 4 && isSpellingSlip(g, t))
+        || (opts.clean && droppedSyllable(g, t))));
     const absent = () => {
         if (missing.length === 1) {
             const meaning = meanings.get(missing[0]) || meanings.get(canon(missing[0]));
@@ -2001,8 +2085,13 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
     if (opts.clean) {
         for (const t of need) {
             if (got.includes(t)) continue;
-            const slip = got.find(g => Math.min(g.length, t.length) >= 5 && levenshtein(g, t) <= 2);
-            if (slip) return hide ? `Close, check the spelling of ${slip}.` : `Close, you wrote ${slip}, and the word is ${t}.`;
+            /* ...and a syllable dropped (*snehudu* for *snehithudu*): the word,
+               said fast, not a word left out. */
+            const slip = got.find(g => (Math.min(g.length, t.length) >= 5 && levenshtein(g, t) <= 2)
+                || droppedSyllable(g, t));
+            if (slip) return hide || soundAlike(slip, t)
+                ? (hide ? `Close, check the spelling of ${slip}.` : `Close, check the spelling: the word is ${t}.`)
+                : `Close, you wrote ${slip}, and the word is ${t}.`;
         }
     }
     return null;
@@ -2252,7 +2341,8 @@ export const missHelp = (said, expected, {
     /* A typo of a needed word: *ivatte* for *ivattu*, *kesala* for *kelasa*. */
     const typo = (g, t) => Math.min(g.length, t.length) >= 3
         && (levenshtein(g, t) <= (Math.min(g.length, t.length) >= 5 ? 2 : 1)
-            || (Math.min(g.length, t.length) >= 4 && isSpellingSlip(g, t)));
+            || (Math.min(g.length, t.length) >= 4 && isSpellingSlip(g, t))
+            || droppedSyllable(g, t));
     /* One line leads — the most important problem — and at most one short
        line follows for the rest. A learner who wrote *Ivatte, naanu kesala
        hogittene* made three mistakes and was told about the smallest, the
@@ -2277,7 +2367,7 @@ export const missHelp = (said, expected, {
     };
     const used = new Set();
     const fallback = () => finish(explainMiss(said, expected, variants, lexicon,
-        { hideAnswer: !reveal, clean: true }));
+        { hideAnswer: !reveal, clean: true, prompt: meaning }));
     if (!need.length || !got.length) return { line: fallback(), family: null, scaffold, pairs: [] };
     /* The answer word as the course writes it, and its first-letter outline. */
     const shownWord = (t) => (String(expected).split(/\s+/)
@@ -2319,6 +2409,46 @@ export const missHelp = (said, expected, {
         .filter(p => !p.includes(' ')));
     const english = got.filter(g => !has(need, g) && !taught.has(g) && !known.has(g)
         && (COMMON_ENGLISH.has(g) || glossWords.has(g)));
+    /* Every word of the answer is there and one taught word too many. When
+       that word's meaning is IN the sentence asked for — *unnanu* in "I am
+       here", *nenu* in "I want water", *naaku* in "I want two" — it is not the
+       wrong idea, and "which is not what this asks for" (explainMiss's line
+       for an extra word) told four learners in one round that the very word
+       the prompt needed was wrong. Say what the course's answer does instead:
+       a pronoun it carries in another word, or simply leaves out. */
+    if (!missing.length && wrong.length === 1 && !english.length) {
+        const g = wrong[0];
+        const entry = nearForm.has(g) ? null : entryOf(g);
+        const answerGlosses = need.map(n => (taught.get(n) || taught.get(canon(n)))?.meaning).filter(Boolean);
+        if (entry && meaningFits(entry.meaning, meaning, answerGlosses)) {
+            const shown = capital(entry.word);
+            const myGroups = pronounGroups(entry.meaning);
+            const prompt = ` ${String(meaning || '').toLowerCase().replace(/[^a-z' ]/g, ' ').replace(/\s+/g, ' ')} `;
+            const w = PRONOUN_GROUPS.flatMap((grp, i) => (myGroups.has(i) ? grp : []))
+                .find(p => prompt.includes(` ${p} `));
+            const answerHasIt = w && need.some(n => {
+                const e = taught.get(n) || taught.get(canon(n));
+                return e && [...pronounGroups(e.meaning)].some(i => PRONOUN_GROUPS[i].includes(w));
+            });
+            /* A whole-gloss match ("I am" for *unnanu*) is the word itself, not
+               just its pronoun: that is the "leaves it out" line. */
+            const wholeGloss = glossParts(entry.meaning).some(p => p.includes(' ') && prompt.includes(` ${p} `));
+            let line;
+            if (w && !answerHasIt && !wholeGloss) {
+                const W = w === 'i' ? 'I' : w;
+                const carrier = need.map(n => [n, taught.get(n) || taught.get(canon(n))])
+                    .filter(([, e]) => e)
+                    .map(([n, e]) => [n, glossParts(e.meaning).find(p => prompt.includes(` ${w} ${p} `))])
+                    .find(([, p]) => p);
+                line = carrier
+                    ? `*${shown}* means ${glossFor(entry.meaning, meaning)}, but you don't need “${W}” here: *${shownWord(carrier[0]).toLowerCase()}* already says “${W} ${carrier[1]}”.`
+                    : `*${shown}* means ${glossFor(entry.meaning, meaning)}, but you don't need “${W}” here.`;
+            } else {
+                line = `*${shown}* means ${glossFor(entry.meaning, meaning)}, which fits, but this sentence leaves it out.`;
+            }
+            return { line: finish(line, { skip: [g] }), family: null, scaffold, pairs: [] };
+        }
+    }
     if (!missing.length || (!wrong.length && !english.length)) {
         return { line: fallback(), family: null, scaffold, pairs: [] };
     }

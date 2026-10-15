@@ -40,8 +40,8 @@ const ROOT = resolve(HERE, '..');
 
 const E = await import(join(ROOT, 'src/services/lessonEngine.js'));
 const P = await import(join(ROOT, 'src/services/praise.js'));
-const { buildLessonSteps, stepCaption } = await import(join(ROOT, 'src/services/stepPlan.js'));
-const { CURRICULUM } = await import(join(ROOT, 'src/services/curriculum.js'));
+const { buildLessonSteps, stepCaption, triesFor } = await import(join(ROOT, 'src/services/stepPlan.js'));
+const { CURRICULUM, WORD_FAMILIES, KNOWN_WORDS, WORD_ENDINGS } = await import(join(ROOT, 'src/services/curriculum.js'));
 const { tipSegments } = await import(join(ROOT, 'src/services/speechScript.js'));
 const { answerFromFacts } = await import(join(ROOT, 'src/services/courseFacts.js'));
 
@@ -136,6 +136,9 @@ function render(s, steps) {
             if (w.phonetic) out.push(`   say it like: ${w.phonetic}`);
             out.push(`   means: ${w.meaning}`);
             if (w.teach) out.push(`👁  ${w.teach.replaceAll('{w}', w.word)}`);
+            /* Read aloud after the word, as Steps.jsx does — only the lines
+               the screen actually prints (teachAddsSomething). */
+            if (w.teach && E.teachAddsSomething(w)) out.push(spoken(s.lang, w.teach.replaceAll('{w}', `*${w.word}*`)));
         }
         out.push(`   Your turn — say ${step.slice.map(w => w.word).join(', then ')}`);
     }
@@ -177,10 +180,11 @@ function celebrate(s, step, misses) {
 
     const milestone = recall && misses === 0 ? P.milestoneFor(s.combo) : null;
     if (milestone) out.push(`🎉 ${milestone.icon} ${milestone.title} — ${milestone.blurb}`);
-    if (s.stumbled && misses === 0) out.push(`👁  ${P.RECOVERY_LINE}`);
 
     out.push(`🔊 ${step.expected}`);
     out.push(`👁  ${P.verdictFor({ step, misses, cleared: s.cleared - 1 })}`);
+    /* Under the verdict, as on screen. */
+    if (s.stumbled && misses === 0) out.push(`👁  ${P.RECOVERY_LINE}`);
     const did = P.achievementFor({ step, lang: s.lang, misses });
     if (did) out.push(`👁  ${did}`);
     out.push(`👁  +${points.base} 🐾${points.bonus ? ` · +${points.bonus} streak bonus` : ''}`);
@@ -231,14 +235,24 @@ function say(s, text) {
 
     s.misses += 1;
     if (P.countsForStreak(step)) s.combo = 0;
-    const diagnosis = E.explainMiss(said, step.expected, step.variants, lexicon)
-        || (step.drill?.hint ? '' : P.scaffoldFor(step.expected));
+    /* What Steps.jsx says after a miss: `missHelp`, with the same options.
+       This used to call `explainMiss` bare — no hideAnswer — so a first-miss
+       word-order line printed and spoke the whole answer here while the app
+       held it back, and round 16 reported the sim's fault as the product's. */
+    const lessons = lessonsFor(s.lang);
+    const diagnosis = E.missHelp(said, step.expected, {
+        variants: step.variants, lexicon, taughtLessons: lessons.slice(0, s.scenarioIdx + 1),
+        families: WORD_FAMILIES[s.lang] || [], meaning: step.drill?.meaning || '',
+        reveal: s.misses >= triesFor(step), language: s.lang,
+        knownWords: KNOWN_WORDS[s.lang] || [], endings: WORD_ENDINGS[s.lang] || null,
+    }).line || (step.drill?.hint ? '' : P.scaffoldFor(step.expected));
 
-    if (s.misses >= E.REVIEW_RETRY_LIMIT) {
+    if (s.misses >= triesFor(step)) {
         s.phase = 'revealed';
         s.stumbled = true;
         const out = [`👁  ${P.revealLineFor(step.index)}`, `🔊 ${step.expected}`];
-        if (diagnosis) out.push(`👁  ${diagnosis.replace(/\*\*/g, '')}`, spoken(s.lang, diagnosis));
+        /* Steps.jsx's revealWhy: "is missing" is not true once the answer is shown. */
+        if (diagnosis && !/\bis missing\b/i.test(diagnosis)) out.push(`👁  ${diagnosis.replace(/\*\*/g, '')}`, spoken(s.lang, diagnosis));
         if (step.kind === 'drill' && step.drill?.meaning) out.push(`   “${step.drill.meaning}”`);
         out.push('👁  Write it out once — that is how it stops being someone else\'s word.');
         out.push('   (--say it back to lock it in, or --next to move on)');

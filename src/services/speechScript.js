@@ -183,6 +183,7 @@ const MISS_TEMPLATES = [
     `check the spelling of ${W}`,
     `: ${W}, not ${W}(?=\\.)`,
     `the order is not\\. ${W} (?=goes|comes)`,
+    `[Tt]he order is off\\. ${W} (?=goes|comes)`,
     `goes right after ${W}(?:: ${P}(?=\\.))?`,
     `(?:goes last|comes first): ${P}(?=\\.)`,
     `Almost — ${W} (?=states|is the question form)`,
@@ -280,7 +281,17 @@ export function tipSegments(langName, line) {
             /* ...but a full stop between two target spans still ends one
                utterance — `*naanu ishta*. *Naanu* means` was queued as the one
                Kannada phrase "naanu ishta Naanu". */
-            if (/[.!?;]/.test(t)) brk = true;
+            /* A colon or comma too: `goes right after *meeru*: *meeru ela
+               unnaru*` was read as one phrase, "meeru meeru ela unnaru", and
+               `not *idhi*: *idhi* is for things` as "idhi idhi". */
+            if (/[.!?;:,]/.test(t)) brk = true;
+            /* A "+" joining two target words (`*naaku* + *undi*`) is the point
+               of the line; dropped, the voice said "naaku undi" as if it were
+               one phrase. Said as "plus", between the two. */
+            if (/\+/.test(t) && out[out.length - 1]?.target) {
+                out.push({ target: false, text: 'plus' });
+                brk = false;
+            }
             /* A closing "?" still belongs to the line before it, or the voice
                reads a question as a statement. */
             const prev = out[out.length - 1];

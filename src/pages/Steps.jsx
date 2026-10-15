@@ -591,20 +591,22 @@ function SuccessPanel({ step, reward, onSpeak, phonetic, hero = true, focusSpan 
             <div style={hero
                 ? { marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(5,150,105,0.16)' }
                 : { marginTop: 0 }}>
-                {reward?.recovery && (
-                    <p style={{
-                        margin: '0 0 6px', fontSize: 12, fontWeight: 800, color: '#c2410c',
-                        letterSpacing: 0.3,
-                    }}>
-                        {praise.RECOVERY_LINE}
-                    </p>
-                )}
+                {/* The verdict first. "Back on it." above it read as the
+                    verdict itself, on an answer that was simply right. */}
                 <p style={{
                     margin: 0, fontFamily: 'var(--font-display)', fontWeight: 800,
                     fontSize: 17, color: '#047857',
                 }}>
                     {reward?.verdict}
                 </p>
+                {reward?.recovery && (
+                    <p style={{
+                        margin: '4px 0 0', fontSize: 12, fontWeight: 800, color: '#c2410c',
+                        letterSpacing: 0.3,
+                    }}>
+                        {praise.RECOVERY_LINE}
+                    </p>
+                )}
                 {reward?.achievement && (
                     <p style={{ margin: '4px 0 0', fontSize: 13.5, lineHeight: 1.5 }}>
                         {reward.achievement}
@@ -976,11 +978,20 @@ function StepScreen({
        has a home three screens later: the review steps prompt with the meaning
        and never show the word at all. Speaking the word unasked keeps the ear
        first; taking the letters away only cost the teaching. */
+    /* The teaching line follows the word, through the same queue as every
+       other tip: "Meeru: use it with anyone you'd call sir" was on screen only,
+       so a learner listening rather than reading lost the one line that says
+       when to use the word. `onSay` drops it when "Read tips aloud" is off,
+       which leaves exactly the word this effect always said. */
     useEffect(() => {
         if (step.kind !== 'teach' || !fx.isFxOn()) return undefined;
-        const t = setTimeout(() => onSpeak(step.expected), 520);
+        const tips = (step.slice || []).filter(engine.teachAddsSomething)
+            .map(w => ({ tip: w.teach.replaceAll('{w}', `*${w.word}*`) }));
+        const t = setTimeout(() => (tips.length
+            ? onSay([{ target: step.expected }, ...tips])
+            : onSpeak(step.expected)), 520);
         return () => clearTimeout(t);
-    }, [step.kind, step.expected, onSpeak]);
+    }, [step.kind, step.expected, step.slice, onSpeak, onSay]);
 
     /* The answer is said aloud when it is revealed — the learner did not get
        there, and hearing the right form is the correction. It used to be said

@@ -4,10 +4,23 @@
    Each case runs lessonEngine.missHelp exactly as Steps.jsx calls it. */
 import * as engine from '../src/services/lessonEngine.js';
 import { CURRICULUM, WORD_FAMILIES, KNOWN_WORDS, WORD_ENDINGS } from '../src/services/curriculum.js';
+import { tipSegments } from '../src/services/speechScript.js';
 
+/* The drill whose answer this is, for its prompt meaning and accepted forms —
+   what Steps.jsx passes as `meaning` and `variants`. */
+const drillFor = (lessons, lessonNo, expected) => {
+    for (const l of lessons.slice(0, lessonNo)) {
+        for (const d of [...(l.phrases || []), ...(l.conversations || [])]) {
+            if (engine.normalizeLatin(d.correct) === engine.normalizeLatin(expected)) return d;
+        }
+    }
+    return null;
+};
 const help = (lang, lessonNo, said, expected, reveal = false) => {
     const lessons = CURRICULUM[lang];
+    const drill = drillFor(lessons, lessonNo, expected);
     return engine.missHelp(said, expected, {
+        variants: drill?.acceptable || [], meaning: drill?.meaning || '',
         lexicon: engine.buildLexicon(lessons), taughtLessons: lessons.slice(0, lessonNo),
         families: WORD_FAMILIES[lang] || [], knownWords: KNOWN_WORDS[lang] || [],
         language: lang, reveal, endings: WORD_ENDINGS[lang],
@@ -49,6 +62,24 @@ const CASES = [
     ['Kannada', 8, 'Ivu dodda pustaka', 'Idu dodda pustaka', false, /^\*Ivu\* means “these” \(more than one\)\. For one book, use the word for “this”: I__\.$/],
     ['Kannada', 8, 'Neevu hesaru enu', 'Nimma hesaru enu', false, /^\*Neevu\* means “you”, said politely\. This asks for “your”\.$/],
     ['Kannada', 8, 'Nanage oota beku illa', 'Nanage oota beda', false, /^Good thinking: \*beku\* \+ \*illa\* makes sense/],
+    /* Round 16 (Telugu L1-10): a word whose meaning IS in the prompt was told
+       it "is not what this asks for". */
+    ['Telugu', 3, 'nenu ikkada unnanu, meeru?', 'Nenu ikkada, meeru?', false, /“?I am”?.*which fits, but this sentence leaves it out/, /not what this asks for/],
+    ['Telugu', 4, 'nenu neeru kaavali', 'Neeru kaavali', false, /^\*Nenu\* means “I”, but you don't need “I” here/, /not what this asks for/],
+    ['Telugu', 6, 'meeru evaru unnaru', 'Meeru evaru?', false, /^\*Unnaru\* means “you are”, which fits/, /not what this asks for/],
+    ['Telugu', 5, 'naaku annam oddu', 'Annam oddu', false, /you don't need “I” here/, /not what this asks for/],
+    ['Telugu', 7, 'naaku rendu kaavali', 'Rendu kaavali', false, null, /not what this asks for/],
+    // ...while a word whose meaning is not in the prompt still gets it.
+    ['Telugu', 3, 'illu ekkada akkada', 'Illu ekkada?', false, /not what this asks for|There/],
+    /* Word order on a first miss: the misplaced word and where, never the sentence. */
+    ['Telugu', 1, 'ela meeru unnaru', 'Meeru ela unnaru', false, /^All the right words — the order is not\. ela goes right after meeru\.$/],
+    ['Telugu', 10, 'ivvandi billu', 'Billu ivvandi', false, /^All the right words — the order is not\. ivvandi goes last\.$/, /billu ivvandi/],
+    // A synonym form is not "all the right words", and the first miss names the learner's word.
+    ['Telugu', 3, 'vellu akkada', 'Akkada vellandi', false, /^The order is off\. vellu goes last\.$/, /All the right words|vellandi/],
+    ['Telugu', 3, 'vellu akkada', 'Akkada vellandi', true, /akkada vellandi/],
+    // A dropped syllable is a spelling slip, not a missing word.
+    ['Telugu', 6, 'snehudu', 'Snehithudu', false, /^Close, check the spelling of snehudu\.$/, /missing/],
+    ['Telugu', 6, 'snehudu', 'Snehithudu', true, /snehithudu/, /missing/],
 ];
 
 let fail = 0;
@@ -58,5 +89,33 @@ for (const [lang, n, said, expected, reveal, want, not] of CASES) {
     if (!ok) fail++;
     console.log(`${ok ? 'ok  ' : 'FAIL'} ${lang} L${n} "${said}" for "${expected}"${reveal ? ' (reveal)' : ''}\n     ${line || '(no line)'}`);
 }
-console.log(`\n${CASES.length - fail}/${CASES.length} passed`);
+/* A question is answered, never graded (round 16, chat L2). */
+const QUESTIONS = [
+    ['Telugu', 'wait, do I use adhi or aa here?', 'Adhi emiti?', true],
+    ['Telugu', 'hmm, is it idhi or adhi?', 'Adhi emiti?', true],
+    ['Telugu', 'adhi emiti', 'Adhi emiti?', false],
+];
+for (const [lang, said, target, want] of QUESTIONS) {
+    const got = engine.isPureQuestion(said, target, { lexicon: engine.buildLexicon(CURRICULUM[lang]) });
+    const ok = got === want;
+    if (!ok) fail++;
+    console.log(`${ok ? 'ok  ' : 'FAIL'} isPureQuestion("${said}") = ${got}`);
+}
+
+/* What the voice hears (round 16): a colon between two target spans is a
+   pause, "+" between target words is said, and nothing merges. */
+const voiced = (line) => tipSegments('Telugu', line).map(g => (g.target ? `‹${g.text}›` : g.text)).join(' | ');
+const SPOKEN = [
+    ['All the right words — the order is not. ela goes right after meeru: meeru ela unnaru.', /‹meeru› \| ‹meeru ela unnaru›/],
+    ['Use *ayana* for a person, not *idhi*: *idhi* is for things.', /‹idhi› \| ‹idhi›/],
+    ['This is how you say “I have”: *naaku* + *undi*.', /‹naaku› \| plus \| ‹undi›/],
+];
+for (const [line, want] of SPOKEN) {
+    const got = voiced(line);
+    const ok = want.test(got);
+    if (!ok) fail++;
+    console.log(`${ok ? 'ok  ' : 'FAIL'} spoken: ${got}`);
+}
+const total = CASES.length + QUESTIONS.length + SPOKEN.length;
+console.log(`\n${total - fail}/${total} passed`);
 process.exit(fail ? 1 : 0);

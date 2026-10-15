@@ -1596,7 +1596,8 @@ export default function Chat() {
                         /* A diagnosis of this attempt if one can be trusted,
                            otherwise the curriculum's fixed hint. */
                         const diagnosis = otherLang ? null
-                            : (engine.explainMiss(text, phraseItem.correct, phraseItem.acceptable || [], LEXICON)
+                            : (engine.explainMiss(text, phraseItem.correct, phraseItem.acceptable || [], LEXICON,
+                                { prompt: phraseItem.meaning || '' })
                             || await aiService.diagnoseAttempt({
                             answer: text,
                             target: phraseItem.correct,
