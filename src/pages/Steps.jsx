@@ -1042,13 +1042,25 @@ function StepScreen({
     const drill = step.kind === 'drill' ? step.drill : null;
     const settled = phase === 'correct' || phase === 'revealed';
 
-    /* Words only: a phrase or conversation screen is already a sentence, and a
-       contrast pair is two words, not one. */
+    /* Words only: a phrase or conversation screen is already a sentence. A
+       contrast pair gets one sentence for each side — "Say what, then how"
+       had no sentences at all, and seeing the two at work side by side is
+       what tells them apart. */
+    const contrast = step.kind === 'review' ? step.item?.contrast : null;
     const exampleWord = step.kind === 'teach' ? step.slice?.[0]?.word
-        : (step.kind === 'review' && !step.item?.contrast) ? step.item?.word : null;
-    const examples = useMemo(() => (exampleWord
-        ? examplesFor(taughtLessons, taughtLessons.length - 1, exampleWord, { teaching: step.kind === 'teach' })
-        : []), [exampleWord, taughtLessons, step.kind]);
+        : (step.kind === 'review' && !contrast) ? step.item?.word : null;
+    const examples = useMemo(() => {
+        const upTo = taughtLessons.length - 1;
+        if (contrast) {
+            const seen = new Set();
+            return [contrast.said, contrast.needed]
+                .map(w => examplesFor(taughtLessons, upTo, w, { max: 2 }).find(ex => !seen.has(ex.correct)))
+                .filter(ex => ex && !seen.has(ex.correct) && seen.add(ex.correct));
+        }
+        return exampleWord
+            ? examplesFor(taughtLessons, upTo, exampleWord, { teaching: step.kind === 'teach' })
+            : [];
+    }, [contrast, exampleWord, taughtLessons, step.kind]);
     /* A memory check shows them only once it is settled: before that, a sentence
        holding the word is the answer. */
     const showExamples = step.kind === 'review' && settled;
