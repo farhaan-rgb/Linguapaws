@@ -15,6 +15,8 @@ import { aiService } from '../services/ai';
 import { buildLessonSteps } from '../services/stepPlan';
 import { ensureReviewSet, ensureAdaptation } from '../services/srs';
 import { sessionProgress } from '../services/skillProgress';
+import { skillsFor } from '../services/skills';
+import MySkills from '../pages/MySkills';
 
 /**
  * Dev-only harness for the step-by-step lesson screens.
@@ -198,6 +200,39 @@ if (params.get('phrases')) {
         }
         if (path === '/api/progress') return { successfulRepeats: 0, lessonProgress: { [lang]: prevIdx }, lessonPosition: {} };
         return before(path, ...rest);
+    };
+}
+
+/* The "My skills" page: ?screen=skills&done=N&board=strong|weak|empty|fail
+   builds a model over the skills of the first N+1 lessons. `weak` is shaped
+   like Farhaan's real Kannada record (21 weak, 19 learning, the rest new). */
+const board = params.get('board');
+if (board) {
+    const reach = Number(params.get('done') || 14) + 1;
+    const ids = [...skillsFor(lang).values()].filter(t => (t.lesson ?? 1) <= reach).map(t => t.id);
+    const named = ['c:continuous', 'w:hoguttiddene', 'w:maaduttiddene', 'w:yelli', 'w:iddeera', 'w:sari', 'w:nanna', 'w:kelasa', 'w:yaavaga', 'w:chikka'];
+    const order = board === 'weak' ? [...named.filter(i => ids.includes(i)), ...ids.filter(i => !named.includes(i))] : ids;
+    const rec = (m, k) => Array.from({ length: 6 }, (_, j) => ((j * 7 + k * 3) % 10) / 10 < m ? 1 : (j + k) % 3 ? 0 : 0.5);
+    const at = (skillId, k, mastery, evidence) => ({ skillId, mastery, evidence, level: 'x', recent: rec(mastery, k) });
+    const model = board === 'empty' ? [] : order.map((id, k) => {
+        if (board === 'weak') {
+            if (k < 21) return at(id, k, 0.2 + (k % 5) * 0.05, 2 + (k % 3));
+            if (k < 40) return at(id, k, 0.55 + (k % 4) * 0.05, 2 + (k % 2));
+            return at(id, k, 0.5, 0.6);
+        }
+        if (k % 9 === 4) return at(id, k, 0.35, 2.5);
+        if (k % 4 === 1) return at(id, k, 0.65, 2);
+        if (k % 7 === 6) return at(id, k, 0.5, 0.8);
+        return at(id, k, 0.88, 4);
+    });
+    const realGet = api.get.bind(api);
+    api.get = async (path, ...rest) => {
+        if (String(path).startsWith('/api/progress/skills')) {
+            if (board === 'fail') throw new Error('offline');
+            return model;
+        }
+        if (path === '/api/progress') return { successfulRepeats: 0, lessonProgress: { [lang]: reach - 2 }, lessonPosition: {} };
+        return realGet(path, ...rest);
     };
 }
 
@@ -532,11 +567,12 @@ createRoot(document.getElementById('root')).render(
         <div style={{ paddingTop: 18 }}>
             {screen === 'toggle' ? <TogglePreview /> : screen === 'summary' ? <SummaryPreview /> : (
             <AuthProvider>
-                <MemoryRouter initialEntries={[screen === 'home' ? '/' : screen === 'map' ? '/lessons' : screen === 'practice' ? '/steps?practice=1' : `/steps?scenario=${scenario}`]}>
+                <MemoryRouter initialEntries={[screen === 'home' ? '/' : screen === 'map' ? '/lessons' : screen === 'skills' ? '/skills' : screen === 'practice' ? '/steps?practice=1' : `/steps?scenario=${scenario}`]}>
                     <Routes>
                         <Route path="/" element={<Home />} />
                         <Route path="/steps" element={<Steps />} />
                         <Route path="/lessons" element={<LessonMap />} />
+                        <Route path="/skills" element={<MySkills />} />
                     </Routes>
                 </MemoryRouter>
             </AuthProvider>

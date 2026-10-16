@@ -95,9 +95,13 @@ function ByType({ rows, lessons, trend = true }) {
 
 const DOT = { strong: '#7c3aed', learning: '#3b82f6', tricky: '#f59e0b' };
 
-function Group({ kind, rows, lessons, children }) {
+/* A long group shows its first `cap` and keeps the rest behind a quiet
+   button, so twenty rows of anything never land on a learner at once. */
+function Group({ kind, rows, lessons, cap = 6, byType = true, children }) {
+    const [all, setAll] = useState(false);
     if (!rows.length) return null;
     const g = P.groups[kind];
+    const shown = all ? rows : rows.slice(0, cap);
     return (
         <section className="card" style={{ padding: '14px 16px', marginTop: 14 }}>
             <h2 style={{ margin: 0, fontFamily: 'var(--font-display)', fontSize: 17, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -105,7 +109,19 @@ function Group({ kind, rows, lessons, children }) {
                 {g.title}
             </h2>
             <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--text-secondary)' }}>{g.line}</p>
-            {children || <ByType rows={rows} lessons={lessons} />}
+            {byType ? <ByType rows={shown} lessons={lessons} /> : (
+                <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0 }}>
+                    {shown.map((r, i) => <SkillRow key={r.skillId} row={r} lessons={lessons} first={i === 0} />)}
+                </ul>
+            )}
+            {rows.length > cap && (
+                <button onClick={() => setAll(a => !a)}
+                    style={{ marginTop: 6, background: 'none', border: 'none', padding: '6px 0', cursor: 'pointer',
+                             color: 'var(--accent-purple)', fontWeight: 700, fontSize: 13 }}>
+                    {all ? P.showFewer : P.showOthers(rows.length - cap)}
+                </button>
+            )}
+            {children}
         </section>
     );
 }
@@ -116,10 +132,8 @@ export default function MySkills() {
     const lessons = useMemo(() => (isLanguageAvailable(lang) ? CURRICULUM[lang] : []) || [], [lang]);
     const [model, setModel] = useState(undefined);     // undefined loading, null failed
     const [completed, setCompleted] = useState(null);
-    const [allTricky, setAllTricky] = useState(false);
 
     const load = useCallback(() => {
-        setModel(undefined);
         Promise.all([fetchModel(lang), api.get('/api/progress').catch(() => null)]).then(([m, p]) => {
             setCompleted(completedLessonFor(p, lang));
             setModel(m);
@@ -138,7 +152,6 @@ export default function MySkills() {
         ...focus.items.map(f => board.tricky.find(r => r.skillId === f.skillId)).filter(Boolean),
         ...board.tricky.filter(r => !focus.items.some(f => f.skillId === r.skillId)),
     ] : [];
-    const shownTricky = allTricky ? tricky : tricky.slice(0, MAX_SHOWN);
     const judged = board ? board.strong.length + board.learning.length + board.tricky.length : 0;
     const miko = characters.find(c => c.id === 'miko')?.image;
 
@@ -183,34 +196,26 @@ export default function MySkills() {
             </header>
 
             {model === undefined && (
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: 40 }}>Looking at your answers…</p>
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: 40 }}>{P.loading}</p>
             )}
             {model === null && notice(P.failed.title, P.failed.line, (
-                <button className="btn-primary" onClick={load} style={{ marginTop: 12 }}>{P.failed.button}</button>
+                <button className="btn-primary" onClick={() => { setModel(undefined); load(); }} style={{ marginTop: 12 }}>{P.failed.button}</button>
             ))}
             {board && judged === 0 && notice(P.empty.title, P.empty.line)}
 
             {board && judged > 0 && (<>
-                {focus.items.length > 0 && (
-                    <button className="btn-primary" onClick={practise} style={{ width: '100%', marginTop: 14 }}>
-                        <Dumbbell size={16} style={{ verticalAlign: -3, marginRight: 6 }} />
-                        {focus.items.length === 1 ? 'Practise the one to work on' : `Practise the ${focus.items.length} to work on`}
-                    </button>
-                )}
-                <Group kind="strong" rows={board.strong} lessons={lessons} />
-                <Group kind="learning" rows={board.learning} lessons={lessons} />
-                <Group kind="tricky" rows={tricky} lessons={lessons}>
-                    <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0 }}>
-                        {shownTricky.map((r, i) => <SkillRow key={r.skillId} row={r} lessons={lessons} first={i === 0} />)}
-                    </ul>
-                    {tricky.length > MAX_SHOWN && (
-                        <button onClick={() => setAllTricky(a => !a)}
-                            style={{ marginTop: 6, background: 'none', border: 'none', padding: '6px 0', cursor: 'pointer',
-                                     color: 'var(--accent-purple)', fontWeight: 700, fontSize: 13 }}>
-                            {allTricky ? P.showFewer : P.showOthers(tricky.length - MAX_SHOWN)}
+                {/* What Miko is practising next comes first, three of it, with
+                    the button that practises exactly those; then the good news. */}
+                <Group kind="tricky" rows={tricky} lessons={lessons} cap={MAX_SHOWN} byType={false}>
+                    {focus.items.length > 0 && (
+                        <button className="btn-primary" onClick={practise} style={{ width: '100%', marginTop: 8 }}>
+                            <Dumbbell size={16} style={{ verticalAlign: -3, marginRight: 6 }} />
+                            {P.practise(focus.items.length)}
                         </button>
                     )}
                 </Group>
+                <Group kind="strong" rows={board.strong} lessons={lessons} />
+                <Group kind="learning" rows={board.learning} lessons={lessons} />
             </>)}
 
             {board && board.unknown.length > 0 && (

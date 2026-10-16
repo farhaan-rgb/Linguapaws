@@ -47,3 +47,44 @@ export function SkillList({ items, animate = false }) {
         </ul>
     );
 }
+
+const TREND_TONE = {
+    up: TONE.up,
+    steady: { color: '#475569', background: 'rgba(100,116,139,0.1)' },
+    wobbly: TONE.tricky,
+};
+
+/** Which way the last few answers lean (skillProgress.trendOf), as a pill. */
+export function TrendMark({ trend }) {
+    const m = praise.SKILL_TREND[trend];
+    if (!m) return null;
+    return (
+        <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 99,
+            fontSize: 11.5, fontWeight: 700, lineHeight: 1.5, whiteSpace: 'nowrap', ...TREND_TONE[trend],
+        }}>
+            <span aria-hidden="true">{m.arrow}</span>{m.text}
+        </span>
+    );
+}
+
+/* The last answers as dots, oldest first: filled = right, soft = partly,
+   an amber ring = missed. Direction over time without a number. */
+export function RecentDots({ recent = [] }) {
+    if (!recent.length) return null;
+    const right = recent.filter(x => x >= 0.75).length;
+    const label = `${praise.SKILLS_PAGE.recent}: ${right * 2 >= recent.length ? 'mostly right' : 'some misses'}`;
+    return (
+        <span role="img" aria-label={label} title={praise.SKILLS_PAGE.recent}
+            style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}>
+            {recent.map((x, i) => (
+                <span key={i} style={{
+                    width: 7, height: 7, borderRadius: '50%', boxSizing: 'border-box',
+                    ...(x >= 0.75 ? { background: 'var(--accent-purple)' }
+                        : x >= 0.25 ? { background: 'rgba(168,85,247,0.35)' }
+                            : { border: '1.5px solid #f59e0b' }),
+                }} />
+            ))}
+        </span>
+    );
+}

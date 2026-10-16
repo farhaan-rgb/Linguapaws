@@ -558,3 +558,43 @@ export function focusCardFor({ state = 'none', count = 0 } = {}) {
     };
     return null;
 }
+
+/* ── The "My skills" page ─────────────────────────────────────────────────
+   Leads with what is holding up. The count of tricky skills is never the
+   headline: a learner with twenty of them is told which three come next. */
+export const SKILL_TREND = {
+    up: { arrow: '↑', text: 'getting stronger' },
+    steady: { arrow: '→', text: 'holding steady' },
+    wobbly: { arrow: '↻', text: 'a bit wobbly lately' },
+};
+
+export const SKILLS_PAGE = {
+    title: 'Your skills',
+    groups: {
+        strong: { title: 'Strong', line: 'These hold up whenever they come back.' },
+        learning: { title: 'Getting there', line: 'Mostly right, and settling in.' },
+        tricky: { title: 'To work on', line: 'The ones Miko is bringing back first.' },
+        unknown: { title: 'Still getting to know', line: 'Too few answers yet for Miko to say. Nothing here is good or bad.' },
+    },
+    types: { word: 'Words', ending: 'Endings', construction: 'Patterns', order: 'Word order' },
+    showOthers: (n) => `Show the other ${n}`,
+    showFewer: 'Show fewer',
+    taught: (n, title) => `Taught in lesson ${n}${title ? ` · ${title}` : ''}`,
+    recent: 'Your last few answers',
+    seeAll: 'See all your skills',
+    loading: 'Looking at your answers…',
+    practise: (n) => (n === 1 ? 'Practise the one to work on' : `Practise the ${n} to work on`),
+    failed: { title: 'Miko could not load your skills just now', line: 'Your progress is safe. Try again in a moment.', button: 'Try again' },
+    empty: { title: 'Miko is getting to know you', line: 'A few more answers and your skills start to show up here — what is holding up, and what is worth another go.' },
+};
+
+/** The one line under the title. Counts strong and getting-there; for the
+ *  tricky ones it names how many come next, never how many there are. */
+export function skillsSummaryFor({ strong = 0, learning = 0, next = 0 } = {}) {
+    const parts = [];
+    if (strong) parts.push(`${strong} strong`);
+    if (learning) parts.push(`${learning} getting there`);
+    const head = parts.length ? `${parts.join(', ')}.` : 'Everything you have reached is still settling in.';
+    if (!next) return parts.length ? `${head} Nothing is slipping.` : head;
+    return `${head} Miko picked ${next === 1 ? 'one thing' : `${next}`} to work on next.`;
+}

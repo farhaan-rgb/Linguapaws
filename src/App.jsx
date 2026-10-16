@@ -18,6 +18,7 @@ import Privacy from './pages/Privacy';
 import ShadowPractice from './pages/ShadowPractice';
 import LevelSelect from './pages/LevelSelect';
 import SkillDebug from './pages/SkillDebug';
+import MySkills from './pages/MySkills';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -81,6 +82,7 @@ function AppRoutes() {
       <Route path="/select-language" element={<ProtectedRoute><LanguageSelect /></ProtectedRoute>} />
       <Route path="/learn-language" element={<ProtectedRoute><LearnLanguageSelect /></ProtectedRoute>} />
       <Route path="/chat" element={<ProtectedRoute><ErrorBoundary><Chat /></ErrorBoundary></ProtectedRoute>} />
+      <Route path="/skills" element={<ProtectedRoute><ErrorBoundary><MySkills /></ErrorBoundary></ProtectedRoute>} />
       <Route path="/lessons" element={<ProtectedRoute><ErrorBoundary><LessonMap /></ErrorBoundary></ProtectedRoute>} />
       <Route path="/steps" element={<ProtectedRoute><ErrorBoundary><Steps /></ErrorBoundary></ProtectedRoute>} />
       <Route path="/history" element={<ProtectedRoute><WordHistory /></ProtectedRoute>} />

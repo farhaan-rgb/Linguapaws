@@ -129,3 +129,51 @@ export function focusModel(model, ids) {
     return model.map(s => (want.has(s?.skillId) || s?.level !== 'weak' ? s
         : { ...s, level: 'learning', weak: false, mastery: Math.max(s.mastery ?? 0, 0.6) }));
 }
+
+/* ── The "My skills" page ─────────────────────────────────────────────────
+   Every skill the learner has reached, in three groups by the same lines the
+   rest of the app uses — and none of them called "weak". Under
+   SHOW_MIN_EVIDENCE a skill is "still getting to know": counted, never judged. */
+export const STRONG_FROM = 0.8;
+export const TYPE_ORDER = ['word', 'ending', 'construction', 'order'];
+
+/** Which way the last few answers lean: `up`, `steady` or `wobbly`. Needs four. */
+export function trendOf(recent = []) {
+    const r = (recent || []).filter(x => typeof x === 'number');
+    if (r.length < 4) return 'steady';
+    const tail = r.slice(-3), head = r.slice(0, -3);
+    const mean = (a) => a.reduce((s, x) => s + x, 0) / a.length;
+    const d = mean(tail) - mean(head);
+    /* One slip after a run of right answers is not "wobbly": that takes
+       most of the last three going wrong. */
+    if (d >= 0.25 && mean(tail) >= 0.66) return 'up';
+    if (d <= -0.25 && mean(tail) < 0.5) return 'wobbly';
+    return 'steady';
+}
+
+/**
+ * `reached` is the last lesson (1-based) the learner has opened; a skill from
+ * a later lesson never appears, whatever the model says. Returns
+ * `{ strong, learning, tricky, unknown }`, each a list of
+ * `{ skillId, label, type, lesson, recent, trend }` — tricky weakest first,
+ * the others by type then lesson.
+ */
+export function skillBoard({ lang, model, reached = Infinity }) {
+    const tax = skillsFor(lang);
+    const out = { strong: [], learning: [], tricky: [], unknown: [] };
+    for (const s of model || []) {
+        const t = s?.skillId && tax.get(s.skillId);
+        if (!t || (t.lesson ?? 1) > reached) continue;
+        const row = { skillId: s.skillId, label: t.label, type: t.type, lesson: t.lesson ?? 1,
+                      recent: (s.recent || []).slice(-8), trend: trendOf(s.recent), mastery: s.mastery };
+        if ((s.evidence || 0) < SHOW_MIN_EVIDENCE) out.unknown.push(row);
+        else if (s.mastery < TRICKY_BELOW) out.tricky.push(row);
+        else if (s.mastery >= STRONG_FROM) out.strong.push(row);
+        else out.learning.push(row);
+    }
+    const byType = (a, b) => (TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type)) || (a.lesson - b.lesson);
+    out.strong.sort(byType); out.learning.sort(byType); out.unknown.sort(byType);
+    out.tricky.sort((a, b) => (a.mastery - b.mastery) || (typeRank(b.skillId) - typeRank(a.skillId)));
+    for (const k of Object.keys(out)) out[k].forEach(r => { delete r.mastery; });  // no numbers leave here
+    return out;
+}

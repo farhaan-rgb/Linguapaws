@@ -11,7 +11,7 @@ import { focusSkills } from '../services/skillProgress';
 import { SkillList } from '../components/SkillFocus';
 import { getStoredJSON } from '../utils/storage';
 import {
-    mapHeadline, mapHereLine, mapUnitLabel, mapCheckpointTag, mapFinishLine, MAP_HERE, focusCardFor,
+    mapHeadline, mapHereLine, mapUnitLabel, mapCheckpointTag, mapFinishLine, MAP_HERE, focusCardFor, SKILLS_PAGE,
 } from '../services/praise';
 import { characters } from '../data/characters';
 
@@ -326,7 +326,7 @@ export default function LessonMap() {
             {/* ── Miko's focus: at most three weak skills, no numbers ─── */}
             {focusCard && progress !== undefined && (
                 <section className="card lm-focus" style={{
-                    margin: '14px 0 0', padding: focus.items.length ? '14px 16px 16px' : '12px 16px',
+                    position: 'relative', margin: '14px 0 0', padding: focus.items.length ? '14px 16px 16px' : '12px 16px',
                     border: '1px solid rgba(168,85,247,0.18)',
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -345,6 +345,14 @@ export default function LessonMap() {
                             </p>
                         </div>
                     </div>
+                    {(focus.state === 'focus' || focus.state === 'clear') && (
+                        <button onClick={() => navigate('/skills')} className="lm-focus-all" style={{
+                            position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', padding: 4,
+                            cursor: 'pointer', color: 'var(--accent-purple)', fontWeight: 700, fontSize: 12,
+                        }}>
+                            {SKILLS_PAGE.seeAll} ›
+                        </button>
+                    )}
                     {focus.items.length > 0 && (<>
                         <div style={{ marginTop: 8 }}><SkillList items={focus.items} /></div>
                         {/* Secondary on purpose: the next lesson is still the main way on. */}
