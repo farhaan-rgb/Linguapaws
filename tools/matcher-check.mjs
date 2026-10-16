@@ -299,6 +299,69 @@ for (const n of longSpoken) {
     console.log(`    ${n.spoken.slice(0, 120)}...`);
 }
 
+/* Vowel length. Learners double a vowel to mark it long — `unnaanu`,
+   `elaa unnaaru`, `chennagiddiini` — and gen-pool's script round-trip writes
+   చేశాను as `cheshaanu`; all were rejected while the course spells *unnanu*.
+   Length is forgiven, so the other half is pinned too: no word the course
+   teaches AGAINST another (DISTINCT_WORDS, and the deictic i-/a- pairs) may
+   pass for its partner under any lengthening or shortening of its vowels. */
+const LENGTH_PINS = {
+    Telugu: [
+        ['unnaanu', 'Unnanu', true],
+        ['Nenu inti daggara unnaanu', 'Nenu inti daggara unnanu', true],
+        ['nenu bhojanam cheshaanu', 'Nenu bhojanam chesanu', true],
+        ['elaa unnaaru', 'Ela unnaru?', true],
+        ['meeru elaa unnaaru', 'Meeru ela unnaru?', true],
+        /* An extra subject pronoun: fine where the verb carries its person,
+           a different sentence where it does not (`meeru` "you" for `mee` "your"). */
+        ['meeru ela unnaru', 'Ela unnaru?', true],
+        ['meeru peru emiti?', 'Peru emiti?', false],
+        ['nuvvu peru emiti', 'Peru emiti?', false],
+        ['meeru bagunnanu', 'Bagunnanu', false],
+    ],
+    Kannada: [
+        ['chennagiddiini', 'Chennagiddeeni', true],
+        ['naanu chennaagiddeeni', 'Naanu chennagiddeeni', true],
+        ['neevu hesaru enu', 'Hesaru enu?', false],
+    ],
+};
+const lengthWrong = [];
+for (const [said, target, want] of LENGTH_PINS[lang] || []) {
+    const d = drillFor(target);
+    const got = E.scoreAnswer(said, d.correct, d.acceptable || [], syn).accepted;
+    if (got !== want) lengthWrong.push(`\`${said}\` for \`${d.correct}\`: should be ${want ? 'accepted' : 'rejected'}`);
+}
+/* Every spelling of `w` one vowel-length step away: each single vowel doubled,
+   each doubled vowel singled, and the course's ee written ii. */
+const lengthVariants = (w) => {
+    const out = new Set();
+    for (let i = 0; i < w.length; i++) {
+        if (!'aeiou'.includes(w[i])) continue;
+        if (w[i + 1] === w[i]) out.add(w.slice(0, i) + w.slice(i + 1));
+        else if (w[i - 1] !== w[i]) out.add(w.slice(0, i + 1) + w[i] + w.slice(i + 1));
+    }
+    out.add(w.replace(/ee/g, 'ii'));
+    out.delete(w);
+    return [...out];
+};
+const CONTRASTS = [...E.DISTINCT_WORDS,
+    ['illi', 'alli'], ['idu', 'adu'], ['ivaru', 'avaru'], ['ikkada', 'akkada'], ['idhi', 'adhi']];
+let contrastCases = 0;
+for (const group of CONTRASTS) {
+    for (const a of group) {
+        for (const b of group) {
+            if (a === b) continue;
+            for (const v of [a, ...lengthVariants(a)]) {
+                contrastCases++;
+                if (E.scoreAnswer(v, b, [], syn).accepted) lengthWrong.push(`\`${v}\` accepted for \`${b}\``);
+            }
+        }
+    }
+}
+console.log(`\n## Vowel-length and extra-pronoun verdicts wrong (${lengthWrong.length} of ${(LENGTH_PINS[lang] || []).length} pins + ${contrastCases} contrast spellings)\n`);
+if (!lengthWrong.length) console.log('_None._\n');
+for (const f of lengthWrong) console.log(`- ${f}`);
+
 /* A question is answered and re-asked, not graded — so an ANSWER misread as a
    question is never graded either. Every answer the course lists must read as an
    attempt, and the round-K4 questions (and their answer-shaped look-alikes) must
@@ -330,4 +393,4 @@ if (!asQuestion.length) console.log('_None._\n');
 for (const q of asQuestion) console.log(`- L${q.lesson} \`${q.form}\``);
 
 process.exit(rejected.length || misshapen.length || falsePasses.length || longSpoken.length
-    || swapPasses.length || pinnedWrong.length || asQuestion.length ? 1 : 0);
+    || swapPasses.length || pinnedWrong.length || asQuestion.length || lengthWrong.length ? 1 : 0);

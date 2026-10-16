@@ -129,14 +129,24 @@ export const levenshtein = (a, b) => {
    So: collapse a doubled letter to a single one (vowel length, `kaavali`/
    `kavali`, and consonant doubling, `ikada`/`ikkada` — a real tester typo that
    used to be rejected while a genuinely wrong word was accepted), drop the `h`
-   that marks aspiration inconsistently (`snehithulu`/`snehitulu`), and treat
-   `o` as `u` because the course writes long ū as `oo` (`moodu`/`mudu`). Vowel
+   that marks aspiration inconsistently (`snehithulu`/`snehitulu`) — and the
+   `h` of `sh`, because the course writes చేశాను as *chesanu* while a learner,
+   and the script round-trip, write `cheshaanu` — and treat
+   `o` as `u` because the course writes long ū as `oo` (`moodu`/`mudu`). A
+   learner's `ii` is the course's `ee` (long ī; *chennagiddiini*). Vowel
    quality otherwise survives. `y` is a consonant here — counting it as a vowel
    is what let the "ve" of "I've" stand in for *veyi*. */
 export const vowelSkeleton = (value) => normalizeLatin(value)
+    .replace(/ii+/g, 'e')               // ii->ee: the course writes long i as "ee"
     .replace(/([a-z])\1+/g, '$1')      // aa->a, kk->k: length and doubling
-    .replace(/(?<=[bcdgkpt])h/g, '')   // th->t, dh->d: aspiration
+    .replace(/(?<=[bcdgkpst])h/g, '')  // th->t, dh->d, sh->s: aspiration, and s/sh
     .replace(/o/g, 'u');               // the course spells long uu as "oo"
+
+/* Vowel LENGTH alone: a doubled vowel single, and a learner's `ii` as the
+   course's `ee` (then single). Narrower than vowelSkeleton — consonant doubling,
+   aspiration and o/u survive — for the places that look a word up in a fixed
+   list, where the skeleton would fold Kannada *odu* ("read") into *oddu*. */
+export const lengthKey = (t) => String(t).replace(/ii+/g, 'e').replace(/([aeiou])\1+/g, '$1');
 
 /* Dravidian deixis lives in the FIRST vowel — i- near, a- far, e-/ye- question.
    A one-character difference at the START of a word is therefore usually a
@@ -357,12 +367,17 @@ export const DISTINCT_WORDS = [
     ['idhi', 'adhi', 'ayana'],
 ];
 const DISTINCT_INDEX = new Map(DISTINCT_WORDS.flatMap((g, i) => g.map(w => [w, i])));
+/* The same groups keyed by vowel length, so a lengthened spelling of a member
+   is still that member: `hoogu` is *hogu*, and must not pass for *hogi* — which
+   it did, because *hogi* canonicalises to *hogu* through its `alt`. */
+const DISTINCT_BY_LENGTH = new Map(DISTINCT_WORDS.flatMap((g, i) => g.map(w => [lengthKey(w), i])));
 /** True when a and b are different members of one DISTINCT_WORDS group. */
 export const distinctWords = (a, b) => {
     const x = normalizeLatin(a), y = normalizeLatin(b);
-    if (!x || !y || x === y) return false;
-    const gx = DISTINCT_INDEX.get(x);
-    return gx !== undefined && gx === DISTINCT_INDEX.get(y);
+    if (!x || !y || x === y || lengthKey(x) === lengthKey(y)) return false;
+    const group = (w) => DISTINCT_INDEX.get(w) ?? DISTINCT_BY_LENGTH.get(lengthKey(w));
+    const gx = group(x);
+    return gx !== undefined && gx === group(y);
 };
 
 export const tokenCoverage = (actual, expected, lexicon = new Map()) => {
@@ -503,6 +518,24 @@ const pronounVariants = (expected) => {
         if (PRONOUNS.includes(t)) out.push(tokens.filter((_, j) => j !== i).join(' '));
     });
     return out;
+};
+
+/* The person each subject pronoun puts on a verb, as the verb's ending — for
+   the extra-pronoun check in scoreAnswer. Telugu: -nu I, -ru or -ra you
+   (polite), -vu or -va you, -mu we. Kannada: -ene, -eeni or -ini I, -eera or
+   -iri you (polite), -iya you, -eve or -evi we. */
+/* Obligation and prohibition forms carry no person: *thinali* (must eat),
+   *maadabaaradu* (must not do), *beku* (want/need). */
+const ANY_PERSON_VERB = /(ali|aradu|kudadu|beku|bahudu)$/;
+const SUBJECT_PERSON = {
+    nenu: /nu$/,
+    naanu: /(e|ni|nu)$/,
+    meeru: /(ru|ra|ri)$/,
+    neevu: /(ra|ri|ru)$/,
+    nuvvu: /(vu|va|ve)$/,
+    neenu: /(ya|ye|iya)$/,
+    naavu: /(ve|vi|vu)$/,
+    memu: /(mu|ma)$/,
 };
 
 /** Was the answer OFFERED, or merely mentioned in passing?
@@ -714,11 +747,16 @@ export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()
        tolerated in general (greeting an answer is not an error), but a form of
        "to be" is structural: adding one where none belongs, or the wrong one,
        makes a different sentence. */
+    /* Matched on VOWEL LENGTH only (lengthKey): `unnaanu` is the learner's
+       spelling of *unnanu*, and an exact lookup missed it, so this check saw a
+       sentence with no verb and rejected `Nenu inti daggara unnaanu` at ratio 1,
+       coverage 1. */
     const COPULA = new Set([
         'unnanu', 'unnaru', 'unnara', 'unnavu', 'unnaya', 'untanu', 'undi',
         'undhi', 'unnayi',
-    ]);
-    const copulaOf = (v) => new Set(normalizeLatin(v).split(' ').filter(t => COPULA.has(t)));
+    ].map(lengthKey));
+    const copulaOf = (v) => new Set(normalizeLatin(v).split(' ').map(lengthKey)
+        .filter(t => COPULA.has(t)));
     const saidCopula = copulaOf(actual);
     const copulaOk = all.some(v => {
         const want = copulaOf(v);
@@ -804,11 +842,44 @@ export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()
         return true;
     });
 
+    /* An extra SUBJECT pronoun. Extra words are tolerated (bestWindowRatio,
+       coverage), so `meeru peru emiti?` passed for *Peru emiti?*: "you name
+       what?" — the learner's classic slip of *meeru* ("you") for *mee* ("your").
+       And `Meeru ippudu thinali` passed for *Nenu ippudu thinali* by matching
+       the dropped-*nenu* form and adding a different subject. An unlisted
+       pronoun is still fine when it adds nothing the answer contradicts:
+       - after every word of the answer, it is its own clause (`Nenu
+         bagunnanu, meeru?` — I'm fine, and you?);
+       - otherwise the answer must not name a different subject, and its verb
+         (the last word, in these verb-final languages) must carry that
+         pronoun's person (`meeru ela unnaru` for *Ela unnaru?*, the optional
+         pronoun the course teaches) or no person at all (*-ali*, *-baaradu*,
+         *-beku* take any subject).
+       *nenu* and *naanu* are mostly held already by the DISTINCT_WORDS check. */
+    const saidTokens = normalizeLatin(actual).split(' ').filter(Boolean);
+    const pronounOk = given.some(v => {
+        const toks = normalizeLatin(v).split(' ').filter(Boolean);
+        const verb = toks[toks.length - 1] || '';
+        const nonPronoun = toks.filter(x => !SUBJECT_PERSON[x]);
+        const content = nonPronoun.length ? nonPronoun : toks;
+        const lastContent = saidTokens.reduce((last, t, i) => (
+            content.some(x => tokenMatches(t, x, lexicon)) ? i : last), -1);
+        return saidTokens.every((t, i) => {
+            const person = SUBJECT_PERSON[t];
+            if (!person) return true;
+            const n = saidTokens.slice(0, i + 1).filter(x => x === t).length;
+            if (toks.filter(x => x === t).length >= n) return true;
+            if (lastContent >= 0 && i > lastContent) return true;
+            if (toks.some(x => SUBJECT_PERSON[x] && x !== t)) return false;
+            return person.test(verb) || ANY_PERSON_VERB.test(verb);
+        });
+    });
+
     return {
         ratio,
         coverage,
         accepted: ratio >= THRESHOLD && covered && offered && ordered && polarityOk && copulaOk
-            && contrastOk,
+            && contrastOk && pronounOk,
     };
 };
 
