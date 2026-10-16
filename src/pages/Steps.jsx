@@ -1194,6 +1194,22 @@ function StepScreen({
     }), [langName, taughtLessons, step, settled]);
 
     const grammarNote = drill?.grammarNote;
+    /* ── The rule, at the moment it is wanted ──
+       The note used to wait for a correct answer, so the one person it was
+       written for never saw it. Farhaan missed Kannada 12's *Naanu eega
+       tinnuttiddene, aamele hoguttene* on word order; the drill carries "Each
+       goes just before its own action word", which is exactly the rule he was
+       missing, and the screen held it back until he no longer needed it.
+
+       The reason it was held back is real, though — some notes simply quote
+       the answer, and a retry is still live here. So the note is shown unless
+       it hands the answer over: `noteGivesAnswer` is that test, and it keeps
+       122 of the course's 204 notes behind the correct answer, where they
+       were. Shown, not spoken: the miss screen already reads the diagnosis
+       aloud, and a second voice over someone who has just failed is worse
+       than one. */
+    const missNote = grammarNote && !engine.noteGivesAnswer(grammarNote, step.expected)
+        ? grammarNote : '';
     const points = useMemo(
         () => (grammarNote ? engine.grammarPoints(grammarNote) : []),
         [grammarNote],
