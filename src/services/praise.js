@@ -61,6 +61,14 @@ export const CLEAN_PRAISE = [
     'Exactly right.',
 ];
 
+/* First try, accepted, but with a slip the screen is about to show. "Exactly
+   right." above a struck-through word contradicts itself. */
+export const SLIP_PRAISE = [
+    'Got it. Mind the spelling below.',
+    'Right words. One spelling to check.',
+    'Understood. Check the spelling below.',
+];
+
 export const RECOVERED_PRAISE = [
     'You fixed it.',
     'Got there.',
@@ -82,13 +90,13 @@ export const CONTRAST_PRAISE = [
 
 /** The verdict headline. `cleared` is how many answers the learner has cleared
  *  in this lesson, which is what keeps the line moving. */
-export function verdictFor({ step = null, misses = 0, cleared = 0, helped = false } = {}) {
+export function verdictFor({ step = null, misses = 0, cleared = 0, helped = false, slips = false } = {}) {
     switch (effortFor(step, misses, helped)) {
         case 'helped':   return pick(HELPED_PRAISE, cleared);
         case 'teach':    return pick(TEACH_ACK, cleared);
         case 'fixed':    return pick(RECOVERED_PRAISE, cleared);
         case 'contrast': return pick(CONTRAST_PRAISE, cleared);
-        default:         return pick(CLEAN_PRAISE, cleared);
+        default:         return pick(slips ? SLIP_PRAISE : CLEAN_PRAISE, cleared);
     }
 }
 
@@ -437,6 +445,15 @@ export function mapHereLine({ stepIdx = 0, stepTotal = 0 } = {}) {
 }
 
 /** Tap-a-word: the popover's quiet labels and the header switch. */
+/* An accepted answer that was not word-for-word the course's: what the learner
+   wrote, with each slip beside its course spelling. */
+export const ANSWER_DIFF = {
+    wrote: 'You wrote',
+    said: 'You said',
+    left: (words) => `Left out: ${words.map(w => `*${w}*`).join(', ')}.`,
+    order: (course) => `The course puts them in this order: *${course}*.`,
+};
+
 export const TAP = {
     toggleOn: 'Tap words for meaning: on',
     toggleOff: 'Tap words for meaning: off',

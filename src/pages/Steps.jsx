@@ -540,6 +540,42 @@ function AskMiko({ context, onSay, label = 'Ask Miko', style }) {
  *  collapsed until asked for and never read aloud unasked. A word known in
  *  isolation is not yet a word a learner can use — a Kannada learner who had
  *  *Ide* could not say where it goes. */
+/** What the learner wrote, each slip struck through beside the course's
+ *  spelling. Amber, like the spelling note it replaces: accepted, worth a look. */
+function AnswerDiff({ diff }) {
+    const amber = '#b45309';
+    return (
+        <div style={{ margin: '2px 2px 8px', fontSize: 13, lineHeight: 1.6, color: 'var(--text-main)' }}>
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                {diff.spoken ? praise.ANSWER_DIFF.said : praise.ANSWER_DIFF.wrote}:{' '}
+            </span>
+            {diff.words.map((w, i) => (
+                <span key={i}>
+                    {i > 0 && ' '}
+                    {w.fix ? (
+                        <>
+                            <s style={{ color: amber, textDecorationThickness: 1 }}>{w.text}</s>
+                            {' '}<b style={{ color: amber }}>{w.fix}</b>
+                        </>
+                    ) : w.extra ? (
+                        <s style={{ color: 'var(--text-secondary)' }}>{w.text}</s>
+                    ) : w.text}
+                </span>
+            ))}
+            {diff.missing.length > 0 && (
+                <span style={{ display: 'block', color: amber }}>
+                    <TapText text={praise.ANSWER_DIFF.left(diff.missing)} />
+                </span>
+            )}
+            {diff.reordered && (
+                <span style={{ display: 'block', color: amber }}>
+                    <TapText text={praise.ANSWER_DIFF.order(diff.course)} />
+                </span>
+            )}
+        </div>
+    );
+}
+
 function SentenceExamples({ examples, onSpeak, askContext = null, onSay }) {
     const [open, setOpen] = useState(false);
     if (!examples.length) return null;
@@ -1006,6 +1042,9 @@ function StepScreen({
     const [phase, setPhase] = useState('answering');
     const [misses, setMisses] = useState(0);
     const [note, setNote] = useState('');
+    /** The accepted answer word by word (engine.answerDiff), so the learner
+     *  sees what they wrote — not the course sentence printed twice. */
+    const [diff, setDiff] = useState(null);
     const [showHint, setShowHint] = useState(false);
     const [reward, setReward] = useState(null);
     /** What was actually wrong, from the engine's own diagnosis. */
@@ -1322,10 +1361,12 @@ function StepScreen({
         if (accepted) {
             // Forgive the typo, but say what the spelling was — a learner accepted
             // in silence never finds out they had it wrong.
-            setNote(engine.spellingNote(said, step.expected, step.variants, lexicon) || '');
+            const d = engine.answerDiff(said, step.expected, step.variants, lexicon);
+            setDiff(d ? { ...d, spoken } : null);
+            setNote(d ? '' : engine.spellingNote(said, step.expected, step.variants, lexicon) || '');
             setPhase('correct');
             setReward(onSettled({ correct: true, revealed: false, misses, helped,
-                attempts: attemptsRef.current, spoken, said }));
+                attempts: attemptsRef.current, spoken, said, slips: Boolean(d?.words.some(w => w.fix)) }));
             return;
         }
 
@@ -1783,8 +1824,9 @@ function StepScreen({
 
                 {/* Spelling and grammar sit below the moment, where they can be
                     read at leisure — not inside the verdict, competing with it. */}
-                {phase === 'correct' && (note || points.length > 0) && (
+                {phase === 'correct' && (note || diff || points.length > 0) && (
                     <div className="card" style={{ padding: 11, marginTop: 12 }}>
+                        {diff && <AnswerDiff diff={diff} />}
                         {note && (
                             <p style={{ margin: '2px 2px 0', fontSize: 13, lineHeight: 1.55, color: '#b45309' }}>
                                 <TapText text={note.trim()} />
@@ -2494,7 +2536,7 @@ function Lesson({ scenarioParam, practice = false }) {
 
     /** A screen was answered. Tell the SRS, move the shared progress counter,
      *  and hand the screen back everything it needs to celebrate. */
-    const handleSettled = useCallback(({ correct, revealed, misses: tries, helped: tapped = false,
+    const handleSettled = useCallback(({ correct, revealed, misses: tries, helped: tapped = false, slips = false,
         attempts = [], spoken = false, said: finalSaid = '' }) => {
         const t = tally.current;
         /* A re-ask is a screen that already went wrong once, so its success is a
@@ -2613,7 +2655,7 @@ function Lesson({ scenarioParam, practice = false }) {
         }
 
         return {
-            verdict: praise.verdictFor({ step, misses, helped, cleared: t.cleared - 1 }),
+            verdict: praise.verdictFor({ step, misses, helped, slips, cleared: t.cleared - 1 }),
             achievement: praise.achievementFor({ step, lang: langName, misses, helped }),
             effort: praise.effortFor(step, misses, helped),
             recovery: wasStumbled && misses === 0 && !helped,
