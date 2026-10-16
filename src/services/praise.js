@@ -625,7 +625,61 @@ export const SKILLS_PAGE = {
     practise: (n) => (n === 1 ? 'Practise the one to work on' : `Practise the ${n} to work on`),
     failed: { title: 'Miko could not load your skills just now', line: 'Your progress is safe. Try again in a moment.', button: 'Try again' },
     empty: { title: 'Miko is getting to know you', line: 'A few more answers and your skills start to show up here — what is holding up, and what is worth another go.' },
+    /* The summary above the list: one sentence, then the two pictures that
+       are its evidence. Headings only — the sentence itself is built by
+       skillsOverviewFor so the claim and the data cannot drift apart. */
+    overview: {
+        title: 'How you are doing',
+        met: (n) => `${n} ${n === 1 ? 'thing' : 'things'} from the lessons you have reached`,
+        slipTitle: 'Where you slip',
+        slipOf: (n) => `${n} ${n === 1 ? 'mistake' : 'mistakes'} Miko could put a name to`,
+        lately: (words) => `Lately on ${words.join(', ')}.`,
+        /* Said when there is a profile but not enough of it. Never a chart. */
+        thin: 'Not enough yet to see a pattern. Keep going and this fills in.',
+    },
 };
+
+/* How each kind of miss is said to the learner: `phrase` goes inside a
+   sentence, `gloss` is the one line under its bar. The labels in
+   shared/missKinds.js are column headings — these are English. Nothing here
+   ranks the kinds: word order is not a lesser mistake than a missing word,
+   and the page must not read like a league table of failings. */
+export const MISS_SLIP = {
+    order: { phrase: 'word order', gloss: 'All the right words, in the wrong order.' },
+    ending: { phrase: 'word endings', gloss: 'The right word with the wrong ending on it.' },
+    confusion: { phrase: 'two words that sit close together', gloss: 'One word said where a word close to it belongs.' },
+    'wrong-word': { phrase: 'reaching for the wrong word', gloss: 'A word that was not the one the answer wanted.' },
+    'missing-word': { phrase: 'leaving a word out', gloss: 'A word of the answer simply was not there.' },
+    'extra-word': { phrase: 'one word too many', gloss: 'The whole answer, and a word it does not need.' },
+    english: { phrase: 'leaving a word in English', gloss: 'A word of the answer stayed in English.' },
+    spelling: { phrase: 'spelling', gloss: 'The right words, one of them spelt past what Miko takes.' },
+    reasoned: { phrase: 'building a word out of two', gloss: 'Two words put together where the language has one. Good thinking.' },
+    blank: { phrase: 'having nothing to offer', gloss: 'Screens that went by with no answer at all.' },
+};
+
+export const missSlipPhrase = (kind) => MISS_SLIP[kind]?.phrase || '';
+export const missSlipGloss = (kind) => MISS_SLIP[kind]?.gloss || '';
+
+/**
+ * The one sentence over the summary: how the skills are sitting, then what
+ * gets in the way. The second half is only ever claimed from a standing
+ * weakness (skillProgress.missBoard) — with a thin profile it says so, and
+ * with no profile it says nothing at all, because a kind with no misses
+ * against it is no evidence and never a strength.
+ */
+export function skillsOverviewFor({ strong = 0, learning = 0, tricky = 0,
+                                    slip = null, misses = 0, enough = false } = {}) {
+    const judged = strong + learning + tricky;
+    const head = !judged ? ''
+        : strong / judged >= 0.6 ? 'Most of what you have met is holding up.'
+            : tricky / judged >= 0.4 ? 'A good part of this is still finding its feet — which is what the practice is for.'
+                : 'Some of this is solid, and some of it is still settling.';
+    const tail = slip ? `Where you slip most is ${missSlipPhrase(slip.kind) || String(slip.label).toLowerCase()} — ${slip.count} of your last ${misses} misses.`
+        : !misses ? ''
+            : enough ? 'No one thing trips you up — your misses are spread about.'
+                : SKILLS_PAGE.overview.thin;
+    return [head, tail].filter(Boolean).join(' ');
+}
 
 /** The one line under the title. Counts strong and getting-there; for the
  *  tricky ones it names how many come next, never how many there are. */
