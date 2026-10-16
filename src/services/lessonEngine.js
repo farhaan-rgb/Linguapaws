@@ -2081,6 +2081,10 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
                 const apart = oc < ci
                     ? Math.max(...at) < Math.min(...mine)
                     : Math.min(...at) > Math.max(...mine);
+                /* *Jadi apana khushi, tahole mu khushi* ends both halves on the
+                   same word, and "khushi goes last … you did that with khushi"
+                   reads as a contradiction rather than a parallel. */
+                if (m.said[end] === m.said[m.index]) return '';
                 return inOrder && exact && apart ? m.said[end] : '';
             })();
             const base = m.index === span.end
