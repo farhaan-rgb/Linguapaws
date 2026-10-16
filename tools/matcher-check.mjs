@@ -426,5 +426,58 @@ console.log(`\n## Answers read as questions, or pinned questions misread (${asQu
 if (!asQuestion.length) console.log('_None._\n');
 for (const q of asQuestion) console.log(`- L${q.lesson} \`${q.form}\``);
 
+/* Forms the linguists replaced (2667628, f774225; telugu-second-opinion.md).
+   The WRONG ones are a near miss: rejected, and the miss line is the authored
+   trap naming the form that was needed, not a generic "not quite". The
+   ACCEPTABLE ones (regional, bookish, the spoken spelling) still pass. Each is
+   graded the way the app grades it: the lexicon of the lessons up to that drill. */
+const SUPERSEDED_PINS = {
+    Telugu: [
+        // wrong: motion takes the dative -ki
+        ['akkada vellandi', 'Akkadiki vellandi', 'trap'],
+        ['nenu akkada vellanu', 'Nenu akkadiki vellanu', 'trap'],
+        ['illu vellandi', 'Intiki vellandi', 'trap'],
+        ['inti vellandi', 'Intiki vellandi', 'trap'],
+        ['nenu repu illu velthanu', 'Nenu repu intiki velthanu', 'trap'],
+        // wrong: the noun form of a colour directly before a noun
+        ['erupu batta kaavali', 'Erra batta kaavali', 'trap'],
+        ['naaku erupu batta kaavali', 'Erra batta kaavali', 'trap'],
+        ['telupu batta', 'Tella batta', 'trap'],
+        // the other direction is untouched, and the listed fuller forms pass
+        ['akkada chudu', 'Akkada chudu!', true],
+        ['illu akkada undi', 'Illu akkada undi', true],
+        ['erupu rangu batta kaavali', 'Erra batta kaavali', true],
+        ['telupu rangu batta', 'Tella batta', true],
+        ['naaku erupu ishtam', 'Naaku erupu ishtam', true],
+        // acceptable variants stay accepted
+        ['adhi chedu', 'Adhi baaledu', true],
+        ['melukonu', 'Lev', true],
+        ['vana paduthundi', 'Vana padutondi', true],
+        ['annam oddu', 'Annam vaddu', true],
+        ['annam voddu', 'Annam vaddu', true],
+    ],
+};
+const supersededWrong = [];
+for (const [said, target, want] of SUPERSEDED_PINS[lang] || []) {
+    const at = lessons.findIndex(l => [...(l.phrases || []), ...(l.conversations || []), ...(l.pool || [])]
+        .some(d => E.normalizeLatin(d.correct) === E.normalizeLatin(target)));
+    if (at < 0) { supersededWrong.push(`\`${target}\`: no drill has this answer`); continue; }
+    const upTo = lessons.slice(0, at + 1);
+    const d = drillFor(target);
+    const lex = E.buildLexicon(upTo);
+    const ok = E.scoreAnswer(said, d.correct, d.acceptable || [], lex).accepted;
+    if (want === true) {
+        if (!ok) supersededWrong.push(`\`${said}\` for \`${d.correct}\`: should be accepted`);
+        continue;
+    }
+    if (ok) { supersededWrong.push(`\`${said}\` for \`${d.correct}\`: should be a near miss, was accepted`); continue; }
+    const help = E.missHelp(said, d.correct, { variants: d.acceptable || [], lexicon: lex, taughtLessons: upTo });
+    if (help.kind !== want) supersededWrong.push(`\`${said}\` for \`${d.correct}\`: rejected, but the line is \`${help.kind}\`, not the authored ${want}: ${help.line}`);
+}
+console.log(`\n## Superseded forms graded wrong (${supersededWrong.length} of ${(SUPERSEDED_PINS[lang] || []).length} pins)\n`);
+if (!supersededWrong.length) console.log('_None._\n');
+for (const f of supersededWrong) console.log(`- ${f}`);
+
 process.exit(rejected.length || misshapen.length || falsePasses.length || longSpoken.length
-    || swapPasses.length || pinnedWrong.length || asQuestion.length || lengthWrong.length ? 1 : 0);
+    || swapPasses.length || pinnedWrong.length || asQuestion.length || lengthWrong.length
+    || supersededWrong.length ? 1 : 0);

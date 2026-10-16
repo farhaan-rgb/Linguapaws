@@ -100,8 +100,10 @@ export const CURRICULUM = {
                 { word: "Undi", native: "ఉంది", meaning: "It is / there is", phonetic: "un-dih",
                   teach: "{w} means “it is” or “there is”, and it goes at the end of the sentence. You'll use it mostly for things and places; for how a person is, the ending changes, as in *unnaru*." },
                 { word: "Ikkada", native: "ఇక్కడ", meaning: "Here", phonetic: "ihk-kuh-duh" },
-                { word: "Akkada", native: "అక్కడ", meaning: "There", phonetic: "uhk-kuh-duh", alt: ["akkadiki"] },
-                { word: "Illu", native: "ఇల్లు", meaning: "House", phonetic: "ihl-lu", alt: ["inti", "intiki"],
+                { word: "Akkada", native: "అక్కడ", meaning: "There", phonetic: "uhk-kuh-duh", alt: ["akkadiki"], inflected: ["akkadiki"],
+                  traps: [{ said: "Akkada", form: "akkadiki", why: "*Akkada* is where something is. Going TO a place takes -ki, like *intiki*: {answer}." }] },
+                { word: "Illu", native: "ఇల్లు", meaning: "House", phonetic: "ihl-lu", alt: ["inti", "intiki"], inflected: ["intiki"],
+                  traps: [{ said: "Illu", form: "intiki", why: "*Illu* is the house itself (*inti* before *lo*). Going TO it takes -ki: {answer}, “to the house”." }],
                   teach: "“House” is {w}. To say “to the house”, say *intiki*. Similarly, *pani* (“work”) becomes *paniki*, “to work”, and *akkada* becomes *akkadiki*, “to there”." }
             ],
             phrases: [
@@ -577,11 +579,14 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Rangu", native: "రంగు", meaning: "Color", phonetic: "run-gu" },
                 { word: "Batta", native: "బట్ట", meaning: "Clothes", phonetic: "buht-tuh" },
-                { word: "Telupu", native: "తెలుపు", meaning: "White", phonetic: "theh-lu-pu", alt: ["tella"],
+                { word: "Telupu", native: "తెలుపు", meaning: "White", phonetic: "theh-lu-pu", alt: ["tella"], inflected: ["tella"],
+                  traps: [{ said: "Telupu", form: "tella", why: "*Telupu* is white on its own, the colour itself. Right in front of a thing it becomes {answer}." }],
                   teach: "{w} is “white”, the colour itself: *telupu rangu*, “white colour”. In front of a thing it becomes *tella*: *tella batta*, “white clothes”. Black and red change the same way." },
-                { word: "Nalupu", native: "నలుపు", meaning: "Black", phonetic: "nuh-lu-pu", alt: ["nalla"],
+                { word: "Nalupu", native: "నలుపు", meaning: "Black", phonetic: "nuh-lu-pu", alt: ["nalla"], inflected: ["nalla"],
+                  traps: [{ said: "Nalupu", form: "nalla", why: "*Nalupu* is black on its own, the colour itself. Right in front of a thing it becomes {answer}." }],
                   teach: "{w} is “black”, the colour itself. In front of a thing it becomes *nalla*: *nalla batta*, “black clothes”." },
-                { word: "Erupu", native: "ఎరుపు", meaning: "Red", phonetic: "eh-ru-pu", alt: ["erra"],
+                { word: "Erupu", native: "ఎరుపు", meaning: "Red", phonetic: "eh-ru-pu", alt: ["erra"], inflected: ["erra"],
+                  traps: [{ said: "Erupu", form: "erra", why: "*Erupu* is red on its own, the colour itself. Right in front of a thing it becomes {answer}." }],
                   teach: "{w} is “red”, the colour itself: *erupu rangu*, “red colour”. In front of a thing it becomes *erra*: *erra batta*, “red clothes”. So: *telupu*/*tella*, *nalupu*/*nalla*, *erupu*/*erra*." }
             ],
             phrases: [

@@ -191,6 +191,9 @@ const MISS_TEMPLATES = [
     `(?:goes last|comes first)(?: in the \\p{L}+ (?:half|part))?: ${P}(?=\\.)`,
     `Almost — ${W} (?=states|is the question form)`,
     `; ${W} states it`,
+    // "Right word, wrong form: akkada does not fit here. This needs akkadiki."
+    `Right word, wrong form: ${W}`,
+    `does not fit here\\. This needs ${W}(?=\\.)`,
 ];
 const MISS_SLOTS = new RegExp(MISS_TEMPLATES.map(t => `(?:${t})`).join('|'), 'gu');
 const MISS_SLOT_GROUPS = (MISS_TEMPLATES.join('').match(/\(\[/g) || []).length;

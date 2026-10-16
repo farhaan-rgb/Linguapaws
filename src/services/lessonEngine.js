@@ -275,19 +275,47 @@ export const buildMeaningMap = (lessons = []) => {
     return map;
 };
 
+/* Alts a vocab entry lists under `inflected`: a different FORM of the word,
+   not a spelling of it — *akkadiki* "to there" under *Akkada* "there",
+   *intiki* under *Illu*, *erra* (before a noun) under *Erupu*. They stay in
+   `alt`, so the form is recognised and counted as taught; what changes is
+   that the base can no longer stand in for them. The linguists called
+   "akkada vellandi" and "erupu batta" wrong (2667628, telugu-second-opinion.md),
+   and through the alt they were graded as fully correct. One way only: the
+   form said where the base is asked for is left as it was. */
+export const buildInflectedSet = (lessons = []) => {
+    const set = new Set();
+    for (const lesson of lessons) {
+        for (const v of lesson.vocabulary || []) {
+            for (const a of v.inflected || []) set.add(normalizeLatin(a));
+        }
+    }
+    set.delete('');
+    return set;
+};
+
 export const buildLexicon = (lessons = []) => ({
     synonyms: buildSynonymMap(lessons),
     words: buildRealWordSet(lessons),
     meanings: buildMeaningMap(lessons),
+    inflected: buildInflectedSet(lessons),
 });
 
 const asLexicon = (lex) => (lex instanceof Map)
-    ? { synonyms: lex, words: new Set(), meanings: new Map() }
+    ? { synonyms: lex, words: new Set(), meanings: new Map(), inflected: new Set() }
     : {
         synonyms: lex?.synonyms || new Map(),
         words: lex?.words || new Set(),
         meanings: lex?.meanings || new Map(),
+        inflected: lex?.inflected || new Set(),
     };
+/* Canonical form for EXPLAINING a miss: an `inflected` alt stays itself, so
+   *akkada* in "akkada vellandi" reads as the word that is wrong, not as the
+   *akkadiki* it was graded against. */
+const missCanon = (lex) => {
+    const { synonyms, inflected } = asLexicon(lex);
+    return (t) => (inflected.has(t) ? t : (synonyms.get(t) || t));
+};
 
 /** alt -> canonical, so a synonym means the same thing at every step. */
 export const buildSynonymMap = (lessons = []) => {
@@ -404,7 +432,7 @@ export const tokenCoverage = (actual, expected, lexicon = new Map()) => {
    `naanu maaduttiddene kelasa` through on the strength of a listed variant
    spelled `maadtidini`, which it could not see was out of place. */
 export const tokenMatches = (raw, token, lexicon = new Map()) => {
-    const { synonyms, words } = asLexicon(lexicon);
+    const { synonyms, words, inflected } = asLexicon(lexicon);
     const canon = (t) => synonyms.get(t) || t;
     /* Two real, different words of this course are never typos of each other. */
     const bothReal = (a, b) => words.has(a) && words.has(b) && a !== b;
@@ -428,6 +456,11 @@ export const tokenMatches = (raw, token, lexicon = new Map()) => {
        vowel slip was marked wrong while the same slip on *baga* passed. */
     if (raw === token || isSpellingSlip(raw, token)) return true;
     if (inflectionMismatch(raw, token)) return false;
+    /* The answer wants a listed inflected form (see buildInflectedSet) and
+       this is another form of the same word: *akkada* for *akkadiki*, *inti*
+       for *intiki*, *erupu* for *erra*. A miss, and missHelp's authored trap
+       says which ending or form it needed. */
+    if (inflected.has(token) && canon(raw) === canon(token)) return false;
     const s = canon(raw);
     if (s === want) return true;
     if (bothReal(s, want)) return false;
@@ -2407,6 +2440,17 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
             : (hide ? `Not ${g} — it is its look-alike partner here, ${outline(other)}.` : `Not ${g} but ${other}.`);
     }
 
+    /* Another form of a word the answer wants in a listed inflected form
+       (buildInflectedSet): *akkada* for *akkadiki*. The generic lines below
+       read the two as one word and said "akkada fits, but this sentence
+       leaves it out". Step mode says why from the authored trap; this is the
+       line for callers without the lessons (chat). */
+    const { inflected } = asLexicon(lexicon);
+    for (const g of got) {
+        const t = need.find(x => inflected.has(x) && x !== g && canon(g) === canon(x) && !got.includes(x));
+        if (t) return `Right word, wrong form: ${g} does not fit here. This needs ${hide ? outline(t) : t}.`;
+    }
+
     /* An ending that changes who — or what — is meant.
        Only claimed when BOTH endings can be named. The vague fallback that used
        to sit here ("the ending is the wrong one for who you mean") fired on two
@@ -2642,7 +2686,11 @@ export const trapsFor = (expected, lessons = []) => {
         for (const v of lesson.vocabulary || []) {
             if (!v.traps) continue;
             const hit = [v.word, ...(v.alt || [])].map(normalizeLatin).find(w => tokens.has(w));
-            if (hit) out.push(...v.traps.map(t => ({ ...t, word: hit })));
+            /* `form`: the trap is about one form of the word only — *Akkada*'s
+               "going TO a place takes -ki" belongs where the answer has
+               *akkadiki*, not under "Akkada chudu". */
+            if (hit) out.push(...v.traps.filter(t => !t.form || normalizeLatin(t.form) === hit)
+                .map(t => ({ ...t, word: hit })));
         }
     }
     return out;
@@ -2650,8 +2698,7 @@ export const trapsFor = (expected, lessons = []) => {
 
 /** Expected answer with every word the learner missed cut to its first letter. */
 export const missScaffold = (said, expected, lexicon = new Map()) => {
-    const { synonyms } = asLexicon(lexicon);
-    const canon = (t) => synonyms.get(t) || t;
+    const canon = missCanon(lexicon);
     const got = new Set(normalizeLatin(said).split(' ').filter(Boolean).map(canon));
     const out = String(expected || '').trim().split(/\s+/).map(tok => {
         if (/[[\]()]/.test(tok)) return tok;
@@ -2824,8 +2871,7 @@ export const missHelp = (said, expected, {
     variants = [], lexicon = new Map(), taughtLessons = [], families = [],
     meaning = '', reveal = false, language = '', knownWords = [], endings = null,
 } = {}) => {
-    const { synonyms } = asLexicon(lexicon);
-    const canon = (t) => synonyms.get(t) || t;
+    const canon = missCanon(lexicon);
     const taught = taughtWords(taughtLessons);
     const known = new Map((knownWords || []).map(k => [normalizeLatin(k.word), k]));
     const need = normalizeLatin(expected).split(' ')
