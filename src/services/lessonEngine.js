@@ -2973,6 +2973,34 @@ const trimLeadIn = (sentence, focus) => {
 
 /** A grammar note as the points it is made of: `[{ focus, text }]`.
  *  One point per sentence, in the order they were written. */
+/** Would showing this note hand the answer over?
+ *
+ *  The notes are written to be read AFTER the answer is on screen, and some of
+ *  them simply quote it: Telugu lesson 2's *Idhi emiti?* has "so *idhi* or
+ *  *adhi* starts the sentence and *emiti* (“what”) follows it", which is the
+ *  whole two-word answer. Others state the rule and nothing else — "Each goes
+ *  just before its own action word" — and those are exactly what a learner who
+ *  has just missed needs.
+ *
+ *  The line between them is how much of the answer the note names: half its
+ *  distinct words, or the whole thing as a run, and the note is a reveal
+ *  rather than a rule. Measured over all 204 notes in the ten courses
+ *  (2026-10-16): 122 hand the answer over by that test, 82 do not.
+ *
+ *  Nothing is graded here. This only decides whether a note is shown while a
+ *  retry is still live; after a correct answer every note is shown as before. */
+export const noteGivesAnswer = (note, expected) => {
+    const words = (s) => normalizeLatin(s).split(' ')
+        .filter(t => t && !/[[\]()]/.test(t) && t !== 'name' && t !== 'place');
+    const need = words(expected);
+    if (!note || !need.length) return false;
+    const flat = ` ${normalizeLatin(note)} `;
+    if (flat.includes(` ${need.join(' ')} `)) return true;
+    const distinct = [...new Set(need)];
+    const named = distinct.filter(t => flat.includes(` ${t} `));
+    return named.length >= Math.ceil(distinct.length / 2);
+};
+
 export const grammarPoints = (note) => {
     const raw = String(note || '').replace(NOTE_MARKERS, '').replace(/\s+/g, ' ').trim();
     if (!raw) return [];
