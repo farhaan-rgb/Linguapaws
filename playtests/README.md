@@ -12,6 +12,7 @@ would spend an hour finding.
 
 ```
 node tools/gap-check.mjs Telugu          # drills that need a word no lesson has taught yet
+node tools/grammar-check.mjs Telugu      # ...a STRUCTURE before its lesson; lessons adding > --max 2; structures never recycled
 node tools/matcher-check.mjs Telugu      # does the grader accept the answers the course declares correct?
 node tools/autoplay.mjs Telugu           # can every lesson be completed at all?  (flow bugs)
 node tools/autoplay.mjs Telugu --strict  # ...by a learner who only says what it was taught?  (content gaps)

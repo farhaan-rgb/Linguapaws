@@ -21,8 +21,13 @@
       "introducedIn": 1,
       "basis": "L1 grammarNote: 'The end of the word tells you who: unnanu is \"I am\", unnaru is \"you are\"'. L11 note repeats it.",
       "confidence": "sure",
-      "detect": ["\\w+[ae]nu"],
-      "except": ["nenu", "dhanyavaadaalu"]
+      "detect": [
+        "\\w+[ae]nu"
+      ],
+      "except": [
+        "nenu",
+        "dhanyavaadaalu"
+      ]
     },
     {
       "id": "person-ru",
@@ -31,8 +36,13 @@
       "introducedIn": 1,
       "basis": "L1 grammarNote: 'unnaru is \"you are\". Unnaru also means \"he is\" or \"she is\", said with respect.'",
       "confidence": "sure",
-      "detect": ["\\w+aru"],
-      "except": ["meeru", "evaru"]
+      "detect": [
+        "\\w+aru"
+      ],
+      "except": [
+        "meeru",
+        "evaru"
+      ]
     },
     {
       "id": "person-informal-vu",
@@ -41,8 +51,12 @@
       "introducedIn": 1,
       "basis": "L1 grammarNote: 'With a close friend, say unnavu.' Mentioned once, never drilled.",
       "confidence": "sure",
-      "detect": ["\\w+avu"],
-      "except": []
+      "detect": [
+        "\\w+avu"
+      ],
+      "except": [
+        "selavu"
+      ]
     },
     {
       "id": "zero-copula",
@@ -61,7 +75,9 @@
       "introducedIn": 2,
       "basis": "L2 grammarNote: 'Question words usually come near the end in Telugu, after the thing you're asking about.' L1 already drills 'Meeru ela unnaru' as a chunk.",
       "confidence": "sure",
-      "detect": ["(emiti|em|ekkada|evaru|enduku|entha|ela)"],
+      "detect": [
+        "(emiti|em|ekkada|evaru|enduku|entha|ela)"
+      ],
       "except": []
     },
     {
@@ -71,7 +87,9 @@
       "introducedIn": 2,
       "basis": "L2 vocab 'Ee = This (before a noun)' and grammarNote contrasting it with idhi.",
       "confidence": "sure",
-      "detect": ["ee"],
+      "detect": [
+        "ee"
+      ],
       "except": []
     },
     {
@@ -81,7 +99,9 @@
       "introducedIn": 3,
       "basis": "L3 grammarNote: 'Here's intiki, \"to the house\".' It shows the form but never says illu becomes inti-; I'm treating the showing as the introduction.",
       "confidence": "guess",
-      "detect": ["inti\\w*"],
+      "detect": [
+        "inti\\w*"
+      ],
       "except": []
     },
     {
@@ -91,7 +111,9 @@
       "introducedIn": 3,
       "basis": "L3 grammarNote: 'The -ki goes on the end of the word, never in front.'",
       "confidence": "sure",
-      "detect": ["\\w+iki"],
+      "detect": [
+        "\\w+iki"
+      ],
       "except": []
     },
     {
@@ -101,7 +123,9 @@
       "introducedIn": 10,
       "basis": "L10 grammarNote: 'The -andi at the end makes it polite.' But L3 already drills 'Akkada vellandi' and 'Intiki vellandi' with no explanation of -andi (L16's note even says '-andi from lesson 3'). Set to 10 because that is where it is EXPLAINED; change to 3 if showing counts.",
       "confidence": "guess",
-      "detect": ["\\w+[ao]ndi"],
+      "detect": [
+        "\\w+[ao]ndi"
+      ],
       "except": []
     },
     {
@@ -111,7 +135,11 @@
       "introducedIn": 3,
       "basis": "L3 vocab 'Vellu = Go'. The course never says that the bare form is the blunt/informal command, nor contrasts it with -andi until L16.",
       "confidence": "guess",
-      "detect": ["vellu", "chudu", "melukonu"],
+      "detect": [
+        "vellu",
+        "chudu",
+        "melukonu"
+      ],
       "except": []
     },
     {
@@ -121,7 +149,9 @@
       "introducedIn": 3,
       "basis": "L3 vocab 'Undi = It is / there is'.",
       "confidence": "sure",
-      "detect": ["\\w*undi"],
+      "detect": [
+        "\\w*undi"
+      ],
       "except": []
     },
     {
@@ -131,7 +161,10 @@
       "introducedIn": 4,
       "basis": "L4 grammarNote: 'Two words, no \"I\". Neeru kaavali means \"water is wanted\"'.",
       "confidence": "sure",
-      "detect": ["kaavali", "oddu"],
+      "detect": [
+        "kaavali",
+        "oddu"
+      ],
       "except": []
     },
     {
@@ -141,7 +174,9 @@
       "introducedIn": 5,
       "basis": "L5 vocab 'Naaku = To me / I have'. L4's note mentions 'naaku neeru kaavali' first; L20's note calls it 'another \"to me\" sentence'.",
       "confidence": "guess",
-      "detect": ["naaku"],
+      "detect": [
+        "naaku"
+      ],
       "except": []
     },
     {
@@ -151,7 +186,9 @@
       "introducedIn": 5,
       "basis": "L5 grammarNote: 'Naa (\"my\") goes in front of the thing, like ee does.'",
       "confidence": "sure",
-      "detect": ["(naa|mee) (?!daggara|tho)\\w+"],
+      "detect": [
+        "(naa|mee) (?!daggara|tho)\\w+"
+      ],
       "except": []
     },
     {
@@ -161,7 +198,10 @@
       "introducedIn": 5,
       "basis": "L5 grammarNote: 'Ayana means \"he\" or \"his\", said with respect.' L6 note adds that idhi for a person is rude.",
       "confidence": "sure",
-      "detect": ["ayana", "ame"],
+      "detect": [
+        "ayana",
+        "ame"
+      ],
       "except": []
     },
     {
@@ -171,7 +211,9 @@
       "introducedIn": 7,
       "basis": "L7 grammarNote: 'Okati became oka because a thing comes after it.'",
       "confidence": "sure",
-      "detect": ["oka"],
+      "detect": [
+        "oka"
+      ],
       "except": []
     },
     {
@@ -181,8 +223,17 @@
       "introducedIn": 8,
       "basis": "L8 vocab 'Lu = (Plural suffix)' and grammarNote: 'Pusthakam dropped -am and took -alu.'",
       "confidence": "sure",
-      "detect": ["\\w+[aiu]lu"],
-      "except": ["dhanyavaadaalu", "dabbulu", "rupayalu", "billu", "illu", "vellu"]
+      "detect": [
+        "\\w+[aiu]lu"
+      ],
+      "except": [
+        "dhanyavaadaalu",
+        "dabbulu",
+        "rupayalu",
+        "billu",
+        "illu",
+        "vellu"
+      ]
     },
     {
       "id": "adjective-before-noun",
@@ -191,7 +242,9 @@
       "introducedIn": 9,
       "basis": "L9 phrases (Pedda illu, Manchi snehithudu). No note states the rule; English has the same order, so arguably not a new structure at all.",
       "confidence": "guess",
-      "detect": ["(pedda|chinna|manchi|chedu|vedi|telupu|nalupu|erupu|aakhari) \\w+"],
+      "detect": [
+        "(pedda|chinna|manchi|chedu|vedi|telupu|nalupu|erupu|aakhari) \\w+"
+      ],
       "except": []
     },
     {
@@ -201,7 +254,9 @@
       "introducedIn": 11,
       "basis": "L11 vocab (Chestunnanu = I am doing ...). L3's note promises it 'in lesson 11'.",
       "confidence": "sure",
-      "detect": ["\\w+[th]unn\\w*"],
+      "detect": [
+        "\\w+[th]unn\\w*"
+      ],
       "except": []
     },
     {
@@ -211,7 +266,9 @@
       "introducedIn": 13,
       "basis": "L13 vocab (Chesanu = I did ...) and grammarNote on changing -nu for who.",
       "confidence": "sure",
-      "detect": ["(chesa|vella|thinna|chusa|cheppa|periga+)(nu|ru|du)"],
+      "detect": [
+        "(chesa|vella|thinna|chusa|cheppa|periga+)(nu|ru|du)"
+      ],
       "except": []
     },
     {
@@ -221,7 +278,9 @@
       "introducedIn": 14,
       "basis": "L14 vocab and grammarNote: 'For \"I will eat\", drop the -unn-: tintanu.'",
       "confidence": "sure",
-      "detect": ["\\w+(st|th|nt)a(nu|ru)"],
+      "detect": [
+        "\\w+(st|th|nt)a(nu|ru)"
+      ],
       "except": []
     },
     {
@@ -231,7 +290,9 @@
       "introducedIn": 15,
       "basis": "L15 vocab 'Ledu = No/Not' and grammarNote: 'Ledu also means \"is not\" or \"there isn't\".'",
       "confidence": "sure",
-      "detect": ["ledu"],
+      "detect": [
+        "ledu"
+      ],
       "except": []
     },
     {
@@ -241,8 +302,14 @@
       "introducedIn": 26,
       "basis": "L26 grammarNote: 'naaku ... -ga undi, or nenu ... -ga unnanu'. That is the first explanation, but L16, L20, L24 and L25 already drill santhoshamga. Baga/tvaraga/mellaga (L16) are taught as whole words, so excluded.",
       "confidence": "guess",
-      "detect": ["\\w+ga"],
-      "except": ["baga", "tvaraga", "mellaga"]
+      "detect": [
+        "\\w+ga"
+      ],
+      "except": [
+        "baga",
+        "tvaraga",
+        "mellaga"
+      ]
     },
     {
       "id": "light-verb-chey",
@@ -251,7 +318,9 @@
       "introducedIn": 18,
       "basis": "L18 phrase 'annam vanta chestunnanu', vocab 'Vanta = Cook'. Nothing explains that vanta is a noun and chey- makes it a verb. 'pani chey' (L11) is literal 'do work', not counted.",
       "confidence": "guess",
-      "detect": ["(vanta|sahaayam) che\\w*"],
+      "detect": [
+        "(vanta|sahaayam) che\\w*"
+      ],
       "except": []
     },
     {
@@ -261,8 +330,13 @@
       "introducedIn": 21,
       "basis": "L21 grammarNote: 'These five words go AFTER the thing, not before.'",
       "confidence": "sure",
-      "detect": ["\\w+ (lo|paina|kindha|tho|daggara)", "\\w+(lo|tho)"],
-      "except": ["hello"]
+      "detect": [
+        "\\w+ (lo|paina|kindha|tho|daggara)",
+        "\\w+(lo|tho)"
+      ],
+      "except": [
+        "hello"
+      ]
     },
     {
       "id": "ability-gala-le",
@@ -271,7 +345,9 @@
       "introducedIn": 22,
       "basis": "L22 grammarNote: 'cheya-, then -galanu for \"can\", or -lenu for \"can't\".'",
       "confidence": "sure",
-      "detect": ["\\w+(galanu|lenu)"],
+      "detect": [
+        "\\w+(galanu|lenu)"
+      ],
       "except": []
     },
     {
@@ -281,8 +357,12 @@
       "introducedIn": 23,
       "basis": "L23 grammarNote: 'Add -aali to mean \"must\".'",
       "confidence": "sure",
-      "detect": ["\\w+a+li"],
-      "except": ["kaavali"]
+      "detect": [
+        "\\w+a+li"
+      ],
+      "except": [
+        "kaavali"
+      ]
     },
     {
       "id": "clause-joining",
@@ -291,7 +371,10 @@
       "introducedIn": 24,
       "basis": "L24 vocab Kani/Endukante/Leda. L13 conversation already joins two verbs with mariyu ('Nenu vellanu mariyu thinnanu'); I only detect kani/endukante so mariyu-between-nouns (L10) is not counted.",
       "confidence": "guess",
-      "detect": ["kani", "endukante"],
+      "detect": [
+        "kani",
+        "endukante"
+      ],
       "except": []
     },
     {
@@ -301,7 +384,9 @@
       "introducedIn": 25,
       "basis": "L25 vocab (Unte = If there is ...). No grammarNote in L25 explains how -te is formed.",
       "confidence": "sure",
-      "detect": ["(unte|velthe|thinte|chesthe)"],
+      "detect": [
+        "(unte|velthe|thinte|chesthe)"
+      ],
       "except": []
     },
     {
@@ -311,7 +396,9 @@
       "introducedIn": 26,
       "basis": "L26 vocab 'Unnara = Are you?'. Taught as one word; the -aa ending is never named, so a learner cannot form any other yes/no question.",
       "confidence": "guess",
-      "detect": ["\\w+nnara"],
+      "detect": [
+        "\\w+nnara"
+      ],
       "except": []
     },
     {
@@ -321,7 +408,9 @@
       "introducedIn": 30,
       "basis": "L30 vocab 'Nundi = From'.",
       "confidence": "sure",
-      "detect": ["nundi"],
+      "detect": [
+        "nundi"
+      ],
       "except": []
     }
   ]
