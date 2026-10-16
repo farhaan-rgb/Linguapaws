@@ -267,15 +267,52 @@ for the same reason the model is: the plan must not move mid-lesson.
 A kind is a **standing weakness** at `count >= 3 && share >= 0.25`. Three
 consumers, in descending order of how much they are worth:
 
-**1. The scheduler** (`backend/services/srs.js nextSchedule`). Every miss drops
-an item to box 0. An `order`, `extra-word` or `spelling` miss on an item whose
-words were all there is not evidence that the item is forgotten — it was
-recalled. Proposal: `nextSchedule(box, outcome, now, { missKind })` demotes one
-rung instead of to the bottom for those three kinds, floor 0, and does not
-count a lapse. This is the fix to Farhaan's actual complaint and it is also a
-real behaviour change to the ladder, so it should land after the classifier,
-behind one named constant, and be spot-checked against a session before it is
-believed.
+**1. The scheduler** (`backend/services/srs.js nextSchedule`) — **built, on by
+default.** Every miss used to drop an item to box 0. An `order`, `extra-word`
+or `spelling` miss on an item whose words were all there is not evidence that
+the item is forgotten — it was recalled. `nextSchedule(box, outcome, now,
+{ missKind })` now demotes one rung instead of to the bottom for those three
+kinds, floor 0, and returns `lapse: false` so `lapses` keeps meaning "times
+this was forgotten".
+
+`dueAt` is still `now`, demoted or not. This file's header says a miss leaves
+the word due immediately so the review loop re-asks the same word rather than
+swapping in a different one mid-retry; the demotion moves the box, which is
+where the word lands once the learner gets it, and nothing about when it is
+next asked.
+
+`SCHEDULE_DEMOTE_KINDS` is the constant and the switch: emptying the set
+restores the old ladder exactly. It is on because the numbers say so, not
+because it is new.
+
+*One order miss on a word that had reached the top of the ladder*, then
+unaided every time after:
+
+| box at the miss | old rule | new rule |
+|---|---|---|
+| 6 (90-day interval) | 3 more review screens, 19 days below where it was | 1 screen, 0 days |
+| 5 (35 days) | 3 screens, 19 days | 1 screen, 0 days |
+| 4 (16 days) | 2 screens, 3 days | 1 screen, 0 days |
+| 3 (7 days) | 2 screens, 3 days | 1 screen, 0 days |
+| 0–2 | unchanged | unchanged |
+
+*A 200-word learner over 365 days*, driven by the measured 6.6% miss rate
+(255 of 3,887 graded turns in `.lesson-sim/`) and the measured kind mix above,
+both arms sharing one per-item random stream so only the ladder differs:
+
+| | off | on |
+|---|---|---|
+| review screens | 1,979 | 1,905 (−3.7%) |
+| misses recorded as a lapse | 428 | 322 (−24.8%) |
+| mean box at day 365 | 5.96 | 5.97 (+0.2%) |
+| first-try miss rate at review | 21.6% | 20.8% |
+
+The last two rows are the safety check and the reason the default is on: if
+the demotion were making the schedule over-confident, items would be coming
+back after they had been forgotten and the miss rate at review would *rise*.
+It falls slightly, and the mean box is unmoved — the learner is not being
+under-reviewed, they are being asked 74 fewer times a year about words they
+had already produced.
 
 **2. Selection and assistance** (`src/services/adaptive.js`). The skill model
 picks *which* skill; the profile picks *what shape*. As a bounded bonus — cap
@@ -311,13 +348,69 @@ missed for its ending and ask for it inside a phrase instead of alone.
 | taxonomy (`shared/missKinds.js`) | **shipped** — 11 kinds, labels, `dominantMissKind`, `reviewMissKind` |
 | storage (`LearnedWord`, `MissKindStat`, `POST /review`) | **shipped** |
 | read path (`GET /miss-kinds`, `srs.fetchMissProfile`, `/due` + `/vocab` history, `/debug/skills`) | **shipped** |
-| the classifier (`engine.classifyMiss`, `missHelp.missKind`) | **not built** — interface above; `lessonEngine.js` |
-| the two surfaces' call sites (`Steps.jsx`, `Chat.jsx`) | **not built** — one line each, above; wire both together |
-| scheduler, selection, captions | **designed, not built** — above |
+| the classifier (`engine.classifyMiss`, `missHelp.missKind`) | **shipped** |
+| the two surfaces' call sites (`Steps.jsx`, `Chat.jsx`, and `tools/lesson-sim.mjs`) | **shipped** |
+| the scheduler (`srs.js SCHEDULE_DEMOTE_KINDS`) | **shipped, on** |
+| selection (`adaptive.js`), captions | **designed, not built** — above |
 
-Until the classifier lands nothing writes a kind, every profile is empty, and
-every surface behaves exactly as it does today. That is the intended
-intermediate state, not an unfinished one.
+### What the classifier actually does, where it departs from §3
+
+Measured on 110 rejected answers harvested from the 306 lesson-sim transcripts
+in `.lesson-sim/` — real tester answers, each one re-checked against
+`scoreAnswer` so only genuine rejections are counted:
+
+| kind | n | share |
+|---|---|---|
+| `confusion` | 51 | 46.4% |
+| `order` | 17 | 15.5% |
+| `missing-word` | 11 | 10.0% |
+| `wrong-word` | 11 | 10.0% |
+| `ending` | 10 | 9.1% |
+| `english` | 6 | 5.5% |
+| `spelling` | 2 | 1.8% |
+| `unknown` | 1 | 0.9% |
+| `extra-word` | 1 | 0.9% |
+
+One `unknown` in 110. Nine of the eleven kinds fire on this corpus; `blank` is
+the skip path and an empty attempt, and `reasoned` needs a fused form nobody
+in the corpus happened to build.
+
+Three departures from the interface above, all in the `other` ladder:
+
+1. **`extra-word` is a rung.** §3's ladder ends at `english`, so an answer
+   holding every word of the target plus one taught word too many — where the
+   extra word's meaning did not fit the prompt well enough for `missHelp`'s
+   own `extra` line to fire — came out `unknown`. It is still *the whole
+   answer, plus a word*, which is the definition, and under
+   `SCHEDULE_DEMOTE_KINDS` it is the difference between a reset and a demotion.
+
+2. **Rung 3 is not all `spelling`.** "Every needed token is present or is a
+   typo of something written" catches three different mistakes with one edit:
+   *unnanu* for *unnaru* (the person ending), *idu* for *adu* (two taught
+   words), *haudu* for *hauda* (an actual slip). Of the 23 answers this rung
+   first claimed, 2 were the third. So the rung now asks
+   `differsOnlyByPersonEnding` first (→ `ending`), then whether both forms are
+   taught words with different headwords (→ `confusion`), and only then
+   `spelling`. Without this the scheduler's leniency would be handed to
+   learners who used the wrong word, which is the one case it must not reach.
+   The `confusion` test is wider than this document's "a pair the course
+   teaches against" — but *idu*/*adu*, *illi*/*alli* and *chusanu*/*chesanu*
+   are exactly that, and an `alt` resolves to its headword, so a spelling the
+   course itself lists never trips it.
+
+3. **Chat does not classify an accepted turn.** §3 says all four of Chat's
+   `recordReview` calls pass a kind. Two of them fire on an *accepted* answer
+   with an outcome of `hinted` or `revealed`: the miss was an earlier turn
+   whose text the call no longer has, and running the engine on the right
+   answer would write `unknown` for a mistake it never looked at. Those two
+   send no kind, which this document's own rule — an absent kind means *we do
+   not know* — says is the honest answer.
+
+`classifyMiss` with no `help` runs `missHelp` itself rather than carrying a
+second copy of the analysis, so the two surfaces cannot drift. It wants the
+same context `missHelp` does: with only a lexicon it still returns `order` and
+`blank`, but a confusion degrades to `wrong-word` and an ending slip to
+`unknown`.
 
 Tests: `tests/missKinds.test.mjs` (the taxonomy and the two reduction rules),
 `backend/tests/missKinds.test.js` (the service, and the review route end to end

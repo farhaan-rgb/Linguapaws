@@ -43,7 +43,7 @@ const SYSTEM_ENGLISH = (() => {
             .split('\n').map(w => w.trim().toLowerCase()).filter(Boolean));
     } catch { return null; }
 })();
-const { CURRICULUM } = await import(join(ROOT, 'src/services/curriculum.js'));
+const { CURRICULUM, WORD_FAMILIES, KNOWN_WORDS, WORD_ENDINGS } = await import(join(ROOT, 'src/services/curriculum.js'));
 const srs = await import(join(ROOT, 'backend/services/srs.js')).then(m => m.default ?? m);
 
 /* ── args ──────────────────────────────────────────────────────────────── */
@@ -537,10 +537,13 @@ function recordTaught(s, slice) {
     }
 }
 
-function recordReview(s, word, outcome) {
+function recordReview(s, word, outcome, missKind = null) {
     const k = String(word).toLowerCase();
     const rec = s.vocab[k] || { word, meaning: '', box: 0, dueAt: new Date().toISOString(), reviews: 0 };
-    const next = srs.nextSchedule(rec.box, outcome, new Date());
+    /* Chat.jsx sends the miss kind with the review, and the ladder reads it
+       (srs.js SCHEDULE_DEMOTE_KINDS), so the harness has to send it too or its
+       boxes drift from the app's. */
+    const next = srs.nextSchedule(rec.box, outcome, new Date(), { missKind });
     s.vocab[k] = { ...rec, box: next.box, dueAt: next.dueAt, reviews: rec.reviews + 1, lastOutcome: next.outcome };
 }
 
@@ -627,7 +630,7 @@ async function turn(s, said) {
                not known. "That one will come back later" is a promise about the
                ladder, and it was not being told. */
             if (stageBefore === 'teach' || stageBefore === 'review') {
-                for (const w of String(shown).split(/\s+/)) if (w) recordReview(s, w, 'missed');
+                for (const w of String(shown).split(/\s+/)) if (w) recordReview(s, w, 'missed', 'blank');
             }
             s.step += 1;
             push('assistant', `No problem — it's **${shown}**. That one will come back later.`);
@@ -743,7 +746,12 @@ async function turn(s, said) {
             return out;
         }
 
-        recordReview(s, item.word, E.gradeOutcome({ correct: ok, misses, revealed }));
+        recordReview(s, item.word, E.gradeOutcome({ correct: ok, misses, revealed }),
+            ok ? null : E.classifyMiss(said, item.word,
+                { variants: E.altsFor(CURRICULUM[s.lang] || [], item.word), lexicon: syn,
+                  taughtLessons: (CURRICULUM[s.lang] || []).slice(0, s.scenarioIdx + 1),
+                  families: WORD_FAMILIES[s.lang] || [], knownWords: KNOWN_WORDS[s.lang] || [],
+                  endings: WORD_ENDINGS[s.lang] || null, language: s.lang, meaning: item.meaning || '' }));
 
         if (ok && isQuestion) {
             pushHelper(push, await answerAside(s, said, item.word, lesson), { state: s, asked: true, fallback: E.bestExplanationFor(lesson, said, s.step), taught: taughtSoFar(s), said, upcoming: upcomingAnswers(s, lesson) });

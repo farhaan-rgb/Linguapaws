@@ -143,7 +143,10 @@ test('a review carrying a miss kind schedules as before and records why', async 
         /* Farhaan's answer: every word right, the last two swapped. */
         const r = await review(base, { word: 'Hoguttene', outcome: 'missed', missKind: 'order' });
         assert.strictEqual(r.status, 200);
-        assert.strictEqual(r.body.box, 0, 'a miss still drops to box 0 — scheduling is unchanged');
+        /* Box 0 because the row is new, not because the kind was ignored:
+           the demotion is floored at 0. srsMissKind.test.js has the case
+           where it matters. */
+        assert.strictEqual(r.body.box, 0);
         assert.strictEqual(r.body.missKind, 'order');
         assert.strictEqual(wordRows[0].lastMissKind, 'order');
         assert.strictEqual(wordRows[0].missKinds.get('order'), 1);
@@ -217,5 +220,27 @@ test('the word row carries its own history into /due and /vocab', async () => {
         assert.strictEqual(hit.missKinds.order, 2, 'this row\'s own two order misses, not the profile\'s three');
         const vocab = await get(`${base}/vocab?lang=Kannada`);
         assert.strictEqual(vocab.words.find(w => w.word === 'Nanage').lastMissKind, undefined);
+    });
+});
+
+test('the route feeds the kind to the ladder: an order miss drops one rung', async () => {
+    await withServer(async (base) => {
+        /* Climb first — a new row sits in box 0, where the demotion is
+           invisible. Two clean answers put it in box 4. */
+        await review(base, { word: 'Aamele', outcome: 'unaided' });
+        const up = await review(base, { word: 'Aamele', outcome: 'unaided' });
+        assert.strictEqual(up.body.box, 4);
+        assert.strictEqual(up.body.lapses || 0, 0);
+
+        /* Farhaan's miss: every word right, the last two swapped. */
+        const r = await review(base, { word: 'Aamele', outcome: 'missed', missKind: 'order' });
+        assert.strictEqual(r.body.box, 3, 'one rung down, not back to the bottom');
+        assert.strictEqual(r.body.lapses || 0, 0, 'a word that was recalled did not lapse');
+        assert.strictEqual(r.body.missKind, 'order');
+
+        /* The same word, forgotten outright, still resets. */
+        const r2 = await review(base, { word: 'Aamele', outcome: 'missed', missKind: 'missing-word' });
+        assert.strictEqual(r2.body.box, 0);
+        assert.strictEqual(r2.body.lapses, 1);
     });
 });

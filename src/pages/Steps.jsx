@@ -520,9 +520,11 @@ function AskMiko({ context, onSay, label = 'Ask Miko', style }) {
             setReply({ q: question, a: answer });
             onSay?.([{ tip: answer }]);
         } catch (err) {
-            const busy = /too many/i.test(err.message);
-            setReply({ q: question, error: true,
-                a: busy ? 'That is a lot of questions at once. Give it a minute.' : 'Miko could not answer just now. Try again in a moment.' });
+            /* Which failure it was, not just that there was one. `kind` comes
+               from api.js's ApiError; the message match is the fallback for
+               anything that threw before it reached there. */
+            const kind = err?.kind || (/too many/i.test(err?.message || '') ? 'rate' : 'server');
+            setReply({ q: question, error: true, a: praise.askTrouble(kind) });
         } finally {
             setLoading(false);
         }
@@ -2895,6 +2897,11 @@ function Lesson({ scenarioParam, practice = false, focusParam = '' }) {
                 outcome: engine.gradeOutcome({ correct, misses: helped ? 1 : misses, revealed }),
                 wasCorrect: correct, meaning: step.item.meaning,
                 scenario: practice ? step.lessonIdx : scenarioIdx,
+                /* Not just that it was missed — what KIND of miss it was
+                   (MISS-TAXONOMY.md). One per attempt, in order; recordReview
+                   reduces the list to the screen's kind with the shared rule,
+                   so neither surface carries its own copy of it. */
+                missKinds: attempts.map(a => a.help?.missKind),
                 ...(step.item.phrase ? { kind: 'phrase', ...step.item.phrase } : {}),
             }).catch(() => {});
         } else if (step?.kind === 'drill' && !step.retry && !step.drill?.poolId) {
@@ -2912,6 +2919,7 @@ function Lesson({ scenarioParam, practice = false, focusParam = '' }) {
                     outcome: engine.gradeOutcome({ correct, misses: helped ? 1 : misses, revealed }),
                     wasCorrect: correct, meaning: step.drill?.meaning || '',
                     scenario: li, kind: 'phrase', lessonIdx: li, phase: step.phase,
+                    missKinds: attempts.map(a => a.help?.missKind),
                 }).catch(() => {});
             }
         }

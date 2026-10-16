@@ -54,20 +54,64 @@ function normaliseOutcome(outcome) {
     return OUTCOMES.includes(outcome) ? outcome : 'missed';
 }
 
+/* ── Not every miss is a forgotten word ──
+   THE constant for the miss-kind demotion (MISS-TAXONOMY.md §4). Farhaan,
+   learning Kannada, wrote *naanu eega tinnuttiddene, hoguttene aamele* for
+   *Naanu eega tinnuttiddene, aamele hoguttene*: every word right, the last
+   two swapped. That reached this function as "missed" and dropped the word to
+   box 0, where it came back as a vocabulary question — a drill for something
+   he had just demonstrated he knows.
+
+   An `order`, `extra-word` or `spelling` miss is an answer whose words were
+   all there. The item WAS recalled; something else was wrong with it, and
+   that something is recorded on the learner's miss profile where a later
+   lesson can aim at it. So the ladder drops one rung instead of to the
+   bottom, floor 0, and the miss is not counted as a lapse.
+
+   This is the whole of what a learner feels from the taxonomy, so it is on by
+   default. **Emptying this set turns the behaviour off entirely** and every
+   miss resets to box 0 again, exactly as before — that is the switch.
+
+   The three kinds are the ones where the engine can prove the item was
+   produced. `confusion`, `wrong-word`, `missing-word`, `english`, `reasoned`,
+   `blank` and `unknown` are ordinary vocabulary gaps and keep resetting,
+   which is what the SRS has always been for.
+
+   Measured on 110 real rejected answers harvested from the 306 lesson-sim
+   transcripts in `.lesson-sim/`: 18.2% of misses fall in this set, 15.5% of
+   them `order`. See the commit message for the review-load numbers. */
+const SCHEDULE_DEMOTE_KINDS = new Set(['order', 'extra-word', 'spelling']);
+
 /**
  * Where a word goes after being tested.
+ *
+ * `dueAt` on a miss is still `now`, demoted or not: the review loop re-asks
+ * the same word immediately and must keep doing so (the retry UX this file's
+ * header describes). The demotion moves the BOX — where the word lands once
+ * the learner gets it — and nothing about when it is asked next.
  *
  * @param {number} box                   the box it was in
  * @param {string|boolean} outcome       see OUTCOMES above
  * @param {Date}   now
- * @returns {{ box: number, dueAt: Date, outcome: string }}
+ * @param {{missKind?: string}} opts     why it was missed (shared/missKinds.js)
+ * @returns {{ box: number, dueAt: Date, outcome: string, lapse: boolean }}
  */
-function nextSchedule(box, outcome, now = new Date()) {
+function nextSchedule(box, outcome, now = new Date(), { missKind = null } = {}) {
     const kind = normaliseOutcome(outcome);
-    if (kind === 'missed' || kind === 'revealed') return { box: 0, dueAt: now, outcome: kind };
+    if (kind === 'missed' || kind === 'revealed') {
+        const demote = SCHEDULE_DEMOTE_KINDS.has(missKind);
+        return {
+            box: demote ? Math.max(clampBox(box) - 1, 0) : 0,
+            dueAt: now,
+            outcome: kind,
+            /* A miss that only moved a word around is not a lapse: `lapses` is
+               read as "times this was forgotten", and it would stop being true. */
+            lapse: !demote,
+        };
+    }
 
     const promoted = Math.min(clampBox(box) + STEP[kind], MAX_BOX);
-    return { box: promoted, dueAt: addMinutes(now, LADDER_MINUTES[promoted]), outcome: kind };
+    return { box: promoted, dueAt: addMinutes(now, LADDER_MINUTES[promoted]), outcome: kind, lapse: false };
 }
 
 /** Where a word starts the first time it is taught. */
@@ -99,6 +143,7 @@ module.exports = {
     LADDER_MINUTES,
     OUTCOMES,
     MAX_BOX,
+    SCHEDULE_DEMOTE_KINDS,
     intervalMinutes,
     nextSchedule,
     initialSchedule,

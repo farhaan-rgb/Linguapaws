@@ -238,6 +238,31 @@ export function voiceTrouble(kind, lang = '', { hasAnswer = false, action = 'Che
     }
 }
 
+/* ── When Ask Miko cannot answer ───────────────────────────────────────────
+   One line per reason, because the reasons ask different things of the
+   learner. The box said "Miko could not answer just now. Try again in a
+   moment." for every failure there is, and on the day the backend process was
+   not running that told Farhaan to retry something that could never succeed —
+   a network that cannot be reached, a model that returned a 502 and a token
+   that has expired were one string.
+
+   Keyed by `ApiError.kind` (services/api.js), which is where the distinction
+   had to be made: before this the caller genuinely could not tell them apart.
+   Same rule as voiceTrouble above — say what happened, and end on the thing
+   that would fix it. Nothing here says "try again" unless trying again could
+   work.                                                                     */
+export const ASK_TROUBLE = {
+    offline: 'Cannot reach the server, so Miko never got the question. Check your connection.',
+    timeout: 'Miko took too long to answer that one. Ask again in a moment.',
+    auth:    'Your session has run out. Sign in again and Miko can answer.',
+    rate:    'That is a lot of questions at once. Give it a minute.',
+    server:  'Miko could not answer just now. Try again in a moment.',
+};
+
+/** The line for a failed Ask Miko question. Anything unrecognised is treated
+ *  as the model having failed, which is the one the old code always showed. */
+export const askTrouble = (kind) => ASK_TROUBLE[kind] || ASK_TROUBLE.server;
+
 /** The invitation on the revealed screen. The point is the same in both modes:
  *  the screen ends on something the learner did, not on the miss. */
 export const LOCK_IN_PROMPT = {

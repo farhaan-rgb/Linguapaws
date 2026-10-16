@@ -199,12 +199,18 @@ router.post('/review', async (req, res) => {
     });
 
     const now = new Date();
-    const scheduled = nextSchedule(target.box, graded, now);
+    /* Why it was missed is read BEFORE the schedule, because the schedule
+       depends on it: an order, extra-word or spelling miss is an answer whose
+       words were all there, so the ladder drops one rung instead of to the
+       bottom (srs.js SCHEDULE_DEMOTE_KINDS). An old client sends no kind and
+       gets exactly today's behaviour. */
+    const why = readMissKind(req.body);
+    const scheduled = nextSchedule(target.box, graded, now, { missKind: why });
 
     target.box = scheduled.box;
     target.dueAt = scheduled.dueAt;
     target.reviews = (target.reviews || 0) + 1;
-    if (scheduled.outcome === 'missed' || scheduled.outcome === 'revealed') {
+    if (scheduled.lapse) {
         target.lapses = (target.lapses || 0) + 1;
     }
     target.lastOutcome = scheduled.outcome;
@@ -214,7 +220,7 @@ router.post('/review', async (req, res) => {
        written beside the schedule rather than on their own endpoint: a miss
        counted twice (a retry, a resend) would skew the profile, and the review
        post is already the one call step mode makes exactly once per screen. */
-    const missKind = applyTally(target, readMissKind(req.body), scheduled.outcome);
+    const missKind = applyTally(target, why, scheduled.outcome);
 
     await target.save();
     if (missKind) {

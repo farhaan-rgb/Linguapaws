@@ -362,7 +362,15 @@ as the same fact as not knowing the word. `shared/missKinds.js` names the
 eleven failures the engine already detects (`order`, `ending`, `confusion`,
 `spelling` …), `POST /api/progress/review` stores one per screen on the item
 and in a per-learner profile, and `GET /api/progress/miss-kinds` reads it
-back. The classifier that produces a kind lives in `lessonEngine.js` and is
-not written yet; until it is, nothing is recorded and every surface behaves as
-it does today. MISS-TAXONOMY.md holds the taxonomy, the exact interface the
-classifier must satisfy, and the designed-but-unbuilt retrieval path.
+back. `engine.classifyMiss` produces the kind and both surfaces send it: on
+110 real rejected answers from the sim transcripts exactly one came out
+`unknown`.
+
+The ladder reads it. An `order`, `extra-word` or `spelling` miss is an answer
+whose words were all there, so the word drops one rung instead of to box 0 and
+is not counted as a lapse (`srs.js SCHEDULE_DEMOTE_KINDS`, the constant that
+is also the switch). One order miss on a word at the top of the ladder used to
+cost three more review screens and 19 days of short-interval drilling; it now
+costs one screen and no delay. MISS-TAXONOMY.md holds the taxonomy, the
+measured kind mix, the review-load numbers behind that default, and the
+designed-but-unbuilt selection and caption work.

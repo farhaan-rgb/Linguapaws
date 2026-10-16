@@ -10,7 +10,7 @@ import { wordTracker } from '../services/wordTracker';
 import { characters as defaultCharacters } from '../data/characters';
 import { useTranslation } from '../hooks/useTranslation';
 import { getStoredJSON, setStoredJSON } from '../utils/storage';
-import { CURRICULUM, AVAILABLE_LANGUAGES, isLanguageAvailable } from '../services/curriculum';
+import { CURRICULUM, AVAILABLE_LANGUAGES, WORD_FAMILIES, KNOWN_WORDS, WORD_ENDINGS, isLanguageAvailable } from '../services/curriculum';
 import * as engine from '../services/lessonEngine';
 import { phraseDrill } from '../services/phraseReview';
 import { courseFactsFor, groundedAnswerRule } from '../services/courseFacts';
@@ -488,6 +488,30 @@ export default function Chat() {
         ? `How do you say "${item.meaning}"${withLang ? ` in ${targetLangName}` : ''}?`
         : `What's the ${withLang ? `${targetLangName} ` : ''}word for "${item?.meaning}"?`);
     const reviewLadder = (item) => (item?.phrase ? { kind: 'phrase', ...item.phrase } : {});
+
+    /* Why a rejected answer was rejected, in the eleven names of
+       shared/missKinds.js (MISS-TAXONOMY.md) — so an answer with every word
+       right and two of them swapped no longer reaches the scheduler as the
+       same fact as not knowing the word.
+
+       Step mode keeps a missHelp result per attempt and reads the kind off
+       that. Chat posts its review before it asks the engine anything, so it
+       has none, and `classifyMiss` runs the same analysis itself. It needs
+       the same context to do it: without `taughtLessons` a confusion looks
+       like a plain wrong word, and without `endings` a dropped -ge does not
+       show up at all. */
+    const missKindFor = (said, expected, variants = [], scenarioIdx = 0, meaning = '') => (
+        expected
+            ? engine.classifyMiss(said, expected, {
+                variants, lexicon: LEXICON,
+                taughtLessons: (CURRICULUM[safeLang] || []).slice(0, Math.max(scenarioIdx, 0) + 1),
+                families: WORD_FAMILIES[safeLang] || [],
+                knownWords: KNOWN_WORDS[safeLang] || [],
+                endings: WORD_ENDINGS[safeLang] || null,
+                language: safeLang, meaning,
+            })
+            : null
+    );
 
     /** Best string-similarity and token-coverage across a target and its variants. */
     const scoreAgainst = (actual, expected, variants = []) =>
@@ -1332,6 +1356,12 @@ export default function Chat() {
                     }),
                     scenario: scenarioIdxForMatch,
                     kind: 'phrase', lessonIdx: scenarioIdxForMatch, phase: phraseStage,
+                    /* No miss kind: this turn was ACCEPTED. An outcome of
+                       'hinted' or 'revealed' here means the miss happened on
+                       an earlier turn whose text this call no longer has, and
+                       classifying the right answer would record 'unknown' for
+                       a mistake the engine never looked at. An absent kind
+                       means "we do not know", which is the honest answer. */
                 });
             }
 
@@ -1361,6 +1391,8 @@ export default function Chat() {
                     recordReview({
                         lang: safeLang, word: phraseExpectedCorrect, outcome: 'missed',
                         scenario: scenarioIdxForMatch, kind: 'phrase', lessonIdx: scenarioIdxForMatch, phase: phraseStage,
+                        /* A skip is not an attempt, so the engine is not asked. */
+                        missKind: 'blank',
                     });
                 } else if (isCurrentlyTeaching || isCurrentlyInReview) {
                     recordReview({
@@ -1369,6 +1401,7 @@ export default function Chat() {
                         outcome: 'missed',
                         meaning: reviewItem?.meaning,
                         scenario: scenarioDataForMatch.scenario,
+                        missKind: 'blank',
                         ...(isCurrentlyInReview ? reviewLadder(reviewItem) : {}),
                     });
                 }
@@ -1517,6 +1550,12 @@ export default function Chat() {
                             }),
                             meaning: reviewItem?.meaning,
                             scenario: scenarioDataForMatch.scenario,
+                            /* Only when THIS turn is the rejected one; an
+                               accepted answer's earlier miss is not in `text`. */
+                            missKind: hasCorrectMatch ? null : missKindFor(
+                                text, reviewExpectedWord, reviewVariantsFor(reviewItem),
+                                scenarioIdxForMatch, reviewItem?.meaning || '',
+                            ),
                             ...reviewLadder(reviewItem),
                         });
                     }

@@ -2668,7 +2668,35 @@ export const missHelp = (said, expected, {
            unless every needed word is there, so this can never fire on an
            answer that is missing one. */
         if (orderMiss(said, expected, variants, lexicon)) return 'order';
-        if (missing.length && missing.every(t => got.some(g => typo(g, t)))) return 'spelling';
+        /* Every word of the answer is there or is a near-form of something
+           written: a slip, not a gap. WHICH slip is the part worth recording,
+           and one edit is three different mistakes —
+             *unnanu* for *unnaru*  the person ending
+             *idu* for *adu*        two taught words, a this/that mixup
+             *haudu* for *hauda*    an actual misspelling
+           In 23 real misses harvested from the sim transcripts only 2 were
+           the third. Calling all three `spelling` would hand the scheduler's
+           leniency (SCHEDULE_DEMOTE_KINDS) to a learner who used the wrong
+           word, which is the one case it must not be given to. */
+        if (missing.length && missing.every(t => got.some(g => typo(g, t)))) {
+            const blame = missing
+                .map(t => [t, got.find(g => !has(need, g) && typo(g, t))])
+                .filter(([, g]) => g);
+            const sameWord = (g, t) => {
+                const a = taught.get(g) || taught.get(canon(g));
+                const b = taught.get(t) || taught.get(canon(t));
+                return !a || !b || a.word === b.word;
+            };
+            if (blame.some(([t, g]) => differsOnlyByPersonEnding(g, t))) return 'ending';
+            /* Both are words this course teaches, and they are not the same
+               headword: the learner reached for the other one. Wider than
+               MISS-TAXONOMY.md's "a pair the course teaches against" — but
+               *idu* for *adu*, *illi* for *alli* and *chusanu* for
+               *chesanu* are all exactly that, and an alt resolves to its
+               headword, so a spelling the course itself lists never trips it. */
+            if (blame.some(([t, g]) => !sameWord(g, t))) return 'confusion';
+            return 'spelling';
+        }
         if (missing.length && !wrong.length && !english.length) return 'missing-word';
         /* Every word of the answer plus one taught word too many, where the
            extra word's meaning did not fit the prompt well enough for the
@@ -2750,7 +2778,7 @@ export const missHelp = (said, expected, {
     });
     if (endingHit) {
         const { line: endingLine, ...ending } = endingHit;
-        return { line: finish(endingLine, { ending: true }), family: null, scaffold, pairs: [], kind: 'ending', ending };
+        return { line: finish(endingLine, { ending: true }), family: null, scaffold, pairs: [], kind: 'ending', ending, missKind: 'ending' };
     }
     /* A wrong word that is really a misspelling, a changed ending or a flipped
        first vowel of a needed word is the grader's business, and
@@ -2820,11 +2848,11 @@ export const missHelp = (said, expected, {
             } else {
                 line = `*${shown}* means ${glossFor(entry.meaning, meaning)}, which fits, but this sentence leaves it out.`;
             }
-            return { line: finish(line, { skip: [g] }), family: null, scaffold, pairs: [], kind: 'extra', extra: g };
+            return { line: finish(line, { skip: [g] }), family: null, scaffold, pairs: [], kind: 'extra', extra: g, missKind: 'extra-word' };
         }
     }
     if (!missing.length || (!wrong.length && !english.length)) {
-        return { line: fallback(), family: null, scaffold, pairs: [], kind: 'other' };
+        return { line: fallback(), family: null, scaffold, pairs: [], kind: 'other', missKind: otherKind(wrong, english) };
     }
 
     const familyOf = (a, b) => families.find(f => {
@@ -2927,7 +2955,7 @@ export const missHelp = (said, expected, {
             ? `“${E}” is still in English. ${where} it ${reveal ? 'is' : 'starts with'} ${answerFor(t)}.`
             : `“${E}” is still in English.`);
     }
-    if (!lines.length) return { line: fallback(), family: null, scaffold, pairs: [], kind: 'other' };
+    if (!lines.length) return { line: fallback(), family: null, scaffold, pairs: [], kind: 'other', missKind: otherKind(wrong, english) };
     /* Good reasoning is said first. The rest of the analysis still runs, so
        the pair is remembered and the reveal still gets its family card. */
     const extra = got.filter(g => !has(need, g));
@@ -2947,8 +2975,44 @@ export const missHelp = (said, expected, {
         /* What went wrong, for skill attribution (skills.js): which answer
            words a wrong word or a word left in English stood in for. */
         kind: reasoned ? 'reasoned' : 'wrong-word',
+        /* A named pair is a confusion; a word left in English with no wrong
+           word beside it is that and nothing else. */
+        missKind: reasoned ? 'reasoned'
+            : pairs.length ? 'confusion'
+                : (english.length && !wrong.length) ? 'english' : 'wrong-word',
         replaced: [...used], english: english.slice(0, 2), subs,
     };
+};
+
+/**
+ * Which kind of mistake a rejected answer was — one of `shared/missKinds.js`
+ * MISS_KINDS, never null, with `unknown` as the floor.
+ *
+ * Pure, and called only after `scoreAnswer` has already rejected; nothing it
+ * returns can turn a rejection into an acceptance or the reverse.
+ *
+ * `help` is a `missHelp` result for this same attempt, when the caller has
+ * one: step mode keeps every attempt's help object, so passing it means the
+ * kind is read off the analysis the learner was actually shown rather than
+ * recomputed. Chat has no such object — it posts the review before it asks
+ * the engine anything — so without `help` this runs `missHelp` itself on the
+ * options given. That is deliberately the same code path and not a second
+ * classifier: the two surfaces deliver the same fifteen-step cycle, and a
+ * profile built from a surface's own private rules would be a profile of the
+ * surface. Give it as much context as the caller has (`taughtLessons` and
+ * `endings` in particular) — with none, a confusion or an ending slip has
+ * nothing to be recognised against and comes back as `wrong-word` or
+ * `unknown`.
+ */
+export const classifyMiss = (said, expected, {
+    variants = [], lexicon = new Map(), taughtLessons = [], endings = null,
+    families = [], meaning = '', language = '', knownWords = [],
+    help = null,
+} = {}) => {
+    const h = help || missHelp(said, expected, {
+        variants, lexicon, taughtLessons, families, meaning, language, knownWords, endings,
+    });
+    return h?.missKind || 'unknown';
 };
 
 /* ── What the voice says ───────────────────────────────────────────────────
