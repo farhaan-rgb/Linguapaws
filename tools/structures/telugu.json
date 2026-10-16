@@ -1,0 +1,328 @@
+{
+  "_readme": [
+    "Grammar structures in the Telugu course, read by tools/grammar-check.mjs.",
+    "One entry per structure. For each one:",
+    "  introducedIn  the lesson that TEACHES it (vocab teach screen or a grammarNote that explains it).",
+    "                null = the course uses it but never teaches it.",
+    "  basis         the curriculum text the tag rests on, so you can check it without opening curriculum.js.",
+    "  confidence    'sure' = quoted from a grammarNote / vocab gloss; 'guess' = my reading, please confirm.",
+    "  detect        regexes run over each drill answer (lowercased, punctuation stripped, whole words).",
+    "                A drill REQUIRES a structure only if its correct answer AND every acceptable form match;",
+    "                if some accepted form avoids it, the drill merely EXPOSES it.",
+    "                Empty detect = not auto-detectable, so only (2) 'too many at once' sees it.",
+    "  except        whole tokens that match detect but are not this structure (lexical items).",
+    "Edit freely. The tool re-reads this file on every run; nothing else depends on it."
+  ],
+  "structures": [
+    {
+      "id": "person-1sg-nu",
+      "name": "-nu verb ending = 'I'",
+      "example": "bagunnanu, chestunnanu, chesanu",
+      "introducedIn": 1,
+      "basis": "L1 grammarNote: 'The end of the word tells you who: unnanu is \"I am\", unnaru is \"you are\"'. L11 note repeats it.",
+      "confidence": "sure",
+      "detect": ["\\w+[ae]nu"],
+      "except": ["nenu", "dhanyavaadaalu"]
+    },
+    {
+      "id": "person-ru",
+      "name": "-ru verb ending = polite 'you' / respectful 'he, she'",
+      "example": "unnaru, chesaru",
+      "introducedIn": 1,
+      "basis": "L1 grammarNote: 'unnaru is \"you are\". Unnaru also means \"he is\" or \"she is\", said with respect.'",
+      "confidence": "sure",
+      "detect": ["\\w+aru"],
+      "except": ["meeru", "evaru"]
+    },
+    {
+      "id": "person-informal-vu",
+      "name": "-vu verb ending = informal 'you'",
+      "example": "unnavu",
+      "introducedIn": 1,
+      "basis": "L1 grammarNote: 'With a close friend, say unnavu.' Mentioned once, never drilled.",
+      "confidence": "sure",
+      "detect": ["\\w+avu"],
+      "except": []
+    },
+    {
+      "id": "zero-copula",
+      "name": "'X is Y' with no verb",
+      "example": "Idhi pusthakam; Ayana naa snehithudu",
+      "introducedIn": 2,
+      "basis": "L2 phrase 'Idhi pusthakam' = 'This is a book' and the note contrasting it with 'ee pusthakam'. Not stated as a rule anywhere.",
+      "confidence": "guess",
+      "detect": [],
+      "except": []
+    },
+    {
+      "id": "wh-in-place",
+      "name": "question word after the thing asked about (no word-order change)",
+      "example": "Idhi emiti? Illu ekkada? Meeru ela unnaru?",
+      "introducedIn": 2,
+      "basis": "L2 grammarNote: 'Question words usually come near the end in Telugu, after the thing you're asking about.' L1 already drills 'Meeru ela unnaru' as a chunk.",
+      "confidence": "sure",
+      "detect": ["(emiti|em|ekkada|evaru|enduku|entha|ela)"],
+      "except": []
+    },
+    {
+      "id": "demonstrative-ee",
+      "name": "ee/aa before a noun vs idhi/adhi standing alone",
+      "example": "ee pusthakam vs idhi pusthakam",
+      "introducedIn": 2,
+      "basis": "L2 vocab 'Ee = This (before a noun)' and grammarNote contrasting it with idhi.",
+      "confidence": "sure",
+      "detect": ["ee"],
+      "except": []
+    },
+    {
+      "id": "oblique-stem",
+      "name": "noun changes shape before an ending (illu -> inti-)",
+      "example": "intiki, inti lo",
+      "introducedIn": 3,
+      "basis": "L3 grammarNote: 'Here's intiki, \"to the house\".' It shows the form but never says illu becomes inti-; I'm treating the showing as the introduction.",
+      "confidence": "guess",
+      "detect": ["inti\\w*"],
+      "except": []
+    },
+    {
+      "id": "dative-ki",
+      "name": "-ki/-ku = 'to' (direction)",
+      "example": "intiki, paniki",
+      "introducedIn": 3,
+      "basis": "L3 grammarNote: 'The -ki goes on the end of the word, never in front.'",
+      "confidence": "sure",
+      "detect": ["\\w+iki"],
+      "except": []
+    },
+    {
+      "id": "polite-imperative-andi",
+      "name": "-andi = polite request ('please ...')",
+      "example": "vellandi, ivvandi, kurchondi",
+      "introducedIn": 10,
+      "basis": "L10 grammarNote: 'The -andi at the end makes it polite.' But L3 already drills 'Akkada vellandi' and 'Intiki vellandi' with no explanation of -andi (L16's note even says '-andi from lesson 3'). Set to 10 because that is where it is EXPLAINED; change to 3 if showing counts.",
+      "confidence": "guess",
+      "detect": ["\\w+[ao]ndi"],
+      "except": []
+    },
+    {
+      "id": "bare-imperative",
+      "name": "bare verb = informal command",
+      "example": "vellu, chudu, melukonu",
+      "introducedIn": 3,
+      "basis": "L3 vocab 'Vellu = Go'. The course never says that the bare form is the blunt/informal command, nor contrasts it with -andi until L16.",
+      "confidence": "guess",
+      "detect": ["vellu", "chudu", "melukonu"],
+      "except": []
+    },
+    {
+      "id": "existential-undi",
+      "name": "undi = 'it is / there is' (things, places)",
+      "example": "Illu akkada undi; bagundi; gurthundi",
+      "introducedIn": 3,
+      "basis": "L3 vocab 'Undi = It is / there is'.",
+      "confidence": "sure",
+      "detect": ["\\w*undi"],
+      "except": []
+    },
+    {
+      "id": "want-kaavali-oddu",
+      "name": "object + kaavali/oddu, no subject ('water is wanted')",
+      "example": "Neeru kaavali; Annam oddu",
+      "introducedIn": 4,
+      "basis": "L4 grammarNote: 'Two words, no \"I\". Neeru kaavali means \"water is wanted\"'.",
+      "confidence": "sure",
+      "detect": ["kaavali", "oddu"],
+      "except": []
+    },
+    {
+      "id": "dative-subject-naaku",
+      "name": "naaku ('to me') as the subject of want/like/have/feel",
+      "example": "naaku ishtam, naaku gurthundi, naaku pani undi",
+      "introducedIn": 5,
+      "basis": "L5 vocab 'Naaku = To me / I have'. L4's note mentions 'naaku neeru kaavali' first; L20's note calls it 'another \"to me\" sentence'.",
+      "confidence": "guess",
+      "detect": ["naaku"],
+      "except": []
+    },
+    {
+      "id": "possessive-before-noun",
+      "name": "naa/mee/ayana before a noun = my/your/his",
+      "example": "naa peru, mee pusthakam, ayana katha",
+      "introducedIn": 5,
+      "basis": "L5 grammarNote: 'Naa (\"my\") goes in front of the thing, like ee does.'",
+      "confidence": "sure",
+      "detect": ["(naa|mee) (?!daggara|tho)\\w+"],
+      "except": []
+    },
+    {
+      "id": "respectful-3rd",
+      "name": "ayana/ame = respectful he/she (and not idhi for people)",
+      "example": "Ayana evaru? Ame peru",
+      "introducedIn": 5,
+      "basis": "L5 grammarNote: 'Ayana means \"he\" or \"his\", said with respect.' L6 note adds that idhi for a person is rude.",
+      "confidence": "sure",
+      "detect": ["ayana", "ame"],
+      "except": []
+    },
+    {
+      "id": "numeral-oka",
+      "name": "number before noun; okati -> oka",
+      "example": "oka pusthakam, rendu snehithulu",
+      "introducedIn": 7,
+      "basis": "L7 grammarNote: 'Okati became oka because a thing comes after it.'",
+      "confidence": "sure",
+      "detect": ["oka"],
+      "except": []
+    },
+    {
+      "id": "plural-lu",
+      "name": "plural -lu (pusthakam -> pusthakalu)",
+      "example": "pusthakalu, snehithulu, kurchilu",
+      "introducedIn": 8,
+      "basis": "L8 vocab 'Lu = (Plural suffix)' and grammarNote: 'Pusthakam dropped -am and took -alu.'",
+      "confidence": "sure",
+      "detect": ["\\w+[aiu]lu"],
+      "except": ["dhanyavaadaalu", "dabbulu", "rupayalu", "billu", "illu", "vellu"]
+    },
+    {
+      "id": "adjective-before-noun",
+      "name": "adjective before the noun",
+      "example": "pedda illu, manchi snehithudu",
+      "introducedIn": 9,
+      "basis": "L9 phrases (Pedda illu, Manchi snehithudu). No note states the rule; English has the same order, so arguably not a new structure at all.",
+      "confidence": "guess",
+      "detect": ["(pedda|chinna|manchi|chedu|vedi|telupu|nalupu|erupu|aakhari) \\w+"],
+      "except": []
+    },
+    {
+      "id": "present-continuous",
+      "name": "-tunn- = '-ing' now",
+      "example": "chestunnanu, velthunnanu",
+      "introducedIn": 11,
+      "basis": "L11 vocab (Chestunnanu = I am doing ...). L3's note promises it 'in lesson 11'.",
+      "confidence": "sure",
+      "detect": ["\\w+[th]unn\\w*"],
+      "except": []
+    },
+    {
+      "id": "past",
+      "name": "past tense (chesanu, vellanu)",
+      "example": "chesanu, vellanu, thinnanu",
+      "introducedIn": 13,
+      "basis": "L13 vocab (Chesanu = I did ...) and grammarNote on changing -nu for who.",
+      "confidence": "sure",
+      "detect": ["(chesa|vella|thinna|chusa|cheppa|periga+)(nu|ru|du)"],
+      "except": []
+    },
+    {
+      "id": "future",
+      "name": "future/habitual -t-anu (chestanu, velthanu)",
+      "example": "chestanu, velthanu, tintanu",
+      "introducedIn": 14,
+      "basis": "L14 vocab and grammarNote: 'For \"I will eat\", drop the -unn-: tintanu.'",
+      "confidence": "sure",
+      "detect": ["\\w+(st|th|nt)a(nu|ru)"],
+      "except": []
+    },
+    {
+      "id": "negation-ledu",
+      "name": "ledu = 'is not / there isn't' after the thing",
+      "example": "Naaku ishtam ledu; chillar ledu",
+      "introducedIn": 15,
+      "basis": "L15 vocab 'Ledu = No/Not' and grammarNote: 'Ledu also means \"is not\" or \"there isn't\".'",
+      "confidence": "sure",
+      "detect": ["ledu"],
+      "except": []
+    },
+    {
+      "id": "manner-ga",
+      "name": "noun + -ga = state/manner ('happily', 'tired')",
+      "example": "santhoshamga unnanu, alupuga undi",
+      "introducedIn": 26,
+      "basis": "L26 grammarNote: 'naaku ... -ga undi, or nenu ... -ga unnanu'. That is the first explanation, but L16, L20, L24 and L25 already drill santhoshamga. Baga/tvaraga/mellaga (L16) are taught as whole words, so excluded.",
+      "confidence": "guess",
+      "detect": ["\\w+ga"],
+      "except": ["baga", "tvaraga", "mellaga"]
+    },
+    {
+      "id": "light-verb-chey",
+      "name": "noun + chey- = 'do X' (vanta chey = cook)",
+      "example": "vanta chestunnanu, sahaayam cheyagalanu",
+      "introducedIn": 18,
+      "basis": "L18 phrase 'annam vanta chestunnanu', vocab 'Vanta = Cook'. Nothing explains that vanta is a noun and chey- makes it a verb. 'pani chey' (L11) is literal 'do work', not counted.",
+      "confidence": "guess",
+      "detect": ["(vanta|sahaayam) che\\w*"],
+      "except": []
+    },
+    {
+      "id": "postpositions",
+      "name": "postpositions after the noun (lo, paina, kindha, tho, daggara)",
+      "example": "inti lo, naa tho, naa daggara",
+      "introducedIn": 21,
+      "basis": "L21 grammarNote: 'These five words go AFTER the thing, not before.'",
+      "confidence": "sure",
+      "detect": ["\\w+ (lo|paina|kindha|tho|daggara)", "\\w+(lo|tho)"],
+      "except": ["hello"]
+    },
+    {
+      "id": "ability-gala-le",
+      "name": "-galanu 'I can' / -lenu 'I can't'",
+      "example": "cheyagalanu, cheyalenu",
+      "introducedIn": 22,
+      "basis": "L22 grammarNote: 'cheya-, then -galanu for \"can\", or -lenu for \"can't\".'",
+      "confidence": "sure",
+      "detect": ["\\w+(galanu|lenu)"],
+      "except": []
+    },
+    {
+      "id": "obligation-aali",
+      "name": "-aali = must",
+      "example": "vellali, cheyali",
+      "introducedIn": 23,
+      "basis": "L23 grammarNote: 'Add -aali to mean \"must\".'",
+      "confidence": "sure",
+      "detect": ["\\w+a+li"],
+      "except": ["kaavali"]
+    },
+    {
+      "id": "clause-joining",
+      "name": "two clauses joined (kani, endukante, mariyu between verbs)",
+      "example": "Nenu vellali kani naaku pani undi",
+      "introducedIn": 24,
+      "basis": "L24 vocab Kani/Endukante/Leda. L13 conversation already joins two verbs with mariyu ('Nenu vellanu mariyu thinnanu'); I only detect kani/endukante so mariyu-between-nouns (L10) is not counted.",
+      "confidence": "guess",
+      "detect": ["kani", "endukante"],
+      "except": []
+    },
+    {
+      "id": "conditional-te",
+      "name": "-te/-the = 'if'",
+      "example": "unte, velthe, chesthe",
+      "introducedIn": 25,
+      "basis": "L25 vocab (Unte = If there is ...). No grammarNote in L25 explains how -te is formed.",
+      "confidence": "sure",
+      "detect": ["(unte|velthe|thinte|chesthe)"],
+      "except": []
+    },
+    {
+      "id": "yes-no-aa",
+      "name": "-aa on the verb = yes/no question",
+      "example": "Meeru kopamga unnara?",
+      "introducedIn": 26,
+      "basis": "L26 vocab 'Unnara = Are you?'. Taught as one word; the -aa ending is never named, so a learner cannot form any other yes/no question.",
+      "confidence": "guess",
+      "detect": ["\\w+nnara"],
+      "except": []
+    },
+    {
+      "id": "origin-nundi",
+      "name": "nundi = 'from' after the place",
+      "example": "Hyderabad nundi",
+      "introducedIn": 30,
+      "basis": "L30 vocab 'Nundi = From'.",
+      "confidence": "sure",
+      "detect": ["nundi"],
+      "except": []
+    }
+  ]
+}
