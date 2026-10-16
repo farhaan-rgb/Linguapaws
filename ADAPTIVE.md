@@ -310,3 +310,45 @@ and forgotten like words, so they now sit on the same Leitner ladder.
 Preview: `preview.html?lang=Telugu&scenario=2&phrases=1&miss=7&wrong=zzz` — the
 previous lesson's phrases stubbed as due. Tests: `tests/phraseReview.test.mjs`,
 `backend/tests/phraseSrs.test.js`.
+
+## Backfill (`backend/scripts/backfill-skills.js`)
+
+Skill evidence began with 633f4a8. A learner who finished lessons before that
+started with an empty model, so nothing adapted for them. The backfill seeds
+`SkillStat` once from what they left behind; the mapping is pure and tested in
+`backend/services/skillBackfill.js` (`BACKFILL_WEIGHTS`), and every item goes
+through `skillStats.applyEvidence`, the live rule, oldest first.
+
+| Source | Skills | Score | Weight |
+|---|---|---|---|
+| `LearnedWord` (reviewed at least once) | `w:<headword>` via `tagAnswer` (alts map to the headword); a phrase row tags its whole answer | 0.6 × right/reviews + 0.4 × box/4 | 0.15 per review, max 0.45 (phrases × 0.5) |
+| `Confusion` | needed word and the endings/one-token constructions it carries; the said word | 0 | 0.6 needed, 0.3 said, +0.15 per repeat (cap 1) |
+| … its `wins` | both words | 1 | 0.15 per win, at most 2 |
+| `MissedScreen` | the screen rebuilt from `buildLessonSteps` + `missedKeyFor`, then `tagStep` core skills | 0 | 0.4, +0.1 per repeat (cap 0.6) |
+| … if `retired` | same | 1 | 0.2 |
+| Finished lessons (`lessonProgress`) | skills whose first tested lesson is finished | 1 | 0.15 |
+
+All weights sit below a live screen's: the evidence is indirect and old. The
+finished-lesson prior keeps "taught and passed" from reading as untouched 0.5,
+but at 0.15 it can never by itself reach `WEAK_MIN_EVIDENCE`. Never-reviewed
+words and unresolvable missed screens are skipped and counted.
+
+**Live evidence is never overwritten.** Where a skill already has live
+evidence, the backfill is placed *under* it: each live item maps m to
+(1−a)m + a·s with 1−a = 0.7^w, so starting from the backfilled mastery instead
+of 0.5 moves the end result by 0.7^evidence × (backfilled − 0.5). That is the
+same number as replaying backfill first and live second. Source rows created
+after the learner's first live `SkillStat` are left out — live evidence
+already covers them (a `LearnedWord`'s counters are cumulative, so a row
+created earlier but reviewed since overlaps slightly; accepted at this weight).
+
+**Idempotent.** Every written doc carries `backfill: { v, at, attempts,
+evidence, mastery }`; a user+lang with any such doc is skipped. On `--apply`
+a live doc is only updated if its `updatedAt` is unchanged since the read.
+
+```
+cd backend
+node scripts/backfill-skills.js                          # dry run (default), read-only
+node scripts/backfill-skills.js --user <id> --lang Kannada
+node scripts/backfill-skills.js --apply                  # writes; needs Farhaan's go-ahead
+```

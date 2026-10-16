@@ -16,7 +16,6 @@ const SRC = path.resolve(__dirname, '../../src/services');
 const { CURRICULUM } = require(path.join(SRC, 'curriculum.js'));
 const skills = require(path.join(SRC, 'skills.js'));
 const { buildLessonSteps, missedKeyFor } = require(path.join(SRC, 'stepPlan.js'));
-const engine = require(path.join(SRC, 'lessonEngine.js'));
 
 /* Bump when the mapping changes; a learner already backfilled at an older
    version is still skipped (re-running never adds evidence twice). */
@@ -42,7 +41,7 @@ const BACKFILL_WEIGHTS = {
     contrastWin: 0.15,      // per clean contrast answer later (wins), both words, score 1, at most 2
     /* MissedScreen: the screen rebuilt and tagged, score 0 per core skill. */
     missed: 0.4,
-    missedRepeat: 0.2,      // per extra miss, capped at 0.8
+    missedRepeat: 0.1,      // per extra miss, capped at 0.6
     missedRetired: 0.2,     // retired = one clean first-try answer in practice: score 1
     /* Finished lessons: skills first tested in a lesson the learner completed,
        score 1. Small: a lesson can be finished with reveals. It keeps "taught
@@ -138,7 +137,7 @@ function fromMissedScreen(m, lang) {
     const ids = (tag.core || tag.skills).filter(id => SKILL_ID.test(id));
     if (!ids.length) return { items: [], skipped: 'untagged' };
     const at = t(m.createdAt || m.lastMissed);
-    const weight = r3(Math.min(0.8, W.missed + Math.max(0, (m.count || 1) - 1) * W.missedRepeat));
+    const weight = r3(Math.min(0.6, W.missed + Math.max(0, (m.count || 1) - 1) * W.missedRepeat));
     const items = ids.map(skillId => ({ skillId, score: 0, weight, at, source: 'missed' }));
     if (m.retired) {
         const later = Math.max(at + 1, t(m.updatedAt));
@@ -248,5 +247,4 @@ module.exports = {
     BACKFILL_VERSION, BACKFILL_WEIGHTS,
     evidenceFor, foldBackfill, rebase, planFor,
     fromLearnedWord, fromConfusion, fromMissedScreen, fromCompletedLessons,
-    _engine: engine,
 };
