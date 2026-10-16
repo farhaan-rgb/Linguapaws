@@ -92,6 +92,8 @@ lessons.forEach((lesson, i) => {
     const drills = [
         ...(lesson.phrases || []).map(p => ({ ...p, kind: 'phrase' })),
         ...(lesson.conversations || []).map(p => ({ ...p, kind: 'conversation' })),
+        /* Adaptive pool drills (drillPools.js) are held to the same bar. */
+        ...(lesson.pool || []).map(p => ({ ...p, kind: `pool ${p.id}` })),
     ];
 
     for (const d of drills) {

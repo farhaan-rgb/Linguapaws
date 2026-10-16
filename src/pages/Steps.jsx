@@ -18,6 +18,7 @@ import {
     ensureReviewSet, recordTaughtWord, recordReview,
     ensureContrast, recordConfusion, recordContrastCheck,
     fetchPracticeSources, recordMissedScreen, recordMissedCheck, recordSkillEvidence, fetchSkillModel,
+    ensureAdaptation, clearAdaptation,
 } from '../services/srs';
 import { skillEvidence, outcomeOf } from '../services/skills';
 import { examplesFor } from '../services/examples';
@@ -1045,13 +1046,18 @@ function StepScreen({
     /** The accepted answer word by word (engine.answerDiff), so the learner
      *  sees what they wrote — not the course sentence printed twice. */
     const [diff, setDiff] = useState(null);
-    const [showHint, setShowHint] = useState(false);
+    /* Adaptive phase 3: a drill on a weak skill shows its hint up front
+       (`assist: 'more'`); one whose skills are all strong keeps it back
+       until a miss (`'less'`). Grading is the same either way. */
+    const [showHint, setShowHint] = useState(step.assist === 'more');
     const [reward, setReward] = useState(null);
     /** What was actually wrong, from the engine's own diagnosis. */
     const [diagnosis, setDiagnosis] = useState('');
     /** The word family the miss fell inside, and the first-letter outline. */
     const [family, setFamily] = useState(null);
     const [scaffold, setScaffold] = useState('');
+    /** The outline asked for before any miss (assist 'more' only). */
+    const [earlyOutline, setEarlyOutline] = useState('');
     /** The last wrong answer, so "show me" after a miss can still say what it meant. */
     const lastWrongRef = useRef('');
     /** Every wrong answer on this screen, in order, for the reveal's "Why not …?". */
@@ -1637,7 +1643,7 @@ function StepScreen({
                         <PromptPanel muted={settled} sub={meaningAdds ? <TapEnglish text={drill.meaning} /> : null}>
                             <TapText text={step.prompt} />
                         </PromptPanel>
-                        {drill.hint && !settled && (
+                        {drill.hint && !settled && (showHint || step.assist !== 'less') && (
                             showHint ? (
                                 <p style={{
                                     margin: '12px 0 0', fontSize: 13, color: 'var(--text-secondary)',
@@ -1655,6 +1661,31 @@ function StepScreen({
                                         display: 'flex', alignItems: 'center', gap: 6,
                                     }}>
                                     <Lightbulb size={14} /> Show a hint
+                                </button>
+                            )
+                        )}
+                        {/* A weak skill gets the first-letter outline on offer
+                            before any miss, not only after one. Asking for it
+                            counts as help, like tapping a word. */}
+                        {step.assist === 'more' && !settled && misses === 0 && (
+                            earlyOutline ? (
+                                <p data-early-outline style={{
+                                    margin: '8px 0 0', fontFamily: 'var(--font-display)', fontWeight: 800,
+                                    fontSize: 16, letterSpacing: '0.04em', color: 'var(--text-secondary)',
+                                    wordBreak: 'break-word', animation: 'pop-in 0.3s ease-out',
+                                }}>
+                                    {earlyOutline}
+                                </p>
+                            ) : (
+                                <button data-early-outline-ask onClick={() => {
+                                    setEarlyOutline(engine.missScaffold('', step.expected, lexicon)); onHelp();
+                                }}
+                                    style={{
+                                        margin: '8px 0 0', background: 'none', border: 'none', padding: 0,
+                                        cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                                        color: 'var(--accent-purple)',
+                                    }}>
+                                    Show the first letters
                                 </button>
                             )
                         )}
@@ -2227,8 +2258,17 @@ function Lesson({ scenarioParam, practice = false }) {
             } catch { /* offline — the lesson still runs, without review slots */ }
             /* A pair confused in an earlier lesson takes the last review slot. */
             const contrast = await ensureContrast(langName, scenarioIdx).catch(() => null);
-            const built = buildLessonSteps(lesson, reviewSet, lessons, contrast);
-            const start = savedStepFor(await progressP, langName, scenarioIdx, built.length);
+            /* Adaptive phase 3: pool drills for weak skills, at most one
+               strong drill skipped, hint timing, listen words — made once per
+               lesson and cached, so a resumed lesson rebuilds this same plan.
+               A lesson already part-played with none cached stays plain. */
+            const progress = await progressP;
+            const plain = buildLessonSteps(lesson, reviewSet, lessons, contrast);
+            const adaptation = await ensureAdaptation(langName, scenarioIdx, {
+                reviewSet, resuming: savedStepFor(progress, langName, scenarioIdx, plain.length) > 0,
+            }).catch(() => null);
+            const built = adaptation ? buildLessonSteps(lesson, reviewSet, lessons, contrast, adaptation) : plain;
+            const start = savedStepFor(progress, langName, scenarioIdx, built.length);
             if (cancelled) return;
             setSteps(built);
             setRun(built);
@@ -2707,6 +2747,8 @@ function Lesson({ scenarioParam, practice = false }) {
             if (langName && !practice) {
                 api.post('/api/progress/lesson-complete', { lang: langName, lessonIdx: scenarioIdx })
                     .catch(() => {});
+                /* A replay adapts to the model as it is then. */
+                clearAdaptation(langName, scenarioIdx);
             }
         } else {
             setIndex(i => i + 1);

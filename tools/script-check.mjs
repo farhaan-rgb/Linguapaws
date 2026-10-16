@@ -78,7 +78,7 @@ console.log(`|${'-'.repeat(12)}|${'-'.repeat(9)}|${'-'.repeat(7)}|${'-'.repeat(1
 for (const name of languages) {
     const ls = CURRICULUM[name];
     const vs = ls.flatMap(l => l.vocabulary || []);
-    const ds = ls.flatMap(l => [...(l.phrases || []), ...(l.conversations || [])]);
+    const ds = ls.flatMap(l => [...(l.phrases || []), ...(l.conversations || []), ...(l.pool || [])]);
     console.log(`| ${w(name, 11)}| ${w(ls.length, 8)}| ${w(vs.length, 6)}| `
         + `${w(vs.filter(v => v.native).length || '', 12)}| ${w(ds.length, 7)}| `
         + `${w(ds.filter(d => d.native).length || '', 12)}|`);
@@ -104,7 +104,7 @@ for (const name of languages) {
     ls.forEach((lesson, li) => {
         const items = [
             ...(lesson.vocabulary || []).map(v => ({ latin: v.word, native: v.native, variants: v.alt || [] })),
-            ...[...(lesson.phrases || []), ...(lesson.conversations || [])]
+            ...[...(lesson.phrases || []), ...(lesson.conversations || []), ...(lesson.pool || [])]
                 .map(d => ({ latin: d.correct, native: d.native, variants: d.acceptable || [] })),
         ].filter(x => x.native);
         for (const { latin, native, variants } of items) {
@@ -155,6 +155,11 @@ for (const name of languages) {
         for (const step of buildLessonSteps(lesson, null, ls)) {
             total++;
             if (speechTextFor(name, step.expected) === step.expected) unswapped.push(step.expected);
+        }
+        /* Adaptive pool drills can be put on screen too (stepPlan.adaptLesson). */
+        for (const d of lesson.pool || []) {
+            total++;
+            if (speechTextFor(name, d.correct) === d.correct) unswapped.push(d.correct);
         }
     }
     const swapped = total - unswapped.length;

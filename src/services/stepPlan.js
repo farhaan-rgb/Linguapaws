@@ -13,7 +13,7 @@
 
 import * as engine from '../services/lessonEngine.js';
 import { CURRICULUM } from './curriculum.js';
-import { hasModel, modelMap, selectAdaptive, skillsOfStep, spreadBySkill, withCaptions, KIND_SHARE } from './adaptive.js';
+import { hasModel, modelMap, selectAdaptive, skillsOfStep, spreadBySkill, withCaptions, KIND_SHARE, POOL_ADD_MAX, SKIP_MAX } from './adaptive.js';
 
 export const PHASES = {
     teach:        { label: 'New words',   blurb: 'Meet it, then say it back' },
@@ -120,6 +120,28 @@ function drillStep(drills, idx) {
     };
 }
 
+/* A lesson's drills with an adaptation applied: at most SKIP_MAX of its own
+   skipped, then each added pool drill at the end of its round. A pool id the
+   course no longer has is dropped rather than guessed at. */
+function adaptedDrills(lesson, allLessons, adaptation) {
+    const li = Math.max((allLessons || []).indexOf(lesson), 0);
+    const skip = (adaptation.skip || []).slice(0, SKIP_MAX);
+    const own = drillsOf(lesson);
+    for (const k of skip) {
+        const at = own.findIndex(d => d.phase === k?.phase && norm(d.correct) === k?.key);
+        if (at >= 0 && own.filter(d => d.phase === k.phase).length > 1) own.splice(at, 1);
+    }
+    const pool = new Map();
+    (allLessons || []).slice(0, li + 1).forEach(l => (l.pool || []).forEach(d => pool.set(d.id, d)));
+    const added = (adaptation.add || []).slice(0, POOL_ADD_MAX).map(a => {
+        const d = pool.get(a.id);
+        return d ? { ...d, phase: a.phase === 'conversation' ? 'conversation' : 'phrase',
+            poolId: d.id, poolSkill: a.skill || null, poolWhy: a.why || '' } : null;
+    }).filter(Boolean);
+    return ['phrase', 'conversation'].flatMap(ph => [
+        ...own.filter(d => d.phase === ph), ...added.filter(d => d.phase === ph)]);
+}
+
 /** A lesson's phrases then conversations, each tagged with its phase. */
 const drillsOf = (lesson) => [
     ...(lesson?.phrases || []).map(d => ({ ...d, phase: 'phrase' })),
@@ -192,7 +214,7 @@ export function listenStep(target, pools, seed = 0) {
 /** Listen screens for a lesson: one word from this lesson, one from an
  *  earlier lesson (or a second from this one, in lesson 1). Words the review
  *  slots already ask for are skipped where something else is available. */
-export function listenStepsFor(lesson, allLessons = [], reviewSet = null) {
+export function listenStepsFor(lesson, allLessons = [], reviewSet = null, chosen = null) {
     const li = Math.max((allLessons || []).indexOf(lesson), 0);
     const earlier = (allLessons || []).slice(0, li);
     const current = (lesson?.vocabulary || []).filter(listenable);
@@ -204,15 +226,25 @@ export function listenStepsFor(lesson, allLessons = [], reviewSet = null) {
     };
     const seed = seedOf(`${li}:${(lesson?.vocabulary || []).map(v => v.word).join(',')}`);
     const picks = [];
-    const curPick = shuffled(prefer(current), seed);
+    /* Adaptive phase 3: a weak word, when one was chosen for a slot, goes
+       first in that slot's own pool — same pool, same placement rules. */
+    const first = (list, word) => {
+        const k = norm(word);
+        const hit = k ? list.find(v => norm(v.word) === k) : null;
+        return hit ? [hit, ...list.filter(v => v !== hit)] : list;
+    };
+    const curPick = first(shuffled(prefer(current), seed), chosen?.[0]);
     if (curPick[0]) picks.push({ v: curPick[0], home: lesson?.vocabulary || [] });
     /* The previous lesson first: recent enough to be heard back, old enough
        that hearing it is a test. */
     const prevVocab = allLessons?.[li - 1]?.vocabulary || [];
     const prev = prefer(prevVocab.filter(listenable));
-    const oldPick = shuffled(prev.length ? prev : prefer(before), seed + 1)
+    const chosenOld = chosen?.[1] && before.find(v => norm(v.word) === norm(chosen[1]));
+    const oldHome = chosenOld ? (earlier.find(l => (l.vocabulary || []).includes(chosenOld))?.vocabulary || before)
+        : prev.length ? prevVocab : before;
+    const oldPick = (chosenOld ? [chosenOld] : shuffled(prev.length ? prev : prefer(before), seed + 1))
         .find(v => !picks.some(p => norm(p.v.word) === norm(v.word)));
-    if (oldPick) picks.push({ v: oldPick, home: prev.length ? prevVocab : before });
+    if (oldPick) picks.push({ v: oldPick, home: oldHome });
     else if (curPick[1]) picks.push({ v: curPick[1], home: lesson?.vocabulary || [] });
 
     /* Distractors from the target's own lesson first, then anything taught. */
@@ -222,7 +254,13 @@ export function listenStepsFor(lesson, allLessons = [], reviewSet = null) {
         .filter(Boolean);
 }
 
-export function buildLessonSteps(lesson, reviewSet = null, allLessons = [], contrast = null) {
+/**
+ * `adaptation` (adaptive phase 3) is adaptive.planLessonAdaptation's result,
+ * as cached for this lesson: pool drills to add, at most one drill to skip,
+ * per-drill `assist`, and the Listen round's words. Null — no model, a new
+ * learner, offline — is today's plan exactly.
+ */
+export function buildLessonSteps(lesson, reviewSet = null, allLessons = [], contrast = null, adaptation = null) {
     if (!lesson) return [];
     const steps = [];
 
@@ -255,12 +293,21 @@ export function buildLessonSteps(lesson, reviewSet = null, allLessons = [], cont
 
     /* ── Listen ── after every teach screen, so every word it can play has
        been taught. Its own short round, before the drills. */
-    listenStepsFor(lesson, allLessons, reviewSet).forEach(s => steps.push(s));
+    listenStepsFor(lesson, allLessons, reviewSet, adaptation?.listen).forEach(s => steps.push(
+        adaptation?.listenWhy && norm(s.word) === norm(adaptation.listenWhyWord) ? { ...s, why: adaptation.listenWhy } : s));
 
     /* ── 3 & 4. Drills, exactly as the curriculum orders them ── */
-    const drills = drillsOf(lesson);
+    const drills = adaptation ? adaptedDrills(lesson, allLessons, adaptation) : drillsOf(lesson);
     drills.forEach((drill, idx) => {
-        if (drill?.correct) steps.push(drillStep(drills, idx));
+        if (!drill?.correct) return;
+        const step = drillStep(drills, idx);
+        const assist = adaptation?.assist?.[norm(drill.correct)];
+        steps.push({
+            ...step,
+            ...(assist ? { assist } : {}),
+            ...(drill.poolId ? { adaptive: { pool: drill.poolId, skill: drill.poolSkill || null, level: 'weak' } } : {}),
+            ...(drill.poolWhy ? { why: drill.poolWhy } : {}),
+        });
     });
 
     return steps.map((s, i) => ({ ...s, index: i }));

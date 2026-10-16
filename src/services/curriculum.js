@@ -13,6 +13,8 @@
    "noo" for a short u — so *Chesanu* was hinted "cheh-sah-noo" when it is
    chay-saa-nu, and every playtester's typos came from working off a hint that
    disagreed with the spelling they had to type. */
+import { DRILL_POOLS } from './drillPools.js';
+
 export const CURRICULUM = {
     Telugu: [
         // Phase 1: The Foundation (Lessons 1–10)
@@ -2955,6 +2957,17 @@ export const CURRICULUM = {
         }
     ]
 };
+
+/* Drill pools (adaptive phase 3): extra drills a lesson may draw on for a
+   learner weak on a skill. They live in drillPools.js so a generator can
+   rewrite them without touching the lessons; each list lands here as
+   `lesson.pool`. Never part of the fixed plan — see stepPlan.adaptLesson. */
+for (const [lang, byLesson] of Object.entries(DRILL_POOLS)) {
+    for (const [n, pool] of Object.entries(byLesson)) {
+        const lesson = CURRICULUM[lang]?.[Number(n) - 1];
+        if (lesson) lesson.pool = pool;
+    }
+}
 
 /* ────────────────────────────────────────────────────────────────
    Language availability — SINGLE SOURCE OF TRUTH.

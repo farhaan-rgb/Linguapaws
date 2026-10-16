@@ -1,5 +1,5 @@
 import { api } from './api';
-import { pickReviewItems } from './adaptive.js';
+import { pickReviewItems, planLessonAdaptation, ADAPTATION_VERSION } from './adaptive.js';
 
 /**
  * Client side of the spaced-repetition system.
@@ -136,6 +136,7 @@ export function clearReviewSet(lang, scenarioIdx) {
     if (!lang) return;
     try {
         localStorage.removeItem(cacheKey(lang, scenarioIdx));
+        localStorage.removeItem(adaptKey(lang, scenarioIdx));
     } catch {
         /* ignore */
     }
@@ -145,7 +146,8 @@ export function clearReviewSet(lang, scenarioIdx) {
 export function clearAllReviewSets() {
     try {
         Object.keys(localStorage)
-            .filter((k) => k.startsWith('linguapaws_reviewset_') || k.startsWith('linguapaws_contrast_'))
+            .filter((k) => k.startsWith('linguapaws_reviewset_') || k.startsWith('linguapaws_contrast_')
+                || k.startsWith('linguapaws_adapt_'))
             .forEach((k) => localStorage.removeItem(k));
     } catch {
         /* ignore */
@@ -322,3 +324,57 @@ export function fetchSkillModel(lang) {
 export const fetchSkills = (lang, { weak = false } = {}) => (lang
     ? getOr(`/api/progress/skills?lang=${encodeURIComponent(lang)}${weak ? '&weak=1' : ''}`, [])
     : Promise.resolve([]));
+
+/* ── The lesson after "New words", adapted (phase 3) ─────────────────────
+   adaptive.planLessonAdaptation's result, made once when a lesson starts and
+   cached per (language, lesson) like the review triplet, so a resumed lesson
+   and the lesson map rebuild the same plan however the model has moved since.
+   `{ none: true }` caches "today's lesson" just as firmly: a lesson begun with
+   no model stays unadapted until it is finished. */
+const adaptKey = (lang, scenarioIdx) => `linguapaws_adapt_${lang}_${scenarioIdx}`;
+
+/** The cached adaptation: an object, null for "plain", undefined for "not made yet". */
+export function getAdaptation(lang, scenarioIdx) {
+    if (!lang) return undefined;
+    try {
+        const raw = localStorage.getItem(adaptKey(lang, scenarioIdx));
+        if (!raw) return undefined;
+        const parsed = JSON.parse(raw);
+        if (parsed?.none) return null;
+        return parsed?.v === ADAPTATION_VERSION ? parsed : null;
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * The adaptation for this lesson, made once. `resuming`: the learner is part
+ * way through a lesson begun before there was one cached — keep it plain, so
+ * the screen they come back to is the screen they left.
+ */
+export async function ensureAdaptation(lang, scenarioIdx, { reviewSet = null, resuming = false } = {}) {
+    const cached = getAdaptation(lang, scenarioIdx);
+    if (cached !== undefined) return cached;
+    let plan = null;
+    if (!resuming) {
+        const q = encodeURIComponent(lang);
+        const [stats, confusions] = await Promise.all([
+            fetchSkillModel(lang),
+            withTimeout(getOr(`/api/progress/confusions/open?lang=${q}&limit=10`, []), SKILLS_TIMEOUT_MS, []),
+        ]);
+        try {
+            plan = planLessonAdaptation({ lang, lessonIdx: scenarioIdx, stats, reviewSet, confusions });
+        } catch (err) {
+            console.warn('[srs] lesson adaptation failed', err);
+        }
+    }
+    try {
+        localStorage.setItem(adaptKey(lang, scenarioIdx), JSON.stringify(plan || { none: true }));
+    } catch { /* quota — rebuilt next time */ }
+    return plan;
+}
+
+/** Forget a finished lesson's adaptation, so a replay adapts afresh. */
+export function clearAdaptation(lang, scenarioIdx) {
+    try { localStorage.removeItem(adaptKey(lang, scenarioIdx)); } catch { /* ignore */ }
+}

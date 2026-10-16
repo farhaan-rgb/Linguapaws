@@ -8,7 +8,8 @@ file is the design record for all of them.
 |---|---|---|
 | 1 | Skill taxonomy, drill tagging, attribution, per-learner skill model | **done — measure only** |
 | 2 | Practice and the in-lesson Memory check aim at weak skills, and say why | **done** |
-| 3–4 | Act on the model further | not started |
+| 3 | The lesson after New words adapts: pool drills for weak skills, one strong drill skipped, hint timing, listen words | **done** |
+| 4 | AI-generated drill pools at scale | not started |
 
 Phase 1 changes nothing a learner sees, is asked, or is accepted on. Grading
 stays in `lessonEngine.scoreAnswer`; attribution runs after the engine has
@@ -178,3 +179,52 @@ stubs a model (those weak, five words strong) for the Memory check and
 
 Tests: `tests/adaptive.test.mjs`; practice-check also builds every plan with a
 model and holds it to the same promises.
+
+## Phase 3: the lesson after "New words" (`adaptive.planLessonAdaptation`)
+
+**Pools.** `src/services/drillPools.js` holds `DRILL_POOLS[lang][lessonNo]`;
+curriculum.js attaches each list as `lesson.pool`. A pool drill is a lesson
+drill plus `id` (stable — a cached plan refers to it), `phase`, `source`
+(`seed` | `generated`) and `reviewed`. Skills are never written down: tagStep
+derives them. A separate file so phase 4's generator can rewrite it wholesale.
+Seed: 3 per lesson for Kannada and Telugu L5–L12 (48), all `reviewed: false`.
+gap-check, matcher-check and script-check (and speechScript's native table)
+now include pool drills, so check-course holds them to the lesson bar.
+
+**Core.** A lesson drill is core if it carries `core: true` or is the first
+drill in the course to test one of its skills (`coreFlags`). Core drills
+always run, in the order written.
+
+**What adaptation may do**, and nothing else:
+
+| | Rule |
+|---|---|
+| add | ≤ 2 pool drills from this lesson's or an earlier lesson's pool whose neediest skill is `weak`; this lesson's pool +0.1; each later pick for the same skill −0.3. Each goes at the end of its own round. |
+| skip | ≤ 1 non-core drill whose every (non-optional) skill is `strong`, never one that would empty its round. Keyed by round + answer (Kannada L8 asks *Nanna snehitaru* in both rounds). |
+| assist | any tagged skill `weak` → `'more'`: hint shown up front and a "Show the first letters" button before any miss (asking counts as help); every core skill `strong` → `'less'`: no "Show a hint" until a miss. Grading unchanged. |
+| listen | slot 1 = the weakest weak word of this lesson, slot 2 = the weakest weak word of any earlier lesson; otherwise the old pick. Same pools, same distractor rules. |
+| why | phase 2's caption, ≤ 1 per round, never for a skill the Memory check already explained. |
+
+So a plan is −1…+2 screens from today's. A model with nothing `weak` or
+`strong` (a new learner) changes nothing; no model is today's plan exactly.
+
+**Resume.** The adaptation is a small JSON object, made once at lesson start
+(after the review set) and cached in `linguapaws_adapt_<lang>_<idx>`
+(`srs.ensureAdaptation`). Steps, the lesson map (`getAdaptation`) and the
+preview drivers all rebuild from the cache, so the plan does not move however
+the model moves mid-lesson. `{ none: true }` caches "plain" just as firmly. A
+lesson already part-played with nothing cached stays plain. The cache is
+cleared on lesson complete (a replay re-adapts) and with the review sets.
+A pool id that no longer exists is dropped — never renumber a published one.
+
+**Listen evidence.** Listen screens are tagged with their word skill. A right
+tap is credit at 0.4 (0.15 after a miss, 0.1 after "show the word"), a wrong
+one 0 at 0.25; ×0.5 on a re-ask. A four-way tap can be a guess and says the
+learner understands, not that they can say it.
+
+**Chat** is not adapted (it keeps the fixed 15-turn cycle and the lesson's own
+drills), as in phase 2.
+
+Preview: `preview.html?lang=Kannada&scenario=7&skills=e:galu,w:nimma&win=12`,
+then Continue, lands on the added *Nanna manegalu* with its caption and the
+hint up front. Tests: `tests/lessonAdapt.test.mjs`.

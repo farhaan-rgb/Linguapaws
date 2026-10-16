@@ -13,7 +13,7 @@ import { CURRICULUM } from '../services/curriculum';
 import { findLanguage } from '../../shared/languages.js';
 import { aiService } from '../services/ai';
 import { buildLessonSteps } from '../services/stepPlan';
-import { ensureReviewSet } from '../services/srs';
+import { ensureReviewSet, ensureAdaptation } from '../services/srs';
 
 /**
  * Dev-only harness for the step-by-step lesson screens.
@@ -157,6 +157,9 @@ const screen = params.get('screen');
    can be looked at without a signed-in learner. `?confused=Naanu>Nanage`
    adds an open confused pair (said>needed) for the caption to name. Every
    other call is left as it was. Nothing is written anywhere. */
+/* Adaptive phase 3 caches the lesson's adaptation; a preview is always a
+   fresh lesson start, adapted (or not) to this URL's stub. */
+localStorage.removeItem(`linguapaws_adapt_${lang}_${scenario}`);
 const stubSkills = params.get('skills');
 if (stubSkills) {
     const weak = stubSkills.split(',').filter(Boolean);
@@ -287,7 +290,8 @@ if (winTo !== null && winTo !== undefined) {
             lang, Number(scenario), lesson.vocabulary || [],
             (lesson.phrases || []).flatMap(p => String(p.correct || '').split(/\s+/)),
         ).catch(() => null);
-        const expected = buildLessonSteps(lesson, reviewSet, lessonsFor).map(s => s.expected);
+        const adaptation = await ensureAdaptation(lang, Number(scenario), { reviewSet }).catch(() => null);
+        const expected = buildLessonSteps(lesson, reviewSet, lessonsFor, null, adaptation).map(s => s.expected);
 
         let at = 0, wrongsLeft = wrongs;
         const stop = () => { window.__driverBusy = false; clearInterval(tick); };
@@ -358,7 +362,8 @@ if (!Number.isNaN(enterTo)) {
             lang, Number(scenario), lesson.vocabulary || [],
             (lesson.phrases || []).flatMap(p => String(p.correct || '').split(/\s+/)),
         ).catch(() => null);
-        const expected = buildLessonSteps(lesson, reviewSet, lessonsFor).map(s => s.expected);
+        const adaptation = await ensureAdaptation(lang, Number(scenario), { reviewSet }).catch(() => null);
+        const expected = buildLessonSteps(lesson, reviewSet, lessonsFor, null, adaptation).map(s => s.expected);
 
         let at = 0;
         const tick = setInterval(() => {

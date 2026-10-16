@@ -25,7 +25,7 @@
  */
 
 import { CURRICULUM } from './curriculum.js';
-import { tagStep, skillsFor, CONSTRUCTIONS, ORDER_ID } from './skills.js';
+import { tagStep, skillsFor, CONSTRUCTIONS, ORDER_ID, wordSkillId } from './skills.js';
 import * as engine from './lessonEngine.js';
 
 export const NEED = { weak: 1, learning: 0.6, new: 0.35, strong: 0.1 };
@@ -237,9 +237,10 @@ export function whyCaption(lang, skillId, { confusions = [] } = {}) {
     return '';
 }
 
-/** Give at most one screen per round (phase) a `why`, and only a weak pick. */
-export function withCaptions(steps, lang, { confusions = [] } = {}) {
-    const done = new Set();
+/** Give at most one screen per round (phase) a `why`, and only a weak pick.
+ *  `done` — skills already explained this session (by an earlier round). */
+export function withCaptions(steps, lang, { confusions = [], done: already = [] } = {}) {
+    const done = new Set(already);
     return steps.map(s => {
         const a = s.adaptive;
         if (!a || a.level !== 'weak' || done.has(s.phase) || done.has(a.skill)) return s;
@@ -293,4 +294,175 @@ export function pickReviewItems({
         adaptive: p.adaptive,
         ...(p.why ? { why: p.why } : {}),
     }));
+}
+
+/* ── The lesson after "New words" (phase 3) ────────────────────────────────
+   A lesson's own phrases and conversations always run in the order written;
+   adaptation may only
+     (a) add up to POOL_ADD_MAX drills from the drill pools of this lesson or
+         an earlier one (drillPools.js), each aimed at a weak skill,
+     (b) skip at most SKIP_MAX of the lesson's own drills that is not core and
+         whose skills are all strong,
+     (c) set how much help a drill offers before a miss (`assist`), and
+     (d) pick the Listen round's words from weak word skills, within its
+         placement rules (one from this lesson, one from an earlier one).
+   So the plan is within -1/+2 screens of the plain one. Nothing here changes
+   what a screen accepts: grading stays in lessonEngine.scoreAnswer.
+
+   The result is a small JSON object, cached per lesson by srs.ensureAdaptation
+   so a resumed lesson (and the lesson map) rebuild exactly the same plan from
+   it, however the model has moved since. No model: null, and the plan is
+   today's, exactly. */
+
+export const POOL_ADD_MAX = 2;
+export const SKIP_MAX = 1;
+export const ADAPTATION_VERSION = 1;
+
+const drillsOfLesson = (lesson) => [
+    ...(lesson?.phrases || []).map(d => ({ ...d, phase: 'phrase' })),
+    ...(lesson?.conversations || []).map(d => ({ ...d, phase: 'conversation' })),
+];
+const asDrillStep = (d) => ({ kind: 'drill', phase: d.phase || 'phrase', drill: d, expected: d.correct, variants: d.acceptable || [] });
+
+/* Every skill any drill of lessons 1..n tests, per language — for "core". */
+const testedCache = new Map();
+function testedBefore(lang, lessons, n) {
+    const key = `${lang}|${n}`;
+    if (testedCache.has(key)) return testedCache.get(key);
+    const prev = n > 0 ? testedBefore(lang, lessons, n - 1) : new Set();
+    const out = new Set(prev);
+    if (n > 0) {
+        for (const d of drillsOfLesson(lessons[n - 1])) {
+            if (d?.correct) tagStep(asDrillStep(d), { lang, lessonNo: n }).core.forEach(id => out.add(id));
+        }
+    }
+    testedCache.set(key, out);
+    return out;
+}
+
+/**
+ * Which of a lesson's own drills are core: `core: true` on the drill, or the
+ * first drill of the course to test one of its skills (a construction, an
+ * ending, a word this lesson introduces). Core drills are never skipped.
+ * Returns a boolean per drill, in drillsOf order.
+ */
+export function coreFlags(lesson, lessons, lang) {
+    const li = lessons.indexOf(lesson);
+    const lessonNo = li + 1;
+    const seen = new Set(li >= 0 ? testedBefore(lang, lessons, li) : []);
+    return drillsOfLesson(lesson).map(d => {
+        if (!d?.correct) return false;
+        const ids = tagStep(asDrillStep(d), { lang, lessonNo }).core;
+        const fresh = ids.some(id => !seen.has(id));
+        ids.forEach(id => seen.add(id));
+        return Boolean(d.core) || fresh;
+    });
+}
+
+/**
+ * The adaptation for one lesson, or null with no model.
+ *   { v, add: [{ id, phase, skill, why? }], skip: [{ key, phase }], assist: { key: 'more'|'less' },
+ *     listen: [word|null, word|null], listenWhy }
+ * `key` is a drill's normalised answer.
+ */
+export function planLessonAdaptation({
+    lang, lessonIdx, lessons = CURRICULUM[lang] || [], stats = null, reviewSet = null,
+    confusions = [], now = Date.now(),
+} = {}) {
+    if (!hasModel(stats)) return null;
+    const lesson = lessons[lessonIdx];
+    if (!lesson) return null;
+    const model = modelMap(stats);
+    const lessonNo = lessonIdx + 1;
+    const seed = lessonIdx;
+    const own = drillsOfLesson(lesson).filter(d => d?.correct);
+    const ownKeys = new Set(own.map(d => norm(d.correct)));
+    const levelOfId = (id) => levelOf(model.get(id), now);
+
+    /* (a) Pool drills for weak skills. */
+    const cands = [];
+    lessons.slice(0, lessonIdx + 1).forEach((l, li) => (l.pool || []).forEach(d => {
+        const key = norm(d.correct);
+        if (!d?.id || !key || ownKeys.has(key)) return;
+        const skills = tagStep(asDrillStep(d), { lang, lessonNo }).skills;
+        const n = needOf(skills, model, now);
+        if (n.level !== 'weak') return;
+        const score = n.need + (li === lessonIdx ? 0.1 : 0) + 0.05 * jitter(seed, d.id);
+        cands.push({ d, key, skill: n.skill, score, phase: d.phase === 'conversation' ? 'conversation' : 'phrase' });
+    }));
+    const add = [];
+    while (add.length < POOL_ADD_MAX) {
+        let best = null, bestScore = -Infinity;
+        for (const c of cands) {
+            if (add.some(a => a.c === c || a.c.key === c.key)) continue;
+            const sc = c.score - REPEAT_PENALTY * add.filter(a => a.c.skill === c.skill).length;
+            if (sc > bestScore) { best = c; bestScore = sc; }
+        }
+        if (!best) break;
+        add.push({ c: best });
+    }
+
+    /* (b) One non-core drill whose skills are all strong may go. Never one
+       that would leave its round empty. */
+    const flags = coreFlags(lesson, lessons, lang);
+    const all = drillsOfLesson(lesson);
+    const skippable = all.map((d, i) => ({ d, i })).filter(({ d, i }) => {
+        if (!d?.correct || flags[i]) return false;
+        if (all.filter(x => x.phase === d.phase).length < 2) return false;
+        const ids = tagStep(asDrillStep(d), { lang, lessonNo }).core;
+        return ids.length && ids.every(id => levelOfId(id) === 'strong');
+    });
+    const meanMastery = (d) => {
+        const ids = tagStep(asDrillStep(d), { lang, lessonNo }).core;
+        return ids.reduce((s, id) => s + (model.get(id)?.mastery ?? 0.5), 0) / ids.length;
+    };
+    skippable.sort((a, b) => (meanMastery(b.d) - meanMastery(a.d)) || (jitter(seed, a.d.correct) - jitter(seed, b.d.correct)));
+    /* By round and answer: one answer can sit in both rounds (Kannada L8
+       asks *Nanna snehitaru* twice), and only the one picked may go. */
+    const skip = skippable.slice(0, SKIP_MAX).map(({ d }) => ({ key: norm(d.correct), phase: d.phase }));
+
+    /* (c) Help before a miss: up front for a weak skill, held back when every
+       skill is strong. Anything else keeps today's "Show a hint". */
+    const assist = {};
+    const planned = [...own.filter(d => !skip.some(k => k.key === norm(d.correct) && k.phase === d.phase)), ...add.map(a => a.c.d)];
+    for (const d of planned) {
+        const tag = tagStep(asDrillStep(d), { lang, lessonNo });
+        if (tag.skills.some(id => levelOfId(id) === 'weak')) assist[norm(d.correct)] = 'more';
+        else if (tag.core.length && tag.core.every(id => levelOfId(id) === 'strong')) assist[norm(d.correct)] = 'less';
+    }
+
+    /* (d) Listen words: the weakest word skill in each slot's own pool. */
+    const asked = new Set((reviewSet || []).map(r => norm(r?.word)));
+    const weakestWord = (vocab) => {
+        let best = null;
+        for (const v of vocab) {
+            const id = wordSkillId(v?.word);
+            if (!id || !v.meaning || asked.has(norm(v.word)) || levelOfId(id) !== 'weak') continue;
+            const m = model.get(id)?.mastery ?? 0.5;
+            if (!best || m < best.m) best = { v, m, id };
+        }
+        return best;
+    };
+    const curWeak = weakestWord(lesson.vocabulary || []);
+    const oldWeak = weakestWord(lessons.slice(0, lessonIdx).flatMap(l => l.vocabulary || []));
+    const listen = [curWeak?.v.word || null, oldWeak?.v.word || null];
+
+    /* Captions: one per round, never for a skill the Memory check explained. */
+    const explained = (reviewSet || []).filter(r => r?.why && r.adaptive?.skill).map(r => r.adaptive.skill);
+    const captioned = withCaptions(add.map(a => ({
+        phase: a.c.phase, id: a.c.d.id, adaptive: { skill: a.c.skill, level: 'weak' },
+    })), lang, { confusions, done: explained });
+    const listenPick = oldWeak || curWeak;
+    const listenWhy = listenPick && !explained.includes(listenPick.id)
+        && !captioned.some(c => c.why && c.adaptive.skill === listenPick.id)
+        ? whyCaption(lang, listenPick.id, { confusions }) : '';
+
+    return {
+        v: ADAPTATION_VERSION,
+        add: captioned.map(c => ({ id: c.id, phase: c.phase, skill: c.adaptive.skill, ...(c.why ? { why: c.why } : {}) })),
+        skip,
+        assist,
+        listen,
+        ...(listenWhy ? { listenWhy, listenWhyWord: listenPick.v.word } : {}),
+    };
 }

@@ -5,7 +5,7 @@ import { CURRICULUM, isLanguageAvailable } from '../services/curriculum';
 import { api } from '../services/api';
 import { resumeIndex, savedStepFor, completedLessonFor } from '../services/lessonResume';
 import { buildLessonSteps } from '../services/stepPlan';
-import { getReviewSet, REVIEW_SLOTS } from '../services/srs';
+import { getReviewSet, getAdaptation, REVIEW_SLOTS } from '../services/srs';
 import { getLearnMode } from '../utils/learnMode';
 import { getStoredJSON } from '../utils/storage';
 import {
@@ -52,7 +52,9 @@ function stepTotalFor(lessons, idx, langName) {
     const lesson = lessons[idx];
     if (!lesson) return 0;
     const cached = getReviewSet(langName, idx);
-    const base = buildLessonSteps(lesson, cached, lessons).length;
+    /* With the lesson's cached adaptation (phase 3), if it has one, so the
+       count matches the plan Steps rebuilds on resume. */
+    const base = buildLessonSteps(lesson, cached, lessons, null, getAdaptation(langName, idx) || null).length;
     return cached ? base : base + REVIEW_SLOTS;
 }
 

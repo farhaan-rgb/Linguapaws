@@ -31,6 +31,7 @@ lessons.forEach((lesson, i) => {
     const drills = [
         ...(lesson.phrases || []).map(p => ({ ...p, kind: 'phrase' })),
         ...(lesson.conversations || []).map(p => ({ ...p, kind: 'conversation' })),
+        ...(lesson.pool || []).map(p => ({ ...p, kind: `pool ${p.id}` })),
     ];
     for (const d of drills) {
         if (!d.correct) continue;
@@ -85,7 +86,7 @@ for (const p of personTraps) {
 let supersets = 0;
 const overlaps = [];
 lessons.forEach((lesson, i) => {
-    const drills = [...(lesson.phrases || []), ...(lesson.conversations || [])].filter(d => d.correct);
+    const drills = [...(lesson.phrases || []), ...(lesson.conversations || []), ...(lesson.pool || [])].filter(d => d.correct);
     for (const d of drills) for (const other of drills) {
         if (other === d) continue;
         if (E.normalizeLatin(other.correct) === E.normalizeLatin(d.correct)) continue;
@@ -111,7 +112,7 @@ for (const o of overlaps) console.log(`- L${o.lesson}: \`${o.said}\` accepted fo
    the swapped sentence itself, it must be rejected. */
 const swapPasses = [];
 lessons.forEach((lesson, i) => {
-    for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {
+    for (const d of [...(lesson.phrases || []), ...(lesson.conversations || []), ...(lesson.pool || [])]) {
         if (!d.correct) continue;
         const listed = new Set([d.correct, ...(d.acceptable || [])].map(E.normalizeLatin));
         for (const form of [d.correct, ...(d.acceptable || [])]) {
@@ -167,7 +168,7 @@ const PINNED = {
 };
 const drillFor = (target) => {
     for (const lesson of lessons) {
-        for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {
+        for (const d of [...(lesson.phrases || []), ...(lesson.conversations || []), ...(lesson.pool || [])]) {
             if (E.normalizeLatin(d.correct) === E.normalizeLatin(target)) return d;
         }
         for (const v of lesson.vocabulary || []) {
@@ -222,7 +223,7 @@ const questionShapes = (answer) => {
 
 const falsePasses = [];
 lessons.forEach((lesson, i) => {
-    for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {
+    for (const d of [...(lesson.phrases || []), ...(lesson.conversations || []), ...(lesson.pool || [])]) {
         if (!d.correct) continue;
         for (const said of [...REFUSALS, ...questionShapes(d.correct)]) {
             // Same two-part test the lesson engine applies: an utterance that
@@ -273,7 +274,7 @@ lessons.forEach((lesson, i) => {
     const notes = [
         ...(lesson.vocabulary || []).filter(v => v.teach)
             .map(v => ({ label: `teach ${v.word}`, text: v.teach.replaceAll('{w}', v.word) })),
-        ...[...(lesson.phrases || []), ...(lesson.conversations || [])]
+        ...[...(lesson.phrases || []), ...(lesson.conversations || []), ...(lesson.pool || [])]
             .filter(d => d.grammarNote).map(d => ({ label: d.prompt, text: d.grammarNote })),
     ];
     for (const n of notes) {
@@ -302,7 +303,7 @@ for (const n of longSpoken) {
    land on the right side. */
 const asQuestion = [];
 lessons.forEach((lesson, i) => {
-    for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {
+    for (const d of [...(lesson.phrases || []), ...(lesson.conversations || []), ...(lesson.pool || [])]) {
         for (const form of [d.correct, ...(d.acceptable || [])].filter(Boolean)) {
             if (E.isLearnerQuestion(form, { lexicon: syn })) asQuestion.push({ lesson: i + 1, form });
         }

@@ -148,6 +148,15 @@ const stepAnswer = (step) => (step?.item?.contrast
 
 /** Tag one screen from stepPlan (teach, review, contrast, phrase, conversation, practice). */
 export function tagStep(step, { lang, lessonNo }) {
+    /* A listen screen's answer is an English meaning; what it tests is the
+       one word it plays — heard and understood, not produced. */
+    if (step?.kind === 'listen') {
+        const tag = tagAnswer(step.word || '', { lang, lessonNo, order: false });
+        tag.skills = tag.skills.filter(id => id.startsWith('w:')).slice(0, 1);
+        tag.core = [...tag.skills];
+        tag.constructions = [];
+        return tag;
+    }
     /* A teach screen and a memory check ask for words, not a sentence; a
        contrast asks for two words in an order the prompt dictates. */
     const order = step?.kind === 'drill';
@@ -246,7 +255,12 @@ export const WEIGHTS = {
     spokenFar: 0.1,         // a spoken miss nowhere near any accepted form: probably a mishearing
     farBelow: 0.4,          // "nowhere near" = best similarity to an accepted form under this
     reask: 0.5,             // a re-ask comes minutes after the answer was shown
-    phase: { teach: 0.3, review: 1.0, phrase: 0.8, conversation: 1.0 },
+    phase: { teach: 0.3, review: 1.0, phrase: 0.8, conversation: 1.0, listen: 1.0 },
+    /* Listening (comprehension, a four-way tap): it says the learner knows
+       what the word MEANS, not that they can say it, and a tap can be a
+       guess — so a right tap is credit at reduced weight and a wrong one a
+       small penalty. */
+    listen: { first: 0.4, afterMiss: 0.15, helped: 0.1, wrong: 0.25 },
 };
 
 /* Outcome of a settled screen, from what Steps.jsx knows. */
@@ -389,6 +403,15 @@ export function skillEvidence({ step, lang, lessonNo, outcome, attempts = [], fi
     const tag = tagStep(step, { lang, lessonNo });
     if (!tag.skills.length) return [];
     const W = WEIGHTS;
+    if (step.kind === 'listen') {
+        const L = W.listen;
+        const [score, weight] = outcome === 'first' ? [1, L.first]
+            : outcome === 'after-miss' ? [1, L.afterMiss]
+                : outcome === 'helped' ? [1, L.helped]
+                    : [0, L.wrong];
+        const w = weight * (step.retry ? W.reask : 1);
+        return tag.skills.map(skillId => ({ skillId, score, weight: Math.round(w * 1000) / 1000 }));
+    }
     const items = [];
     let lastCh = 1;
     /* An optional construction counts for a right answer only when that

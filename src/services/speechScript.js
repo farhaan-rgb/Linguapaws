@@ -79,7 +79,7 @@ function tableFor(langName) {
             for (const x of v?.examples || []) if (x?.text && x.native) phrases.set(keyOf(x.text), x.native);
             for (const t of keyOf(v?.word).split(' ')) if (t) known.add(t);
         }
-        for (const d of [...(lesson.phrases || []), ...(lesson.conversations || [])]) {
+        for (const d of [...(lesson.phrases || []), ...(lesson.conversations || []), ...(lesson.pool || [])]) {
             if (d?.correct && d.native) { phrases.set(keyOf(d.correct), d.native); align(d.correct, d.native); }
             for (const t of keyOf(d?.correct).split(' ')) if (t) known.add(t);
         }
