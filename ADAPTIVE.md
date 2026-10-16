@@ -228,3 +228,39 @@ drills), as in phase 2.
 Preview: `preview.html?lang=Kannada&scenario=7&skills=e:galu,w:nimma&win=12`,
 then Continue, lands on the added *Nanna manegalu* with its caption and the
 hint up front. Tests: `tests/lessonAdapt.test.mjs`.
+
+## Spaced phrases (`src/services/phraseReview.js`)
+
+The SRS scheduled words only. A lesson's phrases and conversation lines were
+drilled once and never asked again on a schedule: practice could draw one at
+random, a missed one came back through the missed-screen record, and phase 3
+adds *pool* drills for weak skills — but none of that brings a chunk such as
+*Meeru ela unnaru?* back when it is due. Formulaic chunks are learned whole
+and forgotten like words, so they now sit on the same Leitner ladder.
+
+- **Storage.** `LearnedWord` rows with `kind: 'phrase'`, `lessonIdx`, `phase`;
+  `wordKey` is `phrase:<answer>` so a one-word answer (*Yaavaga?*) never shares
+  a row with the word. `GET /due` and `GET /vocab` return words only unless
+  `kind=phrase` — Chat, practice and the word count are unchanged.
+- **Recording.** A lesson's own drill, first attempt, once per lesson per
+  answer (Telugu L1 asks one line in both rounds), through `POST /review` with
+  the same `unaided | hinted | revealed | missed` outcome a word gets. Pool
+  drills are not recorded. Chat records its phrase/conversation stages on the
+  accepted answer (an echo of the tutor's line counts as `revealed`) and on skip.
+- **Asking.** `ensureReviewSet` fetches due phrases and `placeDuePhrases` puts
+  at most one (`PHRASE_SLOTS_MAX`) into the Memory check, replacing a word so
+  the slot count, resume and the lesson map do not move: a current-lesson
+  top-up first, then an adaptive "earlier" pick, then a due word — never the
+  first slot, never the last (a confused pair takes that one). Only from a
+  lesson before this one that the learner has finished (`lessonProgress`); a
+  phrase this lesson drills anyway is skipped.
+- **Grading.** The item caches only `{ lessonIdx, phase }` and its answer; the
+  drill — and so its `acceptable` list — is looked up in the course each time
+  the screen is built, so a fixed variant reaches it. Accepted by
+  `lessonEngine.scoreAnswer` on those forms, as the drill itself was.
+- **Both surfaces.** The set is the shared review cache, so Chat asks the same
+  phrase ("How do you say … in Telugu?") on the same variants.
+
+Preview: `preview.html?lang=Telugu&scenario=2&phrases=1&miss=7&wrong=zzz` — the
+previous lesson's phrases stubbed as due. Tests: `tests/phraseReview.test.mjs`,
+`backend/tests/phraseSrs.test.js`.

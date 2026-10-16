@@ -75,7 +75,27 @@ function initialSchedule(now = new Date()) {
     return { box: 0, dueAt: addMinutes(now, LADDER_MINUTES[0]) };
 }
 
+/* ── Phrases on the same ladder ──
+   A phrase row lives beside the words in LearnedWord, told apart by `kind`.
+   Every reader that means "words" — the due queue Chat and practice ask for,
+   the vocabulary count — must exclude phrases, so the filter lives here. */
+const PHRASE_PREFIX = 'phrase:';
+
+/** The unique key for a review item: words lowercased, phrases prefixed. */
+function reviewKey(word, kind) {
+    const base = String(word || '').toLowerCase().replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
+    if (kind === 'phrase') return base ? PHRASE_PREFIX + base : '';
+    return String(word || '').toLowerCase().trim();
+}
+
+/** Mongo filter on `kind`: 'phrase' → phrases only; anything else → words only. */
+function kindFilter(kind) {
+    return kind === 'phrase' ? { kind: 'phrase' } : { kind: { $ne: 'phrase' } };
+}
+
 module.exports = {
+    reviewKey,
+    kindFilter,
     LADDER_MINUTES,
     OUTCOMES,
     MAX_BOX,

@@ -12,6 +12,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { getStoredJSON, setStoredJSON } from '../utils/storage';
 import { CURRICULUM, AVAILABLE_LANGUAGES, isLanguageAvailable } from '../services/curriculum';
 import * as engine from '../services/lessonEngine';
+import { phraseDrill } from '../services/phraseReview';
 import { courseFactsFor, groundedAnswerRule } from '../services/courseFacts';
 import { speakableText } from '../services/speechScript';
 import { toLatin, hasBrahmicScript } from '../../shared/transliterate.js';
@@ -476,6 +477,17 @@ export default function Chat() {
         }
         return [];
     };
+
+    /* A Memory-check slot may hold a phrase from an earlier lesson
+       (phraseReview.js): graded on that drill's own accepted forms, looked up
+       in the course, and asked as a phrase rather than "the word for". */
+    const reviewVariantsFor = (item) => (item?.phrase
+        ? (phraseDrill(CURRICULUM[safeLang] || [], item.phrase.lessonIdx, item.word)?.acceptable || [])
+        : altsFor(item?.word));
+    const reviewAsk = (item, withLang = true) => (item?.phrase
+        ? `How do you say "${item.meaning}"${withLang ? ` in ${targetLangName}` : ''}?`
+        : `What's the ${withLang ? `${targetLangName} ` : ''}word for "${item?.meaning}"?`);
+    const reviewLadder = (item) => (item?.phrase ? { kind: 'phrase', ...item.phrase } : {});
 
     /** Best string-similarity and token-coverage across a target and its variants. */
     const scoreAgainst = (actual, expected, variants = []) =>
@@ -957,7 +969,7 @@ export default function Chat() {
                     const carriedOver = item.source === 'due' || item.source === 'earlier'
                         ? " Let's warm up an older word first."
                         : '';
-                    const reviewGreeting = `Quick memory check, my friend! 🐾${carriedOver} What's the ${targetLangName} word for "${item.meaning}"?`;
+                    const reviewGreeting = `Quick memory check, my friend! 🐾${carriedOver} ${reviewAsk(item)}`;
                     setMessages([{ role: 'assistant', content: `${charName} here. ${reviewGreeting}` }]);
                     setIsLoading(false);
                     if (!isMuted && isMounted.current) {
@@ -1223,6 +1235,7 @@ export default function Chat() {
             let matchRatio = 0;
             let displayPhrase = null;
             let phraseExpectedCorrect = null;
+            let phraseStage = null;   // 'phrase' | 'conversation' while on a drill
             let reviewExpectedWord = null;
             let reviewItem = null;   // { word, meaning, source } when in a review step
             let matchCoverage = 0;   // fraction of the target's words actually produced
@@ -1260,13 +1273,14 @@ export default function Chat() {
                 reviewExpectedWord = reviewItem?.word || null;
                 if (reviewExpectedWord) {
                     ({ ratio: matchRatio, coverage: matchCoverage, accepted: matchAccepted } =
-                        scoreAgainst(actual, reviewExpectedWord, altsFor(reviewExpectedWord)));
+                        scoreAgainst(actual, reviewExpectedWord, reviewVariantsFor(reviewItem)));
                     displayPhrase = reviewExpectedWord;
                 }
             } else if (isCurrentlyInBasic) {
                 const basicIdx = currentInScenario - 8;
                 const basicItem = scenarioDataForMatch.phrases?.[basicIdx];
                 phraseExpectedCorrect = basicItem?.correct || null;
+                phraseStage = 'phrase';
                 if (phraseExpectedCorrect) {
                     ({ ratio: matchRatio, coverage: matchCoverage, accepted: matchAccepted } =
                         scoreAgainst(actual, phraseExpectedCorrect, basicItem?.acceptable || []));
@@ -1276,6 +1290,7 @@ export default function Chat() {
                 const convoIdx = currentInScenario - 11;
                 const convoItem = scenarioDataForMatch.conversations?.[convoIdx];
                 phraseExpectedCorrect = convoItem?.correct || null;
+                phraseStage = 'conversation';
                 if (phraseExpectedCorrect) {
                     ({ ratio: matchRatio, coverage: matchCoverage, accepted: matchAccepted } =
                         scoreAgainst(actual, phraseExpectedCorrect, convoItem?.acceptable || []));
@@ -1300,6 +1315,26 @@ export default function Chat() {
                 && (echoedTutor || (matchAccepted && matchRatio >= threshold));
             const isLastScenarioStep = currentInScenario === 14 && hasCorrectMatch;
 
+            /* A phrase or conversation line goes on the spaced-repetition ladder
+               when it is answered (phraseReview.js), as in step mode. Recorded on
+               the accepted answer only: after a reveal that answer is a parrot,
+               which gradeOutcome scores as a lapse, so it comes back soon. */
+            if (hasCorrectMatch && phraseStage && phraseExpectedCorrect) {
+                recordReview({
+                    lang: safeLang,
+                    word: phraseExpectedCorrect,
+                    /* Echoing a line the tutor just said is accepted (fe01d8e),
+                       but it is not a recall. */
+                    outcome: echoedTutor ? 'revealed' : gradeOutcome({
+                        correct: true,
+                        misses: consecutiveMisses(messages),
+                        revealed: answerWasRevealed(lastAssistant?.content || '', phraseExpectedCorrect),
+                    }),
+                    scenario: scenarioIdxForMatch,
+                    kind: 'phrase', lessonIdx: scenarioIdxForMatch, phase: phraseStage,
+                });
+            }
+
             // -- 3. SCORE TRACKING & CORRECTIONS --
             let expectedCorrectionStr = null;
             if (isCurrentlyTeaching) expectedCorrectionStr = teachWanted || promptedPhrase;
@@ -1320,15 +1355,21 @@ export default function Chat() {
                    spaced-repetition ladder, and nothing was telling the ladder.
                    A skip is a lapse — the strongest signal there is that the word
                    is not known — so it is recorded as one and the scheduler brings
-                   it back. Word-level stages only; a whole sentence is not a
-                   ladder item. */
-                if (isCurrentlyTeaching || isCurrentlyInReview) {
+                   it back. A skipped phrase or conversation line goes on the
+                   phrase ladder the same way (phraseReview.js). */
+                if (phraseStage && phraseExpectedCorrect) {
+                    recordReview({
+                        lang: safeLang, word: phraseExpectedCorrect, outcome: 'missed',
+                        scenario: scenarioIdxForMatch, kind: 'phrase', lessonIdx: scenarioIdxForMatch, phase: phraseStage,
+                    });
+                } else if (isCurrentlyTeaching || isCurrentlyInReview) {
                     recordReview({
                         lang: safeLang,
                         word: expectedCorrectionStr,
                         outcome: 'missed',
                         meaning: reviewItem?.meaning,
                         scenario: scenarioDataForMatch.scenario,
+                        ...(isCurrentlyInReview ? reviewLadder(reviewItem) : {}),
                     });
                 }
                 const skipped = {
@@ -1476,6 +1517,7 @@ export default function Chat() {
                             }),
                             meaning: reviewItem?.meaning,
                             scenario: scenarioDataForMatch.scenario,
+                            ...reviewLadder(reviewItem),
                         });
                     }
 
@@ -1486,7 +1528,7 @@ export default function Chat() {
                     };
                     const nextQuestion = () => {
                         const nextItem = reviewItemAt(scenarioIdxForMatch, round + 1, scenarioDataForMatch.vocabulary);
-                        return `What's the word for "${nextItem?.meaning || 'hello'}"?`;
+                        return nextItem?.meaning ? reviewAsk(nextItem, false) : `What's the word for "hello"?`;
                     };
 
                     if (hasCorrectMatch) {
@@ -1513,17 +1555,17 @@ export default function Chat() {
                         /* The grader knows why it refused — ask it before the
                            model, whose version named the wrong part of the word in
                            five of thirteen misses and once invented a meaning. */
-                        const diagnosis = engine.explainMiss(text, reviewExpectedWord, altsFor(reviewExpectedWord), LEXICON)
+                        const diagnosis = engine.explainMiss(text, reviewExpectedWord, reviewVariantsFor(reviewItem), LEXICON)
                             || await aiService.diagnoseAttempt({
                             answer: text,
                             target: reviewExpectedWord,
-                            prompt: `What's the ${targetLangName} word for "${currentMeaning}"?`,
+                            prompt: reviewAsk({ ...reviewItem, meaning: currentMeaning }),
                             targetLangName,
                             nativeLangName: nativeLang?.name || 'English',
                         });
                         reviewResponse = diagnosis
-                            ? `Not quite. ${diagnosis} What's the word for "${currentMeaning}"?`
-                            : `Not quite. What's the word for "${currentMeaning}"?`;
+                            ? `Not quite. ${diagnosis} ${reviewAsk({ ...reviewItem, meaning: currentMeaning }, false)}`
+                            : `Not quite. ${reviewAsk({ ...reviewItem, meaning: currentMeaning }, false)}`;
                     }
 
                     setMessages(prev => [...prev, { role: 'assistant', content: reviewResponse }]);
@@ -2110,7 +2152,7 @@ export default function Chat() {
                     ? drillPrompt(scenarioDataForMatch.phrases, currentInScenario - 8)
                     : isCurrentlyInConvo
                         ? drillPrompt(scenarioDataForMatch.conversations, currentInScenario - 11)
-                        : (reviewItem?.meaning ? `What's the ${targetLangName} word for "${reviewItem.meaning}"?` : null);
+                        : (reviewItem?.meaning ? reviewAsk(reviewItem) : null);
                 if (task && !normalizeLatin(storedResponse).includes(normalizeLatin(task).slice(0, 24))) {
                     outgoing.push({ role: 'assistant', content: `So — ${task}` });
                 }

@@ -179,6 +179,24 @@ if (stubSkills) {
     };
 }
 
+/* ── A due phrase (spaced phrases) ─────────────────────────────────────────
+   `?phrases=1` makes the previous lesson's phrases due, as the server's
+   /api/progress/due?kind=phrase would, so the Memory check's phrase slot can
+   be looked at; the preview counts the previous lesson as finished. */
+if (params.get('phrases')) {
+    const prevIdx = Number(scenario) - 1;
+    const prevLesson = (CURRICULUM[lang] || [])[prevIdx];
+    localStorage.removeItem(`linguapaws_reviewset_${lang}_${scenario}`);
+    const before = api.get.bind(api);
+    api.get = async (path, ...rest) => {
+        if (String(path).startsWith('/api/progress/due') && String(path).includes('kind=phrase')) {
+            return (prevLesson?.phrases || []).map(d => ({ kind: 'phrase', word: d.correct, lessonIdx: prevIdx, phase: 'phrase' }));
+        }
+        if (path === '/api/progress') return { successfulRepeats: 0, lessonProgress: { [lang]: prevIdx }, lessonPosition: {} };
+        return before(path, ...rest);
+    };
+}
+
 /* Header renders the signed-in avatar unconditionally, so the home preview needs
    a stub user. Never a real token — every API call still fails and is swallowed. */
 /* The lesson map: ?screen=map&done=N&at=S stubs /api/progress so the map shows

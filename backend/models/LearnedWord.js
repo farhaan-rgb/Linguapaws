@@ -25,6 +25,15 @@ const learnedWordSchema = new mongoose.Schema(
         meaning: { type: String, default: '' },
         scenario: { type: String, default: '' },
 
+        // 'word' — a vocabulary item; 'phrase' — a lesson's phrase or
+        // conversation line, scheduled as a whole chunk. A phrase's wordKey is
+        // prefixed `phrase:` so it can never collide with a one-word answer,
+        // and `lessonIdx` is how the client finds the drill (and its accepted
+        // forms) again. Absent on older rows, which are all words.
+        kind: { type: String, enum: ['word', 'phrase'], default: 'word' },
+        lessonIdx: { type: Number },
+        phase: { type: String },
+
         // ── SRS state ──
         box: { type: Number, default: 0 },
         dueAt: { type: Date, default: Date.now },

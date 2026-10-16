@@ -1,5 +1,6 @@
 import { api } from './api';
 import { pickReviewItems, planLessonAdaptation, ADAPTATION_VERSION } from './adaptive.js';
+import { placeDuePhrases } from './phraseReview.js';
 
 /**
  * Client side of the spaced-repetition system.
@@ -60,7 +61,7 @@ export function getReviewSet(lang, scenarioIdx) {
  * Build (or return the cached) review triplet for this lesson.
  * Safe to call repeatedly — one network round-trip per lesson.
  */
-export async function ensureReviewSet(lang, scenarioIdx, vocabulary = [], priority = []) {
+export async function ensureReviewSet(lang, scenarioIdx, vocabulary = [], priority = [], { completedIdx = null } = {}) {
     if (!lang) return null;
 
     const cached = getReviewSet(lang, scenarioIdx);
@@ -72,12 +73,15 @@ export async function ensureReviewSet(lang, scenarioIdx, vocabulary = [], priori
        due list only gives the adaptive pick a choice; without a model it is
        cut back to the three most overdue, as before. */
     const q = encodeURIComponent(lang);
-    const [dueRaw, stats, confusions] = await Promise.all([
+    const [dueRaw, stats, confusions, phrasesDue] = await Promise.all([
         api.get(`/api/progress/due?lang=${q}&limit=10`).catch(() => []),
         fetchSkillModel(lang),
         withTimeout(getOr(`/api/progress/confusions/open?lang=${q}&limit=10`, []), SKILLS_TIMEOUT_MS, []),
+        getOr(`/api/progress/due?lang=${q}&kind=phrase&limit=5`, []),
     ]);
-    const due = (Array.isArray(dueRaw) ? dueRaw : []).filter((w) => w && w.word);
+    /* An old server ignores `kind` and returns words twice; rows marked as
+       phrases are the only thing placeDuePhrases takes, and none are words. */
+    const due = (Array.isArray(dueRaw) ? dueRaw : []).filter((w) => w && w.word && w.kind !== 'phrase');
 
     let set = null;
     try {
@@ -119,6 +123,14 @@ export async function ensureReviewSet(lang, scenarioIdx, vocabulary = [], priori
             set.push({ word: item.word, meaning: item.meaning || '', source: 'lesson' });
             taken.add(item.word.toLowerCase());
         }
+    }
+
+    /* A due phrase or conversation line from a finished lesson takes one slot
+       (phraseReview.js) — the chunk itself, on its own schedule. */
+    try {
+        set = placeDuePhrases(set, phrasesDue, { lang, scenarioIdx, completedIdx, size: REVIEW_SLOTS });
+    } catch (err) {
+        console.warn('[srs] phrase placement failed', err);
     }
 
     if (!set.length) return null;
@@ -171,7 +183,7 @@ export async function recordTaughtWord({ lang, word, meaning, scenario }) {
  * 'missed'. A bare boolean still works but cannot distinguish a cold recall
  * from one dragged out of a hint, which is the signal worth having.
  */
-export async function recordReview({ lang, word, outcome, wasCorrect, meaning, scenario }) {
+export async function recordReview({ lang, word, outcome, wasCorrect, meaning, scenario, kind, lessonIdx, phase }) {
     if (!lang || !word) return null;
     try {
         return await api.post('/api/progress/review', {
@@ -180,6 +192,9 @@ export async function recordReview({ lang, word, outcome, wasCorrect, meaning, s
             ...(outcome ? { outcome } : { wasCorrect }),
             meaning,
             scenario,
+            /* A phrase or conversation line: its own ladder entry, resolved
+               back to the drill through lessonIdx (phraseReview.js). */
+            ...(kind === 'phrase' ? { kind, lessonIdx, phase } : {}),
         });
     } catch (err) {
         console.warn('[srs] failed to record review for', word, err.message);

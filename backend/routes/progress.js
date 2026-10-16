@@ -5,7 +5,7 @@ const Confusion = require('../models/Confusion');
 const MissedScreen = require('../models/MissedScreen');
 const SkillStat = require('../models/SkillStat');
 const requireAuth = require('../middleware/auth');
-const { nextSchedule, initialSchedule } = require('../services/srs');
+const { nextSchedule, initialSchedule, reviewKey, kindFilter } = require('../services/srs');
 const {
     validateCompletion, completionUpdate, progressPayload,
     validatePosition, positionUpdate, positionClearFilter, positionClearUpdate,
@@ -121,6 +121,7 @@ router.post('/learn-word', async (req, res) => {
 });
 
 // GET /api/progress/due?lang=Telugu&limit=3 — the review queue, most overdue first
+// Words only, unless `kind=phrase`: then phrases and conversation lines only.
 router.get('/due', async (req, res) => {
     const { lang } = req.query;
     if (!lang) return res.status(400).json({ error: 'lang query param is required' });
@@ -131,6 +132,7 @@ router.get('/due', async (req, res) => {
     const due = await LearnedWord.find({
         userId: req.user._id,
         lang,
+        ...kindFilter(req.query.kind),
         dueAt: { $lte: new Date() },
     })
         .sort({ dueAt: 1 })
@@ -144,6 +146,7 @@ router.get('/due', async (req, res) => {
             scenario: w.scenario,
             box: w.box,
             dueAt: w.dueAt,
+            ...(w.kind === 'phrase' ? { kind: 'phrase', lessonIdx: w.lessonIdx, phase: w.phase } : {}),
         }))
     );
 });
@@ -159,7 +162,12 @@ router.post('/review', async (req, res) => {
         return res.status(400).json({ error: 'word, lang and one of outcome (string) or wasCorrect (boolean) are required' });
     }
 
-    const wordKey = keyOf(word);
+    const kind = req.body.kind === 'phrase' ? 'phrase' : 'word';
+    const lessonIdx = Number(req.body.lessonIdx);
+    if (kind === 'phrase' && (!Number.isInteger(lessonIdx) || lessonIdx < 0)) {
+        return res.status(400).json({ error: 'a phrase needs lessonIdx' });
+    }
+    const wordKey = reviewKey(word, kind);
     if (!wordKey) return res.status(400).json({ error: 'word is empty' });
 
     const existing = await LearnedWord.findOne({ userId: req.user._id, lang, wordKey });
@@ -175,6 +183,7 @@ router.post('/review', async (req, res) => {
         wordKey,
         meaning: req.body.meaning || '',
         scenario: req.body.scenario || '',
+        ...(kind === 'phrase' ? { kind, lessonIdx, phase: String(req.body.phase || '') } : {}),
     });
 
     const now = new Date();
@@ -207,7 +216,7 @@ router.post('/review', async (req, res) => {
 // truthful to show ("47 words, 6 due now") instead of an utterance count.
 router.get('/vocab', async (req, res) => {
     const { lang } = req.query;
-    const query = { userId: req.user._id, ...(lang ? { lang } : {}) };
+    const query = { userId: req.user._id, ...(lang ? { lang } : {}), ...kindFilter(req.query.kind) };
 
     const words = await LearnedWord.find(query).sort({ box: -1, dueAt: 1 }).lean();
     const now = new Date();

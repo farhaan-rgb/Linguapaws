@@ -1101,7 +1101,7 @@ function StepScreen({
     const oneWord = step.kind === 'drill'
         && engine.normalizeLatin(step.expected).split(' ').filter(Boolean).length === 1;
     const exampleWord = step.kind === 'teach' ? step.slice?.[0]?.word
-        : (step.kind === 'review' && !contrast) ? step.item?.word
+        : (step.kind === 'review' && !contrast && !step.item?.phrase) ? step.item?.word
             : oneWord ? step.expected : null;
     const examples = useMemo(() => {
         const upTo = taughtLessons.length - 1;
@@ -1633,7 +1633,8 @@ function StepScreen({
 
                 {step.kind === 'review' && (
                     <PromptPanel muted={settled} sub={step.item.source === 'due' ? 'from an earlier lesson'
-                        : step.item.contrast ? 'a pair you mixed up before' : null}>
+                        : step.item.phrase ? 'a phrase from an earlier lesson'
+                            : step.item.contrast ? 'a pair you mixed up before' : null}>
                         <TapText text={step.prompt} />
                     </PromptPanel>
                 )}
@@ -2200,6 +2201,8 @@ function Lesson({ scenarioParam, practice = false }) {
        streak is that it is longer than the thing in front of you. Held in a ref
        as well as state so `handleSettled` can compute the reward it returns
        synchronously, and the screen never renders a stale streak for a frame. */
+    /* Phrases already put on the ladder this lesson (lessonIdx|answer). */
+    const phraseLogged = useRef(new Set());
     const tally = useRef({ combo: 0, best: 0, points: 0, cleared: 0, stumbled: false,
         /* Reporting only — the results card says where the paws came from. */
         recovered: 0, locks: 0, bonus: 0 });
@@ -2249,11 +2252,15 @@ function Lesson({ scenarioParam, practice = false }) {
         }
         (async () => {
             const progressP = api.get('/api/progress').catch(() => null);
+            phraseLogged.current = new Set();
             let reviewSet = null;
             try {
+                /* A due phrase may only come from a lesson the learner finished. */
+                const known = await progressP;
                 reviewSet = await ensureReviewSet(
                     langName, scenarioIdx, lesson.vocabulary || [],
                     (lesson.phrases || []).flatMap(p => String(p.correct || '').split(/\s+/)),
+                    { completedIdx: known ? (completedLessonFor(known, langName) ?? -1) : null },
                 );
             } catch { /* offline — the lesson still runs, without review slots */ }
             /* A pair confused in an earlier lesson takes the last review slot. */
@@ -2653,7 +2660,25 @@ function Lesson({ scenarioParam, practice = false }) {
                 outcome: engine.gradeOutcome({ correct, misses: helped ? 1 : misses, revealed }),
                 wasCorrect: correct, meaning: step.item.meaning,
                 scenario: practice ? step.lessonIdx : scenarioIdx,
+                ...(step.item.phrase ? { kind: 'phrase', ...step.item.phrase } : {}),
             }).catch(() => {});
+        } else if (step?.kind === 'drill' && !step.retry && !step.drill?.poolId) {
+            /* Phrases and conversation lines go on the ladder too (phraseReview.js),
+               once per lesson each: Telugu L1 asks "Namaskaram, nenu bagunnanu"
+               in both rounds, and two clean answers ten minutes apart are not
+               two spaced recalls. Pool drills are left out — they belong to the
+               skill model, not to a lesson's own course. */
+            const li = practice ? step.lessonIdx : scenarioIdx;
+            const k = `${li}|${engine.normalizeLatin(step.expected)}`;
+            if (Number.isInteger(li) && !phraseLogged.current.has(k)) {
+                phraseLogged.current.add(k);
+                recordReview({
+                    lang: langName, word: step.expected,
+                    outcome: engine.gradeOutcome({ correct, misses: helped ? 1 : misses, revealed }),
+                    wasCorrect: correct, meaning: step.drill?.meaning || '',
+                    scenario: li, kind: 'phrase', lessonIdx: li, phase: step.phase,
+                }).catch(() => {});
+            }
         }
 
         /* What the screen said about each skill it tested (adaptive phase 1:

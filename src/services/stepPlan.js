@@ -13,6 +13,7 @@
 
 import * as engine from '../services/lessonEngine.js';
 import { CURRICULUM } from './curriculum.js';
+import { phraseDrill } from './phraseReview.js';
 import { hasModel, modelMap, selectAdaptive, skillsOfStep, spreadBySkill, withCaptions, KIND_SHARE, POOL_ADD_MAX, SKIP_MAX } from './adaptive.js';
 
 export const PHASES = {
@@ -88,6 +89,24 @@ function reviewStep(item, allLessons) {
             expected: item.word,
             variants: contrastVariants(allLessons, item.contrast),
             native: a && b ? `${a} ${b}` : '',
+        };
+    }
+    if (item.phrase) {
+        /* A phrase on the ladder: asked like a word ("How do you say …?"),
+           graded on the drill's own accepted forms — looked up in the course
+           now, not cached, so a fixed `acceptable` list reaches it. */
+        const drill = phraseDrill(allLessons, item.phrase.lessonIdx, item.word);
+        const meaning = (drill?.meaning || item.meaning || '').trim();
+        return {
+            kind: 'review',
+            phase: 'review',
+            item,
+            prompt: meaning
+                ? (/[?!]$/.test(meaning) ? `How do you say "${meaning}"` : `How do you say "${meaning}"?`)
+                : (drill?.prompt || `Say ${item.word} again`),
+            expected: drill?.correct || item.word,
+            variants: drill?.acceptable || [],
+            native: drill?.native || item.native || '',
         };
     }
     return {
