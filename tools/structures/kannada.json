@@ -22,7 +22,7 @@
       "name": "-ene / -eeni / -ini verb ending = 'I'",
       "example": "chennagiddeeni, hoguttene, iddene, hogtini",
       "introducedIn": 1,
-      "basis": "L1 P1 grammarNote: 'The -eeni at the end already means \"I\", so you don't need naanu.' L3 vocab Hoguttene: 'The -ttene at the end already means \"I\"'. L11 vocab Iddene and L22 vocab Baruttade ('-ene is \"I\", -ade is \"it\"') repeat it. The course accepts -eeni/-ini/-ene as the same ending (colloquial vs written).",
+      "basis": "L1 P1 grammarNote: 'The -eeni at the end already means \"I\", so you don't need naanu.' L3 vocab Hoguttene: 'The -ene at the end already means \"I\"'. L11 vocab Iddene and L22 vocab Baruttade ('-ene is \"I\", -ade is \"it\"') repeat it. The course accepts -eeni/-ini/-ene as the same ending (colloquial vs written).",
       "confidence": "sure",
       "detect": [
         "\\w+(?:eeni|ene|ini)"
@@ -263,8 +263,8 @@
       "id": "polite-imperative-i",
       "name": "-i = polite request ('please ...')",
       "example": "kodi, heli, hogi",
-      "introducedIn": 10,
-      "basis": "L10 P2 grammarNote: 'The -i at the end of kodi makes it polite... hogu becomes the polite hogi'. L16 vocab Heli: 'Same polite -i as kodi.' L3 P2 already accepts 'alli hogi' unexplained. hogi before baru- is excluded (that is the L14 'having gone' form).",
+      "introducedIn": 3,
+      "basis": "L3 vocab Hogu (2026-10-16): 'To ask politely, end it in -i: hogi, \"please go\".' L3 P2 accepts 'alli hogi'. L10 P2 grammarNote: 'The -i at the end of kodi makes it polite... hogu becomes the polite hogi'. L16 vocab Heli: 'Same polite -i as kodi.' hogi before baru- is excluded (that is the L14 'having gone' form).",
       "confidence": "sure",
       "detect": [
         "kodi|heli|hogi(?!\\s+bar)"
@@ -275,8 +275,8 @@
       "id": "copula-iddene",
       "name": "iddene = 'I am' (for a person's location)",
       "example": "Naanu illi iddene",
-      "introducedIn": 11,
-      "basis": "L11 vocab Iddene: '\"I am\": naanu illi iddene'. L3 C3 note said the opposite way first ('For yourself, just naanu illi') but accepted 'naanu illi iddeeni'.",
+      "introducedIn": 3,
+      "basis": "L3 C3 grammarNote (2026-10-16): 'The longer naanu illi iddeeni is also right: iddeeni is \"I am\", with the same -eeni as chennagiddeeni.' L11 vocab Iddene: '\"I am\": naanu illi iddene'.",
       "confidence": "sure",
       "detect": [
         "iddene|iddeeni|iddini"

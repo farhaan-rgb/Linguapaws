@@ -120,13 +120,16 @@
       "id": "polite-imperative-andi",
       "name": "-andi = polite request ('please ...')",
       "example": "vellandi, ivvandi, kurchondi",
-      "introducedIn": 10,
-      "basis": "L10 grammarNote: 'The -andi at the end makes it polite.' But L3 already drills 'Akkada vellandi' and 'Intiki vellandi' with no explanation of -andi (L16's note even says '-andi from lesson 3'). Set to 10 because that is where it is EXPLAINED; change to 3 if showing counts.",
-      "confidence": "guess",
+      "introducedIn": 3,
+      "basis": "L3 vocab Vellu: 'To say \"please go\", add -andi: vellandi. You'll add -andi to other words to make them polite too.' L10 grammarNote repeats it; L16 note calls it 'the -andi from lesson 3'. Moved from 10 to 3 on 2026-10-16: the L3 teach screen is an explanation, not just a showing.",
+      "confidence": "sure",
       "detect": [
         "\\w+[ao]ndi"
       ],
-      "except": []
+      "except": [
+        "padutondi",
+        "paduthondi"
+      ]
     },
     {
       "id": "bare-imperative",
@@ -301,8 +304,8 @@
       "id": "manner-ga",
       "name": "noun + -ga = state/manner ('happily', 'tired')",
       "example": "santhoshamga unnanu, alupuga undi",
-      "introducedIn": 26,
-      "basis": "L26 grammarNote: 'naaku ... -ga undi, or nenu ... -ga unnanu'. That is the first explanation, but L16, L20, L24 and L25 already drill santhoshamga. Baga/tvaraga/mellaga (L16) are taught as whole words, so excluded.",
+      "introducedIn": 16,
+      "basis": "L16 vocab Santhosham: 'To say \"I am happy\", add -ga and unnanu: nenu santhoshamga unnanu.' L16 conv 3 grammarNote (added 2026-10-16) explains -ga as 'how you are' and ties it to tvaraga/mellaga. L26 note extends it to naaku ... -ga undi. Baga/tvaraga/mellaga are taught as whole words, so excluded.",
       "confidence": "guess",
       "detect": [
         "\\w+ga"

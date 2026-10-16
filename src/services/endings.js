@@ -10,9 +10,11 @@
  * Only endings a lesson teaches in its own text, from the lesson that teaches
  * them (`lesson`, 1-based) — the same bar as WORD_ENDINGS in curriculum.js and
  * the `sure` entries of tools/structures/<lang>.json. Each gloss is quoted or
- * condensed from the grammar note named beside it. Kannada endings the course
- * uses but never explains (-uvudilla, -ina/-a "of", -ona, colloquial -ini) are
- * deliberately absent: a mark is a claim the course has taught it.
+ * condensed from the grammar note named beside it. A mark is a claim the course
+ * has taught it, so colloquial Kannada -ini is absent. -uvudilla (L22), -ina/-a
+ * "of" (L21) and -ona (L30) are explained in their vocab teach lines since
+ * 2026-10-16 but are not marked yet; -ina/-a waits on a native speaker
+ * (playtests/linguist/kannada-for-native-speaker.md).
  *
  *   match  — the whole token, lowercased; group 2 is the ending
  *   except — tokens that match but are words, not stem + ending
@@ -35,8 +37,10 @@ export const NOTICE_ENDINGS = {
            vowel just add -lu." */
         { ending: 'lu', lesson: 8, gloss: 'more than one', match: /^(\w+[aiu])(lu)$/,
             except: ['dhanyavaadaalu', 'dabbulu', 'rupayalu', 'billu', 'illu', 'vellu'] },
-        /* L10 note: "The -andi at the end makes it polite." */
-        { ending: 'andi', lesson: 10, gloss: 'polite — “please”', match: /^(\w+?)([ao]ndi)$/, except: [] },
+        /* L3 Vellu: "To say “please go”, add -andi: vellandi. You'll add -andi
+           to other words to make them polite too." (L10's note repeats it.)
+           padutondi "it is falling" (L28) ends the same way and is not a request. */
+        { ending: 'andi', lesson: 3, gloss: 'polite — “please”', match: /^(\w+?)([ao]ndi)$/, except: ['padutondi', 'paduthondi'] },
     ],
     Kannada: [
         /* L1 P1 note: "The -eeni at the end already means “I”, so you don't
@@ -45,8 +49,8 @@ export const NOTICE_ENDINGS = {
         /* L1 P1 note: "Change it to -eera, as in iddeera, and it means
            “you”." */
         { ending: 'eera', lesson: 1, gloss: '“you”', match: /^(\w+)(eera)$/, except: [] },
-        /* L3 Hoguttene: "The -ttene at the end already means “I”"; L11
-           Iddene and L22 Baruttade restate it as -ene. */
+        /* L3 Hoguttene: "The -ene at the end already means “I”"; L11
+           Iddene and L22 Baruttade say it the same way. */
         { ending: 'ene', lesson: 3, gloss: '“I”', match: /^(\w+)(ene)$/, except: [] },
         /* L22 Baruttade: "The ending tells you who: -ene is “I”, -ade is
            “it”." Only on the -utt- verbs that note is about. */

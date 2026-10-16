@@ -499,7 +499,8 @@ export const CURRICULUM = {
                 { prompt: "Ask Miko 'How is this?'", correct: "Idhi ela undi?", native: "ఇది ఎలా ఉంది?", meaning: "How is this?", hint: "This + how + is?",
                   grammarNote: "Use *idhi ela undi?* for food, a film, a day. *Ela* (“how”) comes just before *undi*, and *undi* ends it." },
                 { prompt: "Say 'I am doing it quickly'.", correct: "Nenu tvaraga chestunnanu", native: "నేను త్వరగా చేస్తున్నాను", meaning: "I am doing it quickly", hint: "I + quickly + am doing", acceptable: ["tvaraga chestunnanu"] },
-                { prompt: "Say 'I am very happy'.", correct: "Nenu chala santhoshamga unnanu", native: "నేను చాలా సంతోషంగా ఉన్నాను", meaning: "I am very happy", hint: "I + well + happy" },
+                { prompt: "Say 'I am very happy'.", correct: "Nenu chala santhoshamga unnanu", native: "నేను చాలా సంతోషంగా ఉన్నాను", meaning: "I am very happy", hint: "I + very + happily + am",
+                  grammarNote: "Add -ga to a feeling and it says how you are: *santhosham* (“happiness”) becomes *santhoshamga*, so *nenu santhoshamga unnanu* is “I am happily”, “I am happy”. The -ga is the same one at the end of *tvaraga* and *mellaga*." },
                 { prompt: "Ask 'How is your friend?'", correct: "Mee snehithudu ela unnaru?", native: "మీ స్నేహితుడు ఎలా ఉన్నారు?", meaning: "How is your friend?", hint: "Your + friend + how?" }
             ]
         },
@@ -791,7 +792,8 @@ export const CURRICULUM = {
                 { prompt: "Say 'I have money'", correct: "Naa daggara dabbulu", native: "నా దగ్గర డబ్బులు", meaning: "I have money", hint: "My near + money",
                   acceptable: ["naaku dabbulu undi", "naa daggara dabbulu undi"],
                   grammarNote: "Two ways, both accepted. *Naaku dabbulu undi* is “I have money”. *Naa daggara dabbulu*, “near me, money”, means money you have ON you, which is what a shopkeeper means." },
-                { prompt: "Say 'Give change'", correct: "Chillar ivvandi", native: "చిల్లర ఇవ్వండి", meaning: "Give change", hint: "Change + give" }
+                { prompt: "Say 'If you have change, please give it'", correct: "Chillar unte ivvandi", native: "చిల్లర ఉంటే ఇవ్వండి", meaning: "If there is change, please give it", hint: "Change + if there is + give (please)", acceptable: ["chillar unte, ivvandi"],
+                  grammarNote: "*Unte* (“if there is”, lesson 25) closes the first half: *chillar unte*. Then the polite request, *ivvandi*." }
             ],
             conversations: [
                 { prompt: "Ask Miko how much something costs.", correct: "Idhi entha?", native: "ఇది ఎంత?", meaning: "How much is this?", hint: "This + how much?", acceptable: ["adhi entha?", "entha?"],
@@ -822,10 +824,13 @@ export const CURRICULUM = {
             ],
             conversations: [
                 { prompt: "Miko asks about the weather. Say 'It is raining'.", correct: "Vana padutondi", native: "వాన పడుతోంది", meaning: "Rain is falling", hint: "Rain + is falling", acceptable: ["vana paduthundi", "vana padutunnadi"] },
-                { prompt: "Ask someone 'Where is the bus?'", correct: "Bus ekkada?", native: "బస్సు ఎక్కడ?", meaning: "Where is the bus?", hint: "Bus + where?" },
+                { prompt: "Miko is late. Phone and ask 'Are you on the bus?'", correct: "Meeru bus lo unnara?", native: "మీరు బస్సులో ఉన్నారా?", meaning: "Are you on the bus?", hint: "You + bus + in + are?", acceptable: ["bus lo unnara?"],
+                  grammarNote: "*Unnara?* from lesson 26 turns “you are” into a question. Telugu says “in the bus”: *bus lo*." },
                 { prompt: "Say 'I am going on a trip tomorrow'.", correct: "Repu nenu prayanam chestunnanu", native: "రేపు నేను ప్రయాణం చేస్తున్నాను", meaning: "Tomorrow I am going on a trip", hint: "Tomorrow + I + trip + doing",
                   grammarNote: "A trip is something you *do*, not somewhere you go: *prayanam chestunnanu*." },
-                { prompt: "Final check: 'It is very hot today'.", correct: "Eeroju chala enda undi", native: "ఈరోజు చాలా ఎండ ఉంది", meaning: "Today there is a lot of heat", hint: "Today + very + heat + there is", acceptable: ["eeroju chala vedi undi"] }
+                { prompt: "Final check: 'It is sunny today, but tomorrow it will rain'.", correct: "Eeroju enda undi, kani repu vana paduthundi", native: "ఈరోజు ఎండ ఉంది, కానీ రేపు వాన పడుతుంది", meaning: "Today it is sunny, but tomorrow rain will fall", hint: "Today + sun + there is, but + tomorrow + rain + will fall",
+                  acceptable: ["eeroju chala enda undi, kani repu vana paduthundi"],
+                  grammarNote: "*Kani* (“but”, lesson 24) joins the two halves. And here *paduthundi* has its own meaning, “will fall”, because it is about tomorrow." }
             ]
         },
         {
@@ -845,7 +850,8 @@ export const CURRICULUM = {
             conversations: [
                 { prompt: "Miko says something. Respond with 'Right?' (Kada?)", correct: "Kada?", native: "కదా?", meaning: "Right?", hint: "Filler word" },
                 { prompt: "Point to Miko: 'Look at Miko!'", correct: "Miko chudu!", native: "మికో చూడు!", meaning: "See Miko!", hint: "Name + look" },
-                { prompt: "Say 'Okay okay' (Sare sare).", correct: "Sare sare", native: "సరే సరే", meaning: "Okay okay", hint: "Double filler" },
+                { prompt: "A close friend walks in. Ask how they are, the casual way.", correct: "Ela unnavu?", native: "ఎలా ఉన్నావు?", meaning: "How are you?", hint: "How + are you (to a friend)?",
+                  grammarNote: "*Unnavu* is the friend form of *unnaru*, from lesson 1: the same word with -vu for “you” instead of -ru." },
                 { prompt: "Confirm: 'Yes, it is big, right?'", correct: "Avunu, idhi pedda, kada?", native: "అవును, ఇది పెద్ద, కదా?", meaning: "Yes, this is big, right?", hint: "Yes + this + big + right?" }
             ]
         },
@@ -1002,10 +1008,10 @@ export const CURRICULUM = {
                 { word: "Ide", native: "ಇದೆ", meaning: "It is / there is", phonetic: "ih-deh",
                   teach: "{w} means “it is” or “there is”, for things: *mane alli ide*, “the house is there”. For yourself, leave it out: *naanu illi*, “I am here”." },
                 { word: "Hoguttene", native: "ಹೋಗುತ್ತೇನೆ", meaning: "I go / I will go", phonetic: "hoh-gut-tay-neh", alt: ["hogtini", "hoguttini"],
-                  teach: "“I go” or “I will go” is {w}, and in everyday talk it also covers “I'm going”. The -ttene at the end already means “I”, so you don't need *naanu*.",
+                  teach: "“I go” or “I will go” is {w}, and in everyday talk it also covers “I'm going”. The -ene at the end already means “I”, so you don't need *naanu*.",
                   traps: [{ said: "Hoguttiddene", why: "*Hoguttiddene* is only for right now, on the way. The everyday “I go” or “I will go” has no *-idd-*: {answer}." }] },
                 { word: "Hogu", native: "ಹೋಗು", meaning: "Go", phonetic: "hoh-gu", alt: ["hogi"],
-                  teach: "“Go!” is {w} — telling someone to go." }
+                  teach: "“Go!” is {w} — telling someone to go. To ask politely, end it in -i: *hogi*, “please go”." }
             
             ],
             phrases: [
@@ -1026,7 +1032,7 @@ export const CURRICULUM = {
                   grammarNote: "*Ide* matters here. *Mane alli* alone is just “house there”. Adding *ide* makes it “the house is there”." },
                 { prompt: "Someone asks 'Neevu yelli?' Tell them you are here.", correct: "Naanu illi", native: "ನಾನು ಇಲ್ಲಿ", meaning: "I am here", hint: "I + here",
                   acceptable: ["illi", "naanu illi iddeeni", "naanu illi ide"],
-                  grammarNote: "No “am” needed. For things, add *ide*: *mane alli ide*. For yourself, just *naanu illi*. The longer *naanu illi iddeeni* is also right." },
+                  grammarNote: "No “am” needed. For things, add *ide*: *mane alli ide*. For yourself, just *naanu illi*. The longer *naanu illi iddeeni* is also right: *iddeeni* is “I am”, with the same -eeni as *chennagiddeeni*." },
                 { prompt: "Final Check: say 'I am going there'.", correct: "Naanu alli hoguttene", native: "ನಾನು ಅಲ್ಲಿ ಹೋಗುತ್ತೇನೆ", meaning: "I am going there", hint: "I + there + I-am-going",
                   acceptable: ["alli hoguttene", "naanu alli hogtini", "alli hogtini", "naanu alli hoguttini"] }
             ],
@@ -1053,7 +1059,7 @@ export const CURRICULUM = {
             ],
             phrases: [
                 { prompt: "Say 'I want water'", correct: "Neeru beku", native: "ನೀರು ಬೇಕು", meaning: "I want water", hint: "Water + want",
-                  grammarNote: "Two words, no “I”. *Neeru beku* means “water is wanted”, and it's how you ask for water anywhere. To say “I” clearly: *nanage neeru beku*." },
+                  grammarNote: "Two words, no “I”. *Neeru beku* means “water is wanted”, and it's how you ask for water anywhere. To say “I” clearly: *nanage neeru beku*, “to me, water is wanted”." },
                 { prompt: "Say 'I don't want food'", correct: "Oota beda", native: "ಊಟ ಬೇಡ", meaning: "I don't want food", hint: "Food + don't want",
                   grammarNote: "*Beda* means “don't want”. Use it instead of *beku*, not with it: *oota beku* (want food), *oota beda* (don't want food)." },
                 { prompt: "Say 'I want this'", correct: "Idu beku", native: "ಇದು ಬೇಕು", meaning: "I want this", hint: "This + want" }
@@ -1111,7 +1117,7 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Yaaru", native: "ಯಾರು", meaning: "Who", phonetic: "yaa-ru", teach: "“Who” is {w}." },
                 { word: "Ivaru", native: "ಇವರು", meaning: "This person / he / she (polite)", phonetic: "ih-vuh-ru",
-                  teach: "{w} means “this person”. It's also how you say “he” or “she” about someone right here. For “that person”, it's *avaru*." },
+                  teach: "{w} means “this person”. The -aru on the end is for people, and it's respectful: *idu* is “this” for a thing. It's also how you say “he” or “she” about someone right here. For “that person”, it's *avaru*." },
                 { word: "Snehita", native: "ಸ್ನೇಹಿತ", meaning: "Friend", phonetic: "snay-hih-tuh" },
                 { word: "Shikshaka", native: "ಶಿಕ್ಷಕ", meaning: "Teacher", phonetic: "shihk-shuh-kuh", alt: ["shikshak"] },
                 { word: "Akka", native: "ಅಕ್ಕ", meaning: "Elder sister", phonetic: "uk-kuh" },
@@ -1442,7 +1448,7 @@ export const CURRICULUM = {
                 { word: "Adakke", native: "ಅದಕ್ಕೆ", meaning: "That's why", phonetic: "uh-duk-keh",
                   teach: "{w} means “that's why”. *Yaake?* asks why; {w} answers it." },
                 { word: "Nanage", native: "ನನಗೆ", meaning: "To me", phonetic: "nuh-nuh-geh",
-                  teach: "{w} means “to me”. For liking and wanting, Kannada says “to me”: *nanage ishta*, “I like it”, never *naanu ishta*." },
+                  teach: "{w} means “to me”, with the same -ge as *manege*, “to the house”. For liking and wanting, Kannada says “to me”: *nanage ishta*, “I like it”, never *naanu ishta*." },
                 { word: "Nimage", native: "ನಿಮಗೆ", meaning: "To you", phonetic: "nih-muh-geh",
                   teach: "{w} means “to you”. *Nanage* and {w} pair up like *nanna* and *nimma*." },
                 { word: "Ishta", native: "ಇಷ್ಟ", meaning: "Like", phonetic: "ihsh-tuh", alt: ["ista"] },
@@ -1687,7 +1693,7 @@ export const CURRICULUM = {
             color: "#e0f2fe",
             vocabulary: [
                 { word: "Meju", native: "ಮೇಜು", meaning: "Table", phonetic: "may-ju", alt: ["mejina"],
-                  teach: "{w} is “table”. You'll also hear it as *mejina*, “of the table”, in front of the place words that come next. Both are right." },
+                  teach: "{w} is “table”. You'll also hear it as *mejina*, “of the table”, in front of the place words that come next. Both are right. The -ina means “of”; a word ending in -e takes -a instead: *maneya*, “of the house”." },
                 { word: "Mele", native: "ಮೇಲೆ", meaning: "On / above", phonetic: "may-leh",
                   teach: "{w} is “on” or “above”. It goes after the thing: *meju mele*, “on the table”. *Aamele*, “later”, is built from it." },
                 { word: "Kelage", native: "ಕೆಳಗೆ", meaning: "Under / below", phonetic: "keh-luh-geh", alt: ["kelge"],
@@ -1733,11 +1739,11 @@ export const CURRICULUM = {
                 { word: "Baruttade", native: "ಬರುತ್ತದೆ", meaning: "Can (know how to)", phonetic: "buh-rut-tuh-deh", alt: ["baratte", "barutte"],
                   teach: "*Nanage Kannada baruttade*, “I can speak Kannada”: literally “Kannada comes to me”. Said short, it's *baratte*. Not *baruttene*, from lesson 14: that's “I will come”. The ending tells you who: -ene is “I”, -ade is “it”." },
                 { word: "Baruvudilla", native: "ಬರುವುದಿಲ್ಲ", meaning: "Can't (don't know how)", phonetic: "buh-ru-vu-dihl-luh", alt: ["baralla", "barodilla"],
-                  teach: "{w} is “can't”, for a skill: *nanage Kannada baruvudilla*. Said short, it's *baralla*." },
+                  teach: "{w} is “can't”, for a skill: *nanage Kannada baruvudilla*. It is *baru* + -uvudilla, “does not”. Said short, it's *baralla*." },
                 { word: "Aaguttade", native: "ಆಗುತ್ತದೆ", meaning: "Can (manage)", phonetic: "aa-gut-tuh-deh", alt: ["aagatte", "aagutte", "agutte"],
                   teach: "*Nanage aaguttade*, “I can manage it”. Use it for time and plans, not skills. Said short: *aagatte*." },
                 { word: "Aaguvudilla", native: "ಆಗುವುದಿಲ್ಲ", meaning: "Can't (manage)", phonetic: "aa-gu-vu-dihl-luh", alt: ["aagalla", "agalla", "aagodilla"],
-                  teach: "*Nanage aaguvudilla*, “I can't make it”. The polite way to say no to a plan. Said short: *aagalla*." },
+                  teach: "*Nanage aaguvudilla*, “I can't make it”: *aagu* + the same -uvudilla as *baruvudilla*. The polite way to say no to a plan. Said short: *aagalla*." },
                 { word: "Sahaaya", native: "ಸಹಾಯ", meaning: "Help", phonetic: "suh-haa-yuh", alt: ["sahaya", "sahay"],
                   teach: "{w} is “help”. You “do” help, like a meal: *sahaaya maaduttene*, “I will help”." }
             ],
@@ -1908,9 +1914,9 @@ export const CURRICULUM = {
                   grammarNote: "Only the last word changes: *aagide* says yes, *aagilla* says no." }
             ],
             conversations: [
-                { prompt: "Miko asks how you are today. Say 'Today I am very happy'.", correct: "Ivattu nanage tumba kushi", native: "ಇವತ್ತು ನನಗೆ ತುಂಬಾ ಖುಷಿ", meaning: "Today I am very happy", hint: "Today + to me + very + happy",
-                  acceptable: ["nanage ivattu tumba kushi", "ivattu nanage tumba kushi aagide", "nanage ivattu tumba kushi aagide", "ivattu nanage thumba kushi"],
-                  grammarNote: "*Kushi* is from lesson 16. *Kushi aagide* is right too." },
+                { prompt: "Miko asks how you are today. Say 'Today I am very happy — how are you?'", correct: "Ivattu nanage tumba kushi, neevu hegiddeera?", native: "ಇವತ್ತು ನನಗೆ ತುಂಬಾ ಖುಷಿ, ನೀವು ಹೇಗಿದ್ದೀರಾ?", meaning: "Today I am very happy, how are you?", hint: "Today + to me + very + happy, you + how-are-you",
+                  acceptable: ["ivattu nanage tumba kushi, hegiddeera?", "nanage ivattu tumba kushi, neevu hegiddeera?", "ivattu nanage tumba kushi aagide, neevu hegiddeera?", "ivattu nanage thumba kushi, neevu hegiddeera?", "ivattu nanage tumba kushi, neevu hege iddeera?", "ivattu nanage tumba kushi, neevu hegiddira?"],
+                  grammarNote: "*Kushi* is from lesson 16. *Kushi aagide* is right too. Then ask back with *hegiddeera?* from lesson 1: the -eera means “you”." },
                 { prompt: "After a long walk in the sun, say 'I am thirsty, I must drink water'.", correct: "Nanage baayaarike aagide, naanu neeru kudiyabeku", native: "ನನಗೆ ಬಾಯಾರಿಕೆ ಆಗಿದೆ, ನಾನು ನೀರು ಕುಡಿಯಬೇಕು", meaning: "I am thirsty, I must drink water", hint: "To me + thirst + has come on, I + water + must drink",
                   acceptable: ["nanage baayaarike aagide naanu neeru kudiyabeku", "nanage baayaarike aagide, neeru kudiyabeku", "baayaarike aagide, neeru kudiyabeku", "nanage bayarike aagide, naanu neeru kudiyabeku", "nanage baayaarike aagide, naanu neeru kudibeku"],
                   grammarNote: "Two halves, two people words: *nanage* for the feeling, *naanu* for the action. *Kudiyabeku* is from lesson 23." },
@@ -1950,9 +1956,9 @@ export const CURRICULUM = {
                   grammarNote: "Two ways to say “have”. *Nanna hattira*, “near me”, is for things you carry, like money or change. *Nanage ... ide*, from lesson 18, is for things you have going on, like work: *nanage kelasa ide*." }
             ],
             conversations: [
-                { prompt: "At a stall, Miko picks up a book. Ask 'How much is the book?'", correct: "Pustaka eshtu?", native: "ಪುಸ್ತಕ ಎಷ್ಟು?", meaning: "How much is the book?", hint: "Book + how much?",
-                  acceptable: ["pustaka eshtu", "idu eshtu?", "pustaka estu?"],
-                  grammarNote: "*Eshtu* is from lesson 10. It goes last, like every question word." },
+                { prompt: "At a stall, Miko picks up a pile of books. Ask 'How much are the books?'", correct: "Pustakagalu eshtu?", native: "ಪುಸ್ತಕಗಳು ಎಷ್ಟು?", meaning: "How much are the books?", hint: "Books + how much?",
+                  acceptable: ["pustakagalu eshtu", "pustakagalu estu?"],
+                  grammarNote: "*Pustakagalu*, “books”, from lesson 8, and *eshtu* from lesson 10. The question word goes last." },
                 { prompt: "The seller asks for a thousand. Say 'I don't have a thousand rupees, but I have a hundred rupees'.", correct: "Nanna hattira saavira rupaayi illa, aadare nooru rupaayi ide", native: "ನನ್ನ ಹತ್ತಿರ ಸಾವಿರ ರೂಪಾಯಿ ಇಲ್ಲ, ಆದರೆ ನೂರು ರೂಪಾಯಿ ಇದೆ", meaning: "I don't have a thousand rupees, but I have a hundred rupees", hint: "My + near + thousand + rupees + not, but + hundred + rupees + is there",
                   acceptable: ["nanna hattira saavira rupaayi illa aadare nooru rupaayi ide", "nanna hattira saavira rupaayi illa, aadre nooru rupaayi ide", "saavira rupaayi illa, aadare nooru rupaayi ide", "nanna hattira saavira rupayi illa, aadare nooru rupayi ide"] },
                 { prompt: "You paid with a hundred-rupee note and the shopkeeper owes you ten. Say 'Please give ten rupees change'.", correct: "Hattu rupaayi chillare kodi", native: "ಹತ್ತು ರೂಪಾಯಿ ಚಿಲ್ಲರೆ ಕೊಡಿ", meaning: "Please give ten rupees change", hint: "Ten + rupees + change + give",
@@ -2061,7 +2067,7 @@ export const CURRICULUM = {
                   teach: "“I learned” is {w}. The same -e as *bande* and *hode*, from lesson 13." },
                 { word: "Kashta", native: "ಕಷ್ಟ", meaning: "Hard / difficult", phonetic: "kush-tuh", alt: ["kasta", "kashtha"] },
                 { word: "Sigona", native: "ಸಿಗೋಣ", meaning: "Let's meet", phonetic: "sih-goh-naa", alt: ["sigonaa"],
-                  teach: "*Matte sigona*, “let's meet again”, is the warm way to say goodbye. *Matte* is from lesson 20." }
+                  teach: "*Matte sigona*, “let's meet again”, is the warm way to say goodbye. The -ona ending means “let's”. *Matte* is from lesson 20." }
             ],
             phrases: [
                 { prompt: "Say 'This is the last lesson'", correct: "Idu koneya paata", native: "ಇದು ಕೊನೆಯ ಪಾಠ", meaning: "This is the last lesson", hint: "This + last + lesson",
@@ -2069,8 +2075,9 @@ export const CURRICULUM = {
                   grammarNote: "Same shape as *idu pustaka*, from lesson 2. No word for “is”." },
                 { prompt: "Say 'I learned Kannada'", correct: "Naanu Kannada kalite", native: "ನಾನು ಕನ್ನಡ ಕಲಿತೆ", meaning: "I learned Kannada", hint: "I + Kannada + learned",
                   acceptable: ["kannada kalite", "naanu kannada kalitenu", "naanu kannada kalte"] },
-                { prompt: "Say 'Kannada is hard, but it is good'", correct: "Kannada kashta, aadare chennagide", native: "ಕನ್ನಡ ಕಷ್ಟ, ಆದರೆ ಚೆನ್ನಾಗಿದೆ", meaning: "Kannada is hard, but it is good", hint: "Kannada + hard, but + it is good",
-                  acceptable: ["kannada kashta aadare chennagide", "kannada swalpa kashta, aadare chennagide", "kannada kashta, aadre chennagide"] }
+                { prompt: "Say 'Kannada is hard, but it is good, right?'", correct: "Kannada kashta, aadare chennagide, alva?", native: "ಕನ್ನಡ ಕಷ್ಟ, ಆದರೆ ಚೆನ್ನಾಗಿದೆ, ಅಲ್ವಾ?", meaning: "Kannada is hard, but it is good, right?", hint: "Kannada + hard, but + it is good, right?",
+                  acceptable: ["kannada kashta aadare chennagide alva", "kannada swalpa kashta, aadare chennagide, alva?", "kannada kashta, aadre chennagide, alva?"],
+                  grammarNote: "*Alva* from lesson 29 goes on the end of the whole sentence." }
             ],
             conversations: [
                 { prompt: "Miko asks what you did this month. Say 'I learned a little Kannada, because I like it'.", correct: "Naanu swalpa Kannada kalite, yaakendare nanage Kannada ishta", native: "ನಾನು ಸ್ವಲ್ಪ ಕನ್ನಡ ಕಲಿತೆ, ಯಾಕೆಂದರೆ ನನಗೆ ಕನ್ನಡ ಇಷ್ಟ", meaning: "I learned a little Kannada, because I like Kannada", hint: "I + a little + Kannada + learned, because + to me + Kannada + like",
