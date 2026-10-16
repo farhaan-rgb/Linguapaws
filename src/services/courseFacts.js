@@ -85,7 +85,10 @@ export const wordsAskedAbout = (question, lang, scenarioIdx) => {
     /* "Why" asks about a choice, not for a word: "why not hogittene" must not
        look up Illa for "not". */
     if (tokens[0] === 'why') return [];
-    const rest = tokens.filter(t => !QUESTION_FRAME.has(t) && t !== normalizeLatin(lang));
+    /* "the slow one" is a pronoun "one", not the number: dropped after a
+       content word. */
+    const rest = tokens.filter((t, i) => !QUESTION_FRAME.has(t) && t !== normalizeLatin(lang)
+        && !(t === 'one' && i > 0 && !QUESTION_FRAME.has(tokens[i - 1])) && t !== 'forgot');
     if (!rest.length) return [];
     const asked = ` ${rest.join(' ')} `;
     const whole = ` ${tokens.join(' ')} `; // "I am fine" is itself made of frame words
@@ -94,7 +97,12 @@ export const wordsAskedAbout = (question, lang, scenarioIdx) => {
         if (byMeaning.has(e.word)) continue;
         for (const gist of gistsOf(e.meaning)) {
             // The whole meaning, as words: "go" must not match inside "going".
-            const hit = asked.includes(` ${gist} `) || (gist.includes(' ') && whole.includes(` ${gist} `));
+            /* ...or the stem of a one-word meaning: "the slow one?" asks for
+               *Mellaga*, "Slowly" (round 17 L16). Four letters at least, and
+               at most an ending of three. */
+            const stem = !gist.includes(' ') && rest.some(t => t.length >= 4
+                && gist.startsWith(t) && gist.length - t.length <= 3);
+            const hit = stem || asked.includes(` ${gist} `) || (gist.includes(' ') && whole.includes(` ${gist} `));
             if (hit) { byMeaning.set(e.word, { e, len: gist.length }); break; }
         }
     }

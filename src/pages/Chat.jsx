@@ -13,7 +13,7 @@ import { getStoredJSON, setStoredJSON } from '../utils/storage';
 import { CURRICULUM, AVAILABLE_LANGUAGES, WORD_FAMILIES, KNOWN_WORDS, WORD_ENDINGS, isLanguageAvailable } from '../services/curriculum';
 import * as engine from '../services/lessonEngine';
 import { phraseDrill } from '../services/phraseReview';
-import { courseFactsFor, groundedAnswerRule } from '../services/courseFacts';
+import { courseFactsFor, groundedAnswerRule, wordsAskedAbout, answerFromFacts } from '../services/courseFacts';
 import { speakableText } from '../services/speechScript';
 import { toLatin, hasBrahmicScript } from '../../shared/transliterate.js';
 import {
@@ -1259,6 +1259,7 @@ export default function Chat() {
             let matchRatio = 0;
             let displayPhrase = null;
             let phraseExpectedCorrect = null;
+            let phraseExpectedAlts = [];
             let phraseStage = null;   // 'phrase' | 'conversation' while on a drill
             let reviewExpectedWord = null;
             let reviewItem = null;   // { word, meaning, source } when in a review step
@@ -1304,6 +1305,7 @@ export default function Chat() {
                 const basicIdx = currentInScenario - 8;
                 const basicItem = scenarioDataForMatch.phrases?.[basicIdx];
                 phraseExpectedCorrect = basicItem?.correct || null;
+                phraseExpectedAlts = basicItem?.acceptable || [];
                 phraseStage = 'phrase';
                 if (phraseExpectedCorrect) {
                     ({ ratio: matchRatio, coverage: matchCoverage, accepted: matchAccepted } =
@@ -1314,6 +1316,7 @@ export default function Chat() {
                 const convoIdx = currentInScenario - 11;
                 const convoItem = scenarioDataForMatch.conversations?.[convoIdx];
                 phraseExpectedCorrect = convoItem?.correct || null;
+                phraseExpectedAlts = convoItem?.acceptable || [];
                 phraseStage = 'conversation';
                 if (phraseExpectedCorrect) {
                     ({ ratio: matchRatio, coverage: matchCoverage, accepted: matchAccepted } =
@@ -1575,7 +1578,7 @@ export default function Chat() {
                         const firstPhrase = drillPrompt(scenarioDataForMatch.phrases, 0);
                         reviewResponse = currentInScenario === 7
                             ? (firstPhrase || "Let's build a sentence.")   // banner carries the transition
-                            : `${praise} ${nextQuestion()}`;
+                            : `${engine.acceptedVerdict(praise, text, reviewExpectedWord || '', reviewVariantsFor(reviewItem), LEXICON)} ${nextQuestion()}`;
                     } else if (misses >= REVIEW_RETRY_LIMIT) {
                         /* Out of retries: show the answer and MOVE ON. Previously the
                            reveal message itself contained "try again", which kept
@@ -1656,7 +1659,12 @@ export default function Chat() {
                            are you?'" while the explanation of what they had just
                            done scrolled past in silence. */
                         const noteText = noteForAnswer(phraseItem, text);
-                        out.push({ role: 'assistant', content: praise });
+                        /* The verdict and the tip from one judgement: an answer
+                           that used another form than the course's (or that the
+                           note below corrects) is "Accepted", never "Perfect!"
+                           over a tip saying otherwise (round 17 L19). */
+                        out.push({ role: 'assistant', content: engine.acceptedVerdict(
+                            praise, text, phraseItem.correct, phraseItem.acceptable || [], LEXICON, noteText) });
                         if (noteText && !noteAlreadyShown(noteText)) out.push({ role: 'system', content: `💡 ${noteText}` });
                         if (atBoundary) {
                             /* The "Phrases done" banner lives in the AI path, which
@@ -1860,6 +1868,65 @@ export default function Chat() {
                 }
             }
 
+            /* ── Questions and "I don't know", answered from the course ──
+               Round 17 (Telugu L16): "what was slowly again?", asked three turns
+               after *Mellaga* was taught, was answered "the course hasn't covered
+               that"; "i don't know" got the same; and "why thinnanu not tintanu?"
+               got the old tip again. So, before the model:
+               - "I don't know" reveals, exactly as step mode's DONT_KNOW does;
+               - a question naming a taught word (by spelling or by meaning) is
+                 answered from courseFacts, the answer word included when it is
+                 the one they asked for — a question is never graded;
+               - a why / does / is question goes to Ask Miko's grounded path
+                 (POST /api/ai/ask: course facts, ASK_MODEL gpt-4.1-mini, the
+                 unseen answer redacted server-side). On any failure it falls
+                 through to the model path below, as before. */
+            if (!hasCorrectMatch && !isContinueRequest && expectedCorrectionStr) {
+                const said = text.trim();
+                const reAsk = isCurrentlyInReview ? reviewAsk({ ...reviewItem, meaning: reviewItem?.meaning || 'that word' }, false)
+                    : isCurrentlyInBasic ? drillPrompt(scenarioDataForMatch.phrases, currentInScenario - 8)
+                        : isCurrentlyInConvo ? drillPrompt(scenarioDataForMatch.conversations, currentInScenario - 11)
+                            : `Your turn — say **${expectedCorrectionStr}**.`;
+                let answerLine = '';
+                if (engine.DONT_KNOW.test(said)) {
+                    answerLine = `That's fine. It's **${expectedCorrectionStr}**.`;
+                } else if (isHelpRequest || looksLikeQuestion(said)) {
+                    const single = engine.normalizeLatin(expectedCorrectionStr).split(' ').filter(Boolean).length === 1;
+                    const asked = wordsAskedAbout(said, targetLangName, scenarioIdxForMatch);
+                    const why = /^\s*(why|how come|does|do|is|are|can|should|would|what about)\b/i.test(said)
+                        || /\b(not|instead|change|different|differ)\b/i.test(said);
+                    if (!why && asked.length) {
+                        const askedForAnswer = single && asked.some(e => engine.normalizeLatin(e.word) === engine.normalizeLatin(expectedCorrectionStr));
+                        answerLine = answerFromFacts(said, targetLangName, scenarioIdxForMatch,
+                            { expected: expectedCorrectionStr, reveal: askedForAnswer || isCurrentlyTeaching });
+                    } else if (why) {
+                        try {
+                            const { answer } = await api.post('/api/ai/ask', {
+                                question: said, lang: targetLangName, lessonIdx: scenarioIdxForMatch,
+                                prompt: reAsk || '', expected: expectedCorrectionStr,
+                                answerShown: Boolean(isCurrentlyTeaching), examples: [],
+                            });
+                            answerLine = String(answer || '').trim();
+                        } catch { answerLine = ''; }
+                    }
+                }
+                if (answerLine) {
+                    const out = [{ role: 'assistant', content: answerLine }];
+                    if (reAsk) out.push({ role: 'assistant', content: reAsk });
+                    setMessages(prev => [...prev, ...out]);
+                    const spoken = engine.speechForTurn(out);
+                    if (!isMuted && isMounted.current && spoken) {
+                        const audioUrl = await aiService.generateSpeech(buildSpeechText(spoken), resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
+                        if (audioUrl && isMounted.current) {
+                            audioRef.current.src = audioUrl;
+                            audioRef.current.play().catch(() => {});
+                        }
+                    }
+                    setIsLoading(false);
+                    return;
+                }
+            }
+
             // Build grammarNote for post-answer feedback (only shown AFTER correct answer)
             let postAnswerGrammarNote = '';
             if (isCurrentlyInBasic) {
@@ -1914,7 +1981,14 @@ export default function Chat() {
                    an accepted variant "close", which is the thing it kept doing
                    one line before defending that same answer as correct. */
                 const isVariantAnswer = !spellDiff && expectedCorrectionStr && canonicalRatio < 0.95;
-                const verdictRule = spellDiff
+                /* Same judgement the fast paths use (engine.acceptedVerdict): a
+                   different form of an answer word, or a note that corrects one,
+                   gets a plain "Accepted", not praise above a tip that disagrees. */
+                const formDiff = expectedCorrectionStr && (engine.formNote(text, expectedCorrectionStr,
+                    phraseExpectedAlts, LEXICON) || engine.noteNamesMissing(text, expectedCorrectionStr, postAnswerGrammarNote));
+                const verdictRule = formDiff
+                    ? `Their answer is accepted, but the course's form here is "${formDiff.expected}". Say exactly "Accepted." and then, in one short phrase, that the course says "${formDiff.expected}" here. Do NOT say "Great job", "Correct", "Perfect" or any other praise.`
+                    : spellDiff
                     ? `Acknowledge that they got it, in one short phrase, then give the spelling note above and nothing more.`
                     : (isVariantAnswer
                         ? `The learner used a shorter or different form than the course's canonical answer and it is FULLY correct — the course accepts it. Confirm it as correct in one short phrase. Do NOT call it "close", "almost", or nearly right, do NOT restate the longer form as if it were a correction, and do NOT suggest they should have said something else.`

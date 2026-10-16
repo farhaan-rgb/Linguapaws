@@ -111,6 +111,7 @@ for (const o of overlaps) console.log(`- L${o.lesson}: \`${o.said}\` accepted fo
    the other member swapped in, in every listed form; unless the course lists
    the swapped sentence itself, it must be rejected. */
 const swapPasses = [];
+let swapNoted = 0;
 lessons.forEach((lesson, i) => {
     for (const d of [...(lesson.phrases || []), ...(lesson.conversations || []), ...(lesson.pool || [])]) {
         if (!d.correct) continue;
@@ -124,6 +125,9 @@ lessons.forEach((lesson, i) => {
                         const said = toks.map((x, j) => (j === k ? other : x)).join(' ');
                         if (listed.has(said)) continue;
                         if (E.scoreAnswer(said, d.correct, d.acceptable || [], syn).accepted) {
+                            /* By design since round 17: *nenu* for *naaku* before a
+                               want-word passes WITH a note naming *naaku*. */
+                            if (E.wantNote(said, d.correct, d.acceptable || [])) { swapNoted++; continue; }
                             swapPasses.push({ lesson: i + 1, correct: d.correct, said });
                         }
                     }
@@ -133,6 +137,7 @@ lessons.forEach((lesson, i) => {
     }
 });
 console.log(`\n## A taught-against word accepted in its partner's place (${swapPasses.length})\n`);
+if (swapNoted) console.log(`(${swapNoted} more are *nenu* for *naaku* before a want-word: accepted with a note naming *naaku*, by design.)\n`);
 if (!swapPasses.length) console.log('_None._\n');
 for (const f of swapPasses) console.log(`- L${f.lesson} \`${f.said}\` accepted for \`${f.correct}\``);
 
@@ -152,13 +157,23 @@ const PINNED = {
         ['raatrige nidde maaduttene', 'Naanu raatri nidde maaduttene', true], // K4 L18
         ['ivaru nanna kutumba', 'Idu nanna kutumba', true],   // K4 L17
         ['naanu nodide mane', 'Naanu mane nodide', false],    // K4 L13
+        // r17: subject, time, place, adverb and question word move freely; the verb stays last
+        ['ivattu naanu kelasa maaduttiddene', 'Naanu kelasa maaduttiddene', true],
+        ['naanu ivattu hoguttiddene', 'Ivattu naanu hoguttiddene', true],
+        ['eega naanu tinnuttene', 'Naanu eega tinnuttene', true],
+        ['yaake idu', 'Idu yaake?', true],
+        ['kushi tumba nanage', 'Nanage tumba kushi', false],  // predicate not last
     ],
     Telugu: [
         ['naaku annam vaddu', 'Annam vaddu', true],
         ['annam oddu', 'Annam vaddu', true],                 // the spoken spelling, taught as an alt of vaddu
         ['vedi neeru oddu', 'Vedi neeru kaavali', false],   // polarity flip in either spelling             // rt16 L4, after "to say I: naaku neeru kaavali"
         ['naaku rendu kaavali', 'Rendu kaavali', true],       // rt16 L7
-        ['nenu rendu kaavali', 'Rendu kaavali', false],
+        /* r17 L18: was false (rt16). Farhaan's round-17 call: nenu-for-naaku before
+           a want-word is understood, so it passes with a note (wantNote), not a miss. */
+        ['nenu rendu kaavali', 'Rendu kaavali', true],
+        ['nenu snanam kaavali', 'Snanam kaavali', true],     // r17 L18
+        ['nenu gurthundi', 'Naaku gurthundi', false],        // r17 L20: not a want-word
         ['illu ekkada undi', 'Illu ekkada?', true],           // rt16 L3
         ['okati pusthakam', 'Oka pusthakam', false],          // rt16 L7
         ['idhi evaru', 'Evaru?', false],                      // rt16 L6, after "idhi for a person is rude"
@@ -166,6 +181,25 @@ const PINNED = {
         ['miko, ela unnaru', 'Miko, meeru ela unnaru?', true],
         ['meeru ela', 'Meeru ela unnaru', false],
         ['nenu ippudu vellu', 'Nenu ippudu velthunnanu', false],
+        // r17 word order: free before the verb, verb last, modifier before noun
+        ['nenu eeroju velthunnanu', 'Eeroju nenu velthunnanu', true],   // L12
+        ['ippudu nenu tintanu', 'Nenu ippudu tintanu', true],           // L14
+        ['nenu eeroju santhoshamga unnanu', 'Eeroju nenu santhoshamga unnanu', true], // L20
+        ['enduku idhi', 'Idhi enduku?', true],                          // L15
+        ['nenu intiki ippudu velthunnanu', 'Nenu ippudu intiki velthunnanu', true], // L11
+        ['nenu chestunnanu pani', 'Nenu pani chestunnanu', false],      // verb not last
+        ['naaku ledu ishtam', 'Naaku ishtam ledu', false],
+        ['illu mee ekkada', 'Mee illu ekkada?', false],                 // modifier after noun
+        ['peru naa', 'Naa peru', false],
+        // r17 optional words that are correct
+        ['mee illu ekkada undi', 'Mee illu ekkada?', true],             // L17
+        ['meeru enduku ikkada unnaru', 'Meeru enduku ikkada?', true],   // L15
+        ['nenu bagunnanu', 'Bagunnanu', true],                          // r16
+        ['nenu illu lo unnaru', 'Nenu illu lo', false],                 // wrong-person copula
+        // r17 spelling tolerance
+        ['tinunnanu', 'Tintunnanu', false],                             // L11 memory: a lost syllable
+        ['chestunanu', 'Chestunnanu', true],
+        ['sare danyavadalu', 'Sare, dhanyavaadaalu', true],             // L20
     ],
 };
 const drillFor = (target) => {

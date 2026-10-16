@@ -73,7 +73,9 @@ const CASES = [
     // ...while a word whose meaning is not in the prompt still gets it.
     ['Telugu', 3, 'illu ekkada akkada', 'Illu ekkada?', false, /not what this asks for|There/],
     /* Word order on a first miss: the misplaced word and where, never the sentence. */
-    ['Telugu', 1, 'ela meeru unnaru', 'Meeru ela unnaru', false, /^All the right words — the order is not\. ela goes right after meeru\.$/],
+    /* Was `ela meeru unnaru`, which round 17 made correct: the question word
+       and the subject move freely before the verb. The verb still goes last. */
+    ['Telugu', 1, 'unnaru meeru ela', 'Meeru ela unnaru', false, /^All the right words — the order is not\. unnaru goes last\.$/],
     ['Telugu', 10, 'ivvandi billu', 'Billu ivvandi', false, /^All the right words — the order is not\. ivvandi goes last\.$/, /billu ivvandi/],
     // A synonym form is not "all the right words", and the first miss names the learner's word.
     ['Telugu', 3, 'vellu akkadiki', 'Akkadiki vellandi', false, /^The order is off\. vellu goes last\.$/, /All the right words|vellandi/],
@@ -117,9 +119,9 @@ for (const [lang, said, target, want] of QUESTIONS) {
    pause, "+" between target words is said, and nothing merges. */
 const voiced = (line) => tipSegments('Telugu', line).map(g => (g.target ? `‹${g.text}›` : g.text)).join(' | ');
 const SPOKEN = [
-    ['All the right words — the order is not. ela goes right after meeru: meeru ela unnaru.', /‹meeru› \| ‹meeru ela unnaru›/],
-    ['Use *ayana* for a person, not *idhi*: *idhi* is for things.', /‹idhi› \| ‹idhi›/],
-    ['This is how you say “I have”: *naaku* + *undi*.', /‹naaku› \| plus \| ‹undi›/],
+    ['All the right words — the order is not. ela goes right after meeru: meeru ela unnaru.', /‹meeru:?› \| ‹meeru ela unnaru\.?›/],
+    ['Use *ayana* for a person, not *idhi*: *idhi* is for things.', /‹idhi:?› \| ‹idhi›/],
+    ['This is how you say “I have”: *naaku* + *undi*.', /‹naaku› \| plus \| ‹undi\.?›/],
 ];
 for (const [line, want] of SPOKEN) {
     const got = voiced(line);

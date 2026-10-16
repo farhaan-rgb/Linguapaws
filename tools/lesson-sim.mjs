@@ -33,6 +33,29 @@ const ROOT = resolve(HERE, '..');
 const E = await import(join(ROOT, 'src/services/lessonEngine.js'));
 const F = await import(join(ROOT, 'src/services/courseFacts.js'));
 const { speakableText } = await import(join(ROOT, 'src/services/speechScript.js'));
+const { createRequire } = await import('node:module');
+/* Chat's why-questions go to Ask Miko's grounded route; the sim builds the same
+   messages and redacts the same way (backend/services/askMiko.js). */
+const askMiko = createRequire(import.meta.url)(join(ROOT, 'backend/services/askMiko.js'));
+
+/** POST /api/ai/ask, without the server: same messages, same ASK_MODEL, same
+ *  redaction. Null on any failure, as Chat.jsx falls through then. */
+async function askGrounded(body) {
+    const key = apiKey();
+    if (!key) return null;
+    try {
+        const ask = askMiko.readAsk(body);
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+            body: JSON.stringify({ model: process.env.ASK_MODEL || 'gpt-4.1-mini', temperature: 0.2, max_tokens: 220,
+                messages: askMiko.buildAskMessages(ask) }),
+        });
+        if (!res.ok) return null;
+        const json = await res.json();
+        return askMiko.redactAnswer(String(json.choices?.[0]?.message?.content || '').trim(), ask).text || null;
+    } catch { return null; }
+}
 
 /* Node can read the system wordlist; the engine's browser-safe curated list is
    only a floor. Passing this in stops good replies being discarded for ordinary
@@ -657,6 +680,44 @@ async function turn(s, said) {
         }
     }
 
+    /* ── Chat.jsx's course-answered questions (round 17) ──
+       Same order and rules as the block before the model call in Chat.jsx:
+       "I don't know" reveals; a question naming a taught word is answered from
+       courseFacts; a why/does question goes to the grounded Ask Miko path. */
+    {
+        const expected = skipAnswerFor(s, lesson);
+        const already = expected && E.scoreAnswer(said, expected, [], syn).accepted;
+        if (expected && !already && !surrendered && !isAck) {
+            const st = E.stageOf(s.step);
+            const rItem = (s.reviewSet || [])[s.step - 5] || (s.reviewSet || [])[0];
+            const reAsk = st === 'review' ? `So — what's the ${s.lang} word for "${rItem?.meaning}"?`
+                : st === 'phrase' ? E.drillPrompt(lesson.phrases, s.step - 8)
+                    : st === 'conversation' ? E.drillPrompt(lesson.conversations, s.step - 11)
+                        : `Your turn — say **${expected}**.`;
+            let line = '';
+            if (E.DONT_KNOW.test(said.trim())) {
+                line = `That's fine. It's **${expected}**.`;
+            } else if (isQuestion) {
+                const single = E.normalizeLatin(expected).split(' ').filter(Boolean).length === 1;
+                const asked = F.wordsAskedAbout(said, s.lang, s.scenarioIdx);
+                const why = /^\s*(why|how come|does|do|is|are|can|should|would|what about)\b/i.test(said)
+                    || /\b(not|instead|change|different|differ)\b/i.test(said);
+                if (!why && asked.length) {
+                    const askedForAnswer = single && asked.some(e => E.normalizeLatin(e.word) === E.normalizeLatin(expected));
+                    line = F.answerFromFacts(said, s.lang, s.scenarioIdx, { expected, reveal: askedForAnswer || st === 'teach' });
+                } else if (why) {
+                    line = await askGrounded({ question: said, lang: s.lang, lessonIdx: s.scenarioIdx,
+                        prompt: reAsk || '', expected, answerShown: st === 'teach', examples: [] }) || '';
+                }
+            }
+            if (line) {
+                push('assistant', line);
+                if (reAsk) push('assistant', reAsk);
+                return out;
+            }
+        }
+    }
+
     /* ---- teaching: steps 1-5 ---- */
     if (stage === 'teach') {
         const expected = E.extractPromptedPhrase(lastTutor);
@@ -761,9 +822,9 @@ async function turn(s, said) {
             const spell = E.spellingNote(said, item.word, E.altsFor(CURRICULUM[s.lang] || [], item.word), syn);
             if (E.stageOf(s.step) === 'review') {
                 const next = s.reviewSet[s.step - 5] || s.reviewSet[0];
-                push('assistant', `${praise}${spell} What's the word for "${next.meaning}"?`);
+                push('assistant', `${E.acceptedVerdict(praise, said, item.word, [], syn)}${spell} What's the word for "${next.meaning}"?`);
             } else {
-                push('assistant', `${praise}${spell}`.trim());
+                push('assistant', `${E.acceptedVerdict(praise, said, item.word, [], syn)}${spell}`.trim());
                 push('system', "🎓 **Review passed** — now let's build whole sentences.");
                 push('assistant', E.drillPrompt(lesson.phrases, 0) || "Let's build a sentence.");
             }
@@ -841,11 +902,11 @@ async function turn(s, said) {
                speaks in, and the order the app's audio now follows. */
             const spell = E.spellingNote(said, item.correct, item.acceptable || [], syn);
             const nextPhrase = E.drillPrompt(lesson.phrases, idx + 1);
-            if (nextPhrase) push('assistant', `${praise}${spell}`.trim());
+            if (nextPhrase) push('assistant', `${E.acceptedVerdict(praise, said, item.correct, item.acceptable || [], syn, item.grammarNote)}${spell}`.trim());
             if (item.grammarNote) pushNote(s, push, item.grammarNote);
             if (nextPhrase) push('assistant', nextPhrase);
             else {
-                push('assistant', `${praise}${spell}`.trim());
+                push('assistant', `${E.acceptedVerdict(praise, said, item.correct, item.acceptable || [], syn, item.grammarNote)}${spell}`.trim());
                 push('system', '🎓 **Phrases done** — now real conversation.');
                 push('assistant', E.drillPrompt(lesson.conversations, 0) || "Let's talk.");
             }
@@ -895,7 +956,7 @@ async function turn(s, said) {
         /* Verdict first whether or not there is a next drill. The final turn of
            every lesson used to praise AFTER the note, so the one card a learner
            is most likely to remember inverted the order. */
-        push('assistant', `${praise}${spell}`.trim());
+        push('assistant', `${E.acceptedVerdict(praise, said, item.correct, item.acceptable || [], syn, item.grammarNote)}${spell}`.trim());
         if (item.grammarNote) pushNote(s, push, item.grammarNote);
         if (next) push('assistant', E.drillPrompt(lesson.conversations, cIdx + 1));
         else {
@@ -928,7 +989,11 @@ async function turn(s, said) {
     }
 
     const known = (lesson.vocabulary || []).map(v => `${v.word} (${v.meaning})`).join(', ');
-    const reply = isQuestion
+    /* Chat.jsx emits a conversation miss BEFORE any model call and returns, so
+       a wrong answer never gets a chatty reply first: round 17 L16 read "Now
+       you can reply! 🐾" then "Not quite." — an artefact of the sim asking the
+       model on every turn. Only a question reaches the model here too. */
+    const reply = !isQuestion ? null : isQuestion
         ? await explain(s, said, item?.correct, lesson,
             `[The learner asked a question. Answer it briefly, in English, without stating the target sentence. ${explanationAuthority(lesson)} ${E.antiFabricationRule(item?.correct || '', taughtSoFar(s))} ${E.ONE_QUESTION_RULE}]`)
         : await askModel(

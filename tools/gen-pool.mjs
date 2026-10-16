@@ -182,7 +182,9 @@ function gate(d, n, others) {
                 if (!g.includes(t)) continue;
                 for (const o of g.filter(w => w !== t)) {
                     const said = ft.map((x, j) => (j === k ? o : x)).join(' ');
-                    if (!listed.has(said) && E.scoreAnswer(said, d.correct, d.acceptable || [], lex).accepted) {
+                    if (!listed.has(said) && E.scoreAnswer(said, d.correct, d.acceptable || [], lex).accepted
+                        /* round 17: nenu-for-naaku before a want-word passes with a note, by design */
+                        && !E.wantNote(said, d.correct, d.acceptable || [])) {
                         reasons.push(`grader: taught-against \`${said}\` accepted`);
                     }
                 }
