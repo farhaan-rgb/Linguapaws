@@ -18,6 +18,7 @@ export const PHASES = {
     review:       { label: 'Memory check', blurb: 'From what you have learned' },
     phrase:       { label: 'Build a phrase', blurb: 'Put the words together' },
     conversation: { label: 'Real conversation', blurb: 'Use it for real' },
+    listen:       { label: 'Listen', blurb: 'Hear it, pick what it means' },
 };
 
 /** Every `alt` spelling the course lists for a word. */
