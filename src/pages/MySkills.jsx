@@ -211,6 +211,12 @@ export default function MySkills() {
             {board && judged === 0 && notice(P.empty.title, P.empty.line)}
 
             {board && judged > 0 && (<>
+                {/* The picture first: how the whole thing is sitting, and what
+                    gets in the way, before any one skill's level. */}
+                <SkillSummary
+                    counts={{ strong: board.strong.length, learning: board.learning.length,
+                              tricky: board.tricky.length, unknown: board.unknown.length }}
+                    miss={profile ? missBoard(profile) : null} />
                 {/* What Miko is practising next comes first, three of it, with
                     the button that practises exactly those; then the good news. */}
                 <Group kind="tricky" rows={tricky} lessons={lessons} cap={MAX_SHOWN} byType={false}>
