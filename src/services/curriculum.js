@@ -27,7 +27,7 @@ export const CURRICULUM = {
                 { word: "Nenu", native: "నేను", meaning: "I", phonetic: "nay-nu" },
                 { word: "Meeru", native: "మీరు", meaning: "You (polite)", phonetic: "mee-ru",
                   teach: "{w} is the polite “you”: for elders, strangers, or more than one person. Friends say *nuvvu*, but when you're asked for the polite “you”, it is {w}." },
-                { word: "Unnaru", native: "ఉన్నారు", meaning: "You are", phonetic: "un-naa-ru", alt: ["unnavu"],
+                { word: "Unnaru", native: "ఉన్నారు", meaning: "You are / he, she is (respectful)", phonetic: "un-naa-ru", alt: ["unnavu"],
                   teach: "{w} is “you are”, the polite form that goes with *meeru*. With a friend it is *unnavu*." },
                 { word: "Bagunnanu", native: "బాగున్నాను", meaning: "I'm fine", phonetic: "baa-gun-naa-nu", alt: ["bagunna"] },
                 { word: "Ela", native: "ఎలా", meaning: "How", phonetic: "eh-laa" }
@@ -95,7 +95,7 @@ export const CURRICULUM = {
                 { prompt: "Ask 'Where is the house?'", correct: "Illu ekkada?", native: "ఇల్లు ఎక్కడ?", grammarNote: "*Ekkada* (“where”) comes after the thing you're asking about. *Illu ekkada?* is enough; the fuller *illu ekkada undi?* is fine too, with *undi* after the question word, just as *unnaru* follows *ela*.", meaning: "Where is the house?", hint: "House + where?", acceptable: ["inti ekkada?", "illu ekkada undi?"] },
                 { prompt: "Say 'Please go to the house'", correct: "Intiki vellandi", native: "ఇంటికి వెళ్ళండి", meaning: "Please go to the house", hint: "To the house + go (please)", acceptable: ["intiki vellu"],
                   grammarNote: "Here's *intiki*, “to the house”. The -ki goes on the end of the word, never in front. “I am going” is a different form, *velthunnanu*, which comes in lesson 11." },
-                { prompt: "Say 'Go there'", correct: "Akkadiki vellandi", native: "అక్కడికి వెళ్ళండి", meaning: "Go there", hint: "To there + go (please)", acceptable: ["akkadiki vellu"],
+                { prompt: "Say 'Please go there'", correct: "Akkadiki vellandi", native: "అక్కడికి వెళ్ళండి", meaning: "Please go there", hint: "To there + go (please)", acceptable: ["akkadiki vellu"],
                   grammarNote: "Going somewhere takes -ki, like *intiki*: *akkadiki vellandi*, “go to there”. *Akkada* alone is where something is: *illu akkada undi*." }
             ],
             conversations: [
@@ -189,7 +189,7 @@ export const CURRICULUM = {
             color: "#fae8ff",
             vocabulary: [
                 { word: "Okati", native: "ఒకటి", meaning: "One", phonetic: "o-kuh-ti", alt: ["oka"],
-                  teach: "“One” is {w}. Before a thing it becomes *oka*: *oka pusthakam*, “one book”, just like *idhi* becomes *ee*." },
+                  teach: "“One” is {w} when you count. Before a thing it becomes *oka*, “one” or “a”: *oka pusthakam*, “one book”, just like *idhi* becomes *ee*. So: *okati* to count, *oka* before a noun." },
                 { word: "Rendu", native: "రెండు", meaning: "Two", phonetic: "rehn-du" },
                 { word: "Moodu", native: "మూడు", meaning: "Three", phonetic: "moo-du" },
                 { word: "Naalugu", native: "నాలుగు", meaning: "Four", phonetic: "naa-lu-gu",
@@ -377,7 +377,7 @@ export const CURRICULUM = {
                 },
                 { word: "Ganta", native: "గంట", meaning: "Hour", phonetic: "gun-tuh" },
                 { word: "Tharuvatha", native: "తరువాత", meaning: "Later / after", phonetic: "thuh-ru-vaa-thuh",
-                  teach: "{w} means “later”. Put it where *ippudu* (“now”) goes: before the action word, not at the end.",
+                  teach: "{w} means “later”. Like *ippudu* (“now”), it can start the sentence or follow *nenu*: *tharuvatha nenu…* or *nenu tharuvatha…*. The action word still goes last.",
                   examples: [
                     { text: "Tharuvatha nenu intiki velthunnanu", native: "తరువాత నేను ఇంటికి వెళ్తున్నాను", meaning: "Later I am going home" },
                   ]
@@ -386,14 +386,15 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'Today I am going'", correct: "Eeroju nenu velthunnanu", native: "ఈరోజు నేను వెళ్తున్నాను", meaning: "Today I am going", hint: "Today + I + going" },
                 { prompt: "Say 'Today I am doing work'", correct: "Eeroju nenu pani chestunnanu", native: "ఈరోజు నేను పని చేస్తున్నాను", meaning: "Today I am doing work", hint: "Today + I + work + am doing", acceptable: ["eeroju pani chestunnanu", "nenu eeroju pani chestunnanu"] },
-                { prompt: "Say 'Tomorrow one hour'", correct: "Repu oka ganta", native: "రేపు ఒక గంట", meaning: "Tomorrow one hour", hint: "Tomorrow + one + hour" }
+                { prompt: "Say 'Tomorrow one hour'", correct: "Repu oka ganta", native: "రేపు ఒక గంట", meaning: "Tomorrow one hour", hint: "Tomorrow + one + hour",
+                  grammarNote: "*Oka*, not *okati*: in front of a noun like *ganta*, “one” is *oka* (lesson 7). *Okati* is the counting word: one, two, three." }
             ],
             conversations: [
                 { prompt: "Tell Miko you are going today.", correct: "Eeroju nenu velthunnanu", native: "ఈరోజు నేను వెళ్తున్నాను", meaning: "Today I am going", hint: "Today + I + going" },
                 { prompt: "Say 'I am going tomorrow'.", correct: "Repu nenu velthunnanu", native: "రేపు నేను వెళ్తున్నాను", meaning: "I am going tomorrow", hint: "Tomorrow + I + am going", acceptable: ["nenu repu velthunnanu", "repu velthunnanu"],
                   grammarNote: "Just like English “I'm going tomorrow”, Telugu uses “am going” for plans. The time word shows it's in the future." },
                 { prompt: "Say 'I am going today'", correct: "Eeroju nenu velthunnanu", native: "ఈరోజు నేను వెళ్తున్నాను", meaning: "I am going today", hint: "Today + I + am going", acceptable: ["nenu eeroju velthunnanu", "eeroju velthunnanu"],
-                  grammarNote: "The time word comes first, *eeroju*, and the action word comes last. That's the normal order." },
+                  grammarNote: "The action word, *velthunnanu*, goes last. The time word is free: *eeroju nenu velthunnanu* and *nenu eeroju velthunnanu* both work, and starting with it is common." },
                 { prompt: "Say 'I am eating now'.", correct: "Nenu ippudu tintunnanu", native: "నేను ఇప్పుడు తింటున్నాను", meaning: "I am eating now", hint: "I + now + am eating", acceptable: ["ippudu tintunnanu"] }
             ]
         },
@@ -430,7 +431,7 @@ export const CURRICULUM = {
             scenario: "Simple Future Tense",
             vocabulary: [
                 { word: "Chestanu", native: "చేస్తాను", meaning: "I will do", phonetic: "chays-taa-nu",
-                  teach: "“I will do” is {w}. Compare *chesanu* “I did” with *chestanu* “I will do”: just add a **t**. All four words in this lesson work this way." },
+                  teach: "“I will do” is {w}. Compare *chesanu* “I did” with *chestanu* “I will do”: the future has a **t** sound before the *-anu*. All four action words in this lesson end that way: *chestanu*, *velthanu*, *tintanu*, *chustanu*." },
                 { word: "Velthanu", native: "వెళ్తాను", meaning: "I will go", phonetic: "vehl-thaa-nu",
                   teach: "{w} means “I will go”. Careful: *velthanu* is “I will go”, but *velthunnanu* is “I am going”. Only the -unn- is different. Same with *chestanu*/*chestunnanu* and *tintanu*/*tintunnanu*." },
                 { word: "Tintanu", native: "తింటాను", meaning: "I will eat", phonetic: "tihn-taa-nu" },
@@ -448,7 +449,7 @@ export const CURRICULUM = {
                 { prompt: "Tell someone 'I will go home tomorrow'.", correct: "Nenu repu intiki velthanu", native: "నేను రేపు ఇంటికి వెళ్తాను", meaning: "I will go home tomorrow", hint: "I + tomorrow + home + will go" },
                 { prompt: "Say 'I will see the book'.", correct: "Nenu pusthakam chustanu", native: "నేను పుస్తకం చూస్తాను", meaning: "I will see the book", hint: "I + book + will see" },
                 { prompt: "Final check: 'I will eat later'.", correct: "Nenu tharuvatha tintanu", native: "నేను తరువాత తింటాను", meaning: "I will eat later", hint: "I + later + will eat",
-                  grammarNote: "*Tharuvatha* (“later”) goes before the action word, just like *ippudu*. The word *tintanu* already says “will”; the time word just says when." }
+                  grammarNote: "The action word, *tintanu*, goes last, and it already says “will”. *Tharuvatha* (“later”) just says when; like *ippudu*, it can go before or after *nenu*." }
             ]
         },
         {
@@ -456,7 +457,8 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Enduku", native: "ఎందుకు", meaning: "Why", phonetic: "ehn-du-ku", teach: "“Why” is {w}." },
                 { word: "Andhuke", native: "అందుకే", meaning: "That's why", phonetic: "uhn-du-kay" },
-                { word: "Ishtam", native: "ఇష్టం", meaning: "Like", phonetic: "ihsh-tum" },
+                { word: "Ishtam", native: "ఇష్టం", meaning: "Liked, a liking (naaku ishtam = I like)", phonetic: "ihsh-tum",
+                  teach: "{w} means “liked”, “a liking”. Telugu says “I like it” as “to me it is liked”, with *naaku* (“to me”): *naaku ishtam*. So “I like” uses *naaku*, not *nenu*." },
                 { word: "Ledu", native: "లేదు", meaning: "No/Not", phonetic: "lay-du", teach: "“No” is {w}." },
                 { word: "Bhayam", native: "భయం", meaning: "Fear", phonetic: "bhuh-yum",
                   examples: [
@@ -466,7 +468,7 @@ export const CURRICULUM = {
                 }
             ],
             phrases: [
-                { prompt: "Ask 'Why?' about something.", correct: "Adhi enduku?", native: "అది ఎందుకు?", grammarNote: "*Enduku* (“why”) often comes first, but it can go at the end too: *adhi enduku* is the everyday way. *Ledu* also means “is not” or “there isn't”.", meaning: "Why is that?", hint: "That + why?", acceptable: ["enduku?"] },
+                { prompt: "Ask 'Why?' about something.", correct: "Adhi enduku?", native: "అది ఎందుకు?", grammarNote: "*Enduku* (“why”) can move around in the sentence. The everyday way puts it after the thing you ask about: *adhi enduku?*. *Ledu* also means “is not” or “there isn't”.", meaning: "Why is that?", hint: "That + why?", acceptable: ["enduku?"] },
                 { prompt: "Say 'That's why I like it'", correct: "Andhuke naaku ishtam", native: "అందుకే నాకు ఇష్టం", meaning: "That's why I like it", hint: "That's why + to me + like",
                   grammarNote: "*Enduku?* asks “why?”; *andhuke* answers “that's why”. You'll often hear them as a pair." },
                 { prompt: "Ask 'Why this?'", correct: "Idhi enduku?", native: "ఇది ఎందుకు?", meaning: "Why this?", hint: "This + why?" }
@@ -501,17 +503,19 @@ export const CURRICULUM = {
                 { prompt: "Say 'I am doing it quickly'.", correct: "Nenu tvaraga chestunnanu", native: "నేను త్వరగా చేస్తున్నాను", meaning: "I am doing it quickly", hint: "I + quickly + am doing", acceptable: ["tvaraga chestunnanu"] },
                 { prompt: "Say 'I am very happy'.", correct: "Nenu chala santhoshamga unnanu", native: "నేను చాలా సంతోషంగా ఉన్నాను", meaning: "I am very happy", hint: "I + very + happily + am",
                   grammarNote: "Add -ga to a feeling and it says how you are: *santhosham* (“happiness”) becomes *santhoshamga*, so *nenu santhoshamga unnanu* is “I am happily”, “I am happy”. The -ga is the same one at the end of *tvaraga* and *mellaga*." },
-                { prompt: "Ask 'How is your friend?'", correct: "Mee snehithudu ela unnaru?", native: "మీ స్నేహితుడు ఎలా ఉన్నారు?", meaning: "How is your friend?", hint: "Your + friend + how?" }
+                { prompt: "Ask 'How is your friend?'", correct: "Mee snehithudu ela unnaru?", native: "మీ స్నేహితుడు ఎలా ఉన్నారు?", meaning: "How is your friend?", hint: "Your + friend + how?",
+                  grammarNote: "*Unnaru* is “you are”, and also “he is” or “she is” said with respect, so it fits a friend: *ela unnaru?*, “how is he?”." }
             ]
         },
         {
             scenario: "Family Relations",
             vocabulary: [
-                { word: "Amma", native: "అమ్మ", meaning: "Mother", phonetic: "um-muh" },
+                { word: "Amma", native: "అమ్మ", meaning: "Mother", phonetic: "um-muh",
+                  teach: "{w} is “mother”. To introduce a person, say *ame* (“she”) or *ayana* (“he”), not *idhi*: *idhi* is for things." },
                 { word: "Nanna", native: "నాన్న", meaning: "Father", phonetic: "naan-nuh" },
                 { word: "Anna", native: "అన్న", meaning: "Elder Brother", phonetic: "un-nuh" },
                 { word: "Maa", native: "మా", meaning: "Our / my (family, home)", phonetic: "maa",
-                  teach: "{w} means “our”, and Telugu speakers say it for family and home even when talking about themselves: *maa amma*, *maa illu*. *Naa amma* is understood, and counts." },
+                  teach: "{w} means “our”, and Telugu speakers say it for family and home even when talking about themselves: *maa amma*, *maa illu*. *Naa amma* is understood, and is accepted too." },
                 { word: "Kutumbam", native: "కుటుంబం", meaning: "Family", phonetic: "ku-tum-bum" }
             ],
             phrases: [
@@ -524,7 +528,7 @@ export const CURRICULUM = {
                 { prompt: "Introduce your mother to Miko.", correct: "Ame maa amma", native: "ఆమె మా అమ్మ", meaning: "This is my mother", hint: "She + our + mother", acceptable: ["ame naa amma"],
                   grammarNote: "For a person, *ame* (“she”), not *idhi*: *idhi* is for things, and calling your mother *idhi* is rude." },
                 { prompt: "Ask 'Where is your home?'", correct: "Mee illu ekkada?", native: "మీ ఇల్లు ఎక్కడ?", acceptable: ["mee inti ekkada?"], meaning: "Where is your home?", hint: "Your + house + where?" },
-                { prompt: "Say 'My brother is a good friend'.", correct: "Maa anna manchi snehithudu", native: "మా అన్న మంచి స్నేహితుడు", meaning: "My brother is a good friend", hint: "Our + brother + good + friend", acceptable: ["naa anna manchi snehithudu"] },
+                { prompt: "Say 'My elder brother is a good friend'.", correct: "Maa anna manchi snehithudu", native: "మా అన్న మంచి స్నేహితుడు", meaning: "My elder brother is a good friend", hint: "Our + brother + good + friend", acceptable: ["naa anna manchi snehithudu"] },
                 { prompt: "Point to a photo: 'My elder sister'.", correct: "Maa akka", native: "మా అక్క", meaning: "My elder sister", hint: "Our + sister", acceptable: ["naa akka"] }
             ]
         },
@@ -535,12 +539,13 @@ export const CURRICULUM = {
                 { word: "Snanam", native: "స్నానం", meaning: "Bath", phonetic: "snaa-num" },
                 { word: "Pani", native: "పని", meaning: "Work", phonetic: "puh-nih" },
                 { word: "Lev", native: "లే", meaning: "Wake up / get up", phonetic: "lay(v)", alt: ["le", "levu", "melukonu"],
-                  teach: "{w}, or just *le*, is the everyday “wake up!” or “get up!”. You'll also hear *lechi*, “having got up”. The bookish *melukonu* means the same, and counts.",
+                  teach: "{w}, or just *le*, is the everyday “wake up!” or “get up!”. You'll also hear *lechi*, “having got up”. The bookish *melukonu* means the same, and is accepted too.",
                   examples: [
                     { text: "Ippudu lev", native: "ఇప్పుడు లే", meaning: "Wake up now" },
                   ]
                 },
-                { word: "Vanta", native: "వంట", meaning: "Cook", phonetic: "vun-tuh" }
+                { word: "Vanta", native: "వంట", meaning: "Cooking", phonetic: "vun-tuh",
+                  teach: "{w} is “cooking”, the noun, not the action. To say “I am cooking”, you do it: *vanta chestunnanu*, “I am doing cooking”." }
             ],
             phrases: [
                 { prompt: "Say 'I have work today'", correct: "Naaku eeroju pani undi", native: "నాకు ఈరోజు పని ఉంది", meaning: "I have work today", hint: "To me + today + work + there is", acceptable: ["eeroju naaku pani undi", "naaku pani undi"] },
@@ -559,14 +564,17 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Rangu", native: "రంగు", meaning: "Color", phonetic: "run-gu" },
                 { word: "Batta", native: "బట్ట", meaning: "Clothes", phonetic: "buht-tuh" },
-                { word: "Telupu", native: "తెలుపు", meaning: "White", phonetic: "theh-lu-pu" },
-                { word: "Nalupu", native: "నలుపు", meaning: "Black", phonetic: "nuh-lu-pu" },
+                { word: "Telupu", native: "తెలుపు", meaning: "White", phonetic: "theh-lu-pu", alt: ["tella"],
+                  teach: "{w} is “white”, the colour itself: *telupu rangu*, “white colour”. In front of a thing it becomes *tella*: *tella batta*, “white clothes”. Black and red change the same way." },
+                { word: "Nalupu", native: "నలుపు", meaning: "Black", phonetic: "nuh-lu-pu", alt: ["nalla"],
+                  teach: "{w} is “black”, the colour itself. In front of a thing it becomes *nalla*: *nalla batta*, “black clothes”." },
                 { word: "Erupu", native: "ఎరుపు", meaning: "Red", phonetic: "eh-ru-pu", alt: ["erra"],
-                  teach: "{w} is “red”, the colour itself: *erupu rangu*, “red colour”. In front of a thing it becomes *erra*: *erra batta*, “red clothes”." }
+                  teach: "{w} is “red”, the colour itself: *erupu rangu*, “red colour”. In front of a thing it becomes *erra*: *erra batta*, “red clothes”. So: *telupu*/*tella*, *nalupu*/*nalla*, *erupu*/*erra*." }
             ],
             phrases: [
                 { prompt: "Say 'Red color'", correct: "Erupu rangu", native: "ఎరుపు రంగు", meaning: "Red color", hint: "Red + color" },
-                { prompt: "Say 'White clothes'", correct: "Telupu batta", native: "తెలుపు బట్ట", meaning: "White clothes", hint: "White + clothes" },
+                { prompt: "Say 'White clothes'", correct: "Tella batta", native: "తెల్ల బట్ట", meaning: "White clothes", hint: "White + clothes", acceptable: ["telupu rangu batta"],
+                  grammarNote: "In front of a thing, *telupu* becomes *tella*: *tella batta*. On its own it stays *telupu*: *idhi telupu*." },
                 { prompt: "Say 'I want black'", correct: "Nalupu kaavali", native: "నలుపు కావాలి", meaning: "I want black", hint: "Black + want", acceptable: ["naaku nalupu kaavali"] }
             ],
             conversations: [
@@ -596,7 +604,8 @@ export const CURRICULUM = {
             ],
             conversations: [
                 { prompt: "Miko asks about your day. Say 'It was good'.", correct: "Eeroju bagundi", native: "ఈరోజు బాగుంది", meaning: "Today was good", hint: "Today + it is good", acceptable: ["bagundi"] },
-                { prompt: "Tell Miko 'I am going to work now'.", correct: "Nenu ippudu paniki velthunnanu", native: "నేను ఇప్పుడు పనికి వెళ్తున్నాను", meaning: "I am going to work now", hint: "I + now + work + going" },
+                { prompt: "Tell Miko 'I am going to work now'.", correct: "Nenu ippudu paniki velthunnanu", native: "నేను ఇప్పుడు పనికి వెళ్తున్నాను", meaning: "I am going to work now", hint: "I + now + to work + going",
+                  grammarNote: "*Paniki* is *pani* + -ki, “to work”, the same -ki as *intiki*, “to the house”." },
                 { prompt: "Say 'Okay, thank you'.", correct: "Sare, dhanyavaadaalu", native: "సరే, ధన్యవాదాలు", meaning: "Okay, thank you", hint: "Okay + thanks" },
                 { prompt: "Final check: Say hello, I am very happy.", correct: "Namaskaram, nenu chala santhoshamga unnanu", native: "నమస్కారం, నేను చాలా సంతోషంగా ఉన్నాను", meaning: "Hello, I am very happy", hint: "Hello + I + well + happy" }
             ]

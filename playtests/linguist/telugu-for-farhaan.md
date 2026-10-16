@@ -20,3 +20,11 @@ Nine yes/no questions. Every other verdict in `telugu-verdicts.json` has been ap
 9. **Should "Oddu" be romanised "Vaddu"** to match వద్దు, with oddu still accepted? Yes: rename the L4 word. No: leave it.
 
 Decided without asking (was question 2): "naaku chala snehithulu undi" is now rejected for L8 c0; only *unnaru* passes.
+
+## Round 17 colour forms (2026-10-16, open)
+
+L19 now teaches the noun form as the headword (*telupu*, *nalupu*, *erupu*: the colour itself, *erupu rangu*) and the adjective form before a thing (*tella*, *nalla*, *erra* + *batta*). The "White clothes" phrase is now *Tella batta*. Three things I did not decide:
+
+1. **Should *telupu batta* / *erupu batta* still pass?** They do today (the adjective is an `alt` of the headword, and your Q8 answer was that *erupu batta* is acceptable); the screen then shows the "becomes *tella*" note. Yes: leave it. No: it needs a grader-side rule, not an `acceptable` edit.
+2. **Is "Idhi telupu" natural for "This is white"** (L19 c2), or should it be *idhi tellaga undi* / *idhi tella rangu*? Left as *idhi telupu*.
+3. **Is "Nalupu kaavali" natural for "I want black"** (L19 p3), or is it *nalladi kaavali* ("the black one")? Left as is; the course has not taught *-di*.
