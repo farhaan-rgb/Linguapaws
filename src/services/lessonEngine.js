@@ -604,9 +604,51 @@ export const misplacedWord = (actual, v, lexicon = new Map()) => {
     const said = at.map(p => saidToks[p]);
     return {
         word: need[k], index: k, last: k === n - 1, first: k === 0, need,
-        said, exact: said.every((w, i) => w === need[i]),
+        said, at, exact: said.every((w, i) => w === need[i]),
     };
 };
+
+/* ── Clauses, for the order MESSAGE only ───────────────────────────────────
+   `normalizeLatin` flattens the comma in *Naanu eega tinnuttiddene, aamele
+   hoguttene*, and it has to: a learner who types the sentence without the
+   comma must still pass, so nothing on the grading path may see it. But the
+   order line is then written against one flat list of words, and it told a
+   learner "hoguttene goes last" — true of that sentence by accident, because
+   the word that wandered happened to be in the second clause. Had the drill
+   been *Aamele hoguttene, eega tinnuttiddene* the same verb is not last and
+   the same sentence would have been false.
+
+   The rule a learner should walk away with is that the verb goes last in ITS
+   OWN clause, so the line needs the clauses the course punctuates. Read here,
+   from the raw answer, and used only to word the feedback. Verified against
+   all 1,049 drill answers in the ten courses (2026-10-16): splitting on commas
+   and semicolons reproduces `need` token for token in every one of them. */
+const clauseTokensOf = (expected) => String(expected || '')
+    .split(/[,;]+/)
+    .map(p => normalizeLatin(p).split(' ')
+        .filter(t => t && !/[[\]()]/.test(t) && t !== 'name' && t !== 'place'))
+    .filter(p => p.length);
+
+/** Which clause each word of `need` belongs to, or null when the answer is one
+ *  clause — or when the split does not line up with the token list the order
+ *  check works on, in which case the flat wording is the honest one. */
+export const clausePlan = (expected, need = []) => {
+    const parts = clauseTokensOf(expected);
+    if (parts.length < 2) return null;
+    const flat = parts.flat();
+    if (flat.length !== need.length || flat.some((t, i) => t !== need[i])) return null;
+    const of = [], span = [];
+    parts.forEach((p) => {
+        span.push({ start: of.length, end: of.length + p.length - 1 });
+        p.forEach(() => of.push(span.length - 1));
+    });
+    return { parts, of, span };
+};
+
+const HALVES = ['the first half', 'the second half'];
+const ORDINALS = ['the first part', 'the second part', 'the third part',
+    'the fourth part', 'the fifth part'];
+const clauseName = (ci, total) => (total === 2 ? HALVES[ci] : ORDINALS[ci] || 'that part');
 
 /** The out-of-place word of an answer whose words are right and whose order
  *  is not, checked against every accepted form and the dropped-pronoun ones;
