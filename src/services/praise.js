@@ -500,6 +500,20 @@ export function mapHereLine({ stepIdx = 0, stepTotal = 0 } = {}) {
     return 'Start here';
 }
 
+/* The floating control that appears once "You are here" has been scrolled off
+   the screen. It carries the lesson back into view; it does not open it — so
+   it says where it goes rather than "Continue", which would promise a lesson
+   starting on the next tap. The second half is the node's own caption, so the
+   pill and the card it lands on say the same thing. */
+export function mapJumpHere({ lesson = 1, stepIdx = 0, stepTotal = 0 } = {}) {
+    const line = stepIdx > 0 && stepTotal > 0 ? `${stepIdx} of ${stepTotal} screens` : 'Start here';
+    return {
+        title: `Lesson ${lesson}`,
+        line,
+        aria: `Back to lesson ${lesson}, where you are on the path`,
+    };
+}
+
 /** Tap-a-word: the popover's quiet labels and the header switch. */
 /* An accepted answer that was not word-for-word the course's: what the learner
    wrote, with each slip beside its course spelling. */

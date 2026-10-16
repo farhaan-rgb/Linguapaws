@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Lock, Dumbbell } from 'lucide-react';
+import { ArrowLeft, Check, Lock, Dumbbell, ArrowUp, ArrowDown } from 'lucide-react';
 import { CURRICULUM, isLanguageAvailable } from '../services/curriculum';
 import { api } from '../services/api';
 import { resumeIndex, savedStepFor, completedLessonFor } from '../services/lessonResume';
@@ -11,7 +11,8 @@ import { focusSkills } from '../services/skillProgress';
 import { SkillList } from '../components/SkillFocus';
 import { getStoredJSON } from '../utils/storage';
 import {
-    mapHeadline, mapHereLine, mapUnitLabel, mapCheckpointTag, mapFinishLine, MAP_HERE, focusCardFor, SKILLS_PAGE,
+    mapHeadline, mapHereLine, mapUnitLabel, mapCheckpointTag, mapFinishLine, MAP_HERE, mapJumpHere,
+    focusCardFor, SKILLS_PAGE,
 } from '../services/praise';
 import { characters } from '../data/characters';
 
@@ -151,11 +152,34 @@ export default function LessonMap() {
     const stepTotal = useMemo(() => stepTotalFor(lessons, current, langName), [lessons, current, langName]);
     const stepIdx = allDone ? 0 : savedStepFor(progress, langName, current, stepTotal);
 
-    useEffect(() => {
-        if (progress === undefined || !hereRef.current) return;
+    const scrollToHere = () => {
+        if (!hereRef.current) return;
         const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
         hereRef.current.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+    };
+
+    useEffect(() => {
+        if (progress === undefined) return;
+        scrollToHere();
     }, [progress]);
+
+    /* The way back. Once "You are here" leaves the screen — scrolled past to
+       look at an earlier lesson, or not reached yet — the only thing that
+       opens a lesson is off-screen, so a pill comes up carrying the lesson's
+       name and offers to bring it back. Watched with an observer rather than a
+       scroll threshold, because the map lands centred on the node and someone
+       who never scrolls must never see this. The bottom inset is the pill's
+       own strip: a node hidden behind the pill still counts as away. */
+    const [jumpDir, setJumpDir] = useState(null); // null = in view, 'up' | 'down' = which way back
+    useEffect(() => {
+        const el = hereRef.current;
+        if (progress === undefined || allDone || !el) { setJumpDir(null); return undefined; }
+        const io = new IntersectionObserver(([e]) => {
+            setJumpDir(e.isIntersecting ? null : (e.boundingClientRect.top < 0 ? 'up' : 'down'));
+        }, { threshold: 0, rootMargin: '-8px 0px -96px 0px' });
+        io.observe(el);
+        return () => io.disconnect();
+    }, [progress, allDone, current, lessons]);
 
     const open = (idx) => {
         localStorage.removeItem('linguapaws_active_character');
@@ -582,6 +606,36 @@ export default function LessonMap() {
                     )}
                 </div>
             )}
+
+            {/* ── The way back to "You are here" ─────────────────────── */}
+            {jumpDir && (() => {
+                const jump = mapJumpHere({ lesson: current + 1, stepIdx, stepTotal });
+                const Arrow = jumpDir === 'up' ? ArrowUp : ArrowDown;
+                return (
+                    <button onClick={scrollToHere} className="lm-jump" aria-label={jump.aria}
+                        style={{
+                            position: 'fixed', left: '50%', bottom: 18, zIndex: 30,
+                            display: 'flex', alignItems: 'center', gap: 9, maxWidth: 'calc(100vw - 32px)',
+                            padding: '7px 16px 7px 7px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                            background: 'var(--primary-gradient)', color: 'white', whiteSpace: 'nowrap',
+                        }}>
+                        <span aria-hidden="true" style={{
+                            width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                            background: 'rgba(255,255,255,0.24)', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center',
+                        }}>
+                            <Arrow size={16} strokeWidth={3} />
+                        </span>
+                        <span style={{
+                            fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14,
+                            overflow: 'hidden', textOverflow: 'ellipsis',
+                        }}>
+                            {jump.title}
+                            <span style={{ fontWeight: 600, fontSize: 12.5, opacity: 0.82 }}> · {jump.line}</span>
+                        </span>
+                    </button>
+                );
+            })()}
         </div>
     );
 }
@@ -614,9 +668,18 @@ const MAP_STYLES = `
 }
 .lm-practice:hover { margin-top: -2px; }
 .lm-focus-go:hover { background: rgba(168,85,247,0.16) !important; }
+@keyframes lm-jump-in { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.lm-jump {
+  transform: translate(-50%, 0);
+  box-shadow: 0 10px 22px -8px rgba(124,58,237,0.75), 0 0 0 3px rgba(255,255,255,0.85);
+  animation: lm-jump-in 0.22s ease-out both;
+  transition: box-shadow 0.12s ease;
+}
+.lm-jump:active { box-shadow: 0 4px 10px -4px rgba(124,58,237,0.75), 0 0 0 3px rgba(255,255,255,0.85); }
 .lm-practice:active { margin-top: 2px; box-shadow: inset 0 -1px 0 #e4d4fb, 0 2px 6px -2px rgba(124,58,237,0.5); }
 @media (prefers-reduced-motion: reduce) {
-  .lm-node, .lm-pulse, .lm-here, .lm-scenery, .lm-back, .lm-practice { animation: none !important; transition: none !important; }
+  .lm-node, .lm-pulse, .lm-here, .lm-scenery, .lm-back, .lm-practice, .lm-jump { animation: none !important; transition: none !important; }
+  .lm-jump { opacity: 1; transform: translate(-50%, 0); }
   .lm-node:not(:disabled):hover, .lm-node:not(:disabled):active { transform: none; }
 }
 `;
