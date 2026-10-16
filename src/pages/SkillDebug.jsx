@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { fetchSkills } from '../services/srs';
+import { fetchSkills, fetchMissProfile } from '../services/srs';
 import { skillsFor } from '../services/skills';
 import { getStoredJSON } from '../utils/storage';
 
 /* Hidden debug view for adaptive phase 1: the signed-in learner's skill model,
-   weakest first. No link points here — open /debug/skills (?lang=Telugu,
-   ?weak=1). Not learner-facing; plain on purpose. */
+   weakest first, and under it their miss profile — what KIND of mistake they
+   make (MISS-TAXONOMY.md). No link points here — open /debug/skills
+   (?lang=Telugu, ?weak=1). Not learner-facing; plain on purpose. */
 const LEVEL_COLOUR = { weak: '#b45309', learning: '#475569', strong: '#15803d', new: '#94a3b8' };
 
 export default function SkillDebug() {
@@ -14,9 +15,11 @@ export default function SkillDebug() {
     const lang = params.get('lang') || getStoredJSON('linguapaws_target_lang', {})?.name || 'Kannada';
     const weakOnly = params.get('weak') === '1';
     const [rows, setRows] = useState(null);
+    const [misses, setMisses] = useState(null);
     useEffect(() => {
         let live = true;
         fetchSkills(lang, { weak: weakOnly }).then(r => { if (live) setRows(r); });
+        fetchMissProfile(lang).then(r => { if (live) setMisses(r); });
         return () => { live = false; };
     }, [lang, weakOnly]);
     const taxonomy = useMemo(() => skillsFor(lang), [lang]);
@@ -53,6 +56,33 @@ export default function SkillDebug() {
                                 </tr>
                             );
                         })}
+                    </tbody>
+                </table>
+            )}
+
+            <h2 style={{ margin: '28px 0 4px' }}>Miss profile — {lang}</h2>
+            <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: 13 }}>
+                What kind of mistake, not which word. Empty until the engine
+                classifies misses — an empty table means "nothing recorded",
+                never "no mistakes". See MISS-TAXONOMY.md.
+            </p>
+            {misses && !misses.length && <p>No classified misses yet for {lang}.</p>}
+            {misses && misses.length > 0 && (
+                <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+                    <thead>
+                        <tr>{['Kind', 'Misses', 'Share', 'Recently on', 'Last seen']
+                            .map(h => <th key={h} style={{ ...cell, fontWeight: 600 }}>{h}</th>)}</tr>
+                    </thead>
+                    <tbody>
+                        {misses.map(m => (
+                            <tr key={m.kind}>
+                                <td style={cell} title={m.kind}>{m.label || m.kind}</td>
+                                <td style={cell}>{m.count}</td>
+                                <td style={cell}>{Math.round((m.share || 0) * 100)}%</td>
+                                <td style={cell}>{(m.recentWords || []).join(', ')}</td>
+                                <td style={cell}>{m.lastSeen ? new Date(m.lastSeen).toLocaleString() : ''}</td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             )}
