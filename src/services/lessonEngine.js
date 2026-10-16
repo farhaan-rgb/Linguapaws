@@ -2746,6 +2746,16 @@ export const missHelp = (said, expected, {
                 }
             }
             if (!hit) continue;
+            /* The trap's word must stand IN PLACE OF the word it is about.
+               "Naale naanu nanna oorige hoguttene" carries both *nanna* and
+               *naanu*, so a learner who wrote *ooru* there was told "*Naanu*
+               is “I”. Before a thing, “my” is N____." — about two words they
+               had right. A vocab trap fires only when its word is missing; a
+               drill's own trap only when the said word is not simply one the
+               answer needs (or is there more often than the answer has it). */
+            if (trap.word && has(got, trap.word)) continue;
+            if (!trap.word && !key.includes(' ') && has(need, hit)
+                && got.filter(g => g === hit).length <= need.filter(t => t === hit || canon(t) === canon(hit)).length) continue;
             const t = trap.word || missing[0] || need[0];
             const why = trap.why.replace(/\{answer\}/g, answerFor(t));
             /* "*Hogittene* sounds like *hoguttene*, which is ..." — not the
