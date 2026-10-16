@@ -185,7 +185,10 @@ const MISS_TEMPLATES = [
     `the order is not\\. ${W} (?=goes|comes)`,
     `[Tt]he order is off\\. ${W} (?=goes|comes)`,
     `goes right after ${W}(?:: ${P}(?=\\.))?`,
-    `(?:goes last|comes first): ${P}(?=\\.)`,
+    // "...goes last in the second half: naanu eega tinnuttiddene, aamele
+    // hoguttene." — the clause the order line now names sits between the
+    // anchor and the colon.
+    `(?:goes last|comes first)(?: in the \\p{L}+ (?:half|part))?: ${P}(?=\\.)`,
     `Almost — ${W} (?=states|is the question form)`,
     `; ${W} states it`,
 ];
