@@ -857,10 +857,47 @@ function FamilyCard({ family }) {
     );
 }
 
+/** The learner's last try, under the answer it missed. Before this the
+ *  reveal showed only the course's sentence: two misses in, the learner could
+ *  no longer see what they had written, so had nothing to compare it with.
+ *  A word the answer uses stays plain, a near-miss of one is amber, and a word
+ *  the answer has no place for is struck through. */
+function LastTry({ attempt, step }) {
+    const key = (w) => engine.normalizeLatin(w);
+    const answer = [step.expected, ...(step.variants || [])]
+        .flatMap(a => key(a).split(' ')).filter(Boolean);
+    const exact = new Set(answer);
+    const mark = (w) => {
+        const k = key(w);
+        if (!k || exact.has(k)) return 'ok';
+        return answer.some(a => engine.levenshtein(a, k) <= Math.max(2, Math.floor(k.length / 3)))
+            ? 'near' : 'off';
+    };
+    const words = String(attempt.said).trim().split(/\s+/).filter(Boolean);
+    return (
+        <p style={{ margin: '10px auto 0', maxWidth: 340, fontSize: 13, lineHeight: 1.55, color: 'var(--text-main)' }}>
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                {attempt.spoken ? praise.ANSWER_DIFF.said : praise.ANSWER_DIFF.wrote}:{' '}
+            </span>
+            {words.map((w, i) => {
+                const m = mark(w);
+                return (
+                    <span key={i}>
+                        {i > 0 && ' '}
+                        {m === 'ok' ? w
+                            : m === 'near' ? <b style={{ color: '#b45309' }}>{w}</b>
+                                : <s style={{ color: 'var(--text-secondary)' }}>{w}</s>}
+                    </span>
+                );
+            })}
+        </p>
+    );
+}
+
 function RevealPanel({
     step, line, onSpeak, locked, lockText, setLockText, onLockIn, lockMiss,
     lockRef, answerMode, voice, onListen, langName, lockHeard = '',
-    why = '', family = null, whyNot = null, lessonNo = Infinity,
+    why = '', family = null, whyNot = null, lessonNo = Infinity, lastTry = null,
 }) {
     const meaning = step.kind === 'drill' ? step.drill?.meaning : null;
     /* This panel's button says Lock it in, not Check, so it names its own. */
@@ -890,6 +927,7 @@ function RevealPanel({
             )}
             <EndingChips text={step.expected} langName={langName} lessonNo={lessonNo}
                 style={{ marginTop: 10 }} />
+            {lastTry && <LastTry attempt={lastTry} step={step} />}
             <button onClick={() => onSpeak(step.expected)}
                 style={{
                     margin: '12px auto 0', display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -1790,6 +1828,7 @@ function StepScreen({
                                 lessonNo={taughtLessons.length}
                                 lockHeard={lockHeard}
                                 why={revealWhy} family={family} whyNot={whyNot}
+                                lastTry={[...attemptsRef.current].reverse().find(a => a.said?.trim()) || null}
                             />
                         </div>
                     )}
