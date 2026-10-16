@@ -122,6 +122,15 @@ const SPOKEN = [
     ['All the right words — the order is not. ela goes right after meeru: meeru ela unnaru.', /‹meeru:?› \| ‹meeru ela unnaru\.?›/],
     ['Use *ayana* for a person, not *idhi*: *idhi* is for things.', /‹idhi:?› \| ‹idhi›/],
     ['This is how you say “I have”: *naaku* + *undi*.', /‹naaku› \| plus \| ‹undi\.?›/],
+    /* Round t2130 (Telugu L21-30), read aloud. */
+    ['*Unte* (“if there is”, lesson 25) closes the first half: *chillar unte*.', /^‹Unte› \| , “if there is”, lesson 25, closes/],
+    ['Two ways, both accepted: *naaku* … -ga *undi*.', /‹naaku› \| … the ending ga, then \| ‹undi\.?›/],
+    ['A trip is something you *do*, not somewhere you go: *prayanam chestunnanu*.', /^A trip is something you do, not somewhere you go: \| ‹prayanam chestunnanu\.?›$/],
+    ["Miko is late. Phone and ask 'Are you on the bus?'", /^Miko is late\./],
+    ['Not quite. The word for "It is / there is" is missing.', /^Not quite\. The word for “It is or there is” is missing\.$/],
+    ['Aali — (Must suffix) · Cheyali — Must do', /^Aali, the must ending ·/],
+    ['Introduce yourself: *Namaskaram*, then your name, like naa peru [name].', /your name\.$/],
+    ['*K___* means “right?” Then N___ *vellali*.', /^a word starting with K means “right\?” Then a word starting with N \| ‹vellali\.?›$/],
 ];
 for (const [line, want] of SPOKEN) {
     const got = voiced(line);

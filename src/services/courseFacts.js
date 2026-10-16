@@ -17,7 +17,7 @@
  * Shared by Chat.jsx, Steps.jsx and tools/lesson-sim.mjs, so all three answer
  * the same question the same way. */
 import { CURRICULUM, WORD_FAMILIES } from './curriculum.js';
-import { DISTINCT_WORDS, normalizeLatin, levenshtein, outlineOf } from './lessonEngine.js';
+import { DISTINCT_WORDS, MISS_MARKER, normalizeLatin, levenshtein, outlineOf } from './lessonEngine.js';
 
 const norm = (w) => normalizeLatin(String(w || '')).replace(/\s+/g, '');
 
@@ -41,6 +41,10 @@ const indexFor = (lang, scenarioIdx) => {
 const QUESTION_FRAME = new Set(('what whats is does do how say said mean means meaning the word words '
     + 'for in a an of again was it its please you i me to again called tell').split(' '));
 
+/* Words of asking that are not in QUESTION_FRAME because the English-meaning
+   pass below needs them: only the spelling-prefix pass skips them. */
+const FRAME_EXTRA = new Set('remember really know dont forgot forget show give which there here then this that just'.split(' '));
+
 /** An English meaning as a learner would type it: "Tomorrow", not
  *  "Tomorrow (adverb)" — and each side of "House / home". */
 const gistsOf = (meaning) => String(meaning || '').replace(/\s*\(.*?\)/g, '')
@@ -62,7 +66,10 @@ export const wordsAskedAbout = (question, lang, scenarioIdx) => {
     for (const t of tokens) {
         const hit = idx.get(t);
         if (hit) { found.set(hit.word, hit); continue; }
-        if (t.length < 4) continue;
+        /* A frame word is not a piece of a taught word: "can you tell me?"
+           looked up *Telupu* through its alt *tella*, and a learner asking
+           for "Fear" was told about white (round t2130 L26). */
+        if (t.length < 4 || QUESTION_FRAME.has(t) || FRAME_EXTRA.has(t)) continue;
         for (const [k, e] of idx) {
             if (k.length > t.length && k.startsWith(t)) { found.set(e.word, e); break; }
         }
@@ -252,4 +259,108 @@ export const answerFromFacts = (question, lang, scenarioIdx, { expected = '', re
         lines.push(`Not to be confused with *${other}*, “${meaningOf(other, idx).meaning}”.`);
     }
     return lines.join(' ');
+};
+
+/* ── For chat's question path (round t2130, Telugu L21-30) ─────────────── */
+
+/** "i really don't remember, can you tell me?" is "I don't know", said at
+ *  length. The engine's DONT_KNOW only takes the short forms, so L26's learner
+ *  was answered about colours instead of being shown the word. A request for
+ *  the answer, not a question about one: anything asking why or how stays a
+ *  question. */
+export const asksForTheAnswer = (said) => {
+    const q = String(said || '').toLowerCase();
+    if (/\b(why|how|which|differen|instead|mean)\b/.test(q)) return false;
+    return /\b(do ?n['’]?t|do not|can['’]?t|cannot) (really )?(remember|recall)\b/.test(q)
+        || /\bi (forgot|forget)\b/.test(q)
+        || /\b(can|could|would|will) you (just |please )?(tell|show|give) me( (it|the (answer|word)))?( please)?[\s.!?]*$/.test(q)
+        || /^\s*(please )?(just )?(tell|show|give) me (it|the (answer|word))[\s.!?]*$/.test(q);
+};
+
+/** "what is the word for agree?" when the course has no such word. Round t2130
+ *  L29 got "I would rather not hand you a whole sentence" for it — the
+ *  learner had asked about one word. '' when the question is not of that shape
+ *  or names a word the course has taught (answerFromFacts answers those). */
+export const notTaughtAnswer = (question, lang, scenarioIdx, { prompt = '' } = {}) => {
+    const q = String(question || '');
+    const tail = `["“'‘]?([a-z][a-z' -]{0,28}?)["”'’]?\\s*(?:in \\w+)?\\s*\\??\\s*$`;
+    const m = new RegExp(`\\bwhat(?:['’]?s| is)\\s+(?:the\\s+)?(?:\\w+\\s+)?word\\s+for\\s+${tail}`, 'i').exec(q)
+        || new RegExp(`\\bhow do (?:i|you) say\\s+${tail}`, 'i').exec(q);
+    if (!m) return '';
+    const what = m[1].trim().replace(/^(a|an|the|to)\s+/i, '');
+    if (!what || what.split(' ').length > 3) return '';
+    if (wordsAskedAbout(question, lang, scenarioIdx).length) return '';
+    const onScreen = new RegExp(`\\b${what.replace(/[^a-z' -]/gi, '')}\\b`, 'i').test(prompt);
+    return `The course hasn't taught a word for “${what}” yet.${onScreen
+        ? ' This screen says it with words you already have, so you can build it without one.' : ''}`;
+};
+
+/** A question that compares two forms — "so is it thin or tin?", "which one,
+ *  thinnanu or tintanu?" — needs an answer, not two glosses (L23). */
+export const comparesForms = (question, lang, scenarioIdx) => {
+    const q = normalizeLatin(String(question || ''));
+    if (!/\b(or|which|how do i know|is it)\b/.test(q)) return false;
+    return wordsAskedAbout(question, lang, scenarioIdx).length >= 1;
+};
+
+/** The learner's last graded miss on this screen and the line the grader gave
+ *  for it: `{ attempt, reason }`, or null. Read off the transcript — a user
+ *  turn answered "Not quite…" — within the last few turns. Ask Miko is given
+ *  both so its explanation cannot contradict the verdict: L29's tutor told a
+ *  learner rejected for "bagundi kada" to "add K___ after bagundi". */
+export const lastMissOf = (messages = [], within = 8) => {
+    const tail = messages.slice(-within);
+    for (let i = tail.length - 1; i > 0; i--) {
+        const m = tail[i];
+        if (m?.role !== 'assistant' || !String(m.content || '').startsWith(MISS_MARKER)) continue;
+        const prev = tail.slice(0, i).reverse().find(x => x?.role === 'user');
+        if (!prev) return null;
+        const reason = String(m.content).replace(/^Not quite[.!]?\s*/, '').trim();
+        return { attempt: String(prev.content || '').trim(), reason };
+    }
+    return null;
+};
+
+/** Every word the course taught BEFORE lesson `scenarioIdx` (0-based), with
+ *  its alt spellings, normalised. Ask Miko never masks these: "N___ vellali"
+ *  hid *nenu*, a lesson-1 word, from a lesson-23 learner. */
+export const taughtBefore = (lang, scenarioIdx) => {
+    const out = new Set();
+    (CURRICULUM[lang] || []).slice(0, Math.max(0, scenarioIdx)).forEach(lesson => {
+        for (const v of lesson.vocabulary || []) {
+            for (const w of [v.word, ...(v.alt || [])]) {
+                for (const t of normalizeLatin(String(w || '')).split(' ')) if (t) out.add(t);
+            }
+        }
+    });
+    return out;
+};
+
+/** "so is it thin or tin?" asked about the word on screen: which of the two
+ *  pieces the course's spelling starts with, and which taught words share
+ *  each. Round t2130 L23 got two glosses back, then (from the model) a root
+ *  the course never teaches. Only for a one-word answer the learner can
+ *  already see; '' otherwise, and the question goes on to the model. */
+export const stemAnswer = (question, lang, scenarioIdx, { expected = '', reveal = false } = {}) => {
+    const want = norm(expected);
+    if (!reveal || !want || normalizeLatin(expected).split(' ').length !== 1) return '';
+    const q = normalizeLatin(String(question || ''));
+    const m = /\b([a-z]{2,8})\s+or\s+([a-z]{2,8})\b/.exec(q);
+    if (!m || m[1] === m[2]) return '';
+    const [a, b] = [m[1], m[2]];
+    const fits = [a, b].filter(p => want.startsWith(p));
+    if (!fits.length) return '';
+    const pick = fits.sort((x, y) => y.length - x.length)[0];
+    const other = pick === a ? b : a;
+    if (want.startsWith(other) && other.length === pick.length) return '';
+    const asked = wordsAskedAbout(question, lang, scenarioIdx).filter(e => norm(e.word) !== want);
+    const like = asked.filter(e => norm(e.word).startsWith(pick));
+    const unlike = asked.filter(e => !like.includes(e) && norm(e.word).startsWith(other));
+    const head = expected.charAt(0).toUpperCase() + expected.slice(1);
+    let line = `*${head}* starts *${pick}-*`;
+    line += like.length ? `, the same as ${like.map(e => `*${e.word}* (“${e.meaning}”)`).join(' and ')}.` : '.';
+    if (unlike.length) {
+        line += ` ${unlike.map(e => `*${e.word}*`).join(' and ')} ${unlike.length > 1 ? 'are' : 'is'} spelled with *${other}-*.`;
+    }
+    return line;
 };

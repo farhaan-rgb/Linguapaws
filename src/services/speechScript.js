@@ -39,6 +39,7 @@
 
 import { CURRICULUM } from './curriculum.js';
 import { toNativeWithLexicon } from '../../shared/transliterate.js';
+import { ENGLISH_TELLS } from './lessonEngine.js';
 
 /** Languages `shared/transliterate.js` can write in native script from the
  *  course's romanisation. Everywhere else the all-or-nothing rule above holds. */
@@ -109,6 +110,13 @@ export function hasNativeScript(langName) {
  * @returns {string}
  */
 export function speechTextFor(langName, text) {
+    /* `[name]` is a slot for the learner, not a word to say — the whole-line
+       lookup below returned the stored native line with it still in. */
+    const out = speechTextForRaw(langName, text);
+    return /\[[^\]]*\]/.test(out) ? out.replace(/\s*\[[^\]]*\]/g, ' …').trim() : out;
+}
+
+function speechTextForRaw(langName, text) {
     const raw = String(text || '');
     if (!raw.trim()) return raw;
     const { words, phrases, lexicon, any } = tableFor(langName);
@@ -129,7 +137,6 @@ export function speechTextFor(langName, text) {
     if (TRANSLITERATED.has(langName)) {
         return raw.split(/(\s+)/).map((piece) => {
             const m = piece.match(/^([^\p{L}]*)([\p{L}'’-]+)([^\p{L}]*)$/u);
-            /* `[name]` is a slot for the learner, not a word to say. */
             if (!m || !/^[A-Za-z'’-]+$/.test(m[2]) || m[1].includes('[')) return piece;
             const native = words.get(keyOf(m[2])) || toNativeWithLexicon(m[2], langName, lexicon);
             return native ? m[1] + native + m[3] : piece;
@@ -208,6 +215,24 @@ const MISS_SLOT_GROUPS = (MISS_TEMPLATES.join('').match(/\(\[/g) || []).length;
  */
 export function speakableText(text) {
     return String(text || '')
+        /* A first-letter outline (`N___`, `K----`) is for the eye. Chat read
+           "N___ vellali" out letter and underscores (round t2130); said as
+           what it means, the same way tipSegments always did. */
+        .replace(/(starts? (?:with )?)(\p{L})[_\-\u2013\u2014]{2,}/giu, '$1$2')
+        .replace(/(?<![\p{L}])\*{0,2}(\p{L})[_\u2013\u2014]{2,}\*{0,2}|(?<![\p{L}])\*{0,2}(\p{L})-{2,}\*{0,2}/gu,
+            (m, a, b) => `a word starting with ${(a || b).toUpperCase()}`)
+        .replace(/_{2,}/g, 'a word')
+        /* `[name]` is a slot the learner fills, not a word: "your name". */
+        .replace(/\[(?:your )?([\p{L} ]+)\]/gu, 'your $1')
+        /* A summary row "Aali — (Must suffix)" was heard "Aali —, Must suffix":
+           the dash and the bracket both meant a pause. One comma, and a
+           suffix said as an ending: "Aali, the must ending". */
+        .replace(/\s*[—–]\s*\((\p{L}+) suffix\)/giu, (m, w) => `, the ${w.toLowerCase()} ending`)
+        .replace(/\((\p{L}+) suffix\)/giu, (m, w) => `the ${w.toLowerCase()} ending`)
+        .replace(/\s*[—–]\s*(?=\()/g, ' ')
+        /* "*naaku* … -ga *undi*": an ending then the word after it ran on as
+           "the ending ga undi". Said as two steps. */
+        .replace(/(?<![\p{L}\p{N}*])-(\p{L}+)\s+(?=\*\p{L})/gu, 'the ending $1, then ')
         /* "Close, check the spelling of vellunnanu": read aloud, the learner's
            wrong word sounds like the answer (round 17), so the voice says the
            instruction and the word stays on screen. */
@@ -234,6 +259,10 @@ export function speakableText(text) {
             /* Only a trailing qualifier — "(polite)" closing a phrase — is set
                off; one mid-phrase, "If (someone) goes", reads straight on. */
             const trailing = !rest || /^[,.;:!?"'”’]/.test(rest);
+            /* An aside mid-sentence — `*Unte* (“if there is”, lesson 25)
+               closes the first half` — is not a qualifier: read straight on it
+               became "Unte if there is, lesson 25 closes". Commas both sides. */
+            if (!trailing && /[,“”"']/.test(inner)) return `${at > 0 ? ', ' : ''}${inner.trim()}, `;
             if (!trailing) return `${at > 0 ? ' ' : ''}${inner.trim()} `;
             return `${at > 0 ? ', ' : ''}${inner.trim()}`;
         })
@@ -286,7 +315,7 @@ export function tipSegments(langName, line) {
             return out;
         });
     if (!raw.trim()) return [];
-    const { known } = tableFor(langName);
+    const { known, words } = tableFor(langName);
     const tokensOf = (s) => keyOf(s).split(' ').filter(Boolean);
     const isTarget = (s, all) => {
         const toks = tokensOf(s);
@@ -343,7 +372,9 @@ export function tipSegments(langName, line) {
        this course teaches, so an English sentence that opens "It is" stays
        English. */
     const lead = /^(\p{L}+)(?=\s+(?:is|means)\b)/u.exec(raw);
-    if (lead && known.has(keyOf(lead[1])) && TRANSLITERATED.has(langName)) {
+    /* A vocabulary word, not any drill token: drills write "Miko chudu", so
+       "Miko is late." went to the Telugu voice (round t2130). */
+    if (lead && words.has(keyOf(lead[1])) && TRANSLITERATED.has(langName)) {
         push(true, lead[1]);
     }
     const re = /\*\*([^*]+)\*\*|\*([^*]+)\*|(?<![\p{L}])'([^']+)'(?![\p{L}])|"([^"]+)"/gu;
@@ -355,10 +386,17 @@ export function tipSegments(langName, line) {
            word, inflected forms included (*bagunnaru*, *doddadu*), and those
            are not all in the vocabulary — so italics are target unless they
            are an English contraction (*I'm*). Bold and quotes must prove it. */
+        /* ...nor English emphasis: "something you *do*" sent "do" to the
+           Telugu voice (round t2130). */
+        const english = tokensOf(span).every(t => ENGLISH_TELLS.has(t) && !known.has(t));
         const target = m[2] != null
-            ? (isTarget(span, false) || !/\p{L}'\p{L}/u.test(span))
+            ? (isTarget(span, false) || (!/\p{L}'\p{L}/u.test(span) && !english))
             : isTarget(span, m[3] != null || m[4] != null);
-        push(target, span);
+        /* An English quote keeps its marks: `The word for "It is / there is"
+           is missing` lost them and ran on as "the word for it is or there is
+           is missing", which does not parse by ear. */
+        const quoted = !target && (m[3] != null || m[4] != null);
+        push(target, quoted ? `“${span}”` : span);
         at = m.index + m[0].length;
     }
     push(false, raw.slice(at));

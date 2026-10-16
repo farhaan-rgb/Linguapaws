@@ -13,7 +13,8 @@ import { getStoredJSON, setStoredJSON } from '../utils/storage';
 import { CURRICULUM, AVAILABLE_LANGUAGES, WORD_FAMILIES, KNOWN_WORDS, WORD_ENDINGS, isLanguageAvailable } from '../services/curriculum';
 import * as engine from '../services/lessonEngine';
 import { phraseDrill } from '../services/phraseReview';
-import { courseFactsFor, groundedAnswerRule, wordsAskedAbout, answerFromFacts } from '../services/courseFacts';
+import { courseFactsFor, groundedAnswerRule, wordsAskedAbout, answerFromFacts,
+    asksForTheAnswer, notTaughtAnswer, comparesForms, lastMissOf, stemAnswer } from '../services/courseFacts';
 import { speakableText } from '../services/speechScript';
 import { toLatin, hasBrahmicScript } from '../../shared/transliterate.js';
 import {
@@ -1888,23 +1889,42 @@ export default function Chat() {
                         : isCurrentlyInConvo ? drillPrompt(scenarioDataForMatch.conversations, currentInScenario - 11)
                             : `Your turn — say **${expectedCorrectionStr}**.`;
                 let answerLine = '';
-                if (engine.DONT_KNOW.test(said)) {
+                /* "i really don't remember, can you tell me?" is a request for
+                   the answer, said at length (round t2130 L26). */
+                if (engine.DONT_KNOW.test(said) || asksForTheAnswer(said)) {
                     answerLine = `That's fine. It's **${expectedCorrectionStr}**.`;
                 } else if (isHelpRequest || looksLikeQuestion(said)) {
                     const single = engine.normalizeLatin(expectedCorrectionStr).split(' ').filter(Boolean).length === 1;
                     const asked = wordsAskedAbout(said, targetLangName, scenarioIdxForMatch);
+                    /* "so is it thin or tin?" compares two forms: answered, not
+                       glossed (round t2130 L23). */
                     const why = /^\s*(why|how come|does|do|is|are|can|should|would|what about)\b/i.test(said)
-                        || /\b(not|instead|change|different|differ)\b/i.test(said);
-                    if (!why && asked.length) {
+                        || /\b(not|instead|change|different|differ)\b/i.test(said)
+                        || comparesForms(said, targetLangName, scenarioIdxForMatch);
+                    const missing = notTaughtAnswer(said, targetLangName, scenarioIdxForMatch, { prompt: reAsk || '' });
+                    const stem = stemAnswer(said, targetLangName, scenarioIdxForMatch,
+                        { expected: expectedCorrectionStr, reveal: isCurrentlyTeaching });
+                    if (missing || stem) {
+                        answerLine = missing || stem;
+                    } else if (!why && asked.length) {
                         const askedForAnswer = single && asked.some(e => engine.normalizeLatin(e.word) === engine.normalizeLatin(expectedCorrectionStr));
                         answerLine = answerFromFacts(said, targetLangName, scenarioIdxForMatch,
                             { expected: expectedCorrectionStr, reveal: askedForAnswer || isCurrentlyTeaching });
                     } else if (why) {
+                        /* The grader's verdict on their last attempt goes with
+                           the question, so the explanation cannot contradict it
+                           (round t2130 L29). Words already on screen are never
+                           masked. */
+                        const miss = lastMissOf(messages);
+                        const known = messages.slice(-6).filter(m => m.role === 'assistant')
+                            .flatMap(m => engine.normalizeLatin(String(m.content || '')).split(' ')).filter(Boolean);
                         try {
                             const { answer } = await api.post('/api/ai/ask', {
                                 question: said, lang: targetLangName, lessonIdx: scenarioIdxForMatch,
                                 prompt: reAsk || '', expected: expectedCorrectionStr,
                                 answerShown: Boolean(isCurrentlyTeaching), examples: [],
+                                attempt: miss?.attempt || '', missReason: miss?.reason || '',
+                                known: [...new Set(known)].slice(0, 60),
                             });
                             answerLine = String(answer || '').trim();
                         } catch { answerLine = ''; }

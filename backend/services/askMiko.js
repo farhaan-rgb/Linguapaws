@@ -15,7 +15,7 @@
  * outline here, on the server, so the word never reaches the page.
  *
  * Nothing here grades anything. A question is never an answer. */
-const { courseFactsFor } = require('../../src/services/courseFacts.js');
+const { courseFactsFor, taughtBefore } = require('../../src/services/courseFacts.js');
 const { normalizeLatin, levenshtein, outlineOf } = require('../../src/services/lessonEngine.js');
 
 const MAX_QUESTION = 300;
@@ -24,10 +24,11 @@ const MAX_FACTS = 14;
 const clip = (s, n) => String(s || '').replace(/\s+/g, ' ').trim().slice(0, n);
 
 /** The course's facts for the question first, then for every word on screen. */
-const factsFor = ({ question, lang, lessonIdx, prompt, expected, examples }) => {
+const factsFor = ({ question, lang, lessonIdx, prompt, expected, examples, attempt = '' }) => {
     const screen = [prompt, expected, ...examples.map(e => e.correct)].join(' ');
     return [...new Set([
         ...courseFactsFor(question, lang, lessonIdx),
+        ...(attempt ? courseFactsFor(attempt, lang, lessonIdx) : []),
         ...courseFactsFor(screen, lang, lessonIdx),
     ])].slice(0, MAX_FACTS);
 };
@@ -49,6 +50,15 @@ const readAsk = (body = {}) => {
         expected: clip(body.expected, 120),
         variants: (Array.isArray(body.variants) ? body.variants : []).slice(0, 8).map(v => clip(v, 120)),
         answerShown: Boolean(body.answerShown),
+        /* The learner's last graded attempt on this screen and the grader's
+           line for it (courseFacts.lastMissOf). Round t2130 L29: rejected for
+           "bagundi kada", the learner asked why, and the model told them to
+           "add K___ after bagundi" — what they had said. */
+        attempt: clip(body.attempt, 120),
+        missReason: clip(body.missReason, 240),
+        /* Words the learner can already see in the chat: the tutor's recent
+           lines. Never masked. */
+        known: (Array.isArray(body.known) ? body.known : []).slice(0, 60).map(w => clip(w, 30)).filter(Boolean),
     };
 };
 
@@ -61,6 +71,7 @@ const buildAskMessages = (ask) => {
         prompt ? `The screen asks them: "${prompt}".` : '',
         expected && answerShown ? `The answer on this screen is "${expected}" and the learner can already see it.` : '',
         expected && !answerShown ? `The learner has NOT answered this screen yet. Do NOT say, spell, or hint at the ${lang} answer to it; if they ask for it, tell them to try it or tap "I don't know — show me".` : '',
+        ask.attempt && ask.missReason ? `The learner's last answer on this screen was "${ask.attempt}", and the course's grader REJECTED it. The grader's reason: "${ask.missReason}" Your answer must agree with that verdict. Do NOT say their answer was right, acceptable or nearly there, and do NOT tell them to add a word their answer already contains. If they think it should count, say plainly that the course does not accept it on this screen, and explain the grader's reason in your own words.` : '',
         examples.length ? `They are looking at ${examples.length > 1 ? 'these example sentences' : 'this example sentence'}: ${examples.map(e => `"${e.correct}" = "${e.meaning}"`).join('; ')}.` : '',
     ].filter(Boolean).join('\n');
     const system = `You are Miko, the cat who tutors this ${lang} course. A learner tapped "Ask Miko" during a lesson and typed a question.
@@ -86,11 +97,25 @@ How to answer:
 
 /* Every spelling of the answer a reply could give away: each word of the
    expected answer and its variants, with the alt spellings the course lists. */
-const answerForms = ({ expected, variants }) => {
+const answerForms = ({ expected, variants, question = '', attempt = '', known = [], lang = '', lessonIdx = 0 }) => {
     const forms = new Set();
     for (const a of [expected, ...variants]) {
         for (const t of normalizeLatin(a).split(' ')) if (t.length >= 2) forms.add(t);
     }
+    /* Mask only what the learner has not got yet. Round t2130 heard "N___
+       vellali" (*nenu*, lesson 1), "N____ means 'to me'" (*naaku*) and "K___
+       means 'right?'" (*kada*, which the learner had just typed). A word they
+       wrote, a word the tutor just showed them, and — when the answer is a
+       sentence — any word from an earlier lesson are theirs already: hiding
+       them hides nothing and garbles the explanation. A one-word answer stays
+       masked whatever lesson taught it, because it is the thing being recalled. */
+    const sentence = normalizeLatin(expected).split(' ').filter(Boolean).length > 1;
+    // The tutor's recent lines can hold a one-word review answer it taught a
+    // few turns ago; those count only for sentences.
+    const free = new Set([question, attempt, ...(sentence ? known : [])]
+        .flatMap(x => normalizeLatin(x).split(' ')).filter(Boolean));
+    const before = sentence && lang ? taughtBefore(lang, lessonIdx) : new Set();
+    for (const f of [...forms]) if (free.has(f) || before.has(f)) forms.delete(f);
     return forms;
 };
 

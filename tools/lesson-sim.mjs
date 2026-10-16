@@ -695,19 +695,29 @@ async function turn(s, said) {
                     : st === 'conversation' ? E.drillPrompt(lesson.conversations, s.step - 11)
                         : `Your turn — say **${expected}**.`;
             let line = '';
-            if (E.DONT_KNOW.test(said.trim())) {
+            if (E.DONT_KNOW.test(said.trim()) || F.asksForTheAnswer(said)) {
                 line = `That's fine. It's **${expected}**.`;
             } else if (isQuestion) {
                 const single = E.normalizeLatin(expected).split(' ').filter(Boolean).length === 1;
                 const asked = F.wordsAskedAbout(said, s.lang, s.scenarioIdx);
                 const why = /^\s*(why|how come|does|do|is|are|can|should|would|what about)\b/i.test(said)
-                    || /\b(not|instead|change|different|differ)\b/i.test(said);
-                if (!why && asked.length) {
+                    || /\b(not|instead|change|different|differ)\b/i.test(said)
+                    || F.comparesForms(said, s.lang, s.scenarioIdx);
+                const missing = F.notTaughtAnswer(said, s.lang, s.scenarioIdx, { prompt: reAsk || '' });
+                const stem = F.stemAnswer(said, s.lang, s.scenarioIdx, { expected, reveal: st === 'teach' });
+                if (missing || stem) {
+                    line = missing || stem;
+                } else if (!why && asked.length) {
                     const askedForAnswer = single && asked.some(e => E.normalizeLatin(e.word) === E.normalizeLatin(expected));
                     line = F.answerFromFacts(said, s.lang, s.scenarioIdx, { expected, reveal: askedForAnswer || st === 'teach' });
                 } else if (why) {
+                    const miss = F.lastMissOf(s.messages);
+                    const known = s.messages.slice(-6).filter(m => m.role === 'assistant')
+                        .flatMap(m => E.normalizeLatin(String(m.content || '')).split(' ')).filter(Boolean);
                     line = await askGrounded({ question: said, lang: s.lang, lessonIdx: s.scenarioIdx,
-                        prompt: reAsk || '', expected, answerShown: st === 'teach', examples: [] }) || '';
+                        prompt: reAsk || '', expected, answerShown: st === 'teach', examples: [],
+                        attempt: miss?.attempt || '', missReason: miss?.reason || '',
+                        known: [...new Set(known)].slice(0, 60) }) || '';
                 }
             }
             if (line) {
