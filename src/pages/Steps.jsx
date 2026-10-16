@@ -22,6 +22,7 @@ import {
 } from '../services/srs';
 import { skillEvidence, outcomeOf } from '../services/skills';
 import { examplesFor } from '../services/examples';
+import { markEndings, endingsIn } from '../services/endings';
 import { answerFromFacts, whyNotAnswer, wordsAskedAbout } from '../services/courseFacts';
 import { getStoredJSON } from '../utils/storage';
 import { api } from '../services/api';
@@ -382,7 +383,59 @@ function LeaveSheet({ practice, onStay, onLeave }) {
  *  teach screen is first exposure, and the whole of what it has to give is the
  *  word, its romanised spelling and its sound together. See the note on the
  *  arrival speech below. */
-function WordCard({ wordObj, onSpeak, compact = false, won = false }) {
+/* ── Endings, made visible ──
+   The last letters that carry person, politeness, "to" or "more than one"
+   (endings.js), marked in the word itself and glossed beside it. Only endings
+   the course has taught by this lesson; a word with none renders unchanged.
+   Display only. `only` limits the marks to one ending (the pattern screen). */
+function MarkedText({ text, langName, lessonNo, only = null }) {
+    const parts = markEndings(langName, text, lessonNo);
+    if (!parts.some(p => p.mark && (!only || p.mark.ending === only))) return text;
+    return parts.map((p, i) => {
+        const m = p.mark && (!only || p.mark.ending === only) ? p.mark : null;
+        if (!m) return <React.Fragment key={i}>{p.text}</React.Fragment>;
+        return (
+            <React.Fragment key={i}>
+                {p.lead}{m.stem}
+                <span className="ending-mark" data-ending={m.ending}
+                    title={praise.ENDING_COPY.title(m.end.toLowerCase(), m.gloss)}>
+                    {m.end}
+                </span>
+                {p.trail}
+            </React.Fragment>
+        );
+    });
+}
+
+/* The gloss row: one chip per ending in the answer, at most two. */
+function EndingChips({ text, langName, lessonNo, style, bare = false }) {
+    const found = endingsIn(langName, text, lessonNo).slice(0, 2);
+    if (!found.length) return null;
+    return (
+        <div data-ending-chips style={{
+            display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, ...style,
+        }}>
+            {found.map(m => (
+                <span key={m.ending} style={{
+                    display: 'inline-block', maxWidth: 360, textAlign: 'center',
+                    padding: '5px 12px', borderRadius: 12, fontSize: 12.5, lineHeight: 1.4,
+                    background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)',
+                    color: 'var(--text-secondary)',
+                }}>
+                    {/* Beside a word already set large above, the word again is an echo. */}
+                    {!bare && (
+                        <strong style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+                            {m.stem}<span className="ending-mark">{m.end}</span>{'  '}
+                        </strong>
+                    )}
+                    <span>{praise.ENDING_COPY.chip(m.end.toLowerCase(), m.gloss)}</span>
+                </span>
+            ))}
+        </div>
+    );
+}
+
+function WordCard({ wordObj, onSpeak, compact = false, won = false, langName = '', lessonNo = Infinity }) {
     return (
         <div style={{
             position: 'relative',
@@ -411,7 +464,7 @@ function WordCard({ wordObj, onSpeak, compact = false, won = false }) {
                 margin: 0, lineHeight: 1.15, wordBreak: 'break-word',
                 transition: 'font-size 0.25s',
             }}>
-                {wordObj.word}
+                <MarkedText text={wordObj.word} langName={langName} lessonNo={lessonNo} />
             </p>
             {wordObj.phonetic && !compact && (
                 <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: '6px 0 0', letterSpacing: 0.4 }}>
@@ -430,6 +483,8 @@ function WordCard({ wordObj, onSpeak, compact = false, won = false }) {
                 </span>
                 <SpeakButton text={wordObj.word} onSpeak={onSpeak} size={compact ? 30 : 38} />
             </div>
+            {!compact && <EndingChips text={wordObj.word} langName={langName} lessonNo={lessonNo}
+                bare style={{ marginTop: 12 }} />}
         </div>
     );
 }
@@ -658,7 +713,7 @@ function PromptPanel({ children, sub, muted = false }) {
    true five minutes ago, and it is the reason the screen is worth reading
    rather than clicking past.                                                */
 
-function SuccessPanel({ step, reward, onSpeak, phonetic, hero = true, focusSpan = null }) {
+function SuccessPanel({ step, reward, onSpeak, phonetic, hero = true, focusSpan = null, langName = '', lessonNo = Infinity }) {
     const meaning = step.kind === 'drill' ? step.drill?.meaning : null;
     return (
         <div style={{
@@ -725,6 +780,8 @@ function SuccessPanel({ step, reward, onSpeak, phonetic, hero = true, focusSpan 
                             “{meaning}”
                         </p>
                     )}
+                    <EndingChips text={step.expected} langName={langName} lessonNo={lessonNo}
+                        style={{ marginTop: 10 }} />
                     <button onClick={() => onSpeak(step.expected)}
                         style={{
                             margin: '14px auto 0', display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -803,7 +860,7 @@ function FamilyCard({ family }) {
 function RevealPanel({
     step, line, onSpeak, locked, lockText, setLockText, onLockIn, lockMiss,
     lockRef, answerMode, voice, onListen, langName, lockHeard = '',
-    why = '', family = null, whyNot = null,
+    why = '', family = null, whyNot = null, lessonNo = Infinity,
 }) {
     const meaning = step.kind === 'drill' ? step.drill?.meaning : null;
     /* This panel's button says Lock it in, not Check, so it names its own. */
@@ -831,6 +888,8 @@ function RevealPanel({
                     “<TapEnglish text={meaning} />”
                 </p>
             )}
+            <EndingChips text={step.expected} langName={langName} lessonNo={lessonNo}
+                style={{ marginTop: 10 }} />
             <button onClick={() => onSpeak(step.expected)}
                 style={{
                     margin: '12px auto 0', display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -1608,6 +1667,7 @@ function StepScreen({
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                             {step.slice.map(w => (
                                 <WordCard key={w.word} wordObj={w} onSpeak={onSpeak}
+                                    langName={langName} lessonNo={taughtLessons.length}
                                     won={phase === 'correct'} />
                             ))}
                         </div>
@@ -1698,6 +1758,7 @@ function StepScreen({
                     {phase === 'correct' && (
                         <SuccessPanel step={step} reward={reward} onSpeak={onSpeak}
                             phonetic={phonetic} hero={step.kind !== 'teach'}
+                            langName={langName} lessonNo={taughtLessons.length}
                             focusSpan={focusSpan} />
                     )}
 
@@ -1710,6 +1771,7 @@ function StepScreen({
                                 onLockIn={lockIn} lockMiss={lockMiss}
                                 lockRef={lockRef} answerMode={answerMode}
                                 voice={voice} onListen={listenLock} langName={langName}
+                                lessonNo={taughtLessons.length}
                                 lockHeard={lockHeard}
                                 why={revealWhy} family={family} whyNot={whyNot}
                             />
@@ -1924,7 +1986,6 @@ function StepScreen({
 
    Nothing traps: a learner whose device cannot play the word can show it
    (scored as helped), and REVIEW_RETRY_LIMIT wrong taps reveal it. */
-const LISTEN_MISS = 'Not that one — listen again.';
 
 function ListenScreen({ step, onSpeak, onSettled, onMiss, onAdvance, isLast }) {
     const [phase, setPhase] = useState('answering');
@@ -1989,7 +2050,7 @@ function ListenScreen({ step, onSpeak, onSettled, onMiss, onAdvance, isLast }) {
                         <Volume2 size={34} />
                     </button>
                     <p style={{ margin: '10px 0 0', fontSize: 12.5, color: 'var(--text-secondary)' }}>
-                        Tap to hear it again
+                        {praise.LISTEN_COPY.replay(fx.isFxOn())}
                     </p>
                     {shown ? (
                         <div data-listen-word style={{ marginTop: 16 }}>
@@ -2018,7 +2079,7 @@ function ListenScreen({ step, onSpeak, onSettled, onMiss, onAdvance, isLast }) {
                                 marginTop: 14, border: 'none', background: 'none', cursor: 'pointer',
                                 fontSize: 12.5, color: 'var(--text-secondary)', textDecoration: 'underline',
                             }}>
-                            Can't hear it? Show the word
+                            {praise.LISTEN_COPY.peek}
                         </button>
                     )}
                 </div>
@@ -2027,17 +2088,20 @@ function ListenScreen({ step, onSpeak, onSettled, onMiss, onAdvance, isLast }) {
                     {step.options.map((o, i) => {
                         const isAnswer = o === step.answer;
                         const missed = wrong.includes(o);
-                        const win = settled && isAnswer;
+                        /* Green only for an answer the learner found. A revealed
+                           answer is shown, not won: the accent, and no tick. */
+                        const win = phase === 'correct' && isAnswer;
+                        const shownAnswer = phase === 'revealed' && isAnswer;
                         return (
                             <button key={o} data-listen-option={o} onClick={() => choose(o)}
                                 disabled={settled || missed}
                                 style={{
                                     padding: '14px 16px', borderRadius: 'var(--radius-md)', textAlign: 'left',
                                     fontSize: 15, fontWeight: 700, cursor: settled || missed ? 'default' : 'pointer',
-                                    border: `2px solid ${win ? '#10b981' : missed ? '#f59e0b' : 'rgba(168,85,247,0.18)'}`,
-                                    background: win ? '#ecfdf5' : missed ? '#fffbeb' : 'var(--card-bg)',
+                                    border: `2px solid ${win ? '#10b981' : shownAnswer ? 'var(--accent-purple)' : missed ? '#f59e0b' : 'rgba(168,85,247,0.18)'}`,
+                                    background: win ? '#ecfdf5' : shownAnswer ? 'rgba(168,85,247,0.08)' : missed ? '#fffbeb' : 'var(--card-bg)',
                                     color: missed ? '#b45309' : 'var(--text-primary)',
-                                    opacity: settled && !win ? 0.55 : 1,
+                                    opacity: settled && !win && !shownAnswer ? 0.55 : 1,
                                     display: 'flex', alignItems: 'center', gap: 10,
                                 }}>
                                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', width: 14 }}>{i + 1}</span>
@@ -2050,7 +2114,7 @@ function ListenScreen({ step, onSpeak, onSettled, onMiss, onAdvance, isLast }) {
 
                 <div style={{ marginTop: 12, minHeight: 22, textAlign: 'center' }}>
                     {phase === 'answering' && wrong.length > 0 && (
-                        <p style={{ margin: 0, fontSize: 13.5, color: '#b45309' }}>{LISTEN_MISS}</p>
+                        <p style={{ margin: 0, fontSize: 13.5, color: '#b45309' }}>{praise.LISTEN_COPY.miss}</p>
                     )}
                     {phase === 'revealed' && (
                         <p style={{ margin: 0, fontSize: 13.5, color: '#b45309' }}>{praise.revealLineFor(step.index)}</p>
@@ -2093,6 +2157,89 @@ function ListenScreen({ step, onSpeak, onSettled, onMiss, onAdvance, isLast }) {
                     </div>
                 </div>
             )}
+        </>
+    );
+}
+
+/* ── Spot the pattern ──────────────────────────────────────────────────────
+   Lines the learner already knows, side by side, with the ending they share
+   marked (endings.patternFor). Read, not answered: Continue is the only
+   action, nothing is scored, and it never requeues. The marks carry the point
+   with motion off; the sweep only draws the eye along them. */
+function PatternScreen({ step, onSpeak, onAdvance, isLast, langName, lessonNo }) {
+    const p = step.pattern;
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.isComposing || e.keyCode === 229) return;
+            if (e.key === 'Enter') { e.preventDefault(); onAdvance(); }
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [onAdvance]);
+    return (
+        <>
+            <div data-pattern={p.ending} style={{ flex: 1, padding: '0 16px', maxWidth: 500, width: '100%', margin: '0 auto' }}>
+                <div style={{
+                    borderRadius: 'var(--radius-lg)', padding: '20px 18px', textAlign: 'center',
+                    background: 'linear-gradient(150deg,#faf5ff,#f3f0ff 55%,#eef2ff)',
+                }}>
+                    <p style={{
+                        margin: 0, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, lineHeight: 1.25,
+                    }}>
+                        {praise.ENDING_COPY.patternHead(p.ending).split(`-${p.ending}`).map((part, i) => (i
+                            ? <React.Fragment key={i}><span className="ending-mark">-{p.ending}</span>{part}</React.Fragment>
+                            : <React.Fragment key={i}>{part}</React.Fragment>))}
+                    </p>
+                    <p style={{ margin: '8px 0 0', fontSize: 14, lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+                        {praise.ENDING_COPY.patternSub(p.gloss)}
+                    </p>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 14 }}>
+                    {p.phrases.map((ph, i) => (
+                        <div key={ph.correct} className="card pattern-row"
+                            style={{
+                                padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12,
+                                animationDelay: `${0.08 * i}s`,
+                            }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{
+                                    margin: 0, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 17,
+                                    lineHeight: 1.3, wordBreak: 'break-word',
+                                }}>
+                                    <MarkedText text={ph.correct} langName={langName} lessonNo={lessonNo} only={p.ending} />
+                                </p>
+                                {ph.meaning && (
+                                    <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
+                                        “{ph.meaning}”
+                                    </p>
+                                )}
+                            </div>
+                            <SpeakButton text={ph.correct} onSpeak={onSpeak} size={34} />
+                        </div>
+                    ))}
+                </div>
+                <p style={{ margin: '12px 0 0', fontSize: 12.5, textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    {praise.ENDING_COPY.patternFoot(p.phrases.length)}
+                </p>
+                <div style={{ height: 110 }} />
+            </div>
+
+            <div style={{
+                position: 'sticky', bottom: 0,
+                padding: '14px 16px calc(18px + env(safe-area-inset-bottom))',
+            }}>
+                <div style={{ maxWidth: 500, margin: '0 auto' }}>
+                    <button onClick={onAdvance}
+                        style={{
+                            width: '100%', padding: '15px', borderRadius: 'var(--radius-md)', border: 'none',
+                            cursor: 'pointer', color: '#fff', fontWeight: 800, fontSize: 15,
+                            fontFamily: 'var(--font-display)', background: 'var(--primary-gradient)',
+                        }}>
+                        {isLast ? 'See how you did' : 'Continue'}
+                    </button>
+                </div>
+            </div>
         </>
     );
 }
@@ -2973,6 +3120,10 @@ function Lesson({ scenarioParam, practice = false }) {
                     <ListenScreen step={step} onSpeak={speak} onSettled={handleSettled}
                         onMiss={handleMiss} onAdvance={handleAdvance}
                         isLast={index === run.length - 1 && !missedCount} />
+                ) : step.kind === 'pattern' ? (
+                    <PatternScreen step={step} onSpeak={speak} onAdvance={handleAdvance}
+                        isLast={index === run.length - 1 && !missedCount}
+                        langName={langName} lessonNo={taughtLessons.length} />
                 ) : (
                 <StepScreen
                     step={step}
@@ -3009,16 +3160,18 @@ export function Summary({
     lesson, steps, banked, unaided, said, score, onSpeak, scenarioIdx, navigate, hasNext = true,
     practice = false, watch = [],
 }) {
+    /* A pattern screen is read, not answered, so it is not one of the total. */
+    const total = steps.filter(s => s.kind !== 'pattern').length;
     const verdict = praise.summaryFor({
-        unaided, total: steps.length, bestCombo: score.best, practice,
+        unaided, total, bestCombo: score.best, practice,
     });
     const r = praise.resultsFor({
-        unaided, total: steps.length, best: score.best,
+        unaided, total, best: score.best,
         recovered: score.recovered, locks: score.locks, bonus: score.bonus, practice,
     });
     const points = useCountUp(score.points, 900);
     const first = useCountUp(unaided, 900);
-    const share = steps.length ? unaided / steps.length : 0;
+    const share = total ? unaided / total : 0;
     const R = 34, C = 2 * Math.PI * R;
 
     const pawsBlock = (
@@ -3075,7 +3228,7 @@ export function Summary({
                         fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 19,
                     }}>
                         {first}<span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700 }}>
-                            /{steps.length}
+                            /{total}
                         </span>
                     </div>
                 </div>
@@ -3319,11 +3472,23 @@ function StepStyles() {
                motion is off. */
             @keyframes mic-live { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.55); }
                                   70% { box-shadow: 0 0 0 9px rgba(255,255,255,0); } }
+            /* An ending the course has taught (endings.js): a highlighter
+               stroke under the letters, swept in once. Still marked, colour
+               and stroke, with motion off. */
+            @keyframes ending-sweep { from { background-size: 0% 100%; } to { background-size: 100% 100%; } }
+            .ending-mark {
+                color: var(--accent-purple);
+                background-image: linear-gradient(transparent 58%, rgba(168,85,247,0.24) 58%, rgba(168,85,247,0.24) 92%, transparent 92%);
+                background-repeat: no-repeat; background-size: 100% 100%;
+                border-radius: 2px;
+                animation: ending-sweep 0.5s 0.25s ease-out both;
+            }
+            .pattern-row { animation: panel-in 0.4s cubic-bezier(0.22,1.2,0.36,1) both; }
             .step-in { animation: step-in 0.22s cubic-bezier(0.22,1,0.36,1); }
             .nudge   { animation: nudge 0.28s ease-in-out; }
             .mic-live{ animation: mic-live 1.5s ease-out infinite; }
             @media (prefers-reduced-motion: reduce) {
-                .step-in, .nudge, .mic-live, [style*="animation"] { animation: none !important; }
+                .step-in, .nudge, .mic-live, .ending-mark, .pattern-row, [style*="animation"] { animation: none !important; }
             }
         `}</style>
     );

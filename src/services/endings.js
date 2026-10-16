@@ -19,17 +19,17 @@
 export const NOTICE_ENDINGS = {
     Telugu: [
         /* L1 note: "The end of the word tells you who: unnanu is 'I am'". */
-        { ending: 'nu', lesson: 1, gloss: 'I', match: /^(\w+[ae])(nu)$/,
+        { ending: 'nu', lesson: 1, gloss: '“I”', match: /^(\w+[ae])(nu)$/,
             except: ['nenu', 'galanu', 'lenu'] },
         /* L1 note: "unnaru is 'you are'. Unnaru also means 'he is' or 'she
            is', said with respect." */
-        { ending: 'ru', lesson: 1, gloss: 'you, polite — or he/she, with respect', match: /^(\w+a)(ru)$/,
+        { ending: 'ru', lesson: 1, gloss: '“you”, polite — also “he/she”, respectfully', match: /^(\w+a)(ru)$/,
             except: ['meeru', 'evaru', 'vaaru'] },
         /* L1 note: "With a close friend, say unnavu." */
-        { ending: 'vu', lesson: 1, gloss: 'you, to a close friend', match: /^(\w+a)(vu)$/,
+        { ending: 'vu', lesson: 1, gloss: '“you”, to a close friend', match: /^(\w+a)(vu)$/,
             except: ['selavu'] },
         /* L3 note: "Here's intiki, 'to the house'. The -ki goes on the end". */
-        { ending: 'ki', lesson: 3, gloss: 'to', match: /^(\w+[iu])(ki)$/, except: [] },
+        { ending: 'ki', lesson: 3, gloss: '“to”', match: /^(\w+[iu])(ki)$/, except: [] },
         /* L8 note: "Pusthakam dropped -am and took -alu. Words ending in a
            vowel just add -lu." */
         { ending: 'lu', lesson: 8, gloss: 'more than one', match: /^(\w+[aiu])(lu)$/,
@@ -84,7 +84,7 @@ export function endingsIn(lang, text, lessonNo = Infinity) {
 
 /* ── The pattern screen ──
    Once an ending has turned up in PATTERN_MIN phrases from lessons the learner
-   has already finished, one lesson shows them side by side: the same ending,
+   has already finished — on at least two different words — one lesson shows them side by side: the same ending,
    different sentences, one meaning. Each ending gets this once, at the first
    lesson where it qualifies, and a lesson shows at most one — so it comes
    round every few lessons, not every lesson. Pure and computed from the
@@ -94,7 +94,7 @@ export const PATTERN_MAX = 4;
 
 const drillsOf = (l) => [...(l?.phrases || []), ...(l?.conversations || [])].filter(d => d?.correct);
 
-const cache = new Map();
+const cache = new WeakMap();
 function patternsFor(lang, lessons) {
     const hit = cache.get(lessons);
     if (hit) return hit;
@@ -118,7 +118,9 @@ function patternsFor(lang, lessons) {
                         word: tokenKey(words[0].word), lesson: j + 1 });
                 }
             }
-            if (phrases.length < PATTERN_MIN) continue;
+            /* One word three times is that word, not a pattern: it takes at
+               least two different words wearing the ending. */
+            if (phrases.length < PATTERN_MIN || new Set(phrases.map(p => p.word)).size < 2) continue;
             if (!best || phrases.length > best.phrases.length) best = { e, phrases };
         }
         if (!best) continue;

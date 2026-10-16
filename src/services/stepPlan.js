@@ -14,6 +14,7 @@
 import * as engine from '../services/lessonEngine.js';
 import { CURRICULUM } from './curriculum.js';
 import { phraseDrill } from './phraseReview.js';
+import { patternFor } from './endings.js';
 import { hasModel, modelMap, selectAdaptive, skillsOfStep, spreadBySkill, withCaptions, KIND_SHARE, POOL_ADD_MAX, SKIP_MAX } from './adaptive.js';
 
 export const PHASES = {
@@ -22,6 +23,7 @@ export const PHASES = {
     phrase:       { label: 'Build a phrase', blurb: 'Put the words together' },
     conversation: { label: 'Real conversation', blurb: 'Use it for real' },
     listen:       { label: 'Listen', blurb: 'Hear it, pick what it means' },
+    pattern:      { label: 'Spot the pattern', blurb: 'One ending, many sentences' },
 };
 
 /** Every `alt` spelling the course lists for a word. */
@@ -314,6 +316,13 @@ export function buildLessonSteps(lesson, reviewSet = null, allLessons = [], cont
        been taught. Its own short round, before the drills. */
     listenStepsFor(lesson, allLessons, reviewSet, adaptation?.listen).forEach(s => steps.push(
         adaptation?.listenWhy && norm(s.word) === norm(adaptation.listenWhyWord) ? { ...s, why: adaptation.listenWhy } : s));
+
+    /* ── Pattern ── every few lessons, one screen that lines up phrases the
+       learner already knows around the ending they share (endings.js). Read,
+       not answered: nothing is graded, so it never settles, scores or
+       requeues. Placed before the drills, which use the same endings. */
+    const pattern = patternFor(langOf(allLessons || []), allLessons, (allLessons || []).indexOf(lesson));
+    if (pattern) steps.push({ kind: 'pattern', phase: 'pattern', pattern, expected: '', variants: [] });
 
     /* ── 3 & 4. Drills, exactly as the curriculum orders them ── */
     const drills = adaptation ? adaptedDrills(lesson, allLessons, adaptation) : drillsOf(lesson);

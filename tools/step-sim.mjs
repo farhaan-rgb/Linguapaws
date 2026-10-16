@@ -149,6 +149,13 @@ function render(s, steps) {
         if (step.item.source === 'due') out.push('   (from an earlier lesson)');
     }
 
+    if (step.kind === 'pattern') {
+        /* Read, not answered: Continue is the only thing to do here. */
+        out.push(`👁  -${step.pattern.ending} shows up in all of these. It means ${step.pattern.gloss}.`);
+        for (const p of step.pattern.phrases) out.push(`   ${p.correct}   “${p.meaning}”`);
+        out.push('   (--next to move on)');
+    }
+
     if (step.kind === 'listen') {
         /* Audio only in the app: the word is played, not shown, until answered. */
         out.push(`🔊 ${step.word}   (heard, not shown on screen)`);
@@ -204,6 +211,7 @@ function say(s, text) {
     const steps = stepsFor(s);
     const step = steps[s.index];
     if (!step) return ['The lesson is already finished. --reset to play it again.'];
+    if (step.kind === 'pattern') return ['Nothing to answer on this screen. --next to move on.'];
 
     const lexicon = E.buildLexicon(lessonsFor(s.lang));
     const said = String(text || '').trim();
@@ -356,7 +364,7 @@ if (has('hint')) {
 }
 
 if (has('next')) {
-    if (s.phase === 'answering') {
+    if (s.phase === 'answering' && steps[s.index]?.kind !== 'pattern') {
         console.log('Answer this screen first (--say "…").');
         process.exit(1);
     }
@@ -375,11 +383,13 @@ if (has('next')) {
     s.misses = 0;
     s.phase = 'answering';
     if (s.index >= steps.length) {
-        const verdict = P.summaryFor({ unaided: s.unaided, total: steps.length, bestCombo: s.best });
+        /* A pattern screen is read, not answered, so it is not one of the total. */
+        const total = steps.filter(x => x.kind !== 'pattern').length;
+        const verdict = P.summaryFor({ unaided: s.unaided, total, bestCombo: s.best });
         const out = [
             `🎉 ${verdict.icon} ${verdict.badge}`,
             `👁  ${verdict.line}`,
-            `👁  ${s.unaided} of ${steps.length} first try · 🐾 ${s.points} · best streak ${s.best}`,
+            `👁  ${s.unaided} of ${total} first try · 🐾 ${s.points} · best streak ${s.best}`,
         ];
         s.messages.push({ role: 'assistant', content: out.join('\n') });
         save(s);

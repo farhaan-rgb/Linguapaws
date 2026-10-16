@@ -267,6 +267,16 @@ export function achievementFor({ step, lang = '', misses = 0, helped = false } =
             : 'Both in the right place, first try.';
         if (misses > 0) return 'It came back on the second look.';
         if (helped) return 'You looked, then wrote it yourself.';
+        /* A phrase from an earlier lesson (phraseReview.js): what came back is
+           a whole line, not a word, and which lesson it was is the news. */
+        if (step.item?.phrase) {
+            const li = step.item.phrase.lessonIdx;
+            const from = Number.isInteger(li) ? `lesson ${li + 1}` : 'an earlier lesson';
+            const n = wordCount(step.expected);
+            return n >= 2
+                ? `The whole line from ${from} — ${n} words of ${language}, still in one piece.`
+                : `Still there, from ${from}.`;
+        }
         return step.item?.source === 'due'
             ? 'Still there, from an earlier lesson.'
             : 'Back out from memory.';
@@ -288,6 +298,27 @@ export function achievementFor({ step, lang = '', misses = 0, helped = false } =
        an apology, a plural. */
     return 'Exactly the word this one needed.';
 }
+
+/* ── The Listen screen ── (Steps.jsx ListenScreen). "Again" only when the
+   word has already played itself: with sound off nothing has been heard. */
+export const LISTEN_COPY = {
+    replay: (autoplayed) => (autoplayed ? 'Tap to hear it again' : 'Tap to hear it'),
+    peek: "Can't hear it? Show the word",
+    miss: 'Not that one — listen again.',
+};
+
+/* ── Endings, made visible ─────────────────────────────────────────────────
+   The words around an ending endings.js has found. The gloss itself is the
+   course's (endings.js NOTICE_ENDINGS); these only frame it. */
+export const ENDING_COPY = {
+    /** The chip beside a marked word, and its hover/tap title. */
+    chip: (end, gloss) => `-${end} · ${gloss}`,
+    title: (end, gloss) => `The ending -${end}: ${gloss}`,
+    /** The pattern screen. */
+    patternHead: (ending) => `-${ending} shows up in all of these`,
+    patternSub: (gloss) => `Different words, same ending, same job: ${gloss}.`,
+    patternFoot: (n) => `${n} lines you already know — the ending is what they share.`,
+};
 
 /* ── The scaffold ──────────────────────────────────────────────────────────
    `lessonEngine.explainMiss` answers most misses precisely, but it returns

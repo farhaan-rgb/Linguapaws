@@ -29,6 +29,7 @@ import { CURRICULUM } from '../src/services/curriculum.js';
 import * as engine from '../src/services/lessonEngine.js';
 import * as praise from '../src/services/praise.js';
 import { buildLessonSteps } from '../src/services/stepPlan.js';
+import { endingsIn } from '../src/services/endings.js';
 
 const only = process.argv[2];
 const languages = Object.keys(CURRICULUM).filter(l => !only || l === only);
@@ -59,6 +60,21 @@ for (const lang of languages) {
         steps.forEach((step, si) => {
             screens++;
             const at = `${where} step ${si + 1} (${step.phase})`;
+
+            /* A pattern screen is read, not answered: no verdict to give. What
+               it must have is the pattern — enough phrases, each carrying the
+               ending it names. */
+            if (step.kind === 'pattern') {
+                const p = step.pattern;
+                if (!p?.gloss) problems.push(`${at}: a pattern with nothing to say about -${p?.ending}`);
+                if ((p?.phrases || []).length < 3) problems.push(`${at}: a pattern from ${(p?.phrases || []).length} phrases`);
+                for (const ph of p?.phrases || []) {
+                    if (!endingsIn(lang, ph.correct, li + 1).some(m => m.ending === p.ending)) {
+                        problems.push(`${at}: "${ph.correct}" does not carry -${p.ending}`);
+                    }
+                }
+                return;
+            }
 
             // 1. The verdict, and no two the same in a row.
             const verdict = praise.verdictFor({ step, misses: 0, cleared: si });

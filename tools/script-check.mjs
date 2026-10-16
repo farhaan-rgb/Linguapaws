@@ -153,6 +153,7 @@ for (const name of languages) {
     let total = 0;
     for (const lesson of ls) {
         for (const step of buildLessonSteps(lesson, null, ls)) {
+            if (step.kind === 'pattern') continue;   // nothing spoken as an answer
             total++;
             if (speechTextFor(name, step.expected) === step.expected) unswapped.push(step.expected);
         }

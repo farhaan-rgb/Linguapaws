@@ -47,6 +47,7 @@ lessons.forEach((lesson, i) => {
     let none = 0;
     for (const s of steps) {
         screens += 1;
+        if (s.kind === 'pattern') continue;   // read, not answered: nothing to tag
         const { skills, byToken, tokens: toks } = tagStep(s, { lang, lessonNo });
         tokens += toks.length;
         tokensTagged += toks.filter(t => byToken.has(t)).length;
