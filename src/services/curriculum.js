@@ -575,13 +575,13 @@ export const CURRICULUM = {
                 { prompt: "Say 'Red color'", correct: "Erupu rangu", native: "ఎరుపు రంగు", meaning: "Red color", hint: "Red + color" },
                 { prompt: "Say 'White clothes'", correct: "Tella batta", native: "తెల్ల బట్ట", meaning: "White clothes", hint: "White + clothes", acceptable: ["telupu rangu batta"],
                   grammarNote: "In front of a thing, *telupu* becomes *tella*: *tella batta*. On its own it stays *telupu*: *idhi telupu*." },
-                { prompt: "Say 'I want black'", correct: "Nalupu kaavali", native: "నలుపు కావాలి", meaning: "I want black", hint: "Black + want", acceptable: ["naaku nalupu kaavali"] }
+                { prompt: "Say 'I want black'", correct: "Nalupu kaavali", native: "నలుపు కావాలి", meaning: "I want black", hint: "Black + want", acceptable: ["naaku nalupu kaavali", "nalupu rangu kaavali", "naaku nalupu rangu kaavali"] }
             ],
             conversations: [
                 { prompt: "Miko asks your favorite color. Say 'I like red'.", correct: "Naaku erupu ishtam", native: "నాకు ఎరుపు ఇష్టం", meaning: "I like red", hint: "My + like + red" },
                 { prompt: "Say 'I want red clothes'.", correct: "Erra batta kaavali", native: "ఎర్ర బట్ట కావాలి", meaning: "I want red clothes", hint: "Red + clothes + want", acceptable: ["naaku erra batta kaavali", "erupu rangu batta kaavali"],
                   grammarNote: "In front of a thing, *erupu* becomes *erra*: *erra batta*, “red clothes”. On its own it stays *erupu*: *naaku erupu ishtam*." },
-                { prompt: "Point to a white shirt: 'This is white'.", correct: "Idhi telupu", native: "ఇది తెలుపు", meaning: "This is white", hint: "This + white" },
+                { prompt: "Point to a white shirt: 'This is white'.", correct: "Idhi telupu", native: "ఇది తెలుపు", meaning: "This is white", hint: "This + white", acceptable: ["idhi telupu rangu"] },
                 { prompt: "Ask 'What colour is that?'", correct: "Adhi em rangu?", native: "అది ఏం రంగు?", meaning: "What colour is that?", hint: "That + what + colour?", acceptable: ["adhi emiti rangu?"],
                   grammarNote: "For “which”, Telugu uses *em*, short for *emiti* (“what”). It goes just before the thing you ask about." }
             ]
