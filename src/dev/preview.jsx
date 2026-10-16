@@ -198,6 +198,8 @@ const wrongTexts = (params.get('wrong') || 'zzz nonsense').split('|');
 const cta = () => [...document.querySelectorAll('button')]
     .find(b => /^(Check|Continue|See how you did)$/.test(b.textContent.trim()));
 const box = () => document.querySelector('input');
+/* A listen screen has no box: it is answered by tapping an English meaning. */
+const listenOptions = () => [...document.querySelectorAll('[data-listen-option]')].filter(b => !b.disabled);
 
 const setValue = (input, value) => {
     const setter = Object.getOwnPropertyDescriptor(
@@ -219,6 +221,8 @@ if (!Number.isNaN(jumpTo) && jumpTo > 0) {
         if (done >= jumpTo) return stop();
         const button = cta();
         const input = box();
+        const options = listenOptions();
+        if (!button && options.length) return options[0].click();
         if (!button) return;
         if (button.textContent.trim() !== 'Check') {
                 /* A locked Continue is the note still printing itself out. Clicking it
@@ -265,6 +269,17 @@ if (winTo !== null && winTo !== undefined) {
         const tick = setInterval(() => {
             const button = cta();
             const input = box();
+            const options = listenOptions();
+            if (!button && options.length) {
+                const want = expected[at];
+                if (at === wrongAt && wrongsLeft > 0) {
+                    options.find(b => b.dataset.listenOption !== want)?.click();
+                    wrongsLeft--;
+                    if (!wrongsLeft && !recovering && !locking && bounce === null) stop();
+                    return;
+                }
+                return options.find(b => b.dataset.listenOption === want)?.click();
+            }
             if (!button) return;
             if (at > target) return stop();
 
@@ -325,6 +340,10 @@ if (!Number.isNaN(enterTo)) {
             if (at >= enterTo) { window.__driverBusy = false; return clearInterval(tick); }
             const button = cta();
             const input = box();
+            const options = listenOptions();
+            if (!button && options.length) {
+                return options.find(b => b.dataset.listenOption === expected[at])?.click();
+            }
             if (!button) return;
             if (button.textContent.trim() === 'Check') {
                 if (!input) return;

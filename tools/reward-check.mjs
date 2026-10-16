@@ -85,6 +85,14 @@ for (const lang of languages) {
                 if (!praise.achievementFor({ step, lang, helped: true })) problems.push(`${at}: nothing to say after help`);
             }
 
+            /* A listen screen's miss replays the word with the options still
+               on screen — the options are the scaffold, and they contain the
+               answer by design. Checks 3 and 4 are about typed answers. */
+            if (step.kind === 'listen') {
+                if (!step.options?.includes(step.answer)) problems.push(`${at}: the answer is not among the options`);
+                return;
+            }
+
             // 3. A miss leaves them something to work with.
             const diagnosis = engine.explainMiss(NONSENSE, step.expected, step.variants, lexicon);
             const hint = step.kind === 'drill' ? step.drill?.hint : null;

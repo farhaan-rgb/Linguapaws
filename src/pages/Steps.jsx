@@ -1852,7 +1852,7 @@ function StepScreen({
    (scored as helped), and REVIEW_RETRY_LIMIT wrong taps reveal it. */
 const LISTEN_MISS = 'Not that one — listen again.';
 
-function ListenScreen({ step, onSpeak, onSettled, onMiss, onAdvance, isLast, langName }) {
+function ListenScreen({ step, onSpeak, onSettled, onMiss, onAdvance, isLast }) {
     const [phase, setPhase] = useState('answering');
     const [wrong, setWrong] = useState([]);
     const [peeked, setPeeked] = useState(false);
@@ -2846,7 +2846,7 @@ function Lesson({ scenarioParam, practice = false }) {
                 {step.kind === 'listen' ? (
                     <ListenScreen step={step} onSpeak={speak} onSettled={handleSettled}
                         onMiss={handleMiss} onAdvance={handleAdvance}
-                        isLast={index === run.length - 1 && !missedCount} langName={langName} />
+                        isLast={index === run.length - 1 && !missedCount} />
                 ) : (
                 <StepScreen
                     step={step}

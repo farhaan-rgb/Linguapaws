@@ -146,6 +146,10 @@ export const LISTEN_OPTIONS = 4;
 const meaningCore = (m) => String(m || '').replace(/\([^)]*\)/g, ' ').toLowerCase()
     .replace(/[^\p{L}\p{N}' ]/gu, ' ').replace(/\s+/g, ' ').trim();
 
+/* "Her (respectful) / His" and "His" overlap — both would be right. Each
+   slash- or comma-separated part is a sense; two meanings sharing one clash. */
+const sensesOf = (m) => String(m || '').split(/[/,;]|\bor\b/).map(meaningCore).filter(Boolean);
+
 /* A word whose meaning contains the word itself (Bus = "bus") is a reading
    test in disguise — the sound gives it away to any English speaker. */
 const listenable = (v) => v?.word && v?.meaning && meaningCore(v.meaning)
@@ -156,15 +160,14 @@ const seedOf = (text) => [...String(text || '')].reduce((h, c) => (h * 31 + c.ch
 
 export function listenStep(target, pools, seed = 0) {
     if (!listenable(target)) return null;
-    const core = meaningCore(target.meaning);
-    const seen = new Set([core]);
+    const seen = new Set(sensesOf(target.meaning));
     const distractors = [];
     for (const pool of pools) {
         for (const v of shuffled(pool, seed)) {
             if (distractors.length >= LISTEN_OPTIONS - 1) break;
-            const c = meaningCore(v?.meaning);
-            if (!c || seen.has(c) || norm(v.word) === norm(target.word)) continue;
-            seen.add(c);
+            const senses = sensesOf(v?.meaning);
+            if (!senses.length || senses.some(x => seen.has(x)) || norm(v.word) === norm(target.word)) continue;
+            senses.forEach(x => seen.add(x));
             distractors.push(v.meaning);
         }
     }
@@ -200,18 +203,20 @@ export function listenStepsFor(lesson, allLessons = [], reviewSet = null) {
     const seed = seedOf(`${li}:${(lesson?.vocabulary || []).map(v => v.word).join(',')}`);
     const picks = [];
     const curPick = shuffled(prefer(current), seed);
-    if (curPick[0]) picks.push(curPick[0]);
+    if (curPick[0]) picks.push({ v: curPick[0], home: lesson?.vocabulary || [] });
     /* The previous lesson first: recent enough to be heard back, old enough
        that hearing it is a test. */
-    const prev = prefer((allLessons[li - 1]?.vocabulary || []).filter(listenable));
+    const prevVocab = allLessons?.[li - 1]?.vocabulary || [];
+    const prev = prefer(prevVocab.filter(listenable));
     const oldPick = shuffled(prev.length ? prev : prefer(before), seed + 1)
-        .find(v => !picks.some(p => norm(p.word) === norm(v.word)));
-    if (oldPick) picks.push(oldPick);
-    else if (curPick[1]) picks.push(curPick[1]);
+        .find(v => !picks.some(p => norm(p.v.word) === norm(v.word)));
+    if (oldPick) picks.push({ v: oldPick, home: prev.length ? prevVocab : before });
+    else if (curPick[1]) picks.push({ v: curPick[1], home: lesson?.vocabulary || [] });
 
-    const sameLesson = lesson?.vocabulary || [];
+    /* Distractors from the target's own lesson first, then anything taught. */
+    const taught = [...(lesson?.vocabulary || []), ...before];
     return picks.slice(0, LISTEN_SLOTS)
-        .map((t, i) => listenStep(t, [sameLesson, before, ...(allLessons[li - 1] ? [] : [])], seed + 11 * (i + 1)))
+        .map(({ v, home }, i) => listenStep(v, [home, taught], seed + 11 * (i + 1)))
         .filter(Boolean);
 }
 
@@ -245,6 +250,10 @@ export function buildLessonSteps(lesson, reviewSet = null, allLessons = [], cont
     const pairItem = slots.length ? contrastItem(contrast) : null;
     if (pairItem) slots[slots.length - 1] = pairItem;
     slots.forEach(item => steps.push(reviewStep(item, allLessons)));
+
+    /* ── Listen ── after every teach screen, so every word it can play has
+       been taught. Its own short round, before the drills. */
+    listenStepsFor(lesson, allLessons, reviewSet).forEach(s => steps.push(s));
 
     /* ── 3 & 4. Drills, exactly as the curriculum orders them ── */
     const drills = drillsOf(lesson);

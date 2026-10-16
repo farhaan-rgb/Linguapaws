@@ -149,6 +149,14 @@ function render(s, steps) {
         if (step.item.source === 'due') out.push('   (from an earlier lesson)');
     }
 
+    if (step.kind === 'listen') {
+        /* Audio only in the app: the word is played, not shown, until answered. */
+        out.push(`🔊 ${step.word}   (heard, not shown on screen)`);
+        out.push(`👁  ${step.prompt}`);
+        step.options.forEach((o, i) => out.push(`   ${i + 1}. ${o}`));
+        out.push('   (--say the number or the meaning)');
+    }
+
     if (step.kind === 'drill') {
         out.push(`👁  ${step.prompt}`);
         if (s.misses === 0) out.push(spoken(s.lang, step.prompt));
@@ -181,7 +189,7 @@ function celebrate(s, step, misses) {
     const milestone = recall && misses === 0 ? P.milestoneFor(s.combo) : null;
     if (milestone) out.push(`🎉 ${milestone.icon} ${milestone.title} — ${milestone.blurb}`);
 
-    out.push(`🔊 ${step.expected}`);
+    out.push(`🔊 ${step.kind === 'listen' ? step.word : step.expected}`);
     out.push(`👁  ${P.verdictFor({ step, misses, cleared: s.cleared - 1 })}`);
     /* Under the verdict, as on screen. */
     if (s.stumbled && misses === 0) out.push(`👁  ${P.RECOVERY_LINE}`);
@@ -208,6 +216,32 @@ function say(s, text) {
         if (!accepted) return ['👁  Almost — copy it exactly as it is written above.'];
         s.points += P.LOCK_IN_POINTS;
         return [`👁  🔒 Locked in. +${P.LOCK_IN_POINTS} 🐾`, '   (--next for the next screen)'];
+    }
+
+    /* A listen screen grades a tap on an English meaning: equality, as Steps.jsx. */
+    if (step.kind === 'listen') {
+        const n = Number(said);
+        const picked = Number.isInteger(n) && n >= 1 ? step.options[n - 1]
+            : step.options.find(o => o.toLowerCase() === said.toLowerCase());
+        if (!picked) return [`👁  Pick one of the ${step.options.length} options.`];
+        if (picked === step.answer) {
+            const out = celebrate(s, step, s.misses);
+            out.push(`👁  ${step.native ? `${step.native} · ` : ''}${step.word} means ${step.answer}`);
+            s.phase = 'correct';
+            s.stumbled = s.misses > 0;
+            out.push('   (--next for the next screen)');
+            return out;
+        }
+        s.misses += 1;
+        s.combo = 0;
+        if (s.misses >= triesFor(step)) {
+            s.phase = 'revealed';
+            s.stumbled = true;
+            return [`👁  ${P.revealLineFor(step.index)}`, `🔊 ${step.word}`,
+                `👁  ${step.native ? `${step.native} · ` : ''}${step.word} means ${step.answer}`,
+                '   (--next to move on)'];
+        }
+        return ['👁  Not that one — listen again.', `🔊 ${step.word}`];
     }
 
     const { accepted } = E.scoreAnswer(said, step.expected, step.variants, lexicon);
