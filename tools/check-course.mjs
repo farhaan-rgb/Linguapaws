@@ -43,6 +43,8 @@ for (const lang of LANGS) {
     const match = run('matcher-check.mjs', [lang]);
     const ideal = run('autoplay.mjs', [lang]);
     const strict = run('autoplay.mjs', [lang, '--strict']);
+    /* Adaptive phase 4: every stored generated drill re-passes its gate. */
+    const gen = run('gen-pool.mjs', ['validate', lang]);
 
     rows.push({
         lang,
@@ -53,15 +55,16 @@ for (const lang of LANGS) {
         misshapen: count(match, /does not match the engine's layout \((\d+)\)/),
         ideal: (ideal.match(/(\d+) of (\d+) lessons completed/) || []).slice(1, 3).join('/'),
         strict: (strict.match(/(\d+) of (\d+) lessons completed/) || []).slice(1, 3).join('/'),
+        genfail: count(gen, /(\d+) fail the gate/),
     });
 }
 
 const pad = (v, n) => String(v).padEnd(n);
 console.log('');
-console.log(`${pad('language', 10)}${pad('blocked', 9)}${pad('endings', 9)}${pad('rejected', 10)}${pad('lenient', 9)}${pad('misshapen', 11)}${pad('ideal', 8)}strict`);
-console.log('-'.repeat(74));
+console.log(`${pad('language', 10)}${pad('blocked', 9)}${pad('endings', 9)}${pad('rejected', 10)}${pad('lenient', 9)}${pad('misshapen', 11)}${pad('ideal', 8)}${pad('strict', 8)}gen-fail`);
+console.log('-'.repeat(82));
 for (const r of rows) {
-    console.log(`${pad(r.lang, 10)}${pad(r.blocked, 9)}${pad(r.endings, 9)}${pad(r.rejected, 10)}${pad(r.shorter, 9)}${pad(r.misshapen, 11)}${pad(r.ideal, 8)}${r.strict}`);
+    console.log(`${pad(r.lang, 10)}${pad(r.blocked, 9)}${pad(r.endings, 9)}${pad(r.rejected, 10)}${pad(r.shorter, 9)}${pad(r.misshapen, 11)}${pad(r.ideal, 8)}${pad(r.strict, 8)}${r.genfail}`);
 }
 console.log('');
 console.log('blocked   drills whose easiest accepted answer needs an untaught word');
@@ -71,9 +74,10 @@ console.log('lenient   a SHORTER answer accepted for a longer target (pronoun dr
 console.log('misshapen lessons not carrying 3 sentence + 4 conversation drills');
 console.log('ideal     lessons completable when always given the curriculum answer (flow)');
 console.log('strict    lessons completable by a learner who only says what it was taught');
+console.log('gen-fail  generated pool drills that no longer pass the gen-pool gate (tools/gen-pool.mjs validate)');
 console.log('');
 
-const bad = rows.filter(r => r.blocked || r.rejected || r.misshapen
+const bad = rows.filter(r => r.blocked || r.rejected || r.misshapen || r.genfail
     || r.ideal.split('/')[0] !== r.ideal.split('/')[1]
     || r.strict.split('/')[0] !== r.strict.split('/')[1]);
 if (bad.length) console.log(`needs work: ${bad.map(r => r.lang).join(', ')}\n`);

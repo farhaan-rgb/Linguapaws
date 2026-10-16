@@ -27,6 +27,7 @@
 import { CURRICULUM } from './curriculum.js';
 import { tagStep, skillsFor, CONSTRUCTIONS, ORDER_ID, wordSkillId } from './skills.js';
 import * as engine from './lessonEngine.js';
+import { genDrillsEnabled, isGenerated } from './drillPools.js';
 
 export const NEED = { weak: 1, learning: 0.6, new: 0.35, strong: 0.1 };
 export const SOURCE_BONUS = { confusion: 0.6, due: 0.4, missed: 0.3 };
@@ -315,6 +316,11 @@ export function pickReviewItems({
    today's, exactly. */
 
 export const POOL_ADD_MAX = 2;
+/* Phase 4 serving policy: a generated drill (source 'gen') is eligible like a
+   seed, but a hand-written or speaker-reviewed one wins when the skill fits
+   equally — this bonus is larger than the jitter, smaller than any step of
+   need. Generated drills are refused outright when the kill switch is off. */
+export const TRUSTED_POOL_BONUS = 0.06;
 export const SKIP_MAX = 1;
 export const ADAPTATION_VERSION = 1;
 
@@ -380,14 +386,17 @@ export function planLessonAdaptation({
     const levelOfId = (id) => levelOf(model.get(id), now);
 
     /* (a) Pool drills for weak skills. */
+    const genOn = genDrillsEnabled();
     const cands = [];
     lessons.slice(0, lessonIdx + 1).forEach((l, li) => (l.pool || []).forEach(d => {
         const key = norm(d.correct);
         if (!d?.id || !key || ownKeys.has(key)) return;
+        if (isGenerated(d) && !genOn) return;
         const skills = tagStep(asDrillStep(d), { lang, lessonNo }).skills;
         const n = needOf(skills, model, now);
         if (n.level !== 'weak') return;
-        const score = n.need + (li === lessonIdx ? 0.1 : 0) + 0.05 * jitter(seed, d.id);
+        const trusted = !isGenerated(d) || d.reviewed === true;
+        const score = n.need + (li === lessonIdx ? 0.1 : 0) + (trusted ? TRUSTED_POOL_BONUS : 0) + 0.05 * jitter(seed, d.id);
         cands.push({ d, key, skill: n.skill, score, phase: d.phase === 'conversation' ? 'conversation' : 'phrase' });
     }));
     const add = [];

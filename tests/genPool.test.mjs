@@ -46,6 +46,7 @@ test('kill switch: localStorage off removes generated drills from plans', () => 
 });
 
 test('kill switch: with real pools, a switched-off plan names no generated drill', () => {
+    let servedOn = 0;
     for (const [lang, lessons] of [['Kannada', K], ['Telugu', CURRICULUM.Telugu]]) {
         lessons.forEach((l, i) => {
             const gen = (l.pool || []).filter(d => d.source === 'gen');
@@ -55,9 +56,12 @@ test('kill switch: with real pools, a switched-off plan names no generated drill
             const off = switchOff(() => planLessonAdaptation({ lang, lessonIdx: i, stats, now: NOW }));
             const genIds = new Set(lessons.flatMap(x => x.pool || []).filter(d => d.source === 'gen').map(d => d.id));
             assert.ok(on, `${lang} L${i + 1}`);
+            servedOn += on.add.filter(x => genIds.has(x.id)).length;
             assert.ok(off.add.every(x => !genIds.has(x.id)), `${lang} L${i + 1}: ${off.add.map(x => x.id)}`);
         });
     }
+    const anyGen = Object.values(GENERATED_POOLS).some(b => Object.values(b).some(l => l.length));
+    if (anyGen) assert.ok(servedOn > 0, 'switched on, some plan uses a generated drill');
 });
 
 test('generated drills carry their provenance and sit in the attached pools', () => {

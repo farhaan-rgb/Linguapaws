@@ -9,7 +9,7 @@ file is the design record for all of them.
 | 1 | Skill taxonomy, drill tagging, attribution, per-learner skill model | **done — measure only** |
 | 2 | Practice and the in-lesson Memory check aim at weak skills, and say why | **done** |
 | 3 | The lesson after New words adapts: pool drills for weak skills, one strong drill skipped, hint timing, listen words | **done** |
-| 4 | AI-generated drill pools at scale | not started |
+| 4 | AI-generated drill pools, made offline, gated, served behind a kill switch | **done — awaiting speaker review** |
 
 Phase 1 changes nothing a learner sees, is asked, or is accepted on. Grading
 stays in `lessonEngine.scoreAnswer`; attribution runs after the engine has
@@ -228,6 +228,52 @@ drills), as in phase 2.
 Preview: `preview.html?lang=Kannada&scenario=7&skills=e:galu,w:nimma&win=12`,
 then Continue, lands on the added *Nanna manegalu* with its caption and the
 hint up front. Tests: `tests/lessonAdapt.test.mjs`.
+
+## Phase 4: generated pools (`tools/gen-pool.mjs`)
+
+Nothing is generated at runtime. `node tools/gen-pool.mjs gen <Language> <from-to>`
+asks a model (`gpt-5.4`) for drills per lesson, aimed at that lesson's skills
+(its new words, plus endings and constructions first tested there), thinnest
+coverage first. The prompt carries every word taught up to that lesson with
+its alt spellings, the endings taught so far, the course's own drills as style
+examples, the language's conventions (romanisation, verb last, nanage/naaku,
+okati→oka, -galu/-aru) and the DISTINCT_WORDS pairs.
+
+**The gate** — every check mechanical, any failure rejects:
+
+| | |
+|---|---|
+| taught | every token of every listed form is taught by lessons 1..N, an alt, a free name, or a taught stem + taught ending (`tagAnswer` stems). Stricter than gap-check, which scores only the easiest form |
+| grader | `scoreAnswer` accepts `correct` and each `acceptable`; no DISTINCT_WORDS partner swapped in passes; no variant differs only by a person ending; no refusal passes; no form reads as a question; no other drill of the lesson passes for it as a shorter answer, nor it for them |
+| script | `native` is in the language's script, romanises back to an accepted answer, has one word per Latin word, and uses the same native token the course already uses for any shared word — speechScript builds its token table from pool lines, so a bad token would otherwise leak into hand-written lines |
+| skill | `tagStep` tags it, including the skill it was generated for |
+| duplicate | its normalised answer is in no course drill, pool, or other candidate |
+| english | prompt, hint and meaning are plain ASCII; every word is English (system dictionary), a free name, or a target word already taught; prompt and hint do not contain the answer's words |
+| judge | a second model (`gpt-4.1`) grades naturalness and correctness 1–5; keep only both ≥ 4 with an unambiguous prompt and valid alternatives |
+
+Survivors go to the `// BEGIN GENERATED` block of `drillPools.js`
+(`GENERATED_POOLS`), with `source: 'gen'`, `reviewed: false`, ids
+`<t|k><lesson>-g<n>` and `gen: { model, judge, date, skill, score, reason }`.
+At most `--per` (5) per lesson, one per skill first. Rejects and token usage
+go to `playtests/gen-pool/<lang>-<date>.md`. `gen-pool validate <Language>`
+re-runs the gate on every stored drill; check-course shows it as `gen-fail`.
+
+**Serving.** Generated drills are eligible exactly like seeds in
+`planLessonAdaptation`; a seed or a reviewed generated drill gets
+`TRUSTED_POOL_BONUS` (0.06 — above the 0.05 jitter, below any step of need),
+so it wins when the skill fits equally.
+
+**Kill switch.** `GEN_DRILLS_ENABLED = false` in drillPools.js and deploy, or
+`localStorage.linguapaws_gen_drills = 'off'` and reload on one device. Off,
+generated drills are not attached to `lesson.pool` at load (a cached plan
+naming one drops it, as with any vanished pool id) and adaptive.js refuses
+them at plan time too. `tests/genPool.test.mjs` checks both.
+
+**Review.** `gen-pool review <Language>` writes
+`playtests/gen-pool/review-<lang>.md` (id, English, romanised, native,
+alternatives) and appends pending ids to `review-<lang>.answers.txt`; mark
+each `ok` or `no`, then `gen-pool apply <Language>` sets `reviewed: true` or
+removes the drill. Removing is safe; never renumber.
 
 ## Spaced phrases (`src/services/phraseReview.js`)
 

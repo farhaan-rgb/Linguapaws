@@ -5,7 +5,7 @@
  *
  *   node tools/gen-pool.mjs gen Telugu 5-12        generate, validate, write
  *   node tools/gen-pool.mjs gen Kannada 1-30 --per 6 --max-usd 6 --dry
- *   node tools/gen-pool.mjs validate Telugu         re-run the gate on every stored gen drill
+ *   node tools/gen-pool.mjs validate Telugu [--prune]  re-run the gate on every stored gen drill (--prune drops failures)
  *   node tools/gen-pool.mjs review Telugu           write the speaker checklist + answers file
  *   node tools/gen-pool.mjs apply Telugu            apply the answers file (ok → reviewed, no → removed)
  *
@@ -40,7 +40,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { CURRICULUM, WORD_ENDINGS } from '../src/services/curriculum.js';
 import { SEED_POOLS, GENERATED_POOLS } from '../src/services/drillPools.js';
@@ -64,7 +64,8 @@ const PRICE = { 'gpt-5.4': [2.5, 15], 'gpt-4.1': [2, 8] };
 const args = process.argv.slice(2);
 const flag = (name, dflt) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : dflt; };
 const has = (name) => args.includes(name);
-const [mode, lang, range] = args.filter((a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1].startsWith('--') && !['--dry'].includes(args[i - 1])));
+const VALUED = new Set(['--per', '--max-usd', '--concurrency']);
+const [mode, lang, range] = args.filter((a, i) => !a.startsWith('--') && !VALUED.has(args[i - 1]));
 
 if (!mode || !lang || !CURRICULUM[lang]) {
     console.error('usage: node tools/gen-pool.mjs gen|validate|review|apply <Language> [from-to] [--per 5] [--max-usd 8] [--dry]');
@@ -254,8 +255,9 @@ async function chat(model, system, user) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${loadKey()}` },
             body: JSON.stringify(body),
-        });
-        if (!res.ok) { await new Promise(r => setTimeout(r, 2000 * (attempt + 1))); continue; }
+            signal: AbortSignal.timeout(180000),
+        }).catch(() => null);
+        if (!res?.ok) { await new Promise(r => setTimeout(r, 2000 * (attempt + 1))); continue; }
         const json = await res.json();
         const u = usage[model] || (usage[model] = { in: 0, out: 0, calls: 0 });
         u.in += json.usage?.prompt_tokens || 0; u.out += json.usage?.completion_tokens || 0; u.calls++;
@@ -344,6 +346,9 @@ const clean = (d) => ({
     acceptable: (Array.isArray(d.acceptable) ? d.acceptable : []).map(String).map(s => s.trim()).filter(s => s && nl(s) !== nl(d.correct)),
 });
 
+/* Answers kept by any lesson in this run: lessons run concurrently, so the
+   course-wide duplicate check alone would let two lessons keep the same line. */
+const claimed = new Set();
 async function runLesson(n, per, maxUsd, log) {
     const kept = [];
     const rejects = [];
@@ -369,8 +374,9 @@ async function runLesson(n, per, maxUsd, log) {
             const score = Math.min(Number(g.natural) || 0, Number(g.correct) || 0);
             const ok = score >= 4 && g.matches_prompt === true && g.acceptable_ok === true;
             const rec = { ...d, judge: { score, natural: g.natural, correct: g.correct, reason: String(g.reason || '') } };
+            if (ok && claimed.has(nl(d.correct))) { rejects.push({ ...rec, reasons: ['duplicate: kept by another lesson this run'] }); return; }
             if (!ok) rejects.push({ ...rec, reasons: [`judge: ${score}/5${g.matches_prompt === true ? '' : ', prompt ambiguous'}${g.acceptable_ok === true ? '' : ', bad alternative'} — ${g.reason}`] });
-            else kept.push(rec);
+            else { kept.push(rec); claimed.add(nl(d.correct)); }
         });
     }
     /* Most per lesson: spread over skills first, then by judge score. */
@@ -437,7 +443,9 @@ async function modeGen() {
     }));
     results.sort((a, b) => a.n - b.n);
 
-    const pools = clonePools();
+    /* Re-read the file now: another language's run may have written since. */
+    const fresh = await import(`${pathToFileURL(POOLS_FILE).href}?t=${Date.now()}`);
+    const pools = JSON.parse(JSON.stringify(fresh.GENERATED_POOLS));
     for (const r of results) {
         pools[lang] = pools[lang] || {};
         pools[lang][r.n] = pools[lang][r.n] || [];
@@ -477,7 +485,8 @@ async function modeGen() {
 }
 
 function modeValidate() {
-    let bad = 0, total = 0;
+    const bad = [];
+    let total = 0;
     for (const [n, list] of Object.entries(GENERATED_POOLS[lang] || {})) {
         for (const d of list) {
             total++;
@@ -485,13 +494,23 @@ function modeValidate() {
             const r = gate({ ...d, skill: d.gen?.skill }, Number(n), others)
                 .filter(x => !x.startsWith('duplicate: already'));
             /* allKeys includes the drill itself; count only a second copy. */
-            const copies = lessons.flatMap(drillsOf).filter(o => nl(o.correct) === nl(d.correct)).length;
-            if (copies > 1) r.push('duplicate: in the course twice');
-            if (r.length) { bad++; console.log(`${d.id} \`${d.correct}\`: ${r.join('; ')}`); }
+            /* Hand-written drills come first, then pools in lesson order: only a
+               later copy fails, so pruning keeps the first. */
+            const all = [...lessons.flatMap(l => [...(l.phrases || []), ...(l.conversations || [])]), ...lessons.flatMap(l => l.pool || [])];
+            const first = all.find(o => o?.correct && nl(o.correct) === nl(d.correct));
+            if (first !== d) r.push(`duplicate: already in the course${first?.id ? ` as ${first.id}` : ''}`);
+            if (r.length) { bad.push(d.id); console.log(`${d.id} \`${d.correct}\`: ${r.join('; ')}`); }
         }
     }
-    console.log(`${lang}: ${total} generated drills, ${bad} fail the gate`);
-    process.exit(bad ? 1 : 0);
+    if (has('--prune') && bad.length) {
+        const pools = clonePools();
+        for (const n of Object.keys(pools[lang] || {})) pools[lang][n] = pools[lang][n].filter(d => !bad.includes(d.id));
+        writeGenerated(pools);
+        console.log(`${lang}: pruned ${bad.join(', ')}`);
+        return;
+    }
+    console.log(`${lang}: ${total} generated drills, ${bad.length} fail the gate`);
+    process.exit(bad.length ? 1 : 0);
 }
 
 const reviewFile = path.join(OUT_DIR, `review-${lang.toLowerCase()}.md`);
