@@ -1,0 +1,598 @@
+{
+  "_readme": [
+    "Grammar structures in the Kannada course, read by tools/grammar-check.mjs.",
+    "Same format as structures/telugu.json. For each one:",
+    "  introducedIn  the lesson that TEACHES it (vocab teach screen or a grammarNote that explains it).",
+    "                null = the course uses it but never teaches it.",
+    "  basis         the curriculum text the tag rests on, so you can check it without opening curriculum.js.",
+    "  confidence    'sure' = quoted from a grammarNote / vocab teach line; 'guess' = my reading.",
+    "                Every 'guess' NEEDS A FLUENT KANNADA SPEAKER to confirm. The tagger was not one, and",
+    "                Farhaan (Telugu speaker, learning Kannada) cannot confirm them either.",
+    "  detect        regexes run over each drill answer (lowercased, punctuation stripped, whole words).",
+    "                A drill REQUIRES a structure only if its correct answer AND every acceptable form match;",
+    "                if some accepted form avoids it, the drill merely EXPOSES it.",
+    "                Empty detect = not auto-detectable, so only (2) \"too many at once\" sees it.",
+    "  except        whole tokens that match detect but are not this structure (lexical items).",
+    "Derived only from the Kannada curriculum (phrases, conversations, grammarNotes, vocab teach lines).",
+    "Lesson pool drills are not checked, matching the Telugu run. Edit freely; nothing else reads this file."
+  ],
+  "structures": [
+    {
+      "id": "person-1sg-ene",
+      "name": "-ene / -eeni / -ini verb ending = 'I'",
+      "example": "chennagiddeeni, hoguttene, iddene, hogtini",
+      "introducedIn": 1,
+      "basis": "L1 P1 grammarNote: 'The -eeni at the end already means \"I\", so you don't need naanu.' L3 vocab Hoguttene: 'The -ttene at the end already means \"I\"'. L11 vocab Iddene and L22 vocab Baruttade ('-ene is \"I\", -ade is \"it\"') repeat it. The course accepts -eeni/-ini/-ene as the same ending (colloquial vs written).",
+      "confidence": "sure",
+      "detect": [
+        "\\w+(?:eeni|ene|ini)"
+      ],
+      "except": []
+    },
+    {
+      "id": "person-2-eera",
+      "name": "-eera ending = polite 'you'",
+      "example": "hegiddeera, iddeera",
+      "introducedIn": 1,
+      "basis": "L1 P1 grammarNote: 'Change it to -eera, as in iddeera, and it means \"you\".' L1 P2: 'the -eera at the end already means \"you\"'. Only ever drilled inside hegiddeera.",
+      "confidence": "sure",
+      "detect": [
+        "\\w+(?:eera|ira)"
+      ],
+      "except": [
+        "hattira",
+        "hathira",
+        "saavira"
+      ]
+    },
+    {
+      "id": "zero-copula",
+      "name": "'X is Y' with no verb",
+      "example": "Idu pustaka; Ivaru nanna snehita; Naanu illi",
+      "introducedIn": 2,
+      "basis": "L2 P2 grammarNote: 'There's no word for \"is\" here, and none is needed. Kannada just puts the two words side by side.' L3 C3 note extends it to 'naanu illi'.",
+      "confidence": "sure",
+      "detect": [],
+      "except": []
+    },
+    {
+      "id": "wh-final",
+      "name": "question word at the end, after the thing asked about",
+      "example": "Idu yenu? Mane yelli? Ivaru yaaru?",
+      "introducedIn": 2,
+      "basis": "L2 P1 grammarNote: 'In Kannada, question words usually go at the end.' L1 already drills hegiddeera as a chunk. L15 C1 note: yaake is the exception that often comes first.",
+      "confidence": "sure",
+      "detect": [
+        "yenu|enu|yelli|elli|yaaru|eshtu|estu|yaavaga|yavaga|yaava|yava|yaake|yake|hege|hegide|hegiddeera|hegiddira"
+      ],
+      "except": []
+    },
+    {
+      "id": "near-far-i-a",
+      "name": "i- = near, a- = far (idu/adu, illi/alli, ivaru/avaru)",
+      "example": "idu / adu, illi / alli",
+      "introducedIn": 2,
+      "basis": "L2 vocab Adu: 'Idu is near, adu is far. Only the first sound changes.' L3 vocab Illi/Alli and L6 vocab Avaru restate the pattern.",
+      "confidence": "sure",
+      "detect": [
+        "idu|adu|illi|alli|ivaru|avaru"
+      ],
+      "except": []
+    },
+    {
+      "id": "dative-ge",
+      "name": "-ge = 'to' (direction), also 'at' a time",
+      "example": "manege, oorige, ondu gantege",
+      "introducedIn": 3,
+      "basis": "L3 vocab Mane: 'To say \"to the house\", add -ge to the end: manege.' L12 C3 grammarNote: 'Add -ge to gante for \"at\"... the same -ge as in manege.' L28 C2: 'Oorige works like manege'.",
+      "confidence": "sure",
+      "detect": [
+        "\\w+[ei]ge"
+      ],
+      "except": [
+        "hege"
+      ]
+    },
+    {
+      "id": "existential-ide",
+      "name": "ide = 'it is / there is' (things, places)",
+      "example": "Mane alli ide; chennagide; kelasa ide",
+      "introducedIn": 3,
+      "basis": "L3 vocab Ide: '\"it is\" or \"there is\", for things... For yourself, leave it out'. L9 vocab Chennagide: 'chennagi + ide'.",
+      "confidence": "sure",
+      "detect": [
+        "ide|chennagide|chennaagide|hegide|nenapide|tadavaagide|tadavagide"
+      ],
+      "except": []
+    },
+    {
+      "id": "nonpast-uttene",
+      "name": "-uttene = 'I go / I will go' (non-past)",
+      "example": "hoguttene, maaduttene, baruttene",
+      "introducedIn": 3,
+      "basis": "L3 vocab Hoguttene: '\"I go\" or \"I will go\"... also covers \"I'm going\"'. L14 vocab Maaduttene re-teaches it as the future: 'drop the -idd- and you get \"I will do\"'. Tagged at L3, where it first appears with its meaning.",
+      "confidence": "sure",
+      "detect": [
+        "\\w+(?:utt[ei]ne|uttini|tini|teeni)"
+      ],
+      "except": []
+    },
+    {
+      "id": "bare-imperative",
+      "name": "bare verb = blunt command ('Go!')",
+      "example": "hogu, kodu",
+      "introducedIn": 3,
+      "basis": "L3 vocab 'Hogu = Go... telling someone to go'. That this bare form is the blunt one is only implied at L10 ('hogu (\"go!\") becomes the polite hogi'). NEEDS A FLUENT KANNADA SPEAKER: is bare hogu actually rude/informal in the way the course implies?",
+      "confidence": "guess",
+      "detect": [
+        "hogu|kodu"
+      ],
+      "except": []
+    },
+    {
+      "id": "want-beku-beda",
+      "name": "object + beku/beda, no subject ('water is wanted')",
+      "example": "Neeru beku; Oota beda",
+      "introducedIn": 4,
+      "basis": "L4 P1 grammarNote: 'Two words, no \"I\". Neeru beku means \"water is wanted\"'. L4 P2: 'Use beda instead of beku, not with it'.",
+      "confidence": "sure",
+      "detect": [
+        "beku|beda"
+      ],
+      "except": []
+    },
+    {
+      "id": "negation-illa",
+      "name": "illa = 'no / not', also fused onto a word (gottilla)",
+      "example": "Illa, oota beda; ishta illa; gottilla",
+      "introducedIn": 4,
+      "basis": "L4 vocab 'Illa = No / not' and C2 note 'Illa is a general \"no\" or \"not\"'. L15 C3 note: 'Illa after ishta makes it \"don't like\"'. L20 vocab Gottilla: 'gottu + illa, joined into one word'.",
+      "confidence": "sure",
+      "detect": [
+        "\\w*illa"
+      ],
+      "except": [
+        "paravaagilla",
+        "paravagilla",
+        "baruvudilla",
+        "aaguvudilla"
+      ]
+    },
+    {
+      "id": "possessive-before-noun",
+      "name": "nanna/nimma/avara/aatana before the noun, noun unchanged",
+      "example": "nanna hesaru, nimma pustaka",
+      "introducedIn": 5,
+      "basis": "L5 P1 grammarNote: '\"My\" comes first, then the thing, and nothing changes... Just like English.'",
+      "confidence": "sure",
+      "detect": [
+        "nanna|nimma|aatana|avara"
+      ],
+      "except": []
+    },
+    {
+      "id": "respectful-3rd",
+      "name": "respectful he/she: avara, ivaru, avaru (also plural)",
+      "example": "Avara hesaru; Ivaru nanna akka",
+      "introducedIn": 5,
+      "basis": "L5 vocab Avara: '\"his\" or \"her\", said with respect'. L6 vocab Ivaru: 'how you say \"he\" or \"she\" about someone right here'. L17 C4 note: 'Ivaru also covers two or more people'.",
+      "confidence": "sure",
+      "detect": [
+        "avara|ivaru|avaru"
+      ],
+      "except": []
+    },
+    {
+      "id": "numeral-no-plural",
+      "name": "after a number the noun stays singular",
+      "example": "Eradu pustaka; Aidu mane",
+      "introducedIn": 7,
+      "basis": "L7 P2 grammarNote: 'After a number, the word doesn't change... The number already says there's more than one.' L8 C4 note contrasts eradu pustaka / nanna pustakagalu.",
+      "confidence": "sure",
+      "detect": [
+        "ondu|eradu|mooru|naalku|nalku|aidu|hattu|nooru|saavira"
+      ],
+      "except": []
+    },
+    {
+      "id": "plural-galu",
+      "name": "-galu = plural of things",
+      "example": "pustakagalu, manegalu, hoovugalu",
+      "introducedIn": 8,
+      "basis": "L8 vocab Pustakagalu: 'Add -galu to the end of a thing to mean more than one.'",
+      "confidence": "sure",
+      "detect": [
+        "\\w+galu"
+      ],
+      "except": [
+        "dhanyavadagalu"
+      ]
+    },
+    {
+      "id": "plural-aru-people",
+      "name": "-aru = plural of people",
+      "example": "snehitaru",
+      "introducedIn": 8,
+      "basis": "L8 vocab Snehitaru: 'For people, add -aru. For things, add -galu.' Only one word ever takes it.",
+      "confidence": "sure",
+      "detect": [
+        "snehitaru"
+      ],
+      "except": []
+    },
+    {
+      "id": "adjective-before-noun",
+      "name": "adjective before the noun, unchanged",
+      "example": "dodda mane, olleya oota, kappu batte",
+      "introducedIn": 9,
+      "basis": "L9 P1 grammarNote: 'Dodda (\"big\") goes before the thing and never changes.' L19 vocab Kappu: 'They go before the thing, like dodda'.",
+      "confidence": "sure",
+      "detect": [
+        "(?:dodda|chikka|olleya|ketta|bisi|kempu|bili|kappu|hasiru|koneya|kone)\\s+\\w+"
+      ],
+      "except": [
+        "kempu ishta",
+        "kempu ista"
+      ]
+    },
+    {
+      "id": "predicate-good-chennagide",
+      "name": "'X IS good' needs chennagide, not olleya",
+      "example": "Oota chennagide",
+      "introducedIn": 9,
+      "basis": "L9 C1 grammarNote: 'Before a thing, use olleya... To say \"the food IS good\", use chennagide.'",
+      "confidence": "sure",
+      "detect": [
+        "chennagide|chennaagide|chennagilla"
+      ],
+      "except": []
+    },
+    {
+      "id": "predicate-adjective-du",
+      "name": "-du on an adjective to end a sentence ('my house is small')",
+      "example": "nanna mane chikkadu",
+      "introducedIn": 9,
+      "basis": "L9 C4 grammarNote: 'To end a sentence with it, add -du: nanna mane chikkadu... Same for doddadu and olleyadu.' Mentioned once in a note, never drilled.",
+      "confidence": "sure",
+      "detect": [
+        "chikkadu|doddadu|olleyadu"
+      ],
+      "except": []
+    },
+    {
+      "id": "polite-imperative-i",
+      "name": "-i = polite request ('please ...')",
+      "example": "kodi, heli, hogi",
+      "introducedIn": 10,
+      "basis": "L10 P2 grammarNote: 'The -i at the end of kodi makes it polite... hogu becomes the polite hogi'. L16 vocab Heli: 'Same polite -i as kodi.' L3 P2 already accepts 'alli hogi' unexplained. hogi before baru- is excluded (that is the L14 'having gone' form).",
+      "confidence": "sure",
+      "detect": [
+        "kodi|heli|hogi(?!\\s+bar)"
+      ],
+      "except": []
+    },
+    {
+      "id": "copula-iddene",
+      "name": "iddene = 'I am' (for a person's location)",
+      "example": "Naanu illi iddene",
+      "introducedIn": 11,
+      "basis": "L11 vocab Iddene: '\"I am\": naanu illi iddene'. L3 C3 note said the opposite way first ('For yourself, just naanu illi') but accepted 'naanu illi iddeeni'.",
+      "confidence": "sure",
+      "detect": [
+        "iddene|iddeeni|iddini"
+      ],
+      "except": []
+    },
+    {
+      "id": "progressive-idd",
+      "name": "-utt-idd-ene = 'I am doing (right now)'",
+      "example": "maaduttiddene, hoguttiddene, maadtidini",
+      "introducedIn": 11,
+      "basis": "L11 vocab Hoguttiddene: 'The extra -idd- makes it right now.' L14 vocab Maaduttene: 'drop the -idd-'.",
+      "confidence": "sure",
+      "detect": [
+        "\\w+(?:ttidd|tid)(?:ene|eeni|ini)"
+      ],
+      "except": []
+    },
+    {
+      "id": "verb-final",
+      "name": "the action word goes last (SOV)",
+      "example": "kelasa maaduttiddene",
+      "introducedIn": 11,
+      "basis": "L11 P1 grammarNote: 'The action word goes last'. L12 P2: 'the action word always comes last'. Already true of every drill from L3 (manege hoguttene) and L4 (neeru beku); placing it at L11 because that is where it is said. NEEDS A FLUENT KANNADA SPEAKER only to agree it counts as one structure.",
+      "confidence": "guess",
+      "detect": [],
+      "except": []
+    },
+    {
+      "id": "light-verb-maadu",
+      "name": "noun + maadu ('do') for activities: a meal, a bath, sleep, help",
+      "example": "oota maadu, snaana maadide, sahaaya maaduttene",
+      "introducedIn": 11,
+      "basis": "L11 P3 grammarNote: 'For a meal, Kannada says \"do\": oota maadu.' L18 vocab Snaana/Nidde and L22 vocab Sahaaya repeat it.",
+      "confidence": "sure",
+      "detect": [
+        "(?:oota|snaana|snana|nidde|sahaaya|sahaya)\\s+ma+d\\w*"
+      ],
+      "except": []
+    },
+    {
+      "id": "past-e",
+      "name": "past tense, -e = 'I' (did, went, came)",
+      "example": "maadide, hode, bande, tinde",
+      "introducedIn": 13,
+      "basis": "L13 vocab Maadide: 'In the past, the \"I\" ending is just -e.' L13 vocab Hode: 'The start changes in ways you can't predict... Learn each one.'",
+      "confidence": "sure",
+      "detect": [
+        "maadide|madide|hode|hodhe|tinde|nodide|helide|bande|edde|kudide|kalite|kalitenu|kalte"
+      ],
+      "except": []
+    },
+    {
+      "id": "conjunctive-hogi",
+      "name": "verb-i before another verb = 'having gone' (hogi baruttene)",
+      "example": "Hogi baruttene",
+      "introducedIn": 14,
+      "basis": "L14 C3 grammarNote: 'Put before another action word, hogi means \"having gone\"'. Only this one fixed goodbye.",
+      "confidence": "sure",
+      "detect": [
+        "hogi\\s+bar\\w*|hogbar\\w*"
+      ],
+      "except": []
+    },
+    {
+      "id": "dative-subject-nanage",
+      "name": "nanage/nimage ('to me/you') as the subject of like/want/fear/know",
+      "example": "Nanage idu ishta; Nimage yenu beku?",
+      "introducedIn": 15,
+      "basis": "L15 vocab Nanage: 'For liking and wanting, Kannada says \"to me\"... never naanu ishta.' L4 P1 note first mentions 'nanage neeru beku'. L16/L20/L22/L26 notes extend it to happy, know, can, feelings.",
+      "confidence": "sure",
+      "detect": [
+        "nanage|nimage"
+      ],
+      "except": []
+    },
+    {
+      "id": "reason-adakke",
+      "name": "adakke = 'that's why', reason first",
+      "example": "Nanage bhaya, adakke hoguttiddene",
+      "introducedIn": 15,
+      "basis": "L15 vocab Adakke: 'Yaake? asks why; adakke answers it.' L24 vocab Yaakendare contrasts it: 'Adakke works the other way: reason first.'",
+      "confidence": "sure",
+      "detect": [
+        "adakke"
+      ],
+      "except": []
+    },
+    {
+      "id": "manner-chennagi",
+      "name": "chennagi = 'well', before the verb (vs chennagide 'is good')",
+      "example": "kelasa chennagi maadide",
+      "introducedIn": 16,
+      "basis": "L16 vocab Chennagi: 'chennagi says how you did something; chennagide says a thing is good.' C3 note: 'Chennagi sits right before the action.'",
+      "confidence": "sure",
+      "detect": [
+        "chennagi|chennaagi"
+      ],
+      "except": []
+    },
+    {
+      "id": "noun-and-mattu",
+      "name": "mattu = 'and' between two nouns",
+      "example": "Amma mattu appa",
+      "introducedIn": 17,
+      "basis": "L17 vocab Mattu: 'joins two names or things'.",
+      "confidence": "sure",
+      "detect": [
+        "mattu|matthu"
+      ],
+      "except": []
+    },
+    {
+      "id": "have-nanage-ide",
+      "name": "nanage + thing + ide = 'I have' (things going on)",
+      "example": "Nanage ivattu kelasa ide",
+      "introducedIn": 18,
+      "basis": "L18 C1 grammarNote: 'To say \"I have\", Kannada says \"to me, it is there\": nanage + thing + ide.' L27 P3 contrasts it with nanna hattira.",
+      "confidence": "sure",
+      "detect": [
+        "nanage(?:\\s+\\w+){1,2}\\s+ide"
+      ],
+      "except": []
+    },
+    {
+      "id": "past-ittu",
+      "name": "-ittu = 'was' (it was)",
+      "example": "chennagittu",
+      "introducedIn": 20,
+      "basis": "L20 vocab Chennagittu: 'The ending -ittu turns \"is\" into \"was\".' Only on one word.",
+      "confidence": "sure",
+      "detect": [
+        "\\w+ittu|\\w+itthu"
+      ],
+      "except": []
+    },
+    {
+      "id": "postpositions",
+      "name": "place words go AFTER the noun (mele, kelage, olage, hattira, jote)",
+      "example": "meju mele, mane olage, nanna jote",
+      "introducedIn": 21,
+      "basis": "L21 P1 grammarNote: 'These words go AFTER the thing: meju mele, \"table on\". The opposite of English.'",
+      "confidence": "sure",
+      "detect": [
+        "\\w+\\s+(?:mele|kelage|olage|hattira|hathira|jote|jothe)"
+      ],
+      "except": []
+    },
+    {
+      "id": "genitive-ina-a",
+      "name": "-ina / -a = 'of' before a place word (mejina, maneya)",
+      "example": "mejina mele, maneya olage",
+      "introducedIn": 21,
+      "basis": "L21 vocab Meju: 'You'll also hear it as mejina, \"of the table\"'. Maneya is only in accepted forms, never glossed. The course SHOWS a genitive but never states it as an ending. NEEDS A FLUENT KANNADA SPEAKER: is -ina/-a the right reading, and which nouns take which?",
+      "confidence": "guess",
+      "detect": [
+        "mejina|maneya"
+      ],
+      "except": []
+    },
+    {
+      "id": "person-3n-ade",
+      "name": "-ade = 'it' verb ending (vs -ene 'I')",
+      "example": "baruttade, aaguttade",
+      "introducedIn": 22,
+      "basis": "L22 vocab Baruttade: 'The ending tells you who: -ene is \"I\", -ade is \"it\".'",
+      "confidence": "sure",
+      "detect": [
+        "\\w+uttade|baratte|barutte|aagatte|aagutte"
+      ],
+      "except": []
+    },
+    {
+      "id": "ability-baru-aagu",
+      "name": "nanage + X + baruttade/aaguttade = 'I can' (skill / manage), -uvudilla = can't",
+      "example": "Nanage Kannada baruttade; Nanage aaguvudilla",
+      "introducedIn": 22,
+      "basis": "L22 vocab Baruttade ('literally \"Kannada comes to me\"'), Aaguttade ('for time and plans, not skills') and their negatives.",
+      "confidence": "sure",
+      "detect": [
+        "baruttade|baratte|barutte|baruvudilla|baralla|aaguttade|aagatte|aagutte|aaguvudilla|aagalla"
+      ],
+      "except": []
+    },
+    {
+      "id": "obligation-abeku",
+      "name": "verb-a + beku = 'must'",
+      "example": "hogabeku, maadabeku, kudiyabeku",
+      "introducedIn": 23,
+      "basis": "L23 vocab Hogabeku: 'Add beku to an action and it means \"must\"'. P3 note: 'beku doesn't change for \"I\" or \"you\"'. How hogu becomes hoga- is never said.",
+      "confidence": "sure",
+      "detect": [
+        "\\w+beku"
+      ],
+      "except": []
+    },
+    {
+      "id": "prohibition-baaradu",
+      "name": "verb-a + baaradu = 'must not'",
+      "example": "Idu maadabaaradu",
+      "introducedIn": 23,
+      "basis": "L23 vocab Maadabaaradu: 'Swap beku for baaradu to forbid'.",
+      "confidence": "sure",
+      "detect": [
+        "\\w+ba+r(?:a)?du"
+      ],
+      "except": []
+    },
+    {
+      "id": "clause-joining",
+      "name": "joining clauses: aadare (but), athava (or), yaakendare (because)",
+      "example": "Idu beku, aadare adu beda",
+      "introducedIn": 24,
+      "basis": "L24 vocab Aadare/Athava/Yaakendare and P2 note: 'Aadare sits between the two halves'.",
+      "confidence": "sure",
+      "detect": [
+        "aadare|aadre|adare|adre|athava|athavaa|yaakendare|yaakandre"
+      ],
+      "except": []
+    },
+    {
+      "id": "focus-kooda",
+      "name": "kooda = 'too', right after the person it is about",
+      "example": "naanu kooda, nanage kooda",
+      "introducedIn": 24,
+      "basis": "L24 vocab Kooda: 'It goes right after the person'. C2 note: 'Kooda follows whoever it's about'.",
+      "confidence": "sure",
+      "detect": [
+        "kooda|kuda"
+      ],
+      "except": []
+    },
+    {
+      "id": "conditional-are",
+      "name": "past stem + -are = 'if' (hodare, bandare, iddare)",
+      "example": "Neevu bandare, naanu baruttene",
+      "introducedIn": 25,
+      "basis": "L25 vocab Hodare: 'Take hode, \"I went\", and swap the -e for -are'. P1 note: 'The \"if\" is the ending, so it comes last'. Haagaadare ('in that case') is excluded as a fixed word, though it is built the same way.",
+      "confidence": "sure",
+      "detect": [
+        "\\w+(?:dare|dre)"
+      ],
+      "except": [
+        "aadare",
+        "adare",
+        "aadre",
+        "adre",
+        "yaakendare",
+        "yaakandre",
+        "haagaadare",
+        "hagadre"
+      ]
+    },
+    {
+      "id": "feeling-aagide",
+      "name": "nanage + feeling + aagide/aagilla = 'I feel / don't feel'",
+      "example": "Nanage hasivu aagide",
+      "introducedIn": 26,
+      "basis": "L26 vocab Aagide: 'Put it after a feeling: nanage hasivu aagide'. P3 note: 'aagide says yes, aagilla says no'. L29 C2 reuses aagide with sakkath.",
+      "confidence": "sure",
+      "detect": [
+        "\\w*aagide|\\w*aagilla"
+      ],
+      "except": [
+        "tadavaagide",
+        "paravaagilla",
+        "chennaagide"
+      ]
+    },
+    {
+      "id": "have-hattira",
+      "name": "nanna/nimma hattira = 'I have / you have' (things carried)",
+      "example": "Nanna hattira duddu illa",
+      "introducedIn": 27,
+      "basis": "L27 P3 grammarNote: 'Nanna hattira, \"near me\", is for things you carry... Nanage ... ide is for things you have going on'.",
+      "confidence": "sure",
+      "detect": [
+        "(?:nanna|nimma)\\s+(?:hattira|hathira)"
+      ],
+      "except": []
+    },
+    {
+      "id": "yes-no-a",
+      "name": "-a / -ya on the end = yes/no question (ideya, hauda)",
+      "example": "Chillare ideya? Hauda?",
+      "introducedIn": 27,
+      "basis": "L27 vocab Ideya: 'Add -ya to ide and it asks'. L29 vocab Hauda: 'Haudu is \"yes\". Ask it back, hauda'. Two words only; never generalised to verbs. NEEDS A FLUENT KANNADA SPEAKER: is this one productive ending, as tagged, or two fixed words?",
+      "confidence": "guess",
+      "detect": [
+        "ideya|hauda|haudaa|houda"
+      ],
+      "except": []
+    },
+    {
+      "id": "progressive-3n-ttide",
+      "name": "-uttide = 'it is ...ing' right now",
+      "example": "Male baruttide; Bassu baruttide",
+      "introducedIn": 28,
+      "basis": "L28 vocab Baruttide: '\"it is coming\", right now'. P1 note contrasts baruttene / baruttade / baruttide.",
+      "confidence": "sure",
+      "detect": [
+        "baruttide|bartide|barthide"
+      ],
+      "except": []
+    },
+    {
+      "id": "tag-alva",
+      "name": "alva at the end = '..., right?'",
+      "example": "Chennagittu, alva?",
+      "introducedIn": 29,
+      "basis": "L29 vocab Alva: 'Put alva on the end of anything'.",
+      "confidence": "sure",
+      "detect": [
+        "alva|alvaa"
+      ],
+      "except": []
+    }
+  ]
+}
