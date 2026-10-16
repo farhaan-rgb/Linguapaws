@@ -2040,7 +2040,11 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
        `naanu nodide mane` was told "naanu comes first" when naanu WAS first. */
     const m = orderMiss(said, expected, variants, lexicon);
     if (m) {
-        const order = m.need.join(' ');
+        /* The clauses the course punctuates, so the line can say the rule that
+           is actually true — the verb goes last in its own clause, not last in
+           the sentence. Null for a one-clause answer, which is most of them. */
+        const plan = clausePlan(expected, m.need);
+        const order = plan ? plan.parts.map(p => p.join(' ')).join(', ') : m.need.join(' ');
         /* "All the right words" only when they are — word for word. Otherwise
            the order is named with the learner's own words, so a first miss
            never prints a form they did not write (`vellandi` for `vellu`):
@@ -2048,6 +2052,44 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
         const lead = m.exact ? 'All the right words — the order is not.' : 'The order is off.';
         const word = hide ? m.said[m.index] : m.word;
         const after = hide ? m.said[m.index - 1] : m.need[m.index - 1];
+        const ci = plan ? plan.of[m.index] : -1;
+        const span = plan ? plan.span[ci] : null;
+        /* A one-word clause has no internal order, so there is nothing to say
+           about where a word sits in it: *Okati, rendu, moodu* is three
+           clauses of one word and the flat line is the true one there. */
+        if (span && span.end > span.start
+            && (m.index === span.end || m.index === span.start)) {
+            const where = clauseName(ci, plan.parts.length);
+            /* ── The twin clause ──
+               He wrote *naanu eega tinnuttiddene, hoguttene aamele*: adverb
+               then verb in the first half, the same pattern inverted in the
+               second. The engine had both halves in hand and said nothing
+               about it, so a slip read as a gap. Claimed only when it is
+               visible: exactly two halves, the other one written word for word
+               in the course's order, at least two words long so there is an
+               order to have got right, and the two halves not interleaved. */
+            const twin = (() => {
+                if (!plan || plan.parts.length !== 2 || !m.at || m.index !== span.end) return '';
+                const oc = 1 - ci;
+                const { start, end } = plan.span[oc];
+                if (end - start < 1) return '';
+                const at = m.at.slice(start, end + 1);
+                const mine = m.at.slice(span.start, span.end + 1);
+                const inOrder = at.every((p, k) => k === 0 || p > at[k - 1]);
+                const exact = m.said.slice(start, end + 1)
+                    .every((w, k) => w === m.need[start + k]);
+                const apart = oc < ci
+                    ? Math.max(...at) < Math.min(...mine)
+                    : Math.min(...at) > Math.max(...mine);
+                return inOrder && exact && apart ? m.said[end] : '';
+            })();
+            const base = m.index === span.end
+                ? `${lead} ${word} goes last in ${where}${hide ? '' : `: ${order}`}.`
+                : `${lead} ${word} comes first in ${where}${hide ? '' : `: ${order}`}.`;
+            return twin
+                ? `${base} You did that with *${twin}* in ${clauseName(1 - ci, 2)}.`
+                : base;
+        }
         if (m.last) return hide
             ? `${lead} ${word} goes last.`
             : `${lead} ${word} goes last: ${order}.`;
