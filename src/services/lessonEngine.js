@@ -954,8 +954,69 @@ export const spellingDiff = (said, expected, variants = [], lexicon = new Map())
     return { said: said.trim(), expected: best, narrowed: false };
 };
 
+/** An accepted answer, word by word against the form it was closest to, for
+ *  showing the learner what they actually wrote. `spellingDiff` names one word
+ *  or falls back to the whole sentence: "Naanu eega tinutiddene, amele
+ *  hoguttene" had two slips, so the note printed the course sentence again
+ *  and left the learner diffing two sentences by eye — they read *amele* vs
+ *  *aamele* as a word-order question and could not check, because the screen
+ *  never showed what they had typed.
+ *
+ *  Returns null when there is nothing to point at (same rule as spellingDiff:
+ *  an accepted form, a dropped pronoun, grammar forms from `alt`). Otherwise
+ *  `words` is the learner's text split on spaces, each with `fix` (the
+ *  course's spelling) or `extra` (not in the answer); `missing` lists course
+ *  words they left out; `reordered` says the shared words came in another
+ *  order. */
+export const answerDiff = (said, expected, variants = [], lexicon = new Map()) => {
+    if (!spellingDiff(said, expected, variants, lexicon)) return null;
+    const { synonyms } = asLexicon(lexicon);
+    const key = (w) => { const t = normalizeLatin(w); return synonyms.get(t) || t; };
+    const clean = (w) => String(w).replace(/^[^\p{L}\p{N}]+/u, '').replace(/[^\p{L}\p{N}?!]+$/u, '');
+
+    const forms = [expected, ...variants].filter(Boolean).flatMap(v => [v, ...pronounVariants(v)]);
+    let course = expected, bestScore = -1;
+    for (const f of forms) {
+        const s = similarityRatioLatin(said, f);
+        if (s > bestScore) { bestScore = s; course = f; }
+    }
+    const need = String(course).split(/\s+/).filter(w => key(w));
+    const words = String(said).trim().split(/\s+/).filter(Boolean).map(text => ({ text }));
+    const used = new Set();
+
+    // Exact words first, so a slip never steals the slot of a word written right.
+    for (const w of words) {
+        const k = key(w.text);
+        if (!k) continue;
+        const j = need.findIndex((x, i) => !used.has(i) && key(x) === k);
+        if (j >= 0) { used.add(j); w.at = j; }
+    }
+    for (const w of words) {
+        const k = key(w.text);
+        if (!k || w.at != null) continue;
+        let bj = -1, bd = Infinity;
+        need.forEach((x, i) => {
+            if (used.has(i)) return;
+            const d = levenshtein(key(x), k);
+            if (d < bd) { bd = d; bj = i; }
+        });
+        if (bj >= 0 && bd <= Math.max(2, Math.floor(k.length / 3))) {
+            used.add(bj); w.at = bj; w.fix = clean(need[bj]);
+        } else if (k) {
+            w.extra = true;
+        }
+    }
+    const order = words.filter(w => w.at != null).map(w => w.at);
+    return {
+        words,
+        course,
+        missing: need.filter((_, i) => !used.has(i)).map(clean),
+        reordered: order.some((a, i) => i > 0 && a < order[i - 1]),
+    };
+};
+
 /** The same finding as a sentence, for the paths that append it to praise. */
-export const spellingNote = (said, expected, variants = [], lexicon = new Map()) => {
+export const spellingNote =(said, expected, variants = [], lexicon = new Map()) => {
     const d = spellingDiff(said, expected, variants, lexicon);
     return d ? ` Note the spelling: **${d.expected}**.` : '';
 };
