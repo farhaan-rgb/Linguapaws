@@ -264,6 +264,13 @@ export function achievementFor({ step, lang = '', misses = 0, helped = false } =
             : 'Back out from memory.';
     }
 
+    /* A listen screen's answer is English: what they did was understand. */
+    if (step.kind === 'listen') {
+        if (misses > 0) return 'Caught it on another listen.';
+        if (helped) return 'Understood, once you had seen it written.';
+        return `Understood by ear — no ${language} on screen to lean on.`;
+    }
+
     const n = wordCount(step.expected);
     if (helped) return `You built it in ${language}, with a word looked up.`;
     if (step.phase === 'conversation') return `A real reply, in ${language}.`;
