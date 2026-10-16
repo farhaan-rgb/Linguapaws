@@ -279,9 +279,9 @@
     {
       "id": "future",
       "name": "future/habitual -t-anu (chestanu, velthanu)",
-      "example": "chestanu, velthanu, tintanu",
+      "example": "chestanu, velthanu, thintanu",
       "introducedIn": 14,
-      "basis": "L14 vocab and grammarNote: 'For \"I will eat\", drop the -unn-: tintanu.'",
+      "basis": "L14 vocab and grammarNote: 'For \"I will eat\", drop the -unn-: thintanu.'",
       "confidence": "sure",
       "detect": [
         "\\w+(st|th|nt)a(nu|ru)"

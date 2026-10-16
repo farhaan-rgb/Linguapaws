@@ -351,7 +351,7 @@ export const CURRICULUM = {
             scenario: "Present Continuous",
             vocabulary: [
                 { word: "Chestunnanu", native: "చేస్తున్నాను", meaning: "I am doing", phonetic: "chays-tun-naa-nu", teach: "“I am doing” is {w}." },
-                { word: "Tintunnanu", native: "తింటున్నాను", meaning: "I am eating", phonetic: "tihn-tun-naa-nu",
+                { word: "Thintunnanu", native: "తింటున్నాను", meaning: "I am eating", phonetic: "thihn-tun-naa-nu", alt: ["tintunnanu"],
                   teach: "{w} means “I am eating”. Every word in this lesson ends in *-unnanu*. The start changes: *ches-tunnanu*, *vel-thunnanu*. Learn each one as you see it." },
                 { word: "Velthunnanu", native: "వెళ్తున్నాను", phonetic: "vehl-tun-naa-nu", meaning: "I am going" },
                 { word: "Ippudu", native: "ఇప్పుడు", meaning: "Now", phonetic: "ihp-pu-du" },
@@ -366,12 +366,12 @@ export const CURRICULUM = {
             phrases: [
                 { prompt: "Say 'I am doing work'", correct: "Nenu pani chestunnanu", native: "నేను పని చేస్తున్నాను", grammarNote: "The -nu at the end of *chestunnanu* means “I”. One word does the job of three English ones.", meaning: "I am doing work", hint: "I + work + doing" },
                 { prompt: "Say 'I am going now'", correct: "Nenu ippudu velthunnanu", native: "నేను ఇప్పుడు వెళ్తున్నాను", meaning: "I am going now", hint: "I + now + going" },
-                { prompt: "Say 'I am eating food'", correct: "Nenu annam tintunnanu", native: "నేను అన్నం తింటున్నాను", meaning: "I am eating food", hint: "I + food + eating" }
+                { prompt: "Say 'I am eating food'", correct: "Nenu annam thintunnanu", native: "నేను అన్నం తింటున్నాను", meaning: "I am eating food", hint: "I + food + eating" }
             ],
             conversations: [
                 { prompt: "Miko asks what you're doing. Say 'I am doing work'.", correct: "Nenu pani chestunnanu", native: "నేను పని చేస్తున్నాను", meaning: "I am doing work", hint: "I + work + doing" },
                 { prompt: "Tell someone 'I am going home now'.", correct: "Nenu ippudu intiki velthunnanu", native: "నేను ఇప్పుడు ఇంటికి వెళ్తున్నాను", meaning: "I am going home now", hint: "I + now + home + going" },
-                { prompt: "Say 'I am eating' when asked.", correct: "Nenu tintunnanu", native: "నేను తింటున్నాను", meaning: "I am eating", hint: "I + eating" },
+                { prompt: "Say 'I am eating' when asked.", correct: "Nenu thintunnanu", native: "నేను తింటున్నాను", meaning: "I am eating", hint: "I + eating" },
                 { prompt: "Final check: 'I am doing this now'.", correct: "Nenu ippudu idhi chestunnanu", native: "నేను ఇప్పుడు ఇది చేస్తున్నాను", meaning: "I am doing this now", hint: "I + now + this + doing" }
             ]
         },
@@ -410,7 +410,7 @@ export const CURRICULUM = {
                   grammarNote: "Just like English “I'm going tomorrow”, Telugu uses “am going” for plans. The time word shows it's in the future." },
                 { prompt: "Say 'I am going today'", correct: "Eeroju nenu velthunnanu", native: "ఈరోజు నేను వెళ్తున్నాను", meaning: "I am going today", hint: "Today + I + am going", acceptable: ["nenu eeroju velthunnanu", "eeroju velthunnanu"],
                   grammarNote: "The action word, *velthunnanu*, goes last. The time word is free: *eeroju nenu velthunnanu* and *nenu eeroju velthunnanu* both work, and starting with it is common." },
-                { prompt: "Say 'I am eating now'.", correct: "Nenu ippudu tintunnanu", native: "నేను ఇప్పుడు తింటున్నాను", meaning: "I am eating now", hint: "I + now + am eating", acceptable: ["ippudu tintunnanu"] }
+                { prompt: "Say 'I am eating now'.", correct: "Nenu ippudu thintunnanu", native: "నేను ఇప్పుడు తింటున్నాను", meaning: "I am eating now", hint: "I + now + am eating", acceptable: ["ippudu thintunnanu"] }
             ]
         },
         {
@@ -446,25 +446,25 @@ export const CURRICULUM = {
             scenario: "Simple Future Tense",
             vocabulary: [
                 { word: "Chestanu", native: "చేస్తాను", meaning: "I will do", phonetic: "chays-taa-nu",
-                  teach: "“I will do” is {w}. Compare *chesanu* “I did” with *chestanu* “I will do”: the future has a **t** sound before the *-anu*. All four action words in this lesson end that way: *chestanu*, *velthanu*, *tintanu*, *chustanu*." },
+                  teach: "“I will do” is {w}. Compare *chesanu* “I did” with *chestanu* “I will do”: the future has a **t** sound before the *-anu*. All four action words in this lesson end that way: *chestanu*, *velthanu*, *thintanu*, *chustanu*." },
                 { word: "Velthanu", native: "వెళ్తాను", meaning: "I will go", phonetic: "vehl-thaa-nu",
-                  teach: "{w} means “I will go”. Careful: *velthanu* is “I will go”, but *velthunnanu* is “I am going”. Only the -unn- is different. Same with *chestanu*/*chestunnanu* and *tintanu*/*tintunnanu*." },
-                { word: "Tintanu", native: "తింటాను", meaning: "I will eat", phonetic: "tihn-taa-nu" },
+                  teach: "{w} means “I will go”. Careful: *velthanu* is “I will go”, but *velthunnanu* is “I am going”. Only the -unn- is different. Same with *chestanu*/*chestunnanu* and *thintanu*/*thintunnanu*." },
+                { word: "Thintanu", native: "తింటాను", meaning: "I will eat", phonetic: "thihn-taa-nu", alt: ["tintanu"] },
                 { word: "Chustanu", native: "చూస్తాను", meaning: "I will see", phonetic: "choos-taa-nu" },
                 { word: "Repu", native: "రేపు", meaning: "Tomorrow", phonetic: "ray-pu" }
             ],
             phrases: [
                 { prompt: "Say 'I will go tomorrow'", correct: "Nenu repu velthanu", native: "నేను రేపు వెళ్తాను", grammarNote: "Same -nu ending, meaning “I”. “You will do” is *chestaru*.", meaning: "I will go tomorrow", hint: "I + tomorrow + will go" },
-                { prompt: "Say 'I will eat now'", correct: "Nenu ippudu tintanu", native: "నేను ఇప్పుడు తింటాను", meaning: "I will eat now", hint: "I + now + will eat" },
-                { prompt: "Say 'I will eat later'", correct: "Nenu tharuvatha tintanu", native: "నేను తరువాత తింటాను", meaning: "I will eat later", hint: "I + later + will eat", acceptable: ["tharuvatha tintanu"],
-                  grammarNote: "*Tintunnanu* means “I am eating”. For “I will eat”, drop the -unn-: *tintanu*. Same with *velthanu*/*velthunnanu* and *chestanu*/*chestunnanu*." }
+                { prompt: "Say 'I will eat now'", correct: "Nenu ippudu thintanu", native: "నేను ఇప్పుడు తింటాను", meaning: "I will eat now", hint: "I + now + will eat" },
+                { prompt: "Say 'I will eat later'", correct: "Nenu tharuvatha thintanu", native: "నేను తరువాత తింటాను", meaning: "I will eat later", hint: "I + later + will eat", acceptable: ["tharuvatha thintanu"],
+                  grammarNote: "*Thintunnanu* means “I am eating”. For “I will eat”, drop the -unn-: *thintanu*. Same with *velthanu*/*velthunnanu* and *chestanu*/*chestunnanu*." }
             ],
             conversations: [
                 { prompt: "Miko asks if you'll help. Say 'I will do it'.", correct: "Nenu chestanu", native: "నేను చేస్తాను", meaning: "I will do", hint: "I + will do" },
                 { prompt: "Tell someone 'I will go home tomorrow'.", correct: "Nenu repu intiki velthanu", native: "నేను రేపు ఇంటికి వెళ్తాను", meaning: "I will go home tomorrow", hint: "I + tomorrow + home + will go" },
                 { prompt: "Say 'I will see the book'.", correct: "Nenu pusthakam chustanu", native: "నేను పుస్తకం చూస్తాను", meaning: "I will see the book", hint: "I + book + will see" },
-                { prompt: "Final check: 'I will eat later'.", correct: "Nenu tharuvatha tintanu", native: "నేను తరువాత తింటాను", meaning: "I will eat later", hint: "I + later + will eat",
-                  grammarNote: "The action word, *tintanu*, goes last, and it already says “will”. *Tharuvatha* (“later”) just says when; like *ippudu*, it can go before or after *nenu*." }
+                { prompt: "Final check: 'I will eat later'.", correct: "Nenu tharuvatha thintanu", native: "నేను తరువాత తింటాను", meaning: "I will eat later", hint: "I + later + will eat",
+                  grammarNote: "The action word, *thintanu*, goes last, and it already says “will”. *Tharuvatha* (“later”) just says when; like *ippudu*, it can go before or after *nenu*." }
             ]
         },
         {
@@ -634,7 +634,7 @@ export const CURRICULUM = {
             scenario: "Postpositions",
             vocabulary: [
                 { word: "Lo", native: "లో", meaning: "In", phonetic: "loh", teach: "“In” is {w}." },
-                { word: "Paina", native: "పైన", meaning: "On/Above", phonetic: "pye-nuh", teach: "“On” or “above” is {w}." },
+                { word: "Paina", native: "పైన", meaning: "On/Above", phonetic: "pye-nuh", alt: ["pyna", "paina"], teach: "“On” or “above” is {w}." },
                 { word: "Kindha", native: "కింద", meaning: "Under", phonetic: "kihn-dhuh", teach: "“Under” is {w}." },
                 { word: "Tho", native: "తో", meaning: "With", phonetic: "thoh", teach: "“With” is {w}." },
                 { word: "Daggara", native: "దగ్గర", meaning: "Near", phonetic: "duhg-guh-ruh", teach: "“Near” is {w}." }
@@ -685,7 +685,7 @@ export const CURRICULUM = {
             ],
             conversations: [
                 { prompt: "Miko asks if you can help. Say 'I can help'.", correct: "Nenu sahaayam cheyagalanu", native: "నేను సహాయం చేయగలను", meaning: "I can help", hint: "I + help + can do",
-                  grammarNote: "There's no single word for “help”. You say “do help”: *sahaayam* (“help”) + *cheyagalanu* (“I can do”). Same with *pani cheyagalanu*, “I can do work”." },
+                  grammarNote: "*Sahaayam* is the noun, “help”, so Telugu doesn't “help”, it “does help”: *sahaayam* + *cheyagalanu* (“I can do”). Same with *pani cheyagalanu*, “I can do work”." },
                 { prompt: "Tell someone 'I can't do it today'.", correct: "Eeroju nenu cheyalenu", native: "ఈరోజు నేను చేయలేను", meaning: "Today I cannot do it", hint: "Today + I + cannot do" },
                 { prompt: "Say 'I can't help'.", correct: "Nenu sahaayam cheyalenu", native: "నేను సహాయం చేయలేను", meaning: "I can't help", hint: "I + help + cannot do" },
                 { prompt: "Final check: 'I can't do this now'.", correct: "Nenu ippudu idhi cheyalenu", native: "నేను ఇప్పుడు ఇది చేయలేను", meaning: "I now this cannot do", hint: "I + now + this + cannot do" }
@@ -723,11 +723,11 @@ export const CURRICULUM = {
         {
             scenario: "Conjunctions",
             vocabulary: [
-                { word: "Mariyu", native: "మరియు", meaning: "And", phonetic: "muh-rih-yu", teach: "“And” is {w}." },
+                { word: "Mariyu", native: "మరియు", meaning: "And", phonetic: "muh-rih-yu", teach: "{w}, “and”, you met in lesson 10. Here it joins the other words that link a sentence." },
                 { word: "Kani", native: "కానీ", meaning: "But", phonetic: "kaa-nih" },
                 { word: "Endukante", native: "ఎందుకంటే", meaning: "Because", phonetic: "ehn-du-kun-tay" },
                 { word: "Leda", native: "లేదా", meaning: "Or", phonetic: "lay-daa" },
-                { word: "Sare", native: "సరే", meaning: "Okay", phonetic: "suh-ray" }
+                { word: "Sare", native: "సరే", meaning: "Okay", phonetic: "suh-ray", teach: "{w}, “okay”, is one you already have, from lesson 4. Say it to agree before you go on." }
             ],
             phrases: [
                 { prompt: "Say 'I want water and food'", correct: "Neeru, annam kaavali", native: "నీరు, అన్నం కావాలి", grammarNote: "*Mariyu* is formal. In everyday speech people just list things with no “and”, like you did here.", meaning: "Water and food want", hint: "Water + and + food + want", acceptable: ["naaku neeru, annam kaavali"] },
@@ -735,10 +735,14 @@ export const CURRICULUM = {
                 { prompt: "Say 'This or that?'", correct: "Idhi leda adhi?", native: "ఇది లేదా అది?", meaning: "This or that?", hint: "This + or + that?" }
             ],
             conversations: [
-                { prompt: "Miko asks what you want. Say 'Coffee and water'.", correct: "Coffee, neeru kaavali", native: "కాఫీ, నీరు కావాలి", meaning: "Coffee and water want", hint: "Coffee + and + water + want", acceptable: ["naaku coffee, neeru kaavali"] },
-                { prompt: "Say 'I want to go but I have work'.", correct: "Nenu vellali kani naaku pani undi", native: "నేను వెళ్ళాలి కానీ నాకు పని ఉంది", meaning: "I must go but I have work", hint: "I + go(must) + but + I + work" },
+                { prompt: "Miko asks what you want. Say 'Coffee and water'.", correct: "Coffee, neeru kaavali", native: "కాఫీ, నీరు కావాలి", meaning: "Coffee and water want", hint: "Coffee + and + water + want", acceptable: ["naaku coffee, neeru kaavali", "kaafi, neeru kaavali", "naaku kaafi, neeru kaavali"],
+                  grammarNote: "*Coffee* is a borrowed word: Telugu says it too, as *kaafi*, and either is fine. Then list the things with no “and”, and close with *kaavali*." },
+                { prompt: "Say 'I must go, because I have work'.", correct: "Nenu vellali endukante naaku pani undi", native: "నేను వెళ్ళాలి ఎందుకంటే నాకు పని ఉంది", meaning: "I must go because I have work", hint: "I + must go + because + to me + work + there is",
+                  acceptable: ["nenu vellali, endukante naaku pani undi"],
+                  grammarNote: "*Endukante* (“because”) starts the second half, and that half is a whole sentence: *naaku pani undi*, “I have work”." },
                 { prompt: "Say 'Because I'm happy'.", correct: "Endukante nenu santhoshamga unnanu", native: "ఎందుకంటే నేను సంతోషంగా ఉన్నాను", meaning: "Because I am happy", hint: "Because + I + happy" },
-                { prompt: "Final check: 'Rice or bread?' (Annam leda roti?)", correct: "Annam leda roti", native: "అన్నం లేదా రొట్టె", meaning: "Rice or bread", hint: "Rice + or + bread" }
+                { prompt: "Final check: Miko asks when you are going. Ask back: 'Today or tomorrow?'", correct: "Eeroju leda repu?", native: "ఈరోజు లేదా రేపు?", meaning: "Today or tomorrow?", hint: "Today + or + tomorrow?",
+                  grammarNote: "*Leda* (“or”) sits between the two choices, just as in English." }
             ]
         },
         {
@@ -746,9 +750,9 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Unte", native: "ఉంటే", meaning: "If there is", phonetic: "un-tay" },
                 { word: "Velthe", native: "వెళ్తే", meaning: "If going", phonetic: "vehl-thay" },
-                { word: "Thinte", native: "తింటే", meaning: "If eating", phonetic: "tihn-tay",
+                { word: "Thinte", native: "తింటే", meaning: "If eating", phonetic: "thihn-tay",
                   examples: [
-                    { text: "Meeru thinte, nenu tintanu", native: "మీరు తింటే, నేను తింటాను", meaning: "If you eat, I will eat" },
+                    { text: "Meeru thinte, nenu thintanu", native: "మీరు తింటే, నేను తింటాను", meaning: "If you eat, I will eat" },
                   ]
                 },
                 { word: "Chesthe", native: "చేస్తే", meaning: "If doing", phonetic: "chays-thay" },
@@ -762,7 +766,7 @@ export const CURRICULUM = {
             conversations: [
                 { prompt: "Tell Miko 'If you are happy, I am happy'.", correct: "Meeru santhoshamga unte, nenu santhoshamga unnanu", native: "మీరు సంతోషంగా ఉంటే, నేను సంతోషంగా ఉన్నాను", meaning: "If you are happy I am happy", hint: "You + happy + if + I + happy + am",
                   grammarNote: "*Unte* means “if”, and it ends the first half. The second half is a normal sentence: *nenu santhoshamga unnanu*. No word for “then” needed." },
-                { prompt: "Say 'If there is water, I will eat'.", correct: "Neeru unte nenu tintanu", native: "నీరు ఉంటే నేను తింటాను", meaning: "If there is water I will eat", hint: "Water + if there is + I + will eat" },
+                { prompt: "Say 'If there is water, I will eat'.", correct: "Neeru unte nenu thintanu", native: "నీరు ఉంటే నేను తింటాను", meaning: "If there is water I will eat", hint: "Water + if there is + I + will eat" },
                 { prompt: "Say 'If you go, then I am going'.", correct: "Meeru velthe appudu nenu velthunnanu", native: "మీరు వెళ్తే అప్పుడు నేను వెళ్తున్నాను", meaning: "If you go then I am going", hint: "You + go(if) + then + I + am going", acceptable: ["meeru velthe nenu velthunnanu"] },
                 { prompt: "Final check: 'If I go tomorrow...'", correct: "Repu nenu velthe", native: "రేపు నేను వెళ్తే", meaning: "If I go tomorrow", hint: "Tomorrow + I + go(if)", acceptable: ["repu velthe"] }
             ]
@@ -794,7 +798,7 @@ export const CURRICULUM = {
                 { prompt: "Say 'I am not sad'", correct: "Naaku badha ledu", native: "నాకు బాధ లేదు", meaning: "I am not sad", hint: "To me + sadness + not" }
             ],
             conversations: [
-                { prompt: "Miko asks how you feel. Say 'I am happy'.", correct: "Nenu santhoshamga unnanu", native: "నేను సంతోషంగా ఉన్నాను", meaning: "I am happy", hint: "I + happy" },
+                { prompt: "Miko asks how you feel. Say 'I am happy'.", correct: "Nenu santhoshamga unnanu", native: "నేను సంతోషంగా ఉన్నాను", meaning: "I am happy", hint: "I + happy", acceptable: ["naaku santhoshamga undi"] },
                 { prompt: "Tell someone you are not scared.", correct: "Naaku bhayam ledu", native: "నాకు భయం లేదు", meaning: "I have no fear", hint: "I + fear + not" },
                 { prompt: "Say 'I am very tired today'.", correct: "Eeroju naaku chala alupuga undi", native: "ఈరోజు నాకు చాలా అలుపుగా ఉంది", meaning: "Today I am very tired", hint: "Today + to me + very + tiredly + it is",
                   acceptable: ["eeroju nenu chala alupuga unnanu", "naaku chala alupuga undi", "eeroju naaku alupuga undi"] },
@@ -806,25 +810,26 @@ export const CURRICULUM = {
             scenario: "Advanced Numbers & Money",
             vocabulary: [
                 { word: "Dabbulu", native: "డబ్బులు", meaning: "Money", phonetic: "duhb-bu-lu" },
+                { word: "Rupayalu", native: "రూపాయలు", meaning: "Rupees", phonetic: "roo-paa-yuh-lu", teach: "“Rupees” is {w}, and it goes AFTER the number." },
                 { word: "Vanda", native: "వంద", meaning: "Hundred", phonetic: "vun-duh", alt: ["veyi"],
-                  teach: "“Hundred” is {w}, and “thousand” is *veyi*. Put them before *rupayalu*: *vanda rupayalu*, *veyi rupayalu*." },
-                { word: "Laksha", native: "లక్ష", meaning: "Lakh", phonetic: "luhk-shuh" },
+                  teach: "“Hundred” is {w}, and “thousand” is *veyi*. Put them before *rupayalu* (“rupees”): *vanda rupayalu*, *veyi rupayalu*." },
+                { word: "Laksha", native: "లక్ష", meaning: "Lakh (100,000)", phonetic: "luhk-shuh",
+                  teach: "{w} is a lakh: one hundred thousand, 1,00,000. Indian prices count big amounts in lakhs, so *oka laksha rupayalu* is 100,000 rupees." },
                 { word: "Chillar", native: "చిల్లర", meaning: "Change", phonetic: "chihl-luh-ruh" },
-                { word: "Rupayalu", native: "రూపాయలు", meaning: "Rupees", phonetic: "roo-paa-yuh-lu", teach: "“Rupees” is {w}, and it goes AFTER the number: *vanda rupayalu*." },
                 { word: "Entha", native: "ఎంత", meaning: "How much", phonetic: "ehn-thuh",
-                  teach: "{w} means “how much”. Like every Telugu question word, it goes at the END: *idhi entha?*, “how much is this?”" }
+                  teach: "{w} means “how much”. Like most Telugu question words it usually goes near the end: *idhi entha?*, “how much is this?”. Putting it first, *entha idhi?*, is heard too and is fine." }
             ],
             phrases: [
                 { prompt: "Say 'Hundred rupees'", correct: "Vanda rupayalu", native: "వంద రూపాయలు", meaning: "100 rupees", hint: "100 + rupees" },
                 { prompt: "Say 'I have money'", correct: "Naa daggara dabbulu", native: "నా దగ్గర డబ్బులు", meaning: "I have money", hint: "My near + money",
-                  acceptable: ["naaku dabbulu undi", "naa daggara dabbulu undi"],
-                  grammarNote: "Two ways, both accepted. *Naaku dabbulu undi* is “I have money”. *Naa daggara dabbulu*, “near me, money”, means money you have ON you, which is what a shopkeeper means." },
+                  acceptable: ["naaku dabbulu undi", "naa daggara dabbulu undi", "naa daggara dabbulu unnayi", "naaku dabbulu unnayi"],
+                  grammarNote: "Two ways, both accepted. *Naaku dabbulu undi* is “I have money”. *Naa daggara dabbulu*, “near me, money”, means money you have ON you, which is what a shopkeeper means. *Dabbulu* is plural, so careful speech says *unnayi* (“there are”) instead of *undi*; you will hear both." },
                 { prompt: "Say 'If you have change, please give it'", correct: "Chillar unte ivvandi", native: "చిల్లర ఉంటే ఇవ్వండి", meaning: "If there is change, please give it", hint: "Change + if there is + give (please)", acceptable: ["chillar unte, ivvandi"],
                   grammarNote: "*Unte* (“if there is”, lesson 25) closes the first half: *chillar unte*. Then the polite request, *ivvandi*." }
             ],
             conversations: [
                 { prompt: "Ask Miko how much something costs.", correct: "Idhi entha?", native: "ఇది ఎంత?", meaning: "How much is this?", hint: "This + how much?", acceptable: ["adhi entha?", "entha?"],
-                  grammarNote: "*Entha* goes last, like *emiti* and *ekkada*. No other word needed: *idhi entha* means “how much is this?”" },
+                  grammarNote: "*Entha* usually goes last, like *emiti* and *ekkada*, though *entha idhi?* is fine too. No other word needed: *idhi entha* means “how much is this?”" },
                 { prompt: "Tell Miko you don't have change.", correct: "Naa daggara chillar ledu", native: "నా దగ్గర చిల్లర లేదు", meaning: "I don't have change", hint: "My near + change + not",
                   acceptable: ["naaku chillar ledu", "chillar ledu"],
                   grammarNote: "Both ways work again: *naa daggara chillar ledu* (“near me, no change”) or *naaku chillar ledu* (“to me, no change”). Use *ledu* for “no” either way." },
@@ -853,8 +858,9 @@ export const CURRICULUM = {
                 { prompt: "Miko asks about the weather. Say 'It is raining'.", correct: "Vana padutondi", native: "వాన పడుతోంది", meaning: "Rain is falling", hint: "Rain + is falling", acceptable: ["vana paduthundi", "vana padutunnadi"] },
                 { prompt: "Miko is late. Phone and ask 'Are you on the bus?'", correct: "Meeru bus lo unnara?", native: "మీరు బస్సులో ఉన్నారా?", meaning: "Are you on the bus?", hint: "You + bus + in + are?", acceptable: ["bus lo unnara?"],
                   grammarNote: "*Unnara?* from lesson 26 turns “you are” into a question. Telugu says “in the bus”: *bus lo*." },
-                { prompt: "Say 'I am going on a trip tomorrow'.", correct: "Repu nenu prayanam chestunnanu", native: "రేపు నేను ప్రయాణం చేస్తున్నాను", meaning: "Tomorrow I am going on a trip", hint: "Tomorrow + I + trip + doing",
-                  grammarNote: "A trip is something you *do*, not somewhere you go: *prayanam chestunnanu*." },
+                { prompt: "Say 'I am travelling tomorrow'.", correct: "Repu nenu prayanam chestunnanu", native: "రేపు నేను ప్రయాణం చేస్తున్నాను", meaning: "Tomorrow I am travelling (doing a trip)", hint: "Tomorrow + I + trip + am doing",
+                  acceptable: ["repu nenu prayanam chestanu"],
+                  grammarNote: "Telugu travels by *doing* a trip: *prayanam chestunnanu*, “I am doing a trip”. *Prayanam chestanu* (“I will travel”) works for tomorrow too. *Velthunnanu* needs a place to go to, not a trip." },
                 { prompt: "Final check: 'It is sunny today, but tomorrow it will rain'.", correct: "Eeroju enda undi, kani repu vana paduthundi", native: "ఈరోజు ఎండ ఉంది, కానీ రేపు వాన పడుతుంది", meaning: "Today it is sunny, but tomorrow rain will fall", hint: "Today + sun + there is, but + tomorrow + rain + will fall",
                   acceptable: ["eeroju chala enda undi, kani repu vana paduthundi"],
                   grammarNote: "*Kani* (“but”, lesson 24) joins the two halves. And here *paduthundi* has its own meaning, “will fall”, because it is about tomorrow." }
@@ -870,12 +876,12 @@ export const CURRICULUM = {
                 { word: "Avunu", native: "అవును", meaning: "Yes", phonetic: "uh-vu-nu" }
             ],
             phrases: [
-                { prompt: "Say 'It's good, right?'", correct: "Manchi, kada?", native: "మంచి, కదా?", grammarNote: "*Adhi* here is “um…”, the same word as “that”, used another way.", meaning: "Good, right?", hint: "Good + right?" },
+                { prompt: "Say 'It's good, right?'", correct: "Manchi, kada?", native: "మంచి, కదా?", grammarNote: "*Kada?* goes on the end, like “…, right?” in English. *Bagundi, kada?* (“it is good, right?”) works just as well.", meaning: "Good, right?", hint: "Good + right?", acceptable: ["bagundi, kada?"] },
                 { prompt: "Say 'Look there!'", correct: "Akkada chudu!", native: "అక్కడ చూడు!", meaning: "Look there!", hint: "There + look" },
-                { prompt: "Say 'Okay, I agree'", correct: "Sare, avunu", native: "సరే, అవును", meaning: "Okay, yes", hint: "Okay + yes" }
+                { prompt: "Say 'Okay, yes'", correct: "Sare, avunu", native: "సరే, అవును", meaning: "Okay, yes", hint: "Okay + yes" }
             ],
             conversations: [
-                { prompt: "Miko says something. Respond with 'Right?' (Kada?)", correct: "Kada?", native: "కదా?", meaning: "Right?", hint: "Filler word" },
+                { prompt: "Miko says the food is good. Answer with one word: 'Right?'", correct: "Kada?", native: "కదా?", meaning: "Right?", hint: "Filler word" },
                 { prompt: "Point to Miko: 'Look at Miko!'", correct: "Miko chudu!", native: "మికో చూడు!", meaning: "See Miko!", hint: "Name + look" },
                 { prompt: "A close friend walks in. Ask how they are, the casual way.", correct: "Ela unnavu?", native: "ఎలా ఉన్నావు?", meaning: "How are you?", hint: "How + are you (to a friend)?",
                   grammarNote: "*Unnavu* is the friend form of *unnaru*, from lesson 1: the same word with -vu for “you” instead of -ru." },
@@ -917,7 +923,7 @@ export const CURRICULUM = {
             ],
             phrases: [
                 { prompt: "Say 'I can speak Telugu'", correct: "Nenu Telugu matladagalanu", native: "నేను తెలుగు మాట్లాడగలను", meaning: "I can speak Telugu", hint: "I + Telugu + speak + can",
-                  grammarNote: "*Matladagalanu* (“I can speak”) is from lesson 22. Nothing new here: this lesson puts it all together." },
+                  grammarNote: "*Matladagalanu* (“I can speak”) is from lesson 22. Nothing new in this one: this lesson puts what you have together, with a few last words to finish on." },
                 { prompt: "Say 'This is my last one'.", correct: "Idhi naa aakhari", native: "ఇది నా ఆఖరి", meaning: "This is my last one", hint: "This + my + last" },
                 { prompt: "Say 'I can speak Telugu again'.", correct: "Nenu malli Telugu matladagalanu", native: "నేను మళ్ళీ తెలుగు మాట్లాడగలను", meaning: "I can speak Telugu again", hint: "I + again + Telugu + can speak", acceptable: ["malli Telugu matladagalanu"],
                   grammarNote: "*Malli* (“again”) goes in front. *Matladagalanu* means “I can speak”, so this says “I can speak again”." }

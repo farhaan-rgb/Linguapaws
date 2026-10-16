@@ -2290,5 +2290,77 @@
   "confidence": "medium",
   "reason": "Natural enough as an elliptical shop-talk answer, and it mirrors the course's own 'Naaku erupu ishtam'. 'Nalladi kaavali' (the black one) is the most colloquial, but -di is untaught, so keep the model answer and add acceptable 'nalupu rangu kaavali' and 'naaku nalupu rangu kaavali'. Nothing learners are taught changes. Gwynn, A Telugu-English Dictionary, https://dsal.uchicago.edu/cgi-bin/app/gwynn_query.py?qs=telupu&searchhws=yes and ?qs=nalupu (checked 2026-10-16)",
   "source": "linguist"
+ },
+ {
+  "where": "CURRICULUM.Telugu L27 phrase",
+  "id": "I have money",
+  "current": "naa daggara dabbulu unnai",
+  "native": "నా దగ్గర డబ్బులు ఉన్నాయి",
+  "verdict": "ok",
+  "fix": null,
+  "fixNative": null,
+  "confidence": "high",
+  "reason": "Dabbulu is plural, so unnayi (unnai is a common spelling) is the grammatical agreement and should pass; 'dabbulu undi' is very common colloquially and stays accepted. Added unnayi variants and a one-line note instead of a DISTINCT rule.",
+  "source": "dev (linguist call, conservative)"
+ },
+ {
+  "where": "CURRICULUM.Telugu L28 conversation",
+  "id": "I am going on a trip tomorrow",
+  "current": "Repu nenu prayanam chestunnanu",
+  "native": "రేపు నేను ప్రయాణం చేస్తున్నాను",
+  "verdict": "fix",
+  "fix": "Prompt reworded to 'I am travelling tomorrow'; 'repu nenu prayanam chestanu' also accepted",
+  "fixNative": null,
+  "confidence": "high",
+  "reason": "prayanam chestunnanu is 'I am travelling'. 'prayanam velthunnanu' is not idiomatic (would need prayananiki, untaught), so velthunnanu stays a miss; the prompt now says what the answer says. Pool t28-g5 reworded to 'I will travel' to match.",
+  "source": "dev (linguist call, conservative)"
+ },
+ {
+  "where": "CURRICULUM.Telugu L29 phrase",
+  "id": "It's good, right?",
+  "current": "bagundi, kada?",
+  "native": "బాగుంది, కదా?",
+  "verdict": "ok",
+  "fix": null,
+  "fixNative": null,
+  "confidence": "high",
+  "reason": "More natural than 'manchi, kada?' for a remark about a thing; both accepted.",
+  "source": "dev (linguist call, conservative)"
+ },
+ {
+  "where": "CURRICULUM.Telugu L27 vocab",
+  "id": "Entha",
+  "current": "entha idhi?",
+  "native": "ఎంత ఇది?",
+  "verdict": "ok",
+  "fix": null,
+  "fixNative": null,
+  "confidence": "medium",
+  "reason": "Question-final is the default (idhi entha?) but question-initial entha idhi? is heard in speech; teaching text now says 'usually near the end', no longer 'always at the END'.",
+  "source": "dev (linguist call, conservative)"
+ },
+ {
+  "where": "CURRICULUM.Telugu L11/L14/L25",
+  "id": "thin- stem",
+  "current": "tintanu / tintunnanu",
+  "native": "తింటాను / తింటున్నాను",
+  "verdict": "fix",
+  "fix": "Thintanu / Thintunnanu (old spellings kept as alt)",
+  "fixNative": null,
+  "confidence": "high",
+  "reason": "త is romanised th throughout the course (thinnanu, thinali, thinte, tharuvatha); the two tin- headwords were the outliers.",
+  "source": "dev (linguist call, conservative)"
+ },
+ {
+  "where": "CURRICULUM.Telugu L24 conversation",
+  "id": "Coffee and water",
+  "current": "kaafi",
+  "native": "కాఫీ",
+  "verdict": "ok",
+  "fix": null,
+  "fixNative": null,
+  "confidence": "high",
+  "reason": "Coffee is a loanword; Telugu kaafi accepted alongside the English spelling.",
+  "source": "dev (linguist call, conservative)"
  }
 ]

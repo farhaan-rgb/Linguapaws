@@ -47,7 +47,7 @@ export const CONSTRUCTIONS = {
         { id: 'c:naaku-have', label: 'Saying “I have / I feel” with naaku … undi', parts: [/^naaku$/, /^(undi|ledu|gurthundi)$/] },
         { id: 'c:continuous', label: 'Saying what you are doing now (-tunnanu)', parts: [/(tunnanu|thunnanu|tunnaru|thunnaru)$/] },
         { id: 'c:past', label: 'Saying what you did (past -anu)', parts: [/^(chesanu|vellanu|thinnanu|chusanu|cheppanu|perigaanu)$/] },
-        { id: 'c:future', label: 'Saying what you will do (-tanu)', parts: [/^(chestanu|velthanu|tintanu|chustanu)$/] },
+        { id: 'c:future', label: 'Saying what you will do (-tanu)', parts: [/^(chestanu|velthanu|thintanu|tintanu|chustanu)$/] },
         { id: 'c:can', label: 'Saying “I can / can’t” (-galanu / -lenu)', parts: [/(galanu|lenu)$/] },
         { id: 'c:should', label: 'Saying “I should” (-ali)', parts: [/^(cheyali|vellali|thinali|matladali|aali)$/] },
         { id: 'c:if', label: 'Saying “if” (-te / -the)', parts: [/^(unte|velthe|thinte|chesthe)$/] },
