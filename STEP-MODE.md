@@ -81,6 +81,21 @@ The most fragile moment in the lesson is the one where people quit, so:
 - When the engine cannot diagnose and the drill carries no hint,
   `praise.scaffoldFor` gives the *shape* of the answer — how many words, what
   the first one starts with. Enough to start writing, never enough to copy.
+- **The drill's grammar note appears here too**, under the diagnosis, as long
+  as it does not hand the answer over (`engine.noteGivesAnswer`). It used to
+  wait for a correct answer, so the one person it was written for — the learner
+  who has just got the rule wrong — never saw it. 82 of the course's 204 notes
+  state a rule and are shown; the other 122 quote the answer they explain
+  (Telugu 2's *Idhi emiti?* note names both its words) and still wait. Shown,
+  never spoken: the miss screen already reads the diagnosis aloud.
+- **The order line names the clause, not the sentence.** The course punctuates
+  its clauses and `normalizeLatin` flattens them, so "hoguttene goes last" was
+  said about a sentence where the verb is last only in its second half — true
+  there by accident, false of *Aamele hoguttene, eega tinnuttiddene*. The line
+  now reads "goes last in the second half", and where the learner got the same
+  shape right in the other half it says so: "You did that with *tinnuttiddene*
+  in the first half." The comma is for the message only; the grader never sees
+  it and an answer typed without commas passes exactly as before.
 - **The second miss hands the answer over and invites them to type it once.**
   Locked in, worth 2 paws. A screen that ends in failure teaches the failure;
   this one ends on an action the learner completed.
