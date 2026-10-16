@@ -506,4 +506,13 @@ export const TAP = {
     endingSame: (ending, word, meaning) => ` — the same -${ending} as *${word}* (${meaning}).`,
     endingShow: 'Show it on the word',
     endingApplied: (stem, form) => `*${stem}* → **${form}**`,
+    /* "I", "you", "my": every form this lesson taught, each with when it is
+       used. The "to me" form is what liking, wanting, knowing and having take
+       — "I like it" is *nanage ishta*, never *naanu ishta*. */
+    pronounWhen: {
+        1: { subject: 'I (I am, I go)', dative: 'to me (like, want, know, have)', possessive: 'my (my name, my house)' },
+        2: { subject: 'you (you are, you go)', dative: 'to you (like, want, know, have)', possessive: 'your (your name)' },
+    },
+    /** Marks the form the sentence around the tapped word uses. */
+    here: 'here',
 };

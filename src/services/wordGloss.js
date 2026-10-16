@@ -141,9 +141,11 @@ export const ENGLISH_MAX_WORDS = 4;
  * @returns {null | {english: true, phrase, options: [{word, meaning, lesson, earlier}]}
  *   | {english: true, phrase, ending: {ending, means, example, lesson}, applied: {stem, form}}}
  */
-export function englishFor(langName, phrase, lessonNo = Infinity, answer = null) {
+export function englishFor(langName, phrase, lessonNo = Infinity, answer = null, context = '') {
     const k = englishKey(phrase);
     if (!k) return null;
+    const pron = pronounFor(langName, k, lessonNo, context);
+    if (pron) return { english: true, phrase, ...pron };
     const idx = englishIndexFor(langName);
     const taughtBy = (key) => (idx.get(key) || []).filter(e => e.lesson <= lessonNo);
     /* A plural taught later ("Books", lesson 9) must not hide the singular
@@ -154,6 +156,84 @@ export function englishFor(langName, phrase, lessonNo = Infinity, answer = null)
     const options = list.slice(0, 2).map(e => ({ ...e, earlier: e.lesson < lessonNo }));
     if (options.length) return { english: true, phrase, options };
     return answer ? englishEndingFor(langName, phrase, lessonNo, answer) : null;
+}
+
+/* ── Pronouns: one English word, more than one taught form ──
+   "I" is *naanu* in "I am here" but *nanage* in "I like it" — the course
+   teaches that liking, wanting, knowing and having come "to me". A popover
+   that answered "I" with *naanu* alone would teach the sentence the course
+   tells the learner never to say. So "I", "me", "my", "you" and "your" open
+   to every form of that person this lesson has taught — found through the
+   course's own glosses ("I", "To me", "My"), never a list kept here — each
+   with a one-line "when". The tapped word's own form leads; when the
+   sentence around it is a liking/wanting/knowing/having one, the "to me"
+   form leads instead and is marked as the one meant here. */
+
+const PERSONS = {
+    1: { subject: ['i'], dative: ['to me'], possessive: ['my'] },
+    2: { subject: ['you'], dative: ['to you'], possessive: ['your'] },
+};
+/** English word tapped → which person, and which of its forms it names. */
+const PRONOUN_TAPS = {
+    i: [1, 'subject'], me: [1, 'dative'], my: [1, 'possessive'],
+    you: [2, 'subject'], your: [2, 'possessive'],
+};
+/** English that takes the "to me" form in these languages. "Have to" is a
+ *  must, not a having. */
+const DATIVE_CUE = /\b(?:like[sd]?|liking|wants?|wanted|know[sn]?|knew|need[sd]?|remember(?:s|ed)?|(?:have|has|had)(?!\s+to\b)|hungry|thirsty)\b/i;
+const dativeCueWords = new Map();
+
+/** Taught target words that carry those meanings (*ishta*, *beku*, *gottu*),
+ *  so a target-language sentence cues the form as well. */
+function dativeCuesFor(langName, lessonNo) {
+    const key = `${langName}|${lessonNo}`;
+    if (dativeCueWords.has(key)) return dativeCueWords.get(key);
+    const s = new Set();
+    const pron = new Set();
+    for (const p of Object.values(PERSONS)) for (const keys of Object.values(p)) for (const k of keys) pron.add(k);
+    (CURRICULUM[langName] || []).forEach((lesson, i) => {
+        if (i + 1 > lessonNo) return;
+        for (const v of lesson.vocabulary || []) {
+            const k = keyOf(v?.word);
+            if (!k || k.includes(' ')) continue;
+            const m = englishKey(String(v.meaning || '').replace(/\([^)]*\)/g, ' '));
+            if (pron.has(m) || m.includes('to me') || m.includes('to you')) continue;
+            if (DATIVE_CUE.test(m)) s.add(k);
+        }
+    });
+    dativeCueWords.set(key, s);
+    return s;
+}
+
+export function wantsDative(langName, context, lessonNo = Infinity) {
+    const text = String(context || '');
+    if (DATIVE_CUE.test(englishKey(text))) return true;
+    const cues = dativeCuesFor(langName, lessonNo);
+    return keyOf(text).split(' ').some(t => cues.has(t));
+}
+
+/** @returns {null | {pronoun: true, options: [{word, meaning, lesson, earlier, role, person, here}]}}
+ *  Null when this lesson has taught fewer than two forms: the plain lookup
+ *  then says everything there is to say. */
+export function pronounFor(langName, englishK, lessonNo = Infinity, context = '') {
+    const tap = PRONOUN_TAPS[englishK];
+    if (!tap) return null;
+    const [person, focus] = tap;
+    const idx = englishIndexFor(langName);
+    const forms = [];
+    for (const [role, keys] of Object.entries(PERSONS[person])) {
+        const hit = keys.flatMap(k => idx.get(k) || []).find(e => e.lesson <= lessonNo);
+        if (hit && !forms.some(f => keyOf(f.word) === keyOf(hit.word))) {
+            forms.push({ ...hit, earlier: hit.lesson < lessonNo, role, person });
+        }
+    }
+    if (forms.length < 2) return null;
+    const dative = forms.find(f => f.role === 'dative');
+    const lead = focus === 'subject' && dative && wantsDative(langName, context, lessonNo) ? 'dative' : focus;
+    const rank = (f) => (f.role === lead ? 0 : f.role === focus ? 1 : f.role === 'subject' ? 2 : f.role === 'dative' ? 3 : 4);
+    forms.sort((a, b) => rank(a) - rank(b));
+    if (lead !== focus) forms[0] = { ...forms[0], here: true };
+    return { pronoun: true, options: forms.slice(0, 3) };
 }
 
 /** The taught ending an English word stands for on this screen, with the

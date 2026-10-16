@@ -120,12 +120,14 @@ const WORD_RE = /^([^\p{L}]*)([\p{L}'’-]*\p{L})([^\p{L}]*)$/u;
 /** Render a run of text, wrapping the words `want(key)` admits that have a
  *  gloss — and, with `english`, any other word or short phrase the course has
  *  taught a translation for. */
-function Words({ text, want, english = false }) {
+function Words({ text, want, english = false, context = null, offset = 0 }) {
     const ctx = useContext(TapCtx);
     const hide = useContext(HideCtx);
     const pieces = String(text).split(/(\s+)/);
+    const line = context ?? String(text);
     const out = [];
-    for (let i = 0; i < pieces.length; i++) {
+    let at = offset;
+    for (let i = 0; i < pieces.length; at += pieces[i].length, i++) {
         const piece = pieces[i];
         const m = piece.match(WORD_RE);
         if (!m) { out.push(piece); continue; }
@@ -152,7 +154,8 @@ function Words({ text, want, english = false }) {
                 const phrase = ms.map(x => x[2]).join(' ');
                 /* "I" the pronoun, never the letter i in "with an i". */
                 if (phrase === 'i') continue;
-                const entry = englishFor(ctx.langName, phrase, ctx.lessonNo, hide ? [...hide.hidden] : null);
+                const entry = englishFor(ctx.langName, phrase, ctx.lessonNo, hide ? [...hide.hidden] : null,
+                    sentenceAt(line, at));
                 if (entry) hit = { n, ms, phrase, entry };
             }
             if (hit) {
@@ -166,6 +169,7 @@ function Words({ text, want, english = false }) {
                         {ms[0][1]}<Word text={phrase} entry={e} english />{ms[n - 1][3]}
                     </React.Fragment>,
                 );
+                for (let j = 1; j < 2 * n - 1; j++) at += pieces[i + j - 1].length;
                 i += 2 * (n - 1);
                 continue;
             }
@@ -173,6 +177,16 @@ function Words({ text, want, english = false }) {
         out.push(piece);
     }
     return out;
+}
+
+/** The sentence of `line` around character `at`: whether "I" means *naanu*
+ *  or *nanage* turns on the verb beside it, not on a verb two sentences on. */
+function sentenceAt(line, at) {
+    const s = String(line);
+    let a = at, b = at;
+    while (a > 0 && !/[.!?;:\n]/.test(s[a - 1])) a--;
+    while (b < s.length && !/[.!?;:\n]/.test(s[b])) b++;
+    return s.slice(a, b);
 }
 
 /** A string that is all target language: an example, an answer, a family member. */
@@ -212,21 +226,25 @@ export function TapText({ text, accent = 'var(--accent-purple)' }) {
     const parts = String(text).split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).filter(Boolean);
     const frame = parts[0]?.match(FRAME)?.[1] || '';
     if (frame) parts[0] = parts[0].slice(frame.length);
+    /* The line without its markdown, and where each part starts in it, so a
+       word can be read in its own sentence. */
+    const inner = parts.map(part => (part.startsWith('**') && part.endsWith('**') && part.length > 4 ? part.slice(2, -2)
+        : part.startsWith('*') && part.endsWith('*') && part.length > 2 ? part.slice(1, -1) : part));
+    const plain = frame + inner.join('');
+    const starts = [];
+    inner.reduce((n, p) => { starts.push(n); return n + p.length; }, frame.length);
     return (
         <>
             {frame}
             {parts.map((part, i) => {
+                const words = <Words text={inner[i]} want={want} english context={plain} offset={starts[i]} />;
                 if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
-                    return (
-                        <strong key={i} style={{ color: accent, fontWeight: 700 }}>
-                            <Words text={part.slice(2, -2)} want={want} english />
-                        </strong>
-                    );
+                    return <strong key={i} style={{ color: accent, fontWeight: 700 }}>{words}</strong>;
                 }
                 if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
-                    return <em key={i} style={{ fontStyle: 'italic' }}><Words text={part.slice(1, -1)} want={want} english /></em>;
+                    return <em key={i} style={{ fontStyle: 'italic' }}>{words}</em>;
                 }
-                return <React.Fragment key={i}><Words text={part} want={want} english /></React.Fragment>;
+                return <React.Fragment key={i}>{words}</React.Fragment>;
             })}
         </>
     );
@@ -387,7 +405,34 @@ function Popover({ open, speak, onClose }) {
             {blue && !ending && shown && entry.gated && (
                 <p style={{ ...small, margin: '0 0 6px', color: 'var(--accent-blue)' }}>{praise.TAP.helped}</p>
             )}
-            {blue && !ending && shown && entry.options.map((o, i) => (
+            {blue && !ending && shown && entry.pronoun && entry.options.map((o, i) => (
+                <div key={o.word} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    paddingTop: i ? 6 : 0, marginTop: i ? 6 : 0,
+                    borderTop: i ? '1px solid rgba(59,130,246,0.14)' : 'none',
+                }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{
+                            margin: 0, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16,
+                            lineHeight: 1.2, wordBreak: 'break-word', display: 'flex', alignItems: 'center', gap: 6,
+                        }}>
+                            {o.word}
+                            {o.here && (
+                                <span style={{
+                                    fontFamily: 'var(--font-main)', fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4,
+                                    textTransform: 'uppercase', color: 'var(--accent-blue)',
+                                    background: 'rgba(59,130,246,0.1)', borderRadius: 99, padding: '2px 7px',
+                                }}>{praise.TAP.here}</span>
+                            )}
+                        </p>
+                        <p style={{ margin: '1px 0 0', fontSize: 12.5, fontWeight: 600, lineHeight: 1.3, color: 'var(--text-secondary)' }}>
+                            {praise.TAP.pronounWhen[o.person]?.[o.role] || o.meaning}
+                        </p>
+                    </div>
+                    {speakBtn(o.word)}
+                </div>
+            ))}
+            {blue && !ending && shown && !entry.pronoun && entry.options.map((o, i) => (
                 <div key={o.word} style={{
                     paddingTop: i ? 8 : 0, marginTop: i ? 8 : 0,
                     borderTop: i ? '1px solid rgba(59,130,246,0.14)' : 'none',
