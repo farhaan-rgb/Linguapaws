@@ -151,6 +151,31 @@ if (askReply) {
 
 const screen = params.get('screen');
 
+/* ── A stubbed skill model (adaptive phase 2) ──────────────────────────────
+   `?skills=w:nanage,e:ge` makes those skills weak and a few others strong, so
+   the adaptive Memory check and practice — and the one "Because …" caption —
+   can be looked at without a signed-in learner. `?confused=Naanu>Nanage`
+   adds an open confused pair (said>needed) for the caption to name. Every
+   other call is left as it was. Nothing is written anywhere. */
+const stubSkills = params.get('skills');
+if (stubSkills) {
+    const weak = stubSkills.split(',').filter(Boolean);
+    const confused = (params.get('confused') || '').split(',').filter(Boolean)
+        .map(p => { const [said, needed] = p.split('>'); return { said, needed }; });
+    const model = [
+        ...weak.map(skillId => ({ skillId, mastery: 0.2, evidence: 3, level: 'weak', weak: true })),
+        ...['w:mane', 'w:hoovu', 'w:neeru', 'w:illu', 'w:nenu'].map(skillId => ({
+            skillId, mastery: 0.9, evidence: 4, level: 'strong', weak: false, lastSeen: new Date().toISOString() })),
+    ];
+    localStorage.removeItem(`linguapaws_reviewset_${lang}_${scenario}`);
+    const before = api.get.bind(api);
+    api.get = async (path, ...rest) => {
+        if (String(path).startsWith('/api/progress/skills')) return model;
+        if (String(path).startsWith('/api/progress/confusions/open')) return confused;
+        return before(path, ...rest);
+    };
+}
+
 /* Header renders the signed-in avatar unconditionally, so the home preview needs
    a stub user. Never a real token — every API call still fails and is swallowed. */
 /* The lesson map: ?screen=map&done=N&at=S stubs /api/progress so the map shows

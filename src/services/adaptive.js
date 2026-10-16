@@ -35,6 +35,8 @@ export const RETENTION_SHARE = 0.2;
 export const DUE_SHARE = 0.4;
 /* In practice, no more than this share of one kind (word reviews vs drills). */
 export const KIND_SHARE = 0.6;
+/* How much each earlier pick for the same skill lowers the next one. */
+export const REPEAT_PENALTY = 0.3;
 
 const DAY = 86400000;
 const norm = (t) => engine.normalizeLatin(t);
@@ -157,12 +159,20 @@ export function selectAdaptive({
         ? Math.max(1, Math.round(size * retentionShare)) : 0;
     const strongHeld = () => picked.filter(p => p.level === 'strong').length;
     const reserve = () => Math.min(Math.max(wantStrong - strongHeld(), 0), strong.filter(p => !taken.has(p.c.key)).length);
-    /* 4. The rest by score, minding the kind cap. */
-    const rest = pool.filter(p => p.level !== 'strong').sort(byScore);
-    for (const p of rest) {
-        if (picked.length >= size - reserve()) break;
-        if (taken.has(p.c.key) || (p.c.kind && kindCount(p.c.kind) >= kindCap)) continue;
-        take(p, reasonOf(p));
+    /* 4. The rest by score, minding the kind cap. Each pick for a skill
+          lowers the next one for the same skill by REPEAT_PENALTY, so one
+          weak skill gets several screens but not the whole session. */
+    const rest = pool.filter(p => p.level !== 'strong');
+    const sameSkill = (p) => picked.filter(q => q.skill && q.skill === p.skill).length;
+    while (picked.length < size - reserve()) {
+        let best = null, bestScore = -Infinity;
+        for (const p of rest) {
+            if (taken.has(p.c.key) || (p.c.kind && kindCount(p.c.kind) >= kindCap)) continue;
+            const sc = p.score - REPEAT_PENALTY * sameSkill(p);
+            if (sc > bestScore) { best = p; bestScore = sc; }
+        }
+        if (!best) break;
+        take(best, reasonOf(best));
     }
     /* 5. Retention picks: the longest unseen first. */
     const seenAt = (p) => { const t = model.get(p.skill)?.lastSeen; return t ? new Date(t).getTime() : 0; };
@@ -232,10 +242,11 @@ export function withCaptions(steps, lang, { confusions = [] } = {}) {
     const done = new Set();
     return steps.map(s => {
         const a = s.adaptive;
-        if (!a || a.level !== 'weak' || done.has(s.phase)) return s;
+        if (!a || a.level !== 'weak' || done.has(s.phase) || done.has(a.skill)) return s;
         const why = whyCaption(lang, a.skill, { confusions });
         if (!why) return s;
         done.add(s.phase);
+        done.add(a.skill);   // one skill is explained once a session
         return { ...s, why };
     });
 }

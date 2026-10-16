@@ -1,4 +1,5 @@
 import { api } from './api';
+import { pickReviewItems } from './adaptive.js';
 
 /**
  * Client side of the spaced-repetition system.
@@ -65,17 +66,26 @@ export async function ensureReviewSet(lang, scenarioIdx, vocabulary = [], priori
     const cached = getReviewSet(lang, scenarioIdx);
     if (cached) return cached;
 
-    let due = [];
-    try {
-        due = await api.get(
-            `/api/progress/due?lang=${encodeURIComponent(lang)}&limit=${REVIEW_SLOTS}`
-        );
-    } catch {
-        due = []; // offline or unauthenticated — fall through to lesson vocabulary
-    }
+    /* Due words, and — for adaptive phase 2 — the learner's skill model and
+       open confused pairs. The model is fetched with a short timeout and any
+       failure is an empty model, which is today's behaviour exactly. A wider
+       due list only gives the adaptive pick a choice; without a model it is
+       cut back to the three most overdue, as before. */
+    const q = encodeURIComponent(lang);
+    const [dueRaw, stats, confusions] = await Promise.all([
+        api.get(`/api/progress/due?lang=${q}&limit=10`).catch(() => []),
+        fetchSkillModel(lang),
+        withTimeout(getOr(`/api/progress/confusions/open?lang=${q}&limit=10`, []), SKILLS_TIMEOUT_MS, []),
+    ]);
+    const due = (Array.isArray(dueRaw) ? dueRaw : []).filter((w) => w && w.word);
 
-    const set = (Array.isArray(due) ? due : [])
-        .filter((w) => w && w.word)
+    let set = null;
+    try {
+        set = pickReviewItems({ lang, scenarioIdx, due, stats, confusions, size: REVIEW_SLOTS });
+    } catch (err) {
+        console.warn('[srs] adaptive review pick failed', err);
+    }
+    set = set || due
         .slice(0, REVIEW_SLOTS)
         .map((w) => ({ word: w.word, meaning: w.meaning || '', source: 'due' }));
 
@@ -239,12 +249,13 @@ const getOr = (path, fallback) => api.get(path).then(r => (Array.isArray(r) ? r 
 export async function fetchPracticeSources(lang, size = 10) {
     if (!lang) return { due: [], confusions: [], missed: [] };
     const q = encodeURIComponent(lang);
-    const [due, confusions, missed] = await Promise.all([
+    const [due, confusions, missed, skills] = await Promise.all([
         getOr(`/api/progress/due?lang=${q}&limit=${size}`, []),
         getOr(`/api/progress/confusions/open?lang=${q}&limit=3`, []),
         getOr(`/api/progress/missed?lang=${q}&limit=${size}`, []),
+        fetchSkillModel(lang),
     ]);
-    return { due, confusions, missed };
+    return { due, confusions, missed, skills };
 }
 
 /** Fire-and-forget: a lesson screen whose answer had to be revealed. */
@@ -282,6 +293,29 @@ export async function recordSkillEvidence({ lang, items }) {
         console.warn('[srs] failed to record skill evidence', err.message);
         return null;
     }
+}
+
+/* ── The skill model, for adaptive selection (phase 2) ──────────────────────
+   Prefetched when a lesson loads and memoised briefly, so the review round
+   and practice never wait on it: SKILLS_TIMEOUT_MS and it is an empty model,
+   which every caller treats as "no model" — the non-adaptive plan. */
+export const SKILLS_TIMEOUT_MS = 1500;
+const SKILLS_TTL_MS = 60000;
+const skillMemo = new Map();   // lang -> { at, promise }
+const withTimeout = (p, ms, fallback) => Promise.race([
+    p, new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
+]).catch(() => fallback);
+
+/** The learner's skill model ([] offline, signed out, or slow). Never rejects. */
+export function fetchSkillModel(lang) {
+    if (!lang) return Promise.resolve([]);
+    const hit = skillMemo.get(lang);
+    if (hit && Date.now() - hit.at < SKILLS_TTL_MS) return hit.promise;
+    const promise = withTimeout(fetchSkills(lang), SKILLS_TIMEOUT_MS, []);
+    skillMemo.set(lang, { at: Date.now(), promise });
+    /* A miss is not remembered: the next lesson asks again. */
+    promise.then((r) => { if (!r?.length) skillMemo.delete(lang); });
+    return promise;
 }
 
 /** Mastery per skill, weakest first ([] offline). */

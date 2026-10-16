@@ -17,7 +17,7 @@ import {
 import {
     ensureReviewSet, recordTaughtWord, recordReview,
     ensureContrast, recordConfusion, recordContrastCheck,
-    fetchPracticeSources, recordMissedScreen, recordMissedCheck, recordSkillEvidence,
+    fetchPracticeSources, recordMissedScreen, recordMissedCheck, recordSkillEvidence, fetchSkillModel,
 } from '../services/srs';
 import { skillEvidence, outcomeOf } from '../services/skills';
 import { examplesFor } from '../services/examples';
@@ -1325,7 +1325,7 @@ function StepScreen({
             setNote(engine.spellingNote(said, step.expected, step.variants, lexicon) || '');
             setPhase('correct');
             setReward(onSettled({ correct: true, revealed: false, misses, helped,
-                attempts: attemptsRef.current, spoken }));
+                attempts: attemptsRef.current, spoken, said }));
             return;
         }
 
@@ -2152,6 +2152,11 @@ function Lesson({ scenarioParam, practice = false }) {
 
     const step = run[index] || null;
 
+    /* The skill model, asked for as soon as the language is known so the
+       review round and practice find it memoised. Never awaited here: a slow
+       or failed fetch is an empty model, and the lesson builds as it always did. */
+    useEffect(() => { if (langName) fetchSkillModel(langName); }, [langName]);
+
     /* Build the run: review slots from the SRS queue, everything else straight
        from the curriculum. */
     useEffect(() => {
@@ -2161,7 +2166,7 @@ function Lesson({ scenarioParam, practice = false }) {
             (async () => {
                 const sources = await fetchPracticeSources(langName);
                 const built = buildPracticeSteps({
-                    lessons, finishedIdx: scenarioIdx, ...sources, seed: Date.now() % 100000,
+                    lessons, finishedIdx: scenarioIdx, ...sources, seed: Date.now() % 100000, lang: langName,
                 });
                 if (cancelled) return;
                 setSteps(built);
@@ -2490,7 +2495,7 @@ function Lesson({ scenarioParam, practice = false }) {
     /** A screen was answered. Tell the SRS, move the shared progress counter,
      *  and hand the screen back everything it needs to celebrate. */
     const handleSettled = useCallback(({ correct, revealed, misses: tries, helped: tapped = false,
-        attempts = [], spoken = false }) => {
+        attempts = [], spoken = false, said: finalSaid = '' }) => {
         const t = tally.current;
         /* A re-ask is a screen that already went wrong once, so its success is a
            recovery, never a clean first-try answer. */
@@ -2577,7 +2582,7 @@ function Lesson({ scenarioParam, practice = false }) {
                 const items = skillEvidence({
                     step, lang: langName, lessonNo: taughtLessons.length, lexicon,
                     outcome: outcomeOf({ correct, misses: tries, revealed, helped: Boolean(correct && tapped && tries === 0), attempts: attempts.length }),
-                    attempts, finalSpoken: Boolean(correct && spoken),
+                    attempts, finalSpoken: Boolean(correct && spoken), finalSaid: correct ? finalSaid : '',
                 });
                 if (items.length) recordSkillEvidence({ lang: langName, items });
             } catch (err) { console.warn('[skills] attribution failed', err); }
@@ -2835,6 +2840,18 @@ function Lesson({ scenarioParam, practice = false }) {
                 </p>
                 <ScorePill points={score.points} combo={score.combo} gain={gain} />
             </div>
+            {/* Why this screen: one quiet line on a screen the adaptive plan
+                chose for a weak skill. Shown, never spoken; not on a re-ask. */}
+            {!step.retry && (step.why || step.item?.why) && (
+                <p className="adaptive-why" style={{
+                    margin: '-8px 16px 12px', fontSize: 12, lineHeight: 1.35,
+                    color: 'var(--text-secondary)',
+                }}>
+                    {String(step.why || step.item.why).split('*').map((part, i) => (i % 2
+                        ? <em key={i} style={{ color: 'var(--text-primary)' }}>{part}</em>
+                        : <span key={i}>{part}</span>))}
+                </p>
+            )}
 
             {/* Keyed, but deliberately NOT wrapped in AnimatePresence: `mode="wait"`
                 holds the outgoing screen on stage until its exit finishes, so a

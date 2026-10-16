@@ -7,7 +7,8 @@ file is the design record for all of them.
 | Phase | What | State |
 |---|---|---|
 | 1 | Skill taxonomy, drill tagging, attribution, per-learner skill model | **done — measure only** |
-| 2–4 | Act on the model | not started |
+| 2 | Practice and the in-lesson Memory check aim at weak skills, and say why | **done** |
+| 3–4 | Act on the model further | not started |
 
 Phase 1 changes nothing a learner sees, is asked, or is accepted on. Grading
 stays in `lessonEngine.scoreAnswer`; attribution runs after the engine has
@@ -105,7 +106,7 @@ Level: `new` while evidence < 1; then `weak` if mastery < 0.5, `strong` if
 `Steps.jsx` posts after every settled screen, lesson and practice, first
 attempt and re-ask. **Chat.jsx does not post yet**: its turns are not screens
 with a known step and attempt list, and wiring it means reconstructing both from
-the message log — left for phase 2.
+the message log — not cheap, so deferred again to phase 3.
 
 Debug: `/debug/skills` (hidden route, `?lang=Telugu`, `?weak=1`) lists the
 signed-in learner's model with labels.
@@ -118,3 +119,62 @@ signed-in learner's model with labels.
   toward weak skills (e.g. pick practice drills whose tags hit `weak` ones).
 - The confused partner and the ending a learner over-applies are in the
   evidence, so `w:hoguttene` low after `w:maaduttiddene` misses is visible.
+
+## Phase 2: selection (`src/services/adaptive.js`)
+
+One rule chooses which screens Practice and the Memory check ask. It only
+chooses among screens the course already has, from lessons already taught;
+what a screen asks and what it accepts are unchanged.
+
+A candidate scores by the neediest skill it tests (`skillsOfStep` = `tagStep`,
+plus — for a one-word review — every taught construction the word is a key of,
+so *nanage* answers to `c:nanage-like`):
+
+    need:  weak 1.0 > learning 0.6 > new-but-taught 0.35 > strong 0.1
+           (strong but unseen for 21 days counts as learning: it is decaying)
+    score: need of the neediest skill + 0.25 × mean need
+           + source bonus (confusion 0.6, due 0.4, missed 0.3) + seeded jitter ≤ 0.05
+
+Then, in order: every open confused pair; 40% of slots held for due words
+(neediest first) so the SRS still moves; the rest by score, each earlier pick
+for the same skill costing 0.3 so one weak skill gets several screens, not the
+session; and 20% (at least one) for strong skills, longest-unseen first, for
+retention. Practice caps one kind (word reviews vs drills) at 60%. The picks are
+reordered so no skill comes twice in a row where there is a choice (in practice,
+within each phase group, since re-asks need the phases grouped). Seeded:
+practice by `Date.now()`, the Memory check by lesson index.
+
+| Surface | Candidates | Without a model |
+|---|---|---|
+| Practice (`buildPracticeSteps({ skills })`) | due words, open pairs, missed screens, every word and drill of finished lessons | the old priority plan, byte for byte (tested) |
+| Memory check (`srs.ensureReviewSet` → `pickReviewItems`) | due words and every word of the lessons **before** this one; top-up from this lesson as before | the old three most-due + top-up |
+
+The Memory check keeps its three slots and the contrast still takes the last,
+so plan length, resume and the lesson map do not move. The set is cached per
+lesson as before, so Chat asks the same words — Chat reads `source: 'earlier'`
+as an older word, and shows no caption.
+
+**Why captions.** A pick whose neediest skill is `weak` may carry `why`, e.g.
+*"Because the -ge ending tripped you up before"* or, for a word with an open
+confused pair, *"Because Nanage and Naanu got mixed up before"*. At most one
+per round (phase) and one per skill per session; never on a default pick, never
+on a re-ask, never spoken — it renders as `.adaptive-why` under the header, out
+of everything the voice reads.
+
+**Fetching.** `srs.fetchSkillModel(lang)`: prefetched when the lesson mounts,
+1.5 s timeout, memoised 60 s, never rejects; anything but a non-empty list is
+"no model". Nothing waits on it beyond that timeout.
+
+**Optional constructions.** A drill whose accepted forms carry a construction
+its expected answer drops (Telugu *naaku … kaavali*) is now tagged with it,
+marked `optional`. It is a target for selection, but takes evidence only when
+the learner's own accepted answer used it (`skillEvidence({ finalSaid })`) —
+dropping *naaku* is correct, not a failure. `c:naaku-want` is now tested by 9+
+Telugu screens; skill-check reports 162/162 Telugu skills tested.
+
+**Preview.** `preview.html?…&skills=c:nanage-like,e:ge[&confused=Naanu>Nanage]`
+stubs a model (those weak, five words strong) for the Memory check and
+`screen=practice&done=N`.
+
+Tests: `tests/adaptive.test.mjs`; practice-check also builds every plan with a
+model and holds it to the same promises.

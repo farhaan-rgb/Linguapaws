@@ -12,6 +12,8 @@
  */
 
 import * as engine from '../services/lessonEngine.js';
+import { CURRICULUM } from './curriculum.js';
+import { hasModel, modelMap, selectAdaptive, skillsOfStep, spreadBySkill, withCaptions, KIND_SHARE } from './adaptive.js';
 
 export const PHASES = {
     teach:        { label: 'New words',   blurb: 'Meet it, then say it back' },
@@ -279,7 +281,13 @@ export function buildLessonSteps(lesson, reviewSet = null, allLessons = [], cont
 
    Every screen carries `practice` (which of the four filled it) and
    `lessonIdx` (the finished lesson it came from); a screen from the missed
-   record also carries `missedRef`, the record to retire. */
+   record also carries `missedRef`, the record to retire.
+
+   With a skill model (`skills`, GET /api/progress/skills) the same four
+   sources become candidates for adaptive.selectAdaptive instead: weak skills
+   first, a share for due words and for retention, pairs always, no skill
+   twice in a row — and at most one screen per round says why it was chosen
+   (`why`). No model, or an empty one, is the plan above unchanged. */
 
 export const PRACTICE_SIZE = 10;
 
@@ -299,9 +307,12 @@ function shuffled(list, seed) {
 
 export function buildPracticeSteps({
     lessons = [], finishedIdx = null, due = [], confusions = [], missed = [],
-    size = PRACTICE_SIZE, seed = 0,
+    size = PRACTICE_SIZE, seed = 0, skills = null, now = Date.now(), lang = null,
 } = {}) {
     if (!Number.isInteger(finishedIdx) || finishedIdx < 0) return [];
+    if (hasModel(skills)) {
+        return adaptivePractice({ lessons, finishedIdx, due, confusions, missed, size, seed, skills, now, lang: lang || langOf(lessons) });
+    }
     const scope = lessons.slice(0, finishedIdx + 1);
     if (!scope.length) return [];
 
@@ -371,6 +382,68 @@ export function buildPracticeSteps({
     return order.flatMap(ph => picked.filter(s => s.phase === ph))
         .map((s, i) => ({ ...s, index: i }));
 }
+
+/* The adaptive practice plan: every screen practice could ask, scored. */
+function adaptivePractice({ lessons, finishedIdx, due, confusions, missed, size, seed, skills, now, lang }) {
+    const scope = lessons.slice(0, finishedIdx + 1);
+    const lessonNo = finishedIdx + 1;
+    const words = new Map();
+    scope.forEach((l, li) => (l.vocabulary || []).forEach(v => {
+        const k = norm(v.word);
+        if (k && !words.has(k)) words.set(k, { ...v, lessonIdx: li });
+    }));
+    const drillsByLesson = scope.map(drillsOf);
+    const wordStep = (w) => reviewStep(
+        { word: w.word, meaning: w.meaning || '', source: 'due', native: w.native || '' }, scope);
+
+    const cands = [];
+    const add = (step, source, lessonIdx, extra = {}) => {
+        const key = norm(step.expected);
+        if (!key) return;
+        const full = { ...step, ...extra, practice: source, lessonIdx };
+        cands.push({ key, source, kind: step.kind, skills: skillsOfStep(full, { lang, lessonNo }), step: full });
+    };
+    for (const c of confusions || []) {
+        const a = words.get(norm(c?.said)), b = words.get(norm(c?.needed));
+        const item = a && b ? contrastItem(c) : null;
+        if (item) add(reviewStep(item, scope), 'confusion', Math.max(a.lessonIdx, b.lessonIdx));
+    }
+    for (const d of due || []) {
+        const w = words.get(norm(d?.word));
+        if (w) add(wordStep(w), 'due', w.lessonIdx);
+    }
+    for (const m of missed || []) {
+        const li = Number(m?.lessonIdx);
+        if (!Number.isInteger(li) || li < 0 || li > finishedIdx) continue;
+        if (m.kind === 'word') {
+            const w = words.get(norm(m.key));
+            if (w) add(wordStep(w), 'missed', w.lessonIdx, { missedRef: { kind: 'word', key: m.key, lessonIdx: li } });
+        } else if (m.kind === 'drill') {
+            const di = drillsByLesson[li].findIndex(d => norm(d.correct) === norm(m.key));
+            if (di >= 0) add(drillStep(drillsByLesson[li], di), 'missed', li, { missedRef: { kind: 'drill', key: m.key, lessonIdx: li } });
+        }
+    }
+    for (const w of words.values()) add(wordStep(w), 'mix', w.lessonIdx);
+    drillsByLesson.forEach((ds, li) => ds.forEach((d, di) => { if (d?.correct) add(drillStep(ds, di), 'mix', li); }));
+
+    const picks = selectAdaptive({
+        candidates: cands, model: modelMap(skills), size, seed, now, kindShare: KIND_SHARE,
+    });
+    /* Grouped by phase for the end-of-round re-asks, spread within each. */
+    const order = ['review', 'phrase', 'conversation'];
+    let prev = null;
+    const grouped = order.flatMap(ph => {
+        const g = spreadBySkill(picks.filter(p => p.step.phase === ph), prev);
+        if (g.length) prev = g[g.length - 1].adaptive?.skill || null;
+        return g;
+    }).map(p => ({ ...p.step, adaptive: p.adaptive }));
+    return withCaptions(grouped, lang, { confusions }).map((s, i) => ({ ...s, index: i }));
+}
+/* The language a lesson list belongs to, for the skill taxonomy. */
+const langOf = (lessons) => {
+    for (const [name, list] of Object.entries(CURRICULUM)) if (list === lessons || (lessons.length && list[0] === lessons[0])) return name;
+    return null;
+};
 
 /** What a revealed screen is remembered as, for practice to bring back:
  *  a teach screen is its word, a drill its answer. Reviews are left to the SRS

@@ -151,7 +151,32 @@ export function tagStep(step, { lang, lessonNo }) {
     /* A teach screen and a memory check ask for words, not a sentence; a
        contrast asks for two words in an order the prompt dictates. */
     const order = step?.kind === 'drill';
-    return tagAnswer(stepAnswer(step), { lang, lessonNo, order });
+    const tag = tagAnswer(stepAnswer(step), { lang, lessonNo, order });
+    /* A construction the course accepts but does not expect. Telugu drops
+       *naaku*: "Neeru kaavali" is the answer and "naaku neeru kaavali" is
+       accepted, so matching the expected answer alone never tagged
+       c:naaku-want. A construction found in an accepted form, sharing a key
+       with the expected answer, is tagged `optional`: it is in `skills` (a
+       plan can aim at it), but it only takes evidence when the learner's own
+       answer used it — dropping naaku is not a failure of it. */
+    tag.core = [...tag.skills];
+    if (order) {
+        const have = new Set(tag.constructions.map(c => c.id));
+        for (const c of contextFor(lang, lessonNo).constructions) {
+            if (have.has(c.id)) continue;
+            for (const v of step.variants || []) {
+                const vt = toks(v);
+                const keys = c.parts.map(re => vt.find(t => re.test(t)));
+                if (keys.every(Boolean) && keys.some(k => tag.tokens.includes(k))) {
+                    tag.constructions.push({ id: c.id, keys, optional: true });
+                    tag.skills.push(c.id);
+                    have.add(c.id);
+                    break;
+                }
+            }
+        }
+    }
+    return tag;
 }
 
 /* ── The taxonomy ──────────────────────────────────────────────────────── */
@@ -319,7 +344,7 @@ function missEvidence(attempt, tag, step, lexicon) {
     for (const c of tag.constructions) {
         if (c.keys.every(has) && !c.keys.some(k => charged.has(k))) push([c.id], 1, W.present);
     }
-    if (!out.some(e => e.score < 1)) push(tag.skills, 0, W.undiagnosed);
+    if (!out.some(e => e.score < 1)) push(tag.core || tag.skills, 0, W.undiagnosed);
     return out;
 }
 
@@ -354,17 +379,24 @@ function merge(items) {
  *   attempts  — the missed attempts, in order: [{ said, spoken, help }] where
  *               `help` is lessonEngine.missHelp's result for that attempt
  *   finalSpoken — the accepted answer was spoken (correct outcomes only)
+ *   finalSaid — the accepted answer's text (correct outcomes only); credits an
+ *               optional construction the learner chose to use
  *   lexicon   — engine.buildLexicon of the taught lessons
  * Returns `[{ skillId, score, weight }]`, weights after phase and re-ask scaling.
  */
-export function skillEvidence({ step, lang, lessonNo, outcome, attempts = [], finalSpoken = false, lexicon = new Map() }) {
+export function skillEvidence({ step, lang, lessonNo, outcome, attempts = [], finalSpoken = false, finalSaid = '', lexicon = new Map() }) {
     if (!step) return [];
     const tag = tagStep(step, { lang, lessonNo });
     if (!tag.skills.length) return [];
     const W = WEIGHTS;
     const items = [];
     let lastCh = 1;
-    const all = (score, weight, mult = 1) => tag.skills.forEach(id => items.push({ skillId: id, score, weight: weight * mult }));
+    /* An optional construction counts for a right answer only when that
+       answer used it ("naaku neeru kaavali", not "neeru kaavali"). */
+    const said = new Set(toks(finalSaid));
+    const used = tag.constructions.filter(c => c.optional && c.keys.every(k => said.has(k))).map(c => c.id);
+    const core = [...(tag.core || tag.skills), ...used];
+    const all = (score, weight, mult = 1) => core.forEach(id => items.push({ skillId: id, score, weight: weight * mult }));
     const finalCh = finalSpoken ? W.spoken : 1;
 
     for (const a of attempts) {
@@ -379,7 +411,7 @@ export function skillEvidence({ step, lang, lessonNo, outcome, attempts = [], fi
     else if (outcome === 'revealed') {
         /* A tagged skill the misses said nothing about, either way. */
         const named = new Set(items.map(i => i.skillId));
-        tag.skills.filter(id => !named.has(id))
+        (tag.core || tag.skills).filter(id => !named.has(id))
             .forEach(id => items.push({ skillId: id, score: 0, weight: W.revealedRest * lastCh }));
     }
     const scale = (W.phase[step.phase] ?? 1) * (step.retry ? W.reask : 1);

@@ -22,6 +22,7 @@ const problems = [];
 const fail = (m) => problems.push(m);
 const norm = (t) => String(t || '').toLowerCase().replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim();
 let plans = 0;
+let adaptivePlans = 0;
 
 for (const lang of langs) {
     const lessons = CURRICULUM[lang];
@@ -85,6 +86,22 @@ for (const lang of langs) {
                 Math.min(Math.max(size - nDue - nPair, 0), nMissed), 0];
             if (got.join() !== exp.join()) fail(`${tag} size ${size}: sources ${got} != ${exp}`);
         }
+        /* The adaptive plan (a skill model present) keeps the same promises:
+           finished lessons only, no repeats, its own answers accepted, the
+           same size, pairs always in, phases grouped. */
+        const model = [...scopeWords].slice(0, 3).map(w => ({ skillId: `w:${w.replace(/ /g, '-')}`, level: 'weak', mastery: 0.2, evidence: 3 }))
+            .concat([...scopeWords].slice(3, 8).map(w => ({ skillId: `w:${w.replace(/ /g, '-')}`, level: 'strong', mastery: 0.9, evidence: 5 })));
+        const ad = buildPracticeSteps({ lessons, finishedIdx: f, due, confusions, missed, seed: f, skills: model, lang });
+        if (ad.length !== want) fail(`${tag} adaptive: ${ad.length} screens, wanted ${want}`);
+        if (new Set(ad.map(s => norm(s.expected))).size !== ad.length) fail(`${tag} adaptive: a screen repeats`);
+        if (count(ad, 'confusion') !== nPair) fail(`${tag} adaptive: ${count(ad, 'confusion')} pairs, wanted ${nPair}`);
+        for (const s of ad) {
+            if (!(s.lessonIdx <= f)) fail(`${tag} adaptive: "${s.expected}" from lesson ${s.lessonIdx + 1}`);
+            if (!engine.scoreAnswer(s.expected, s.expected, s.variants, lexicon).accepted) fail(`${tag} adaptive: rejects "${s.expected}"`);
+        }
+        if (ad.filter(s => s.why).some(s => s.adaptive?.level !== 'weak')) fail(`${tag} adaptive: a caption on a non-weak pick`);
+        adaptivePlans++;
+
         /* Grouped by phase so the end-of-round re-asks work. */
         const phases = steps.map(s => s.phase);
         const order = ['review', 'phrase', 'conversation'];
@@ -92,7 +109,7 @@ for (const lang of langs) {
     }
 }
 
-console.log(`practice-check: ${plans} plans across ${langs.join(', ')}`);
+console.log(`practice-check: ${plans} plans (+${adaptivePlans} adaptive) across ${langs.join(', ')}`);
 if (problems.length) {
     console.log(`${problems.length} problem(s):`);
     problems.slice(0, 40).forEach(p => console.log('  ' + p));

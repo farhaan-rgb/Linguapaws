@@ -953,7 +953,8 @@ export default function Chat() {
 
                 if (item) {
                     const charName = activeCharacter?.name || 'Miko';
-                    const carriedOver = item.source === 'due'
+                    /* 'earlier' = an older word the adaptive pick chose (srs.ensureReviewSet). */
+                    const carriedOver = item.source === 'due' || item.source === 'earlier'
                         ? " Let's warm up an older word first."
                         : '';
                     const reviewGreeting = `Quick memory check, my friend! 🐾${carriedOver} What's the ${targetLangName} word for "${item.meaning}"?`;
