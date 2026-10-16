@@ -42,7 +42,7 @@ export const CONSTRUCTIONS = {
         { id: 'c:have', label: 'Saying “I have” with hattira … ide', parts: [/^hattira$/, /^(ide|ideya|illa)$/] },
     ],
     Telugu: [
-        { id: 'c:naaku-want', label: 'Saying “I want” with naaku … kaavali', parts: [/^naaku$/, /^(kaavali|oddu)$/] },
+        { id: 'c:naaku-want', label: 'Saying “I want” with naaku … kaavali', parts: [/^naaku$/, /^(kaavali|vaddu|oddu|voddu)$/] },
         { id: 'c:naaku-like', label: 'Saying “I like” with naaku … ishtam', parts: [/^naaku$/, /^ishtam$/] },
         { id: 'c:naaku-have', label: 'Saying “I have / I feel” with naaku … undi', parts: [/^naaku$/, /^(undi|ledu|gurthundi)$/] },
         { id: 'c:continuous', label: 'Saying what you are doing now (-tunnanu)', parts: [/(tunnanu|thunnanu|tunnaru|thunnaru)$/] },
@@ -52,7 +52,7 @@ export const CONSTRUCTIONS = {
         { id: 'c:should', label: 'Saying “I should” (-ali)', parts: [/^(cheyali|vellali|thinali|matladali|aali)$/] },
         { id: 'c:if', label: 'Saying “if” (-te / -the)', parts: [/^(unte|velthe|thinte|chesthe)$/] },
         { id: 'c:feel-ga', label: 'Saying how you feel (-ga undi)', parts: [/^(?!baga$|tvaraga$|mellaga$).+ga$/, /^(undi|unnanu|unnara|unnaru|unnavu)$/] },
-        { id: 'c:polite-ask', label: 'Asking politely (-andi)', parts: [/.(andi|ondi)$/] },
+        { id: 'c:polite-ask', label: 'Asking politely (-andi)', parts: [/^(?!paduth?ondi$).+(andi|ondi)$/] },
     ],
 };
 

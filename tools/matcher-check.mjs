@@ -154,7 +154,9 @@ const PINNED = {
         ['naanu nodide mane', 'Naanu mane nodide', false],    // K4 L13
     ],
     Telugu: [
-        ['naaku annam oddu', 'Annam oddu', true],             // rt16 L4, after "to say I: naaku neeru kaavali"
+        ['naaku annam vaddu', 'Annam vaddu', true],
+        ['annam oddu', 'Annam vaddu', true],                 // the spoken spelling, taught as an alt of vaddu
+        ['vedi neeru oddu', 'Vedi neeru kaavali', false],   // polarity flip in either spelling             // rt16 L4, after "to say I: naaku neeru kaavali"
         ['naaku rendu kaavali', 'Rendu kaavali', true],       // rt16 L7
         ['nenu rendu kaavali', 'Rendu kaavali', false],
         ['illu ekkada undi', 'Illu ekkada?', true],           // rt16 L3

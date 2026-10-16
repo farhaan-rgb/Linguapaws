@@ -67,7 +67,7 @@ const CASES = [
     ['Telugu', 3, 'nenu ikkada unnanu, meeru?', 'Nenu ikkada, meeru?', false, /“?I am”?.*which fits, but this sentence leaves it out/, /not what this asks for/],
     ['Telugu', 4, 'nenu neeru kaavali', 'Neeru kaavali', false, /^\*Nenu\* means “I”, but you don't need “I” here/, /not what this asks for/],
     ['Telugu', 6, 'meeru evaru unnaru', 'Meeru evaru?', false, /^\*Unnaru\* means “you are”, which fits/, /not what this asks for/],
-    ['Telugu', 5, 'naaku annam oddu', 'Annam oddu', false, /you don't need “I” here/, /not what this asks for/],
+    ['Telugu', 5, 'naaku annam vaddu', 'Annam vaddu', false, /you don't need “I” here/, /not what this asks for/],
     ['Telugu', 7, 'naaku rendu kaavali', 'Rendu kaavali', false, null, /not what this asks for/],
     // ...while a word whose meaning is not in the prompt still gets it.
     ['Telugu', 3, 'illu ekkada akkada', 'Illu ekkada?', false, /not what this asks for|There/],
@@ -75,8 +75,8 @@ const CASES = [
     ['Telugu', 1, 'ela meeru unnaru', 'Meeru ela unnaru', false, /^All the right words — the order is not\. ela goes right after meeru\.$/],
     ['Telugu', 10, 'ivvandi billu', 'Billu ivvandi', false, /^All the right words — the order is not\. ivvandi goes last\.$/, /billu ivvandi/],
     // A synonym form is not "all the right words", and the first miss names the learner's word.
-    ['Telugu', 3, 'vellu akkada', 'Akkada vellandi', false, /^The order is off\. vellu goes last\.$/, /All the right words|vellandi/],
-    ['Telugu', 3, 'vellu akkada', 'Akkada vellandi', true, /akkada vellandi/],
+    ['Telugu', 3, 'vellu akkadiki', 'Akkadiki vellandi', false, /^The order is off\. vellu goes last\.$/, /All the right words|vellandi/],
+    ['Telugu', 3, 'vellu akkadiki', 'Akkadiki vellandi', true, /akkadiki vellandi/],
     // A dropped syllable is a spelling slip, not a missing word.
     ['Telugu', 6, 'snehudu', 'Snehithudu', false, /^Close, check the spelling of snehudu\.$/, /missing/],
     ['Telugu', 6, 'snehudu', 'Snehithudu', true, /snehithudu/, /missing/],

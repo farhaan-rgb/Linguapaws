@@ -1,5 +1,7 @@
 # Telugu: questions for Farhaan
 
+**Answered 2026-10-16: yes to all nine** (and to telugu-second-opinion.md's matching answers). Applied: akkadiki, baaledu, vediga undi, maa for family and home (from L17), the naa daggara note in L5, lev for wake up, padutondi, erra batta, Vaddu. t9-g2 and t24-g2 removed; t10-g5 removed too, because its fix needs -ga, which L10 has not taught.
+
 Nine yes/no questions. Every other verdict in `telugu-verdicts.json` has been applied (2026-10-16). The drills named below are held back (not live) until you answer.
 
 1. **Is "Akkada vellandi" wrong for "Go there"** (it must be "Akkadiki vellandi")?

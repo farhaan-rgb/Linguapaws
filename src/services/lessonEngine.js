@@ -701,8 +701,12 @@ export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()
        "hot water, DON'T want" — and graded "Great job!", because the two content
        words were there and an accepted variant did not mention wanting at all.
        Saying the opposite of the answer is not a near miss. */
-    const POLARITY = new Set(['oddu', 'ledu', 'kaadu', 'kadu', 'ledhu']);
-    const polarityOf = (v) => new Set(normalizeLatin(v).split(' ').filter(t => POLARITY.has(t)));
+    const POLARITY = new Set(['vaddu', 'oddu', 'voddu', 'ledu', 'kaadu', 'kadu', 'ledhu']);
+    /* One word, three spellings: the course writes వద్దు *vaddu* and accepts
+       the spoken *oddu* and *voddu*, so they must not read as a polarity change. */
+    const SAME_POLARITY = { oddu: 'vaddu', voddu: 'vaddu' };
+    const polarityOf = (v) => new Set(normalizeLatin(v).split(' ')
+        .filter(t => POLARITY.has(t)).map(t => SAME_POLARITY[t] || t));
     const saidPolarity = polarityOf(actual);
     /* A copula the answer does not want. `Nenu illu lo unnaru` was praised for
        "I am in the house", whose answer has no verb at all — the learner had

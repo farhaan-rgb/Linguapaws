@@ -131,13 +131,14 @@
     {
       "id": "bare-imperative",
       "name": "bare verb = informal command",
-      "example": "vellu, chudu, melukonu",
+      "example": "vellu, chudu, lev",
       "introducedIn": 3,
       "basis": "L3 vocab 'Vellu = Go'. The course never says that the bare form is the blunt/informal command, nor contrasts it with -andi until L16.",
       "confidence": "guess",
       "detect": [
         "vellu",
         "chudu",
+        "lev",
         "melukonu"
       ],
       "except": []
@@ -157,12 +158,13 @@
     {
       "id": "want-kaavali-oddu",
       "name": "object + kaavali/oddu, no subject ('water is wanted')",
-      "example": "Neeru kaavali; Annam oddu",
+      "example": "Neeru kaavali; Annam vaddu",
       "introducedIn": 4,
       "basis": "L4 grammarNote: 'Two words, no \"I\". Neeru kaavali means \"water is wanted\"'.",
       "confidence": "sure",
       "detect": [
         "kaavali",
+        "vaddu",
         "oddu"
       ],
       "except": []
@@ -243,7 +245,7 @@
       "basis": "L9 phrases (Pedda illu, Manchi snehithudu). No note states the rule; English has the same order, so arguably not a new structure at all.",
       "confidence": "guess",
       "detect": [
-        "(pedda|chinna|manchi|chedu|vedi|telupu|nalupu|erupu|aakhari) \\w+"
+        "(pedda|chinna|manchi|vedi|telupu|nalupu|erra|aakhari) \\w+"
       ],
       "except": []
     },
