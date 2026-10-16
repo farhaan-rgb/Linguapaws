@@ -60,7 +60,8 @@ const CASES = [
     ['Kannada', 12, 'Ivatte naanu kelasa', 'Ivattu naanu kelasa maaduttiddene', false, /^The word for "I am doing" is missing\. Also check the spelling of \*ivatte\*\.$/],
     ['Kannada', 12, 'Ivatte naanu kelasa maaduttiddene', 'Ivattu naanu kelasa maaduttiddene', false, /^Close, you wrote ivatte; the word you want starts with I_____\.$/],
     ['Kannada', 8, 'Ivu dodda pustaka', 'Idu dodda pustaka', false, /^\*Ivu\* means “these” \(more than one\)\. For one book, use the word for “this”: I__\.$/],
-    ['Kannada', 8, 'Neevu hesaru enu', 'Nimma hesaru enu', false, /^\*Neevu\* means “you”, said politely\. This asks for “your”\.$/],
+    /* The authored Nimma <- Neevu trap: "you" against "your", outlined, not spelled. */
+    ['Kannada', 8, 'Neevu hesaru enu', 'Nimma hesaru enu', false, /^\*Neevu\* is “you”\. Before a thing, “your” is N____\.$/, /Nimma/],
     ['Kannada', 8, 'Nanage oota beku illa', 'Nanage oota beda', false, /^Good thinking: \*beku\* \+ \*illa\* makes sense/],
     /* Round 16 (Telugu L1-10): a word whose meaning IS in the prompt was told
        it "is not what this asks for". */

@@ -2726,6 +2726,10 @@ export const missHelp = (said, expected, {
     const trapLine = (() => {
         const traps = trapsFor(expected, taughtLessons);
         if (!traps.length) return null;
+        /* Reasoning from parts outranks a trap, as it outranks every other
+           line below: *beku* + *illa* for *beda* is "good thinking", and the
+           Beda trap would tell that learner only that *beku* means “want”. */
+        if (builtFromParts(got.filter(g => !has(need, g)), missing, taught)) return null;
         const whole = got.join(' ');
         for (const trap of traps) {
             const key = normalizeLatin(trap.said);
@@ -2750,11 +2754,13 @@ export const missHelp = (said, expected, {
                "Naale naanu nanna oorige hoguttene" carries both *nanna* and
                *naanu*, so a learner who wrote *ooru* there was told "*Naanu*
                is “I”. Before a thing, “my” is N____." — about two words they
-               had right. A vocab trap fires only when its word is missing; a
-               drill's own trap only when the said word is not simply one the
-               answer needs (or is there more often than the answer has it). */
+               had right. A vocab trap fires only when its word is missing, and
+               any trap only when the said word is not simply one the answer
+               needs: *ninne* in "Ninne, ivattu, naale" is not why *naalu* was
+               wrong. Said more often than the answer has it ("Ninne, ivattu,
+               ninne"), it did stand in for something. */
             if (trap.word && has(got, trap.word)) continue;
-            if (!trap.word && !key.includes(' ') && has(need, hit)
+            if (!key.includes(' ') && has(need, hit)
                 && got.filter(g => g === hit).length <= need.filter(t => t === hit || canon(t) === canon(hit)).length) continue;
             const t = trap.word || missing[0] || need[0];
             const why = trap.why.replace(/\{answer\}/g, answerFor(t));
