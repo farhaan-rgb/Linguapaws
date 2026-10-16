@@ -2736,7 +2736,10 @@ export const missHelp = (said, expected, {
             /* `trap`: which authored line fired, so the reveal can tell two
                wrong answers that hit the same confusion from two that did not. */
             return { line: finish(line, { skip: [hit] }), family: null, scaffold, pairs, trap: normalizeLatin(trap.said),
-                kind: 'trap', word: t };
+                kind: 'trap', word: t,
+                /* An authored trap that named a pair IS a confusion; one that
+                   could not name the partner is only a wrong word. */
+                missKind: pairs.length ? 'confusion' : 'wrong-word' };
         }
         return null;
     })();
