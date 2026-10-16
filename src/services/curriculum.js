@@ -929,7 +929,8 @@ export const CURRICULUM = {
                 { word: "Neevu", native: "ನೀವು", meaning: "You (polite)", phonetic: "nee-vu",
                   teach: "“You” is {w}. Use it with someone you respect, or when talking to more than one person." },
                 { word: "Chennagiddeeni", native: "ಚೆನ್ನಾಗಿದ್ದೀನಿ", meaning: "I am fine", phonetic: "chehn-naa-gih-dee-nih", alt: ["chennagiddini", "chennagidini", "chennagiddene", "chennagidddeeni"],
-                  teach: "“I am fine” is {w}. One word, a whole sentence. Learn it as one piece for now." },
+                  teach: "“I am fine” is {w}. One word, a whole sentence. Learn it as one piece for now.",
+                  traps: [{ said: "Chennagide", why: "*Chennagide* is “it is good”, about a thing. About yourself, “I am fine” is {answer}." }] },
                 { word: "Hege", native: "ಹೇಗೆ", meaning: "How", phonetic: "hay-geh",
                   examples: [
                     { text: "Neevu hege iddeera?", native: "ನೀವು ಹೇಗೆ ಇದ್ದೀರಾ?", meaning: "How are you?" },
@@ -976,7 +977,8 @@ export const CURRICULUM = {
                 { word: "Idu", native: "ಇದು", meaning: "This", phonetic: "ih-du", teach: "“This” is {w} — something near you." },
                 { word: "Adu", native: "ಅದು", meaning: "That", phonetic: "uh-du",
                   teach: "“That” is {w}, for something far away. *Idu* is near, {w} is far. Only the first sound changes, so listen closely." },
-                { word: "Yenu", native: "ಏನು", meaning: "What", phonetic: "ay-nu", alt: ["enu"], teach: "“What” is {w}." },
+                { word: "Yenu", native: "ಏನು", meaning: "What", phonetic: "ay-nu", alt: ["enu"], teach: "“What” is {w}.",
+                  traps: [{ said: "Yaaru", why: "*Yaaru* is “who”, for people. For a thing, “what” is {answer}." }] },
                 { word: "Pustaka", native: "ಪುಸ್ತಕ", meaning: "Book", phonetic: "pus-tuh-kuh" },
                 { word: "Hesaru", native: "ಹೆಸರು", meaning: "Name", phonetic: "heh-suh-ru" }
             ],
@@ -985,7 +987,8 @@ export const CURRICULUM = {
                   acceptable: ["idu enu?", "idu yenu", "idu enu"],
                   grammarNote: "“This” comes first, and *yenu* (“what”) goes last. In Kannada, question words usually go at the end." },
                 { prompt: "Say 'This is a book'", correct: "Idu pustaka", native: "ಇದು ಪುಸ್ತಕ", meaning: "This is a book", hint: "This + book",
-                  grammarNote: "There's no word for “is” here, and none is needed. Kannada just puts the two words side by side." },
+                  grammarNote: "There's no word for “is” here, and none is needed. Kannada just puts the two words side by side.",
+                  traps: [{ said: "Pustakagalu", why: "*Pustakagalu* is “books”, more than one. *Idu* points at one thing, so it's one book: {answer}." }] },
                 { prompt: "Ask 'What is that?'", correct: "Adu yenu?", native: "ಅದು ಏನು?", meaning: "What is that?", hint: "That + what?",
                   acceptable: ["adu enu?", "adu yenu", "adu enu"] }
             ],
@@ -1007,18 +1010,23 @@ export const CURRICULUM = {
             icon: "🧭",
             color: "#dcfce7",
             vocabulary: [
-                { word: "Yelli", native: "ಎಲ್ಲಿ", meaning: "Where", phonetic: "yehl-lih", alt: ["elli"], teach: "“Where” is {w}." },
+                { word: "Yelli", native: "ಎಲ್ಲಿ", meaning: "Where", phonetic: "yehl-lih", alt: ["elli"], teach: "“Where” is {w}.",
+                  traps: [{ said: "Alli", why: "*Alli* is “there”. To ask “where?”, it's {answer}." }] },
                 { word: "Mane", native: "ಮನೆ", meaning: "House / home", phonetic: "muh-neh", alt: ["manege"],
                   teach: "“House” is {w}. To say “to the house”, add -ge to the end: *manege*." },
                 { word: "Illi", native: "ಇಲ್ಲಿ", meaning: "Here", phonetic: "ihl-lih",
-                  teach: "“Here” is {w}. Like *idu*, it starts with i- for something near." },
+                  teach: "“Here” is {w}. Like *idu*, it starts with i- for something near.",
+                  traps: [{ said: "Illa", why: "*Illa* is “no”. “Here” ends in -i: {answer}." },
+                          { said: "Alli", why: "*Alli* is “there”, far off. For “here”, near you, it's {answer}." }] },
                 { word: "Alli", native: "ಅಲ್ಲಿ", meaning: "There", phonetic: "uhl-lih",
-                  teach: "“There” is {w}. *Illi* is here, {w} is there. Only the first sound changes, like *idu* and *adu*." },
+                  teach: "“There” is {w}. *Illi* is here, {w} is there. Only the first sound changes, like *idu* and *adu*.",
+                  traps: [{ said: "Illi", why: "*Illi* is “here”, near you. For “there”, far off, it's {answer}." }] },
                 { word: "Ide", native: "ಇದೆ", meaning: "It is / there is", phonetic: "ih-deh",
                   teach: "{w} means “it is” or “there is”, for things: *mane alli ide*, “the house is there”. For yourself, leave it out: *naanu illi*, “I am here”." },
                 { word: "Hoguttene", native: "ಹೋಗುತ್ತೇನೆ", meaning: "I go / I will go", phonetic: "hoh-gut-tay-neh", alt: ["hogtini", "hoguttini"],
                   teach: "“I go” or “I will go” is {w}, and in everyday talk it also covers “I'm going”. The -ene at the end already means “I”, so you don't need *naanu*.",
-                  traps: [{ said: "Hoguttiddene", why: "*Hoguttiddene* is only for right now, on the way. The everyday “I go” or “I will go” has no *-idd-*: {answer}." }] },
+                  traps: [{ said: "Hoguttiddene", why: "*Hoguttiddene* is only for right now, on the way. The everyday “I go” or “I will go” has no *-idd-*: {answer}." },
+                          { said: "Hogu", why: "*Hogu* is “go!”, telling someone else to go. For yourself, “I go”, it's {answer}." }] },
                 { word: "Hogu", native: "ಹೋಗು", meaning: "Go", phonetic: "hoh-gu", alt: ["hogi"],
                   teach: "“Go!” is {w} — telling someone to go. To ask politely, end it in -i: *hogi*, “please go”." }
             
@@ -1028,7 +1036,8 @@ export const CURRICULUM = {
                   acceptable: ["mane yelli", "mane elli?", "mane elli"],
                   grammarNote: "*Yelli* (“where”) goes after the thing you ask about. You can also add *ide* at the end: *Mane yelli ide?*. Both are right." },
                 { prompt: "Say 'Go there'", correct: "Alli hogu", native: "ಅಲ್ಲಿ ಹೋಗು", meaning: "Go there", hint: "There + go",
-                  acceptable: ["alli hogi"] },
+                  acceptable: ["alli hogi"],
+                  traps: [{ said: "Hoguttene", why: "*Hoguttene* is “I go”, about yourself. To tell someone to go, it's {answer}." }] },
                 { prompt: "Say 'I am going home'", correct: "Naanu manege hoguttene", native: "ನಾನು ಮನೆಗೆ ಹೋಗುತ್ತೇನೆ", meaning: "I am going home", hint: "I + to-the-house + I-am-going",
                   acceptable: ["manege hoguttene", "naanu manege hogtini", "manege hogtini", "naanu manege hoguttini"],
                   grammarNote: "*Manege* is “to the house”: *mane* + -ge. *Hoguttene* already means “I am going”, so *naanu* is optional." }
@@ -1038,7 +1047,8 @@ export const CURRICULUM = {
                   acceptable: ["mane yelli", "mane elli?", "mane elli"] },
                 { prompt: "Say 'The house is there'.", correct: "Mane alli ide", native: "ಮನೆ ಅಲ್ಲಿ ಇದೆ", meaning: "The house is there", hint: "House + there + it-is",
                   acceptable: ["mane alli ide.", "alli mane ide"],
-                  grammarNote: "*Ide* matters here. *Mane alli* alone is just “house there”. Adding *ide* makes it “the house is there”." },
+                  grammarNote: "*Ide* matters here. *Mane alli* alone is just “house there”. Adding *ide* makes it “the house is there”.",
+                  traps: [{ said: "Mane alli", why: "*Mane alli* is just “house there”. To say the house IS there, end with {answer}." }] },
                 { prompt: "Someone asks 'Neevu yelli?' Tell them you are here.", correct: "Naanu illi", native: "ನಾನು ಇಲ್ಲಿ", meaning: "I am here", hint: "I + here",
                   acceptable: ["illi", "naanu illi iddeeni", "naanu illi ide"],
                   grammarNote: "No “am” needed. For things, add *ide*: *mane alli ide*. For yourself, just *naanu illi*. The longer *naanu illi iddeeni* is also right: *iddeeni* is “I am”, with the same -eeni as *chennagiddeeni*." },
@@ -1058,7 +1068,8 @@ export const CURRICULUM = {
                 { word: "Neeru", native: "ನೀರು", meaning: "Water", phonetic: "nee-ru" },
                 { word: "Haudu", native: "ಹೌದು", meaning: "Yes", phonetic: "how-du" },
                 { word: "Illa", native: "ಇಲ್ಲ", meaning: "No / not", phonetic: "ihl-luh",
-                  teach: "“No” is {w}. Mind the last letter — *illi* with an i is “here”, from last lesson." },
+                  teach: "“No” is {w}. Mind the last letter — *illi* with an i is “here”, from last lesson.",
+                  traps: [{ said: "Illi", why: "*Illi* is “here”. “No” ends in -a: {answer}." }] },
                 { word: "Dhanyavada", native: "ಧನ್ಯವಾದ", meaning: "Thank you", phonetic: "dhun-yuh-vaa-duh", alt: ["dhanyavadagalu", "danyavada"],
                   examples: [
                     { text: "Haudu, dhanyavada", native: "ಹೌದು, ಧನ್ಯವಾದ", meaning: "Yes, thank you" },
@@ -1070,7 +1081,8 @@ export const CURRICULUM = {
                 { prompt: "Say 'I want water'", correct: "Neeru beku", native: "ನೀರು ಬೇಕು", meaning: "I want water", hint: "Water + want",
                   grammarNote: "Two words, no “I”. *Neeru beku* means “water is wanted”, and it's how you ask for water anywhere. To say “I” clearly: *nanage neeru beku*, “to me, water is wanted”." },
                 { prompt: "Say 'I don't want food'", correct: "Oota beda", native: "ಊಟ ಬೇಡ", meaning: "I don't want food", hint: "Food + don't want",
-                  grammarNote: "*Beda* means “don't want”. Use it instead of *beku*, not with it: *oota beku* (want food), *oota beda* (don't want food)." },
+                  grammarNote: "*Beda* means “don't want”. Use it instead of *beku*, not with it: *oota beku* (want food), *oota beda* (don't want food).",
+                  traps: [{ said: "Oota illa", why: "*Oota illa* is “there's no food”. To turn food down, use the don't-want word: {answer}." }] },
                 { prompt: "Say 'I want this'", correct: "Idu beku", native: "ಇದು ಬೇಕು", meaning: "I want this", hint: "This + want" }
             ],
             conversations: [
@@ -1094,7 +1106,8 @@ export const CURRICULUM = {
                 { word: "Nimma", native: "ನಿಮ್ಮ", meaning: "Your", phonetic: "nihm-muh" },
                 { word: "Aatana", native: "ಆತನ", meaning: "His", phonetic: "aa-tuh-nuh" },
                 { word: "Avara", native: "ಅವರ", meaning: "His / her (respectful)", phonetic: "uh-vuh-ruh",
-                  teach: "{w} means “his” or “her”, said with respect. One word for both. For a plain “his”, say *aatana*." },
+                  teach: "{w} means “his” or “her”, said with respect. One word for both. For a plain “his”, say *aatana*.",
+                  traps: [{ said: "Aatana", why: "*Aatana* is a plain “his”, for a man. For “her”, or anyone you respect, it's {answer}." }] },
                 { word: "Kathe", native: "ಕಥೆ", meaning: "Story", phonetic: "kuh-theh", alt: ["kathey", "kate"] }
             ],
             phrases: [
@@ -1124,14 +1137,19 @@ export const CURRICULUM = {
             icon: "🧑",
             color: "#ede9fe",
             vocabulary: [
-                { word: "Yaaru", native: "ಯಾರು", meaning: "Who", phonetic: "yaa-ru", teach: "“Who” is {w}." },
+                { word: "Yaaru", native: "ಯಾರು", meaning: "Who", phonetic: "yaa-ru", teach: "“Who” is {w}.",
+                  traps: [{ said: "Yenu", why: "*Yenu* is “what”, for things. For a person, “who” is {answer}." }] },
                 { word: "Ivaru", native: "ಇವರು", meaning: "This person / he / she (polite)", phonetic: "ih-vuh-ru",
-                  teach: "{w} means “this person”. The -aru on the end is for people, and it's respectful: *idu* is “this” for a thing. It's also how you say “he” or “she” about someone right here. For “that person”, it's *avaru*." },
+                  teach: "{w} means “this person”. The -aru on the end is for people, and it's respectful: *idu* is “this” for a thing. It's also how you say “he” or “she” about someone right here. For “that person”, it's *avaru*.",
+                  traps: [{ said: "Avaru", why: "*Avaru* is “that person”, over there. For the person right here, start with i-: {answer}." },
+                          { said: "Idu", why: "*Idu* is “this” for a thing. For a person, it's {answer}, “this person”, and it's polite too." }] },
                 { word: "Snehita", native: "ಸ್ನೇಹಿತ", meaning: "Friend", phonetic: "snay-hih-tuh" },
                 { word: "Shikshaka", native: "ಶಿಕ್ಷಕ", meaning: "Teacher", phonetic: "shihk-shuh-kuh", alt: ["shikshak"] },
                 { word: "Akka", native: "ಅಕ್ಕ", meaning: "Elder sister", phonetic: "uk-kuh" },
                 { word: "Avaru", native: "ಅವರು", meaning: "That person (polite)", phonetic: "uh-vuh-ru",
-                  teach: "{w} means “that person”, someone farther away. Same near/far pattern: *idu*/*adu*, *illi*/*alli*, *ivaru*/{w}." }
+                  teach: "{w} means “that person”, someone farther away. Same near/far pattern: *idu*/*adu*, *illi*/*alli*, *ivaru*/{w}.",
+                  traps: [{ said: "Ivaru", why: "*Ivaru* is “this person”, right here. For someone over there, start with a-: {answer}." },
+                          { said: "Adu", why: "*Adu* is “that” for a thing. For a person, it's {answer}, “that person”, and it's polite too." }] }
             ],
             phrases: [
                 { prompt: "Ask 'Who is this?'", correct: "Ivaru yaaru?", native: "ಇವರು ಯಾರು?", meaning: "Who is this?", hint: "This person + who?",
@@ -1186,12 +1204,13 @@ export const CURRICULUM = {
             color: "#dcfce7",
             vocabulary: [
                 { word: "Pustakagalu", native: "ಪುಸ್ತಕಗಳು", meaning: "Books", phonetic: "pus-tuh-kuh-guh-lu",
-                  teach: "“Books” is {w}: *pustaka* + **-galu**. Add -galu to the end of a thing to mean more than one." },
+                  teach: "“Books” is {w}: *pustaka* + **-galu**. Add -galu to the end of a thing to mean more than one.",
+                  traps: [{ said: "Pustaka", why: "*Pustaka* is one book. For more than one, add -galu: {answer}." }] },
                 { word: "Manegalu", native: "ಮನೆಗಳು", meaning: "Houses", phonetic: "muh-neh-guh-lu",
                   examples: [
                     { text: "Manegalu yelli?", native: "ಮನೆಗಳು ಎಲ್ಲಿ?", meaning: "Where are the houses?" },
-                  ]
-                },
+                  ],
+                  traps: [{ said: "Mane", why: "*Mane* is one house. For more than one, add -galu: {answer}." }] },
                 { word: "Hoovu", native: "ಹೂವು", meaning: "Flower", phonetic: "hoo-vu",
                   examples: [
                     { text: "Idu hoovu", native: "ಇದು ಹೂವು", meaning: "This is a flower" },
@@ -1199,9 +1218,11 @@ export const CURRICULUM = {
                   ]
                 },
                 { word: "Hoovugalu", native: "ಹೂವುಗಳು", meaning: "Flowers", phonetic: "hoo-vu-guh-lu",
-                  teach: "“Flowers” is {w}: *hoovu* + -galu, just like books." },
+                  teach: "“Flowers” is {w}: *hoovu* + -galu, just like books.",
+                  traps: [{ said: "Hoovu", why: "*Hoovu* is one flower. For more than one, add -galu: {answer}." }] },
                 { word: "Snehitaru", native: "ಸ್ನೇಹಿತರು", meaning: "Friends", phonetic: "snay-hih-tuh-ru",
-                  teach: "“Friends” is {w}, NOT *snehitagalu*. For people, add -aru. For things, add -galu." }
+                  teach: "“Friends” is {w}, NOT *snehitagalu*. For people, add -aru. For things, add -galu.",
+                  traps: [{ said: "Snehita", why: "*Snehita* is one friend. Friends are people, so for more than one add -aru, not -galu: {answer}." }] }
             ],
             phrases: [
                 { prompt: "Say 'books'", correct: "Pustakagalu", native: "ಪುಸ್ತಕಗಳು", meaning: "Books", hint: "Book + plural ending",
@@ -1227,24 +1248,30 @@ export const CURRICULUM = {
                 { word: "Dodda", native: "ದೊಡ್ಡ", meaning: "Big", phonetic: "dod-duh" },
                 { word: "Chikka", native: "ಚಿಕ್ಕ", meaning: "Small", phonetic: "chihk-kuh" },
                 { word: "Olleya", native: "ಒಳ್ಳೆಯ", meaning: "Good (before a noun)", phonetic: "ol-leh-yuh",
-                  teach: "“Good” is {w}. It goes before the thing: *olleya oota*, “good food”. To say “it IS good”, you need a different word, coming soon." },
+                  teach: "“Good” is {w}. It goes before the thing: *olleya oota*, “good food”. To say “it IS good”, you need a different word, coming soon.",
+                  traps: [{ said: "Chennagide", why: "*Chennagide* is “it is good”, a whole sentence on its own. Right before a thing, “good” is {answer}." }] },
                 { word: "Ketta", native: "ಕೆಟ್ಟ", meaning: "Bad (before a noun)", phonetic: "keht-tuh",
                   teach: "“Bad” is {w}. It goes before the thing: *ketta oota*, “bad food”. To say “the food IS bad”, people say “not good”: *chennagilla*." },
                 { word: "Bisi", native: "ಬಿಸಿ", meaning: "Hot", phonetic: "bih-sih" },
                 { word: "Chennagide", native: "ಚೆನ್ನಾಗಿದೆ", meaning: "It is good", phonetic: "chehn-naa-gih-deh",
-                  teach: "To say something IS good, use {w}. It's *chennagi* (from *chennagiddeeni*) + *ide* (“it is”). *Olleya* can't do this." }
+                  teach: "To say something IS good, use {w}. It's *chennagi* (from *chennagiddeeni*) + *ide* (“it is”). *Olleya* can't do this.",
+                  traps: [{ said: "Olleya", why: "*Olleya* is “good” before a thing, as in *olleya oota*. It can't end a sentence. To say something IS good, end with {answer}." },
+                          { said: "Chennagiddeeni", why: "*Chennagiddeeni* is “I am fine”, about yourself. For a thing, the end is *ide*, “it is”: {answer}." }] }
             ],
             phrases: [
                 { prompt: "Say 'a big house'", correct: "Dodda mane", native: "ದೊಡ್ಡ ಮನೆ", meaning: "A big house", hint: "Big + house",
                   grammarNote: "*Dodda* (“big”) goes before the thing and never changes. Easier than English." },
-                { prompt: "Say 'good food'", correct: "Olleya oota", native: "ಒಳ್ಳೆಯ ಊಟ", meaning: "Good food", hint: "Good + food" },
+                { prompt: "Say 'good food'", correct: "Olleya oota", native: "ಒಳ್ಳೆಯ ಊಟ", meaning: "Good food", hint: "Good + food",
+                  traps: [{ said: "Oota chennagide", why: "*Oota chennagide* is a whole sentence, “the food is good”. For just “good food”, the good word goes first: {answer} *oota*." }] },
                 { prompt: "Say 'hot water'", correct: "Bisi neeru", native: "ಬಿಸಿ ನೀರು", meaning: "Hot water", hint: "Hot + water" }
             ],
             conversations: [
                 { prompt: "Tell Miko the food is good.", correct: "Oota chennagide", native: "ಊಟ ಚೆನ್ನಾಗಿದೆ", meaning: "The food is good", hint: "Food + it-is-good",
                   acceptable: ["oota chennagide.", "oota chennaagide"],
-                  grammarNote: "This is the key idea. Before a thing, use *olleya*: *olleya oota*, “good food”. To say “the food IS good”, use *chennagide*. English uses “good” for both; Kannada doesn't." },
-                { prompt: "Say 'this is a big book'", correct: "Idu dodda pustaka", native: "ಇದು ದೊಡ್ಡ ಪುಸ್ತಕ", meaning: "This is a big book", hint: "This + big + book" },
+                  grammarNote: "This is the key idea. Before a thing, use *olleya*: *olleya oota*, “good food”. To say “the food IS good”, use *chennagide*. English uses “good” for both; Kannada doesn't.",
+                  traps: [{ said: "Olleya oota", why: "*Olleya oota* is “good food”: it names the food but doesn't say anything about it. To say the food IS good, put *oota* first and end with {answer}." }] },
+                { prompt: "Say 'this is a big book'", correct: "Idu dodda pustaka", native: "ಇದು ದೊಡ್ಡ ಪುಸ್ತಕ", meaning: "This is a big book", hint: "This + big + book",
+                  traps: [{ said: "Pustakagalu", why: "*Pustakagalu* is “books”, more than one. *Idu* points at one thing, so it's one book: {answer}." }] },
                 { prompt: "Miko offers you food that has gone off. Refuse it — 'I don't want bad food'.", correct: "Ketta oota beda", native: "ಕೆಟ್ಟ ಊಟ ಬೇಡ", meaning: "I don't want bad food", hint: "Bad + food + don't want",
                   grammarNote: "*Ketta* before the thing, *beda* at the end. To say the food IS bad, say *oota chennagilla*, “not good”." },
                 { prompt: "Say 'my small house'", correct: "Nanna chikka mane", native: "ನನ್ನ ಚಿಕ್ಕ ಮನೆ", meaning: "My small house", hint: "My + small + house",
@@ -1261,7 +1288,8 @@ export const CURRICULUM = {
                 { word: "Lekka", native: "ಲೆಕ್ಕ", meaning: "Bill", phonetic: "lehk-kuh" },
                 { word: "Kodi", native: "ಕೊಡಿ", meaning: "Give (please)", phonetic: "ko-dih", alt: ["kodu"],
                   teach: "{w} means “please give”. *Beku* says what you want; {w} asks them to hand it over. In a shop, *neeru beku* or *neeru kodi* both get you water." },
-                { word: "Eshtu", native: "ಎಷ್ಟು", meaning: "How much", phonetic: "ehsh-tu", alt: ["estu"] },
+                { word: "Eshtu", native: "ಎಷ್ಟು", meaning: "How much", phonetic: "ehsh-tu", alt: ["estu"],
+                  traps: [{ said: "Hege", why: "*Hege* is “how”, as in *hegiddeera?*. For a price or an amount, “how much”, it's {answer}." }] },
                 { word: "Sari", native: "ಸರಿ", meaning: "Okay / right", phonetic: "suh-rih" }
             ],
             phrases: [
@@ -1275,7 +1303,8 @@ export const CURRICULUM = {
                 { prompt: "You have finished eating. Ask for the bill.", correct: "Lekka kodi", native: "ಲೆಕ್ಕ ಕೊಡಿ", meaning: "Give me the bill", hint: "Bill + give" },
                 { prompt: "Ask how much the book is.", correct: "Pustaka eshtu?", native: "ಪುಸ್ತಕ ಎಷ್ಟು?", meaning: "How much is the book?", hint: "Book + how much?",
                   acceptable: ["pustaka estu?", "pustaka eshtu", "pustaka estu"],
-                  grammarNote: "*Eshtu* (“how much”) is a question word, so it goes last, like *yenu* and *yelli*." },
+                  grammarNote: "*Eshtu* (“how much”) is a question word, so it goes last, like *yenu* and *yelli*.",
+                  traps: [{ said: "Pustakagalu", why: "*Pustakagalu* is “books”, more than one. This asks about one book: {answer}." }] },
                 { prompt: "Greet the shopkeeper, then ask for two waters.", correct: "Namaskara, eradu neeru kodi", native: "ನಮಸ್ಕಾರ, ಎರಡು ನೀರು ಕೊಡಿ", meaning: "Hello, two waters please", hint: "Hello + two + water + give",
                   acceptable: ["namaskara, eradu neeru beku", "namaskara eradu neeru kodi", "namaskara eradu neeru beku"],
                   grammarNote: "Lesson 1, lesson 7, lesson 4 and today in one line. Either ending works: *kodi* asks them to hand it over, *beku* says what you want." },
@@ -1293,14 +1322,17 @@ export const CURRICULUM = {
             color: "#e0f2fe",
             vocabulary: [
                 { word: "Iddene", native: "ಇದ್ದೇನೆ", meaning: "I am", phonetic: "ihd-day-neh", alt: ["iddeeni", "iddini"],
-                  teach: "{w} means “I am”: *naanu illi iddene*, “I am here”. Every action word in this lesson ends with it, the way *chennagiddeeni* does." },
+                  teach: "{w} means “I am”: *naanu illi iddene*, “I am here”. Every action word in this lesson ends with it, the way *chennagiddeeni* does.",
+                  traps: [{ said: "Ide", why: "*Ide* is “it is”, for things. For yourself, “I am” is {answer}." }] },
                 { word: "Maaduttiddene", native: "ಮಾಡುತ್ತಿದ್ದೇನೆ", meaning: "I am doing", phonetic: "maa-dut-tihd-day-neh", alt: ["maadtidini", "madtidini", "maaduttidini", "maadtiddini", "maduttiddene"],
                   teach: "“I am doing” is {w}. You'll hear it said short, too: *maadtidini*. Both are right." },
                 { word: "Hoguttiddene", native: "ಹೋಗುತ್ತಿದ್ದೇನೆ", meaning: "I am going (right now)", phonetic: "hoh-gut-tihd-day-neh", alt: ["hogtidini", "hoguttidini", "hogtiddini"],
                   teach: "{w} is “I am going”, on the way right now. *Hoguttene*, from lesson 3, covers “I go” and “I will go”. The extra -idd- makes it right now.",
-                  traps: [{ said: "Hoguttene", why: "*Hoguttene* is “I go” or “I will go”, from lesson 3. For right now, on the way, add *-idd-* before the ending: {answer}." }] },
+                  traps: [{ said: "Hoguttene", why: "*Hoguttene* is “I go” or “I will go”, from lesson 3. For right now, on the way, add *-idd-* before the ending: {answer}." },
+                          { said: "Hogu", why: "*Hogu* is “go!”, telling someone else to go. For “I am going” right now, it's {answer}." }] },
                 { word: "Tinnuttiddene", native: "ತಿನ್ನುತ್ತಿದ್ದೇನೆ", meaning: "I am eating", phonetic: "tihn-nut-tihd-day-neh", alt: ["tintidini", "tinnuttidini", "tintiddini"] },
-                { word: "Eega", native: "ಈಗ", meaning: "Now", phonetic: "ee-guh", alt: ["iga"] },
+                { word: "Eega", native: "ಈಗ", meaning: "Now", phonetic: "ee-guh", alt: ["iga"],
+                  traps: [{ said: "Ivattu", why: "*Ivattu* is “today”, the whole day. For “now”, this moment, it's {answer}." }] },
                 { word: "Kelasa", native: "ಕೆಲಸ", meaning: "Work", phonetic: "keh-luh-suh", alt: ["kelsa"] }
             ],
             phrases: [
@@ -1334,8 +1366,10 @@ export const CURRICULUM = {
             color: "#fef3c7",
             vocabulary: [
                 { word: "Ivattu", native: "ಇವತ್ತು", meaning: "Today", phonetic: "ih-vut-tu", alt: ["ivathu", "ivaththu", "indu"],
-                  teach: "“Today” is {w}. In writing you'll also see *indu*, which means the same." },
-                { word: "Naale", native: "ನಾಳೆ", meaning: "Tomorrow", phonetic: "naa-leh", alt: ["nale"] },
+                  teach: "“Today” is {w}. In writing you'll also see *indu*, which means the same.",
+                  traps: [{ said: "Eega", why: "*Eega* is “now”, this moment. For the whole day, “today”, it's {answer}." }] },
+                { word: "Naale", native: "ನಾಳೆ", meaning: "Tomorrow", phonetic: "naa-leh", alt: ["nale"],
+                  traps: [{ said: "Naalku", why: "*Naalku* is the number four. “Tomorrow” is {answer}." }] },
                 { word: "Ninne", native: "ನಿನ್ನೆ", meaning: "Yesterday", phonetic: "nihn-neh",
                   teach: "“Yesterday” is {w}. *Naale* is ahead of you, {w} is behind. Both end in -e, so listen to the start." },
                 { word: "Aamele", native: "ಆಮೇಲೆ", meaning: "Later", phonetic: "aa-may-leh", alt: ["amele"],
@@ -1378,10 +1412,14 @@ export const CURRICULUM = {
             color: "#dcfce7",
             vocabulary: [
                 { word: "Maadide", native: "ಮಾಡಿದೆ", meaning: "I did", phonetic: "maa-dih-deh", alt: ["madide", "maadidenu"],
-                  teach: "“I did” is {w}. In the past, the “I” ending is just -e. It looks like *ide* (“it is”), but here it means “I did”." },
+                  teach: "“I did” is {w}. In the past, the “I” ending is just -e. It looks like *ide* (“it is”), but here it means “I did”.",
+                  traps: [{ said: "Maaduttiddene", why: "*Maaduttiddene* is “I am doing”, right now. For “I did”, it's {answer}." }] },
                 { word: "Hode", native: "ಹೋದೆ", meaning: "I went", phonetic: "hoh-deh", alt: ["hodhe", "hodenu"],
-                  teach: "{w} means “I went”. The start changes in ways you can't predict: *hogu* → *hode*, *tinnu* → *tinde*. Learn each one." },
-                { word: "Tinde", native: "ತಿಂದೆ", meaning: "I ate", phonetic: "tihn-deh", alt: ["thinde", "tindenu"] },
+                  teach: "{w} means “I went”. The start changes in ways you can't predict: *hogu* → *hode*, *tinnu* → *tinde*. Learn each one.",
+                  traps: [{ said: "Hoguttene", why: "*Hoguttene* is “I go” or “I will go”. For “I went”, the word changes: {answer}." },
+                          { said: "Hoguttiddene", why: "*Hoguttiddene* is “I am going”, right now. For “I went”, the word changes: {answer}." }] },
+                { word: "Tinde", native: "ತಿಂದೆ", meaning: "I ate", phonetic: "tihn-deh", alt: ["thinde", "tindenu"],
+                  traps: [{ said: "Tinnuttiddene", why: "*Tinnuttiddene* is “I am eating”, right now. For “I ate”, it's {answer}." }] },
                 { word: "Nodide", native: "ನೋಡಿದೆ", meaning: "I saw", phonetic: "noh-dih-deh", alt: ["nodidenu"] },
                 { word: "Helide", native: "ಹೇಳಿದೆ", meaning: "I said / I told", phonetic: "hay-lih-deh", alt: ["helidenu"] },
                 { word: "Bande", native: "ಬಂದೆ", meaning: "I came", phonetic: "bun-deh", alt: ["bandenu"] }
@@ -1392,7 +1430,8 @@ export const CURRICULUM = {
                   grammarNote: "*Hoguttene* is “I go”, *hode* is “I went”. They don't look alike, so learn *hode* as its own word." },
                 { prompt: "Say 'I saw the house'", correct: "Naanu mane nodide", native: "ನಾನು ಮನೆ ನೋಡಿದೆ", meaning: "I saw the house", hint: "I + house + saw",
                   acceptable: ["mane nodide"],
-                  grammarNote: "Here it's *mane*, not *manege*. You saw the house, you didn't go to it." },
+                  grammarNote: "Here it's *mane*, not *manege*. You saw the house, you didn't go to it.",
+                  traps: [{ said: "Naanu manege nodide", why: "*Manege* is “to the house”, for going there. You saw the house itself, so drop the *-ge*." }] },
                 { prompt: "Say 'I came yesterday'", correct: "Naanu ninne bande", native: "ನಾನು ನಿನ್ನೆ ಬಂದೆ", meaning: "I came yesterday", hint: "I + yesterday + came",
                   acceptable: ["ninne bande", "ninne naanu bande"] }
             ],
