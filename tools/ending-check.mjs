@@ -51,7 +51,9 @@ const CASES = [
     ['Telugu', 8, 'Pusthakamlu', 'Pusthakam', false, /-lu\* makes it more than one.*just one book/],
     ['Telugu', 8, 'Pusthakalu', 'Pusthakam', false, /^Good thinking: \*-lu\* makes it more than one\. This asks for just one book: P________\.$/],
     ['Telugu', 8, 'Guruvulu', 'Guruvu', false, /-lu\* makes it more than one, like \*pusthakalu\* \(books\)\. This asks for just one teacher/],
-    ['Telugu', 3, 'Nenu illu velthunnanu', 'Nenu intiki velthunnanu', false, /needs “to”: it takes \*-ki\*, like \*paniki\*/],
+    /* c469f4f's authored Illu trap now leads for *illu*, the word the
+       learner wrote; it says both what illu is and that -ki is needed. */
+    ['Telugu', 3, 'Nenu illu velthunnanu', 'Nenu intiki velthunnanu', false, /^\*Illu\* is the house itself.*takes -ki: I_____/],
     ['Telugu', 3, 'Nenu inti velthunnanu', 'Nenu intiki velthunnanu', false, /needs “to”: add \*-ki\*/],
     ['Telugu', 8, 'Snehithudulu', 'Snehithudu', false, /-lu\* makes it more than one/],
     ['Telugu', 8, 'Snehithulu', 'Snehithudu', false, /-lu\* makes it more than one/],    // Ranked: the wrong-meaning word leads, the typos follow in one line.
@@ -67,8 +69,14 @@ const CASES = [
        it "is not what this asks for". */
     ['Telugu', 3, 'nenu ikkada unnanu, meeru?', 'Nenu ikkada, meeru?', false, /“?I am”?.*which fits, but this sentence leaves it out/, /not what this asks for/],
     ['Telugu', 4, 'nenu neeru kaavali', 'Neeru kaavali', false, /^\*Nenu\* means “I”, but you don't need “I” here/, /not what this asks for/],
-    ['Telugu', 6, 'meeru evaru unnaru', 'Meeru evaru?', false, /^\*Unnaru\* means “you are”, which fits/, /not what this asks for/],
-    ['Telugu', 5, 'naaku annam vaddu', 'Annam vaddu', false, /you don't need “I” here/, /not what this asks for/],
+    /* The gloss is the half of "You are / he, she is (respectful)" the prompt
+       is about; "said with respect" is the course's own note, and true of
+       *unnaru* as "you are". */
+    ['Telugu', 6, 'meeru evaru unnaru', 'Meeru evaru?', false, /^\*Unnaru\* means “you are”(, said with respect)?, which fits/, /not what this asks for|he, she/],
+    /* "naaku annam vaddu" is now in this drill's `acceptable`, so it is graded
+       right and missHelp, explaining it against that form, has nothing to
+       say — which is the point: no miss line for an accepted answer. */
+    ['Telugu', 5, 'naaku annam vaddu', 'Annam vaddu', false, null, /not what this asks for/],
     ['Telugu', 7, 'naaku rendu kaavali', 'Rendu kaavali', false, null, /not what this asks for/],
     // ...while a word whose meaning is not in the prompt still gets it.
     ['Telugu', 3, 'illu ekkada akkada', 'Illu ekkada?', false, /not what this asks for|There/],

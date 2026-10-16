@@ -584,7 +584,7 @@ export default function Chat() {
        even correct a mistake they did not make. Lead with the difference when
        there is one, so the note is about the sentence they actually produced. */
     const noteForAnswer = (item, answer) => {
-        const note = item?.grammarNote || '';
+        const note = engine.noteForAnswer(item?.grammarNote || '', answer, item?.correct || '');
         if (!note || !answer || !item?.correct) return note;
         const said = normalizeLatin(answer);
         const target = normalizeLatin(item.correct);

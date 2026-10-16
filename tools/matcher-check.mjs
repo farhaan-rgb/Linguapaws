@@ -163,9 +163,20 @@ const PINNED = {
         ['eega naanu tinnuttene', 'Naanu eega tinnuttene', true],
         ['yaake idu', 'Idu yaake?', true],
         ['kushi tumba nanage', 'Nanage tumba kushi', false],  // predicate not last
+        // t2130 linking words: a swapped linker changes what the sentence says
+        ['nanage aaguvudilla, aadare nanage kelasa ide', 'Nanage aaguvudilla, yaakendare nanage kelasa ide', false],
+        ['nanage aaguvudilla, aadre nanage kelasa ide', 'Nanage aaguvudilla, yaakendare nanage kelasa ide', false], // an alt spelling
+        ['nanage aaguvudilla, yaakendare nanage kelasa ide', 'Nanage aaguvudilla, yaakendare nanage kelasa ide', true],
     ],
     Telugu: [
         ['naaku annam vaddu', 'Annam vaddu', true],
+        // t2130 L24: kani for endukante passed on coverage slack
+        ['nenu vellali kani naaku pani undi', 'Nenu vellali endukante naaku pani undi', false],
+        ['annam mariyu roti', 'Annam leda roti', false],
+        // t2130 L21/L25/L21: a correct optional copula; the course's two spellings of తి; pye-nuh
+        ['nenu inti lo unnanu', 'Nenu inti lo', true],
+        ['neeru unte nenu tintanu', 'Neeru unte nenu thintanu', true],
+        ['pyna', 'Paina', true],
         ['annam oddu', 'Annam vaddu', true],                 // the spoken spelling, taught as an alt of vaddu
         ['vedi neeru oddu', 'Vedi neeru kaavali', false],   // polarity flip in either spelling             // rt16 L4, after "to say I: naaku neeru kaavali"
         ['naaku rendu kaavali', 'Rendu kaavali', true],       // rt16 L7

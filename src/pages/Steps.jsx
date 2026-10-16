@@ -1148,6 +1148,8 @@ function StepScreen({
     /** The accepted answer word by word (engine.answerDiff), so the learner
      *  sees what they wrote — not the course sentence printed twice. */
     const [diff, setDiff] = useState(null);
+    /** The answer that was accepted, for fitting the grammar note to it. */
+    const [settledSaid, setSettledSaid] = useState('');
     /* Adaptive phase 3: a drill on a weak skill shows its hint up front
        (`assist: 'more'`); one whose skills are all strong keeps it back
        until a miss (`'less'`). Grading is the same either way. */
@@ -1236,7 +1238,12 @@ function StepScreen({
         answerShown: settled || step.kind === 'teach',
     }), [langName, taughtLessons, step, settled]);
 
-    const grammarNote = drill?.grammarNote;
+    /* Fitted to the answer they gave (engine.noteForAnswer): a note that says
+       "like you did here" to a learner who did the opposite is a wrong lesson. */
+    const grammarNote = useMemo(
+        () => (drill?.grammarNote ? engine.noteForAnswer(drill.grammarNote, settledSaid, step.expected) : drill?.grammarNote),
+        [drill?.grammarNote, settledSaid, step.expected],
+    );
     /* ── The rule, at the moment it is wanted ──
        The note used to wait for a correct answer, so the one person it was
        written for never saw it. Farhaan missed Kannada 12's *Naanu eega
@@ -1352,7 +1359,7 @@ function StepScreen({
         if (phase !== 'revealed' || !wrongs.length) return null;
         const opts = {
             variants: step.variants, lexicon, taughtLessons, families,
-            meaning: drill?.meaning || '', reveal: true, language: langName,
+            meaning: drill?.meaning || '', hint: drill?.hint || '', reveal: true, language: langName,
             knownWords: KNOWN_WORDS[langName] || NO_KNOWN, endings: WORD_ENDINGS[langName] || null,
         };
         const seen = new Set();
@@ -1487,7 +1494,10 @@ function StepScreen({
             // in silence never finds out they had it wrong.
             const d = engine.answerDiff(said, step.expected, step.variants, lexicon);
             setDiff(d ? { ...d, spoken } : null);
-            setNote(d ? '' : engine.spellingNote(said, step.expected, step.variants, lexicon) || '');
+            setSettledSaid(said);
+            /* A `kept` diff only echoes accepted extra words; the quiet notes
+               (wantNote) still belong under it. */
+            setNote(d && !d.kept ? '' : engine.spellingNote(said, step.expected, step.variants, lexicon) || '');
             setPhase('correct');
             setReward(onSettled({ correct: true, revealed: false, misses, helped,
                 attempts: attemptsRef.current, spoken, said, slips: Boolean(d?.words.some(w => w.fix)) }));
@@ -1512,7 +1522,7 @@ function StepScreen({
         const revealing = next >= triesFor(step);
         const help = engine.missHelp(said, step.expected, {
             variants: step.variants, lexicon, taughtLessons, families,
-            meaning: drill?.meaning || '', reveal: revealing, language: langName,
+            meaning: drill?.meaning || '', hint: drill?.hint || '', reveal: revealing, language: langName,
             knownWords: KNOWN_WORDS[langName] || NO_KNOWN, endings: WORD_ENDINGS[langName] || null,
         });
         attemptsRef.current = [...attemptsRef.current, { said, spoken, help }];
@@ -1560,7 +1570,7 @@ function StepScreen({
         if (lastWrongRef.current) {
             const help = engine.missHelp(lastWrongRef.current, step.expected, {
                 variants: step.variants, lexicon, taughtLessons, families,
-                meaning: drill?.meaning || '', reveal: true, language: langName,
+                meaning: drill?.meaning || '', hint: drill?.hint || '', reveal: true, language: langName,
                 knownWords: KNOWN_WORDS[langName] || NO_KNOWN, endings: WORD_ENDINGS[langName] || null,
             });
             setFamily(help.family);

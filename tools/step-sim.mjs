@@ -255,11 +255,21 @@ function say(s, text) {
     const { accepted } = E.scoreAnswer(said, step.expected, step.variants, lexicon);
     if (accepted) {
         const out = celebrate(s, step, s.misses);
-        const note = E.spellingNote(said, step.expected, step.variants, lexicon);
+        /* As Steps.jsx: the learner's own words when they differ from the
+           course's (answerDiff), then the quiet note, then the grammar note
+           fitted to the answer (noteForAnswer). */
+        const d = E.answerDiff(said, step.expected, step.variants, lexicon);
+        if (d) {
+            out.push(`👁  You wrote: ${d.words.map(w => (w.fix ? `~~${w.text}~~ ${w.fix}` : w.extra ? `~~${w.text}~~` : w.text)).join(' ')}`);
+            if (d.missing.length) out.push(`👁  ${P.ANSWER_DIFF.left(d.missing)}`);
+            if (d.reordered) out.push(`👁  ${P.ANSWER_DIFF.order(d.course)}`);
+        }
+        const note = d && !d.kept ? '' : E.spellingNote(said, step.expected, step.variants, lexicon);
         if (note) out.push(`👁  ${note.trim()}`);
-        if (step.drill?.grammarNote) {
-            out.push(`👁  💡 ${step.drill.grammarNote}`);
-            out.push(spoken(s.lang, step.drill.grammarNote));
+        const gnote = step.drill?.grammarNote ? E.noteForAnswer(step.drill.grammarNote, said, step.expected) : '';
+        if (gnote) {
+            out.push(`👁  💡 ${gnote}`);
+            out.push(spoken(s.lang, gnote));
         }
         s.phase = 'correct';
         s.stumbled = s.misses > 0;
@@ -284,7 +294,7 @@ function say(s, text) {
     const lessons = lessonsFor(s.lang);
     const diagnosis = E.missHelp(said, step.expected, {
         variants: step.variants, lexicon, taughtLessons: lessons.slice(0, s.scenarioIdx + 1),
-        families: WORD_FAMILIES[s.lang] || [], meaning: step.drill?.meaning || '',
+        families: WORD_FAMILIES[s.lang] || [], meaning: step.drill?.meaning || '', hint: step.drill?.hint || '',
         reveal: s.misses >= triesFor(step), language: s.lang,
         knownWords: KNOWN_WORDS[s.lang] || [], endings: WORD_ENDINGS[s.lang] || null,
     }).line || (step.drill?.hint ? '' : P.scaffoldFor(step.expected));
@@ -307,7 +317,7 @@ function say(s, text) {
        retry is live — unless the note quotes the answer. Shown there and not
        spoken, so shown here and not spoken. */
     if (step.drill?.grammarNote && !E.noteGivesAnswer(step.drill.grammarNote, step.expected)) {
-        out.push(`👁  💡 ${step.drill.grammarNote}`);
+        out.push(`👁  💡 ${E.noteForAnswer(step.drill.grammarNote, '', step.expected)}`);
     }
     if (step.drill?.hint) out.push(`   💡 hint: ${step.drill.hint}`);
     return out.filter(Boolean);
