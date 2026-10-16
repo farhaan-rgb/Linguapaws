@@ -2647,7 +2647,43 @@ export const missHelp = (said, expected, {
     const used = new Set();
     const fallback = () => finish(explainMiss(said, expected, variants, lexicon,
         { hideAnswer: !reveal, clean: true, prompt: meaning }));
-    if (!need.length || !got.length) return { line: fallback(), family: null, scaffold, pairs: [], kind: 'other' };
+    /* ── Which KIND of mistake this was ───────────────────────────────────
+       A second output, for the record rather than for the screen, in the
+       eleven names of `shared/missKinds.js`. It is NOT the `kind` beside it:
+       that one says which explanation template fired and `skills.missEvidence`
+       branches on its values, so it cannot be repurposed without silently
+       re-weighting the skill model.
+
+       `other` is where the engine threw its own diagnosis away. An answer with
+       every word right and two of them swapped carried a live `orderMiss`,
+       said so to the learner in English, and then reached the scheduler as the
+       same fact as not knowing the word at all (MISS-TAXONOMY.md). The ladder
+       below runs most-teachable first — the same ranking `finish()` uses to
+       decide which line leads. Nothing here can change a verdict: every path
+       in this function runs after `scoreAnswer` has already rejected. */
+    const otherKind = (wrong = [], english = []) => {
+        if (!got.length) return 'blank';
+        if (!need.length) return 'unknown';
+        /* All the right words, out of sequence. `locateTokens` returns null
+           unless every needed word is there, so this can never fire on an
+           answer that is missing one. */
+        if (orderMiss(said, expected, variants, lexicon)) return 'order';
+        if (missing.length && missing.every(t => got.some(g => typo(g, t)))) return 'spelling';
+        if (missing.length && !wrong.length && !english.length) return 'missing-word';
+        /* Every word of the answer plus one taught word too many, where the
+           extra word's meaning did not fit the prompt well enough for the
+           `extra` line above to fire. It is still "the whole answer, plus a
+           word": the learner produced the item, so the scheduler should not
+           treat it as forgotten. (MISS-TAXONOMY.md's ladder stops at `english`
+           here; this rung is added because the alternative, `unknown`, throws
+           away the one thing the attempt plainly shows.) */
+        if (!missing.length && wrong.length && !english.length) return 'extra-word';
+        if (english.length) return 'english';
+        return 'unknown';
+    };
+    if (!need.length || !got.length) {
+        return { line: fallback(), family: null, scaffold, pairs: [], kind: 'other', missKind: otherKind() };
+    }
     /* The answer word as the course writes it, and its first-letter outline. */
     const shownWord = (t) => (String(expected).split(/\s+/)
         .find(x => normalizeLatin(x) === t) || t).replace(/[^\p{L}\p{N}'’-]/gu, '') || t;
