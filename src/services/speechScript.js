@@ -184,7 +184,7 @@ const MISS_TEMPLATES = [
     `: ${W}, not ${W}(?=\\.)`,
     `the order is not\\. ${W} (?=goes|comes)`,
     `[Tt]he order is off\\. ${W} (?=goes|comes)`,
-    `goes right after ${W}(?:: ${P}(?=\\.))?`,
+    `goes (?:right )?after ${W}(?:: ${P}(?=\\.))?`,
     // "...goes last in the second half: naanu eega tinnuttiddene, aamele
     // hoguttene." — the clause the order line now names sits between the
     // anchor and the colon.
@@ -205,7 +205,25 @@ const MISS_SLOT_GROUPS = (MISS_TEMPLATES.join('').match(/\(\[/g) || []).length;
  */
 export function speakableText(text) {
     return String(text || '')
-        .replace(/([\p{L}'’)?!.])\s*\/\s*(?=[\p{L}(*-])/gu, '$1 or ')
+        /* "Close, check the spelling of vellunnanu": read aloud, the learner's
+           wrong word sounds like the answer (round 17), so the voice says the
+           instruction and the word stays on screen. */
+        .replace(/(check the (?:spelling|vowels))(?: of| in) (?:\*[^*]+\*|[\p{L}'’-]+)(?: and (?:\*[^*]+\*|[\p{L}'’-]+))*/giu, '$1')
+        /* Symbols the eye reads and the voice cannot: "=" is "means", an arrow
+           "becomes" (round 17 heard both skipped or spelled out). */
+        .replace(/\s*=\s*/g, ' means ')
+        .replace(/\s*(?:→|->)\s*/g, ' becomes ')
+        /* A bare suffix — "the -nu at the end", "drop the -unn-" — was read as
+           a stray syllable. Said as what it is: the ending nu, the part unn. */
+        .replace(/\*-(\p{L}+)-\*/gu, 'the part *$1*')
+        .replace(/\*-(\p{L}+)\*/gu, 'the ending *$1*')
+        .replace(/\b(the|a|an)\s+-(\p{L}+)-(?![\p{L}])/giu, '$1 part $2')
+        .replace(/\b(the|a|an)\s+-(\p{L}+)(?![\p{L}-])/giu, '$1 ending $2')
+        .replace(/(?<![\p{L}\p{N}])-(\p{L}+)-(?![\p{L}])/gu, 'the part $1')
+        .replace(/(?<![\p{L}\p{N}])-(\p{L}+)(?![\p{L}-])/gu, 'the ending $1')
+        /* A slash between words is "or" — after an italic too: `*chestanu* /
+           *chestunnanu*` ran together as one word in round 17. */
+        .replace(/([\p{L}'’)?!.*])\s*\/\s*(?=[\p{L}(*-])/gu, '$1 or ')
         /* A bracketed aside is set off with commas, so the voice pauses round
            it: "That person (polite)" ran together as "that person polite". */
         .replace(/\s*\(([^()]*)\)\s*/g, (m, inner, at, all) => {
@@ -287,7 +305,15 @@ export function tipSegments(langName, line) {
             /* A colon or comma too: `goes right after *meeru*: *meeru ela
                unnaru*` was read as one phrase, "meeru meeru ela unnaru", and
                `not *idhi*: *idhi* is for things` as "idhi idhi". */
-            if (/[.!?;:,]/.test(t)) brk = true;
+            if (/[.!?;:,…]/.test(t)) brk = true;
+            /* ...and the pause itself stays with the line before: dropping the
+               mark made `not *idhi*: *idhi* is for things` and `*naaku* …
+               *undi*` run straight on (round 17). */
+            const mark = (t.match(/[.!;:,…]/) || [])[0];
+            const before = out[out.length - 1];
+            if (mark && before && !/[.!?;:,…]$/.test(before.text)) {
+                before.text += mark === '…' ? ',' : mark;
+            }
             /* A "+" joining two target words (`*naaku* + *undi*`) is the point
                of the line; dropped, the voice said "naaku undi" as if it were
                one phrase. Said as "plus", between the two. */

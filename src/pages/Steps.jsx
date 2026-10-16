@@ -99,7 +99,8 @@ const logTiming = (path, endAt, extra = '') => {
 /** Counts a number up to its new value. Used on the paw total and the summary
  *  tiles — a number that lands is a number that gets read. */
 /** "Don't know", "idk", "no idea", "show me" — giving up, typed or said. */
-const DONT_KNOW = /^(?:i\s+)?(?:(?:really\s+)?(?:do\s*n['’]?o?t|dont|dunno)(?:\s+know)?|idk|no\s+idea|not\s+sure|no\s+clue|pass|skip|show\s+me|tell\s+me|help)[\s.!?]*$/i;
+/* Shared with chat (lessonEngine.DONT_KNOW), so both surfaces reveal on it. */
+const DONT_KNOW = engine.DONT_KNOW;
 
 function useCountUp(value, ms = 520) {
     const [shown, setShown] = useState(value);
@@ -2233,8 +2234,17 @@ function ListenScreen({ step, onSpeak, onSettled, onMiss, onAdvance, isLast }) {
    marked (endings.patternFor). Read, not answered: Continue is the only
    action, nothing is scored, and it never requeues. The marks carry the point
    with motion off; the sweep only draws the eye along them. */
-function PatternScreen({ step, onSpeak, onAdvance, isLast, langName, lessonNo }) {
+function PatternScreen({ step, onSpeak, onSay, onAdvance, isLast, langName, lessonNo }) {
     const p = step.pattern;
+    /* Read aloud like every other screen (round 17: this was the one screen
+       that stayed silent): the head and gloss as a tip, then each line in the
+       language. Through the same queue, so "Read tips aloud" off drops the tip. */
+    useEffect(() => {
+        if (!onSay || !p) return undefined;
+        const head = `${praise.ENDING_COPY.patternHead(p.ending)} ${praise.ENDING_COPY.patternSub(p.gloss)}`;
+        const t = setTimeout(() => onSay([{ tip: head }, ...p.phrases.map(ph => ({ target: ph.correct }))]), 450);
+        return () => clearTimeout(t);
+    }, [p, onSay]);
     useEffect(() => {
         const onKey = (e) => {
             if (e.isComposing || e.keyCode === 229) return;
@@ -3221,7 +3231,7 @@ function Lesson({ scenarioParam, practice = false, focusParam = '' }) {
                         onMiss={handleMiss} onAdvance={handleAdvance}
                         isLast={index === run.length - 1 && !missedCount} />
                 ) : step.kind === 'pattern' ? (
-                    <PatternScreen step={step} onSpeak={speak} onAdvance={handleAdvance}
+                    <PatternScreen step={step} onSpeak={speak} onSay={say} onAdvance={handleAdvance}
                         isLast={index === run.length - 1 && !missedCount}
                         langName={langName} lessonNo={taughtLessons.length} />
                 ) : (

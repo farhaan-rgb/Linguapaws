@@ -41,7 +41,7 @@ const KN12_SAID = 'naanu eega tinnuttiddene, hoguttene aamele';
 test('every case here is an answer the grader rejects', () => {
     const cases = [
         ['Kannada', KN12_SAID, KN12],
-        ['Telugu', 'Ela Meeru Unnaru', 'Meeru ela unnaru'],
+        ['Telugu', 'Unnaru meeru ela', 'Meeru ela unnaru'],
         ['Kannada', 'Snehitagalu', 'Snehitaru'],
         ['Kannada', 'Idu', 'Adu'],
         ['Telugu', 'Innam', 'Annam'],
@@ -90,7 +90,7 @@ test('nothing offered is blank', () => {
 test('the other kinds fire on real transcript answers', () => {
     const cases = [
         /* order */
-        ['Telugu', 1, 'Ela Meeru Unnaru', 'Meeru ela unnaru', 'order'],
+        ['Telugu', 1, 'Unnaru meeru ela', 'Meeru ela unnaru', 'order'],
         ['Telugu', 13, 'Nenu chusanu adhi', 'Nenu adhi chusanu', 'order'],
         /* ending: the right stem, the wrong ending */
         ['Kannada', 8, 'Snehitagalu', 'Snehitaru', 'ending'],

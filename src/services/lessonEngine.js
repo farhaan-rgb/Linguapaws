@@ -177,7 +177,10 @@ export const isSpellingSlip = (a, b) => {
        against `Veyi rupayalu?` and was graded "Exactly!". A two-character
        fragment is never a misspelling of a four-character word. */
     if (Math.min(a.length, b.length) < 3) return false;
-    if (Math.abs(a.length - b.length) > 2) return false;
+    /* Long words carry more vowels to flatten: `danyavadalu` is *dhanyavaadaalu*
+       with an aspiration and two long vowels written short, three characters
+       out, and was told "the word for Thank you is missing". */
+    if (Math.abs(a.length - b.length) > (Math.min(a.length, b.length) >= 6 ? 4 : 2)) return false;
     return vowelSkeleton(a) === vowelSkeleton(b)
         && !differsOnlyByPersonEnding(a, b)
         && !differsOnlyByDeicticInitial(a, b);
@@ -458,8 +461,25 @@ export const tokenMatches = (raw, token, lexicon = new Map()) => {
        where `bothReal` cannot answer and caution is the right default. */
     if (!words.size && Math.min(s.length, want.length) < 6) return false;
     return levenshtein(s, want) <= 1
+        && !dropsConsonant(s, want)
         && !differsOnlyByPersonEnding(s, want)
         && !differsOnlyByDeicticInitial(s, want);
+};
+
+/* One word is the other with a single consonant missing that is neither an
+   aspiration `h`, a glide, nor half of a doubled letter. That is a syllable
+   lost, not a typo: round 17 answered a memory check with `tinunnanu` for
+   *tintunnanu* and was told "Exactly right". `chestunanu` (one n of nn),
+   `veltunnanu` (the h) and `ikada` (one k) stay slips. */
+const dropsConsonant = (a, b) => {
+    if (Math.abs(a.length - b.length) !== 1) return false;
+    const [lo, sh] = a.length > b.length ? [a, b] : [b, a];
+    let i = 0;
+    while (i < sh.length && lo[i] === sh[i]) i++;
+    if (lo.slice(i + 1) !== sh.slice(i)) return false;
+    const c = lo[i];
+    if (/[aeiouhyw]/.test(c)) return false;
+    return lo[i - 1] !== c && lo[i + 1] !== c;
 };
 
 /* The learner who says the right thing and then adds a question about it.
@@ -527,6 +547,8 @@ const pronounVariants = (expected) => {
 /* Obligation and prohibition forms carry no person: *thinali* (must eat),
    *maadabaaradu* (must not do), *beku* (want/need). */
 const ANY_PERSON_VERB = /(ali|aradu|kudadu|beku|bahudu)$/;
+/* Telugu want-words, which take *naaku* ("to me") for "I". */
+const WANT_WORD = /^(kaavali|kavali|vaddu|oddu|voddu)$/;
 const SUBJECT_PERSON = {
     nenu: /nu$/,
     naanu: /(e|ni|nu)$/,
@@ -594,49 +616,125 @@ const locateTokens = (actual, v, lexicon) => {
     return { need, at };
 };
 
+/* ── What word order Telugu and Kannada actually fix ──────────────────────
+   Both are verb-final with free order before the verb. The check used to
+   demand the course's exact sequence, so the same sentence was rejected on one
+   screen and praised on another: round 17 wrote `nenu eeroju velthunnanu` and
+   was told "nenu goes right after eeroju", then had it accepted two screens
+   later; `ippudu nenu tintanu` and `nenu eeroju santhoshamga unnanu` were
+   rejected outright; and `enduku idhi` was told "enduku goes last" straight
+   under a note saying *enduku* often comes first.
+
+   So an order is wrong only when it breaks one of three things:
+   (a) the predicate — the verb, copula, *kaavali* or *beku*, or the noun of a
+       verbless sentence — is last in its clause;
+   (b) a modifier (possessive, demonstrative, number, adjective, intensifier)
+       stays in front of its noun with no other answer word between;
+   (c) a postposition stays straight after its noun.
+   Subjects, time words, place words, adverbs and question words (FREE_ORDER)
+   move freely, and a clause that ENDS on one has no predicate to hold last:
+   *Idhi enduku?* is as good as *Enduku idhi?*. Everything else keeps the
+   course's relative order, so objects still cannot jump over their modifiers.
+   Same rule for both languages; the lists are keyed by vowel length. */
+const FREE_ORDER = new Set([
+    // subject pronouns, and the dative experiencers that open want/like sentences
+    'nenu', 'meeru', 'nuvvu', 'memu', 'manam', 'manamu', 'ame', 'aame', 'ayana', 'atanu', 'vaadu', 'vaallu',
+    'naaku', 'meeku', 'neeku', 'maaku', 'manaku',
+    'naanu', 'neevu', 'neenu', 'naavu', 'avaru', 'avanu', 'avalu', 'ivaru',
+    'nanage', 'nimage', 'ninage', 'namage', 'avarige',
+    // time
+    'eeroju', 'ippudu', 'repu', 'ninna', 'appudu', 'tharuvatha', 'ivvala', 'malli',
+    'ivattu', 'ivatthu', 'naale', 'ninne', 'eega', 'aamele', 'aaga', 'belagge', 'raatri', 'raatrige', 'matte',
+    // place
+    'ikkada', 'akkada', 'illi', 'alli',
+    // question words
+    'enduku', 'ekkada', 'emiti', 'em', 'ela', 'evaru', 'eppudu', 'enni', 'entha',
+    'yaake', 'yelli', 'elli', 'yenu', 'enu', 'hege', 'yaaru', 'yaavaga', 'eshtu',
+    // manner adverbs and "also"
+    'baga', 'tvaraga', 'mellaga', 'santhoshamga', 'kooda', 'kuda', 'inka',
+    'chennagi', 'bega', 'mellage',
+].map(lengthKey));
+const MODIFIERS = new Set([
+    'naa', 'mee', 'maa', 'nee', 'mana', 'ee', 'aa',
+    'oka', 'okati', 'rendu', 'moodu', 'naalugu', 'aidhu', 'chala', 'pedda', 'chinna', 'manchi', 'vedi',
+    'telupu', 'nalupu', 'erupu', 'erra', 'tella', 'nalla', 'aakhari',
+    'nanna', 'nimma', 'namma', 'ninna', 'avara', 'aatana', 'yaava',
+    'ondu', 'eradu', 'mooru', 'naalku', 'aidu', 'hattu', 'dodda', 'chikka', 'olleya', 'ketta', 'bisi',
+    'kempu', 'bili', 'kappu', 'hasiru', 'tumba', 'swalpa', 'koneya',
+].map(lengthKey));
+const POSTPOSITIONS = new Set([
+    'lo', 'loki', 'paina', 'meeda', 'kindha', 'kinda', 'tho', 'daggara', 'kosam', 'nundi', 'nunchi', 'varaku',
+    'mele', 'kelage', 'olage', 'hattira', 'jote', 'inda', 'varege',
+].map(lengthKey));
+const isFreeOrder = (t) => FREE_ORDER.has(lengthKey(t)) || /^[a-z]{3,}(ga|gaa)$/.test(t) && !MODIFIERS.has(lengthKey(t));
+
+/* The first rule an ordering breaks, or null when it breaks none. `at[k]` is
+   where the learner put target word k. The result names the word to move,
+   for the order line: `index` that word, `afterIndex` the answer word it goes
+   after (or `beforeIndex` the one it goes before), `last` when it is the
+   predicate. */
+const orderBreak = (v, need, at) => {
+    const plan = clausePlan(v, need);
+    const of = plan ? plan.of : need.map(() => 0);
+    const clauses = plan ? plan.span : [{ start: 0, end: need.length - 1 }];
+    // (a) the predicate of each clause closes it, and the clauses keep their order
+    for (let c = 0; c < clauses.length; c++) {
+        const p = clauses[c].end;
+        if (isFreeOrder(need[p])) continue;
+        const bad = need.some((_, k) => k !== p && (of[k] <= c ? at[k] > at[p] : at[k] < at[p]));
+        if (bad) return { index: p, last: true };
+    }
+    const between = (i, j) => need.some((_, k) => k !== i && k !== j && at[k] > at[i] && at[k] < at[j]);
+    // (b) modifier + noun, (c) noun + postposition
+    for (let k = 0; k + 1 < need.length; k++) {
+        if (of[k] !== of[k + 1] || isFreeOrder(need[k + 1])) continue;
+        const mod = MODIFIERS.has(lengthKey(need[k]));
+        const post = POSTPOSITIONS.has(lengthKey(need[k + 1])) && !isFreeOrder(need[k]);
+        if (!mod && !post) continue;
+        if (at[k + 1] < at[k] || between(k, k + 1)) {
+            return { index: k + 1, afterIndex: k, adjacent: true };
+        }
+    }
+    // everything that is not free keeps the course's relative order
+    const rigid = need.map((t, k) => k).filter(k => !isFreeOrder(need[k]));
+    for (let r = 1; r < rigid.length; r++) {
+        if (at[rigid[r]] < at[rigid[r - 1]]) {
+            /* Name the later word that came too early, after the last rigid word
+               that is in place — in a verb-final language usually the verb. */
+            return { index: rigid[r], afterIndex: rigid[r - 1], adjacent: false };
+        }
+    }
+    return null;
+};
+
 /* Coverage is order-blind and the ratio forgives a swap, so `peru naa` passed
-   for *naa peru* with no comment. Rejection requires a genuine PERMUTATION:
-   every word of the target present, and not in the target's order. Anything
-   else — a missing word, extra words — is coverage's business. */
+   for *naa peru* with no comment. Rejection requires every word of the target
+   present, in an order that breaks one of the rules above. Anything else — a
+   missing word, extra words — is coverage's business. */
 const isPermutedAgainst = (actual, v, lexicon) => {
     const loc = locateTokens(actual, v, lexicon);
     if (!loc || loc.need.length < 2) return false;
-    return loc.at.some((p, k) => k > 0 && p < loc.at[k - 1]);
+    return Boolean(orderBreak(v, loc.need, loc.at));
 };
 
 /** Which target word is out of place, for a learner who has every word right
- *  and the order wrong. The words that are already in order are the longest
- *  increasing run of positions; the first one outside it is the misplaced one.
- *  `naanu nodide mane` for *naanu mane nodide* used to be told "naanu comes
- *  first" — naanu WAS first; nodide was the word to move. */
+ *  and the order wrong — by the rule the order breaks (see orderBreak). */
 export const misplacedWord = (actual, v, lexicon = new Map()) => {
     const loc = locateTokens(actual, v, lexicon);
     if (!loc || loc.need.length < 2) return null;
     const { need, at } = loc;
-    if (!at.some((p, k) => k > 0 && p < at[k - 1])) return null;
-    const n = at.length;
-    const len = Array(n).fill(1), prev = Array(n).fill(-1);
-    for (let i = 0; i < n; i++) {
-        for (let j = 0; j < i; j++) {
-            if (at[j] < at[i] && len[j] + 1 > len[i]) { len[i] = len[j] + 1; prev[i] = j; }
-        }
-    }
-    /* Ties go to the run that keeps the EARLIER target words, so the word named
-       is a later one — in a verb-last language, usually the verb that wandered
-       forward, which is the thing the lesson's note is about. */
-    let end = 0;
-    for (let i = 1; i < n; i++) if (len[i] > len[end]) end = i;
-    const keep = new Set();
-    for (let i = end; i !== -1; i = prev[i]) keep.add(i);
-    const k = need.findIndex((_, i) => !keep.has(i));
-    if (k === -1) return null;
+    const b = orderBreak(v, need, at);
+    if (!b) return null;
+    const k = b.index;
+    const n = need.length;
     /* `said` is each target word as the learner wrote it, and `exact` whether
        every one was written exactly so. `vellu akkada` for *akkada vellandi* is
        an order miss through the lexicon, but it is not "all the right words". */
     const saidToks = normalizeLatin(actual).split(' ').filter(Boolean);
     const said = at.map(p => saidToks[p]);
     return {
-        word: need[k], index: k, last: k === n - 1, first: k === 0, need,
+        word: need[k], index: k, last: Boolean(b.last) || k === n - 1, first: false, need,
+        afterIndex: b.afterIndex, adjacent: b.adjacent !== false,
         said, at, exact: said.every((w, i) => w === need[i]),
     };
 };
@@ -699,7 +797,7 @@ export const orderMiss = (said, expected, variants = [], lexicon = new Map()) =>
         /* A whole form, word for word in count — "ela unnaru" sits in order
            inside `ela meeru unnaru`, which is still out of order. */
         return loc && loc.need.length >= 2 && loc.need.length === got.length
-            && !loc.at.some((p, k) => k > 0 && p < loc.at[k - 1]);
+            && !orderBreak(v, loc.need, loc.at);
     });
     if (inSomeOrder) return null;
     for (const v of forms) {
@@ -714,7 +812,18 @@ export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()
     const given = [expected, ...variants].filter(Boolean);
     if (!given.length) return { ratio: 0, coverage: 0, accepted: false };
     const all = [...given, ...given.flatMap(pronounVariants)];
-    const ratio = all.reduce((b, v) => Math.max(b, bestWindowRatio(actual, v)), 0);
+    /* The ratio is a character diff and so order-sensitive: `enduku idhi` is
+       miles from *idhi enduku* by characters. Where the learner's words are an
+       order the language allows (orderBreak), they are measured in the
+       answer's order — what is being judged there is spelling, not order. */
+    const saidToks0 = normalizeLatin(actual).split(' ').filter(Boolean);
+    const reordered = (v) => {
+        const loc = locateTokens(actual, v, lexicon);
+        if (!loc || loc.need.length < 2 || loc.at.length !== saidToks0.length) return 0;
+        if (orderBreak(v, loc.need, loc.at)) return 0;
+        return similarityRatioLatin(loc.at.map(p => saidToks0[p]).join(' '), v);
+    };
+    const ratio = all.reduce((b, v) => Math.max(b, bestWindowRatio(actual, v), reordered(v)), 0);
 
     /* A flat 0.7 floor let a required word be dropped from any four-word target
        — "Nenu ippudu velthunnanu" passed for "Nenu ippudu intiki velthunnanu" at
@@ -758,12 +867,34 @@ export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()
     const copulaOf = (v) => new Set(normalizeLatin(v).split(' ').map(lengthKey)
         .filter(t => COPULA.has(t)));
     const saidCopula = copulaOf(actual);
-    const copulaOk = all.some(v => {
+    /* ...but where the answer has no copula at all and the learner closes
+       the sentence with one that agrees with its subject, they have said the
+       fuller form, not a different sentence: round 17's `mee illu ekkada undi`
+       for *Mee illu ekkada?* and `meeru enduku ikkada unnaru` for *Meeru
+       enduku ikkada?* were rejected. With no pronoun the copula must be a
+       third-person one; with one, it must carry that pronoun's person, so
+       `Nenu illu lo unnaru` is still refused. */
+    const THIRD_COPULA = new Set(['undi', 'undhi', 'unnayi', 'unnaru', 'unnadu', 'unnadi'].map(lengthKey));
+    const saidToksC = normalizeLatin(actual).split(' ').filter(Boolean);
+    /* Not after an identity question: *Meeru evaru?* takes no copula, and
+       `meeru evaru unnaru` is "who is there", not "who are you". */
+    const IDENTITY = /\b(evaru|emiti|em|peru|yaaru|yenu|hesaru)\b/;
+    const extraCopulaOk = (want) => {
+        if (want.size || saidCopula.size !== 1) return false;
+        if (given.some(v => IDENTITY.test(normalizeLatin(v)))) return false;
+        const c = [...saidCopula][0];
+        if (lengthKey(saidToksC[saidToksC.length - 1] || '') !== c) return false;
+        const subj = saidToksC.find(t => SUBJECT_PERSON[t]);
+        return subj ? SUBJECT_PERSON[subj].test(saidToksC[saidToksC.length - 1]) : THIRD_COPULA.has(c);
+    };
+    const copulaFits = (v) => {
         const want = copulaOf(v);
+        if (extraCopulaOk(want)) return true;
         if (want.size !== saidCopula.size) return false;
         for (const t of want) if (!saidCopula.has(t)) return false;
         return true;
-    });
+    };
+    const copulaOk = all.some(copulaFits);
 
     const polarityOk = all.some(v => {
         const want = polarityOf(v);
@@ -829,15 +960,29 @@ export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()
        teaches two whole sentences — *naaku … undi* and *nenu … unnanu* — and each
        check found its own form: `naaku alupuga unnanu` had its pronoun licensed by
        the first and its verb by the second, so a half-and-half sentence passed. */
+    /* Two allowances, both about the optional subject pronoun:
+       - an unlisted *nenu* or *naanu* where NO accepted form uses its partner and
+         the verb carries its person: `nenu bagunnanu` for *Bagunnanu*;
+       - *nenu* where the answer has *naaku* before a want-word: `nenu snanam
+         kaavali` is understood and not a different sentence, so it passes
+         with a note (spellingNote) rather than a miss. Round 17, L18.
+       *naaku gurthundi* / *nanage tumba kushi* keep their partner rule. */
+    const groupInGiven = (t) => given.some(v => normalizeLatin(v).split(' ')
+        .some(x => distinctWords(t, x)));
     const contrastOk = !saidMembers.size || given.some(v => {
-        const wantCopula = copulaOf(v);
-        if (wantCopula.size !== saidCopula.size) return false;
-        for (const t of wantCopula) if (!saidCopula.has(t)) return false;
+        if (!copulaFits(v)) return false;
         const want = countMembers(v);
-        for (const [t, n] of saidMembers) if ((want.get(t) || 0) < n) return false;
+        const toks = normalizeLatin(v).split(' ').filter(Boolean);
+        const verb = toks[toks.length - 1] || '';
+        const wantSwap = (t, y) => t === 'nenu' && y === 'naaku' && WANT_WORD.test(verb);
+        const optional = (t) => Boolean(SUBJECT_PERSON[t]) && (
+            (![...want.keys()].some(y => distinctWords(t, y)) && !groupInGiven(t)
+                && (SUBJECT_PERSON[t].test(verb) || ANY_PERSON_VERB.test(verb)))
+            || (want.has('naaku') && wantSwap(t, 'naaku')));
+        for (const [t, n] of saidMembers) if ((want.get(t) || 0) < n && !optional(t)) return false;
         for (const y of want.keys()) {
             if (saidMembers.has(y)) continue;
-            if ([...saidMembers.keys()].some(t => distinctWords(t, y))) return false;
+            if ([...saidMembers.keys()].some(t => distinctWords(t, y) && !wantSwap(t, y))) return false;
         }
         return true;
     });
@@ -1132,10 +1277,77 @@ export const answerDiff = (said, expected, variants = [], lexicon = new Map()) =
     };
 };
 
+/** "I don't know" typed as an answer: the "I don't know — show me" button in
+ *  words. Step mode reveals on it; chat now does the same (round 17 L16, where
+ *  chat answered "The course hasn't covered that yet" about a word it had
+ *  taught three turns earlier). One regex, so the two surfaces agree. */
+export const DONT_KNOW = /^(?:i\s+)?(?:(?:really\s+)?(?:do\s*n['’]?o?t|dont|dunno)(?:\s+know)?|idk|no\s+idea|not\s+sure|no\s+clue|pass|skip|show\s+me|tell\s+me|help)[\s.!?]*$/i;
+
+/** An accepted answer that used a different FORM of an answer word than the
+ *  course's, through an `alt`, and not as a spelling slip: `erupu` where the
+ *  answer has *erra*, `emiti` for *em*. Chat praised those "Great job!" and
+ *  then showed a tip saying the other form is the right one here (round 17
+ *  L19), so the verdict and the tip disagreed. Returns `{ said, expected }`
+ *  for the first such word, or null — when an accepted form was written as
+ *  listed, or the difference is only spelling. */
+export const formNote = (said, expected, variants = [], lexicon = new Map()) => {
+    if (!said || !expected) return null;
+    const { synonyms } = asLexicon(lexicon);
+    const toks = (v) => normalizeLatin(v).split(' ').filter(Boolean);
+    const got = toks(said);
+    const forms = [expected, ...variants].filter(Boolean).flatMap(v => [v, ...pronounVariants(v)]);
+    if (forms.some(f => toks(f).every(t => got.includes(t)))) return null;
+    const canon = (t) => synonyms.get(t) || t;
+    for (const t of toks(expected)) {
+        if (got.includes(t)) continue;
+        const g = got.find(x => x !== t && canon(x) === canon(t)
+            && !isSpellingSlip(x, t) && levenshtein(x, t) > 1);
+        if (g) return { said: g, expected: t };
+    }
+    return null;
+};
+
+/** A note shown with an accepted answer that names an answer word the
+ *  learner did not write (`*em*` under `adhi emiti rangu`). */
+export const noteNamesMissing = (said, expected, note = '') => {
+    if (!note) return null;
+    const got = new Set(normalizeLatin(said).split(' ').filter(Boolean));
+    const named = new Set([...String(note).matchAll(/\*([^*]+)\*/g)].map(m => normalizeLatin(m[1])));
+    const t = normalizeLatin(expected).split(' ').filter(Boolean).find(x => !got.has(x) && named.has(x) && !PRONOUNS.includes(x));
+    return t ? { expected: t } : null;
+};
+
+/** The verdict for an accepted answer, so praise never sits above a tip that
+ *  says a form was not the course's: `praise` as is, or a plain "Accepted"
+ *  naming the course's form. Chat and lesson-sim both use it. */
+export const acceptedVerdict = (praise, said, expected, variants = [], lexicon = new Map(), note = '') => {
+    /* A form the course lists, written as listed, is simply right. */
+    const toks = (v) => normalizeLatin(v).split(' ').filter(Boolean);
+    const got = toks(said);
+    const listed = [...variants].filter(Boolean).flatMap(v => [v, ...pronounVariants(v)]);
+    if (listed.some(f => toks(f).every(t => got.includes(t)))) return praise;
+    const fd = formNote(said, expected, variants, lexicon) || noteNamesMissing(said, expected, note);
+    return fd ? `Accepted. Here the course says *${fd.expected}*.` : praise;
+};
+
 /** The same finding as a sentence, for the paths that append it to praise. */
 export const spellingNote =(said, expected, variants = [], lexicon = new Map()) => {
     const d = spellingDiff(said, expected, variants, lexicon);
-    return d ? ` Note the spelling: **${d.expected}**.` : '';
+    return (d ? ` Note the spelling: **${d.expected}**.` : '') + wantNote(said, expected, variants);
+};
+
+/* The quiet half of scoreAnswer's *nenu*-for-*naaku* allowance: accepted,
+   and told the usual form once. */
+export const wantNote = (said, expected, variants = []) => {
+    const got = normalizeLatin(said).split(' ').filter(Boolean);
+    if (!got.includes('nenu') || got.includes('naaku')) return '';
+    const wanted = (v) => normalizeLatin(v).split(' ').filter(Boolean);
+    const listed = [expected, ...variants].find(v => wanted(v).includes('naaku')
+        && WANT_WORD.test(wanted(v).pop() || ''));
+    if (!listed) return '';
+    const last = wanted(listed).pop();
+    const form = String(listed).replace(/[?.!]+$/, '');
+    return ` With *${last}*, “I” is usually *naaku*: **${form[0].toUpperCase()}${form.slice(1)}**.`;
 };
 
 /* ── Teaching steps ────────────────────────────────────────────────────────
@@ -2126,7 +2338,12 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
            the whole sentence, and any word of it, waits for the reveal. */
         const lead = m.exact ? 'All the right words — the order is not.' : 'The order is off.';
         const word = hide ? m.said[m.index] : m.word;
-        const after = hide ? m.said[m.index - 1] : m.need[m.index - 1];
+        const ai = m.afterIndex ?? m.index - 1;
+        const after = hide ? m.said[ai] : m.need[ai];
+        /* "right after" only when the rule is adjacency (a noun after its
+           modifier, a postposition after its noun); otherwise the words in
+           between may sit anywhere. */
+        const rel = m.adjacent === false ? 'goes after' : 'goes right after';
         const ci = plan ? plan.of[m.index] : -1;
         const span = plan ? plan.span[ci] : null;
         /* A one-word clause has no internal order, so there is nothing to say
@@ -2176,8 +2393,8 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
             ? `${lead} ${word} comes first.`
             : `${lead} ${word} comes first: ${order}.`;
         return hide
-            ? `${lead} ${word} goes right after ${after}.`
-            : `${lead} ${word} goes right after ${after}: ${order}.`;
+            ? `${lead} ${word} ${rel} ${after}.`
+            : `${lead} ${word} ${rel} ${after}: ${order}.`;
     }
 
     /* One of a pair the course teaches against each other (DISTINCT_WORDS). */
@@ -2187,7 +2404,7 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
         const mine = meanings.get(g), want = meanings.get(other);
         return mine && want && cleanGloss(mine) !== cleanGloss(want)
             ? `${g} means "${mine}" — here you want ${hide ? 'the other one' : other}, "${want}".`
-            : (hide ? `Not ${g} — it is the other word of the pair.` : `Not ${g} but ${other}.`);
+            : (hide ? `Not ${g} — it is its look-alike partner here, ${outline(other)}.` : `Not ${g} but ${other}.`);
     }
 
     /* An ending that changes who — or what — is meant.
