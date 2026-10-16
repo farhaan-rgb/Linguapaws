@@ -59,8 +59,17 @@ function MasteryStrip({ counts }) {
                     }} />
                 ))}
             </div>
+            {/* Two columns only where two whole labels fit. "Still getting to
+                know" is the longest and the one that least survives being cut:
+                its job is to say this group carries no verdict, and "Still
+                getting to …" reads like a broken string instead. 165px is that
+                label plus its swatch and count, so below ~405px of card the
+                legend drops to one column rather than clipping. Nothing here
+                truncates — a label that does not fit wraps, because the layout
+                is what is wrong in that case, not the text. */}
             <ul style={{
-                listStyle: 'none', display: 'grid', gridTemplateColumns: '1fr 1fr',
+                listStyle: 'none', display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))',
                 gap: '6px 10px', margin: '10px 0 0', padding: 0,
             }}>
                 {ORDER.filter(k => counts[k] > 0).map(k => (
@@ -70,7 +79,7 @@ function MasteryStrip({ counts }) {
                             boxShadow: k === 'unknown' ? 'inset 0 0 0 1px rgba(0,0,0,0.08)' : 'none',
                         }} />
                         <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{counts[k]}</strong>
-                        <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ color: 'var(--text-secondary)' }}>
                             {P.groups[k].title}
                         </span>
                     </li>
@@ -158,11 +167,19 @@ export default function SkillSummary({ counts, miss }) {
                             {P.overview.thin}
                         </p>
                         <p style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+                            {/* Each kind travels with its count and does not
+                                break inside itself: wrapped as "Left in /
+                                English 1" the line reads as two facts rather
+                                than one. The longest kind is well under the
+                                narrowest card, so nothing is pushed out. */}
                             {m.rows.map((r, i) => (
                                 <React.Fragment key={r.kind}>
                                     {i > 0 && ' · '}
-                                    <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{r.label}</span>{' '}
-                                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{r.count}</span>
+                                    <span style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>
+                                        <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{r.label}</span>
+                                        {' '}
+                                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{r.count}</span>
+                                    </span>
                                 </React.Fragment>
                             ))}
                         </p>

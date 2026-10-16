@@ -109,7 +109,11 @@ capabilities:
   `lessonEngine.scoreAnswer`; the app once carried its own copy of the matcher
   and engine fixes were not reaching learners at all.
 - **Design** does not design from the source. It runs the preview harness and
-  looks at the screen, because a judgement made by reading JSX is a guess.
+  looks at the screen, because a judgement made by reading JSX is a guess —
+  and it looks at **320, 360 and 390 CSS px**, plus one wide width, because a
+  screenshot at one comfortable width is not the screen a learner uses.
+  `node tools/shot.mjs` does it and names anything clipped; STEP-MODE.md's
+  "Look at it at 320, 360 and 390" says why that is a standing rule.
 - **Voice** applies the same rule to sound: it plays the lesson and listens
   before it says a voice is right. It also never answers a vendor question from
   memory — speech model lineups change monthly, so every claim carries a URL and

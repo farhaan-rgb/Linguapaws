@@ -280,7 +280,43 @@ cannot be reached by clicking alone.
   `?lock=9&press=1` locks the revealed answer in and moves on without Continue
 - `?screen=toggle&mode=steps|chat` — the mode switch
 
+The other pages are stubbed the same way: `?screen=skills&board=weak|strong|empty|fail`
+for "My skills", with `&slip=real|order|flat|thin` (or `&slip=ending:9,order:4`)
+for the miss profile behind *Where you slip*, `?screen=map`, `?screen=practice`,
+`?screen=home` and `?screen=summary`. The comments in `src/dev/preview.jsx` are
+the full list.
+
 Not part of `npm run build`; vite only builds `index.html`.
+
+### Look at it at 320, 360 and 390
+
+Every state, every time — not once, and not at whatever width the window
+happened to be. Our learners are on mid-range Android phones; 320 CSS px is the
+floor worth supporting and 360/390 is where most of them are. One wide width on
+top of that, to confirm nothing stretches.
+
+This is not a style preference. The "Still getting to know" legend on the
+skills summary shipped truncated to *"Still getting to ..."* on every phone,
+and was whole in every screenshot taken of it, because those were taken at
+~880px. A label is the one thing that cannot be allowed to truncate: clipped,
+the group whose whole job is to say *there is no verdict here yet* reads as a
+broken string. **If a label does not fit, the layout is wrong, not the text.**
+
+`chrome --headless --screenshot --window-size=360,…` cannot do this: Chrome
+clamps the window to 500px and crops the image to the width asked for, so the
+picture is the left 360px of the 500px layout. Use the CDP harness, which sets
+a real viewport and also measures clipping instead of trusting the eye:
+
+```sh
+npx vite --port 5199 &
+node tools/shot.mjs /tmp/shots 320,360,390,1024 \
+  "skills=http://localhost:5199/preview.html?screen=skills&board=weak&slip=real&lang=Kannada" \
+  "win=http://localhost:5199/preview.html?lang=Telugu&scenario=0&win=8"
+```
+
+It prints `CLIP <tag> @<width>` with the offending text for any element whose
+content is wider than its box, and exits non-zero if anything is cut. Still
+open the PNGs — it catches clipping, not crowding.
 
 ## Not done yet
 
