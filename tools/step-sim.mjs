@@ -303,6 +303,12 @@ function say(s, text) {
 
     const out = [`👁  ${P.missLineFor(step.index + s.misses)}`];
     if (diagnosis) out.push(`👁  ${diagnosis.replace(/\*\*/g, '')}`, spoken(s.lang, diagnosis));
+    /* The drill's grammar note, which Steps.jsx now shows on a miss while a
+       retry is live — unless the note quotes the answer. Shown there and not
+       spoken, so shown here and not spoken. */
+    if (step.drill?.grammarNote && !E.noteGivesAnswer(step.drill.grammarNote, step.expected)) {
+        out.push(`👁  💡 ${step.drill.grammarNote}`);
+    }
     if (step.drill?.hint) out.push(`   💡 hint: ${step.drill.hint}`);
     return out.filter(Boolean);
 }
