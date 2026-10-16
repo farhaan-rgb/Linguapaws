@@ -81,8 +81,13 @@ function MasteryStrip({ counts }) {
 }
 
 /** One kind of miss: its share as a bar, its count written on the end. */
-function SlipRow({ row, lead, max, i }) {
-    const pct = Math.max(4, Math.round((row.count / max) * 100));
+function SlipRow({ row, lead, i }) {
+    /* Scaled against the total, not against the biggest bar: the caption
+       above says "of 37 mistakes", so a bar has to mean the same thing. A
+       max-scaled chart draws five equal thirds as five full-width bars, which
+       says "everything is maxed out" about a learner whose misses are in fact
+       spread evenly. */
+    const pct = Math.max(3, Math.round(row.share * 100));
     return (
         <li style={{ marginTop: i ? 12 : 10 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -100,10 +105,10 @@ function SlipRow({ row, lead, max, i }) {
             {lead && (
                 <p style={{ margin: '6px 0 0', fontSize: 12.5, lineHeight: 1.45, color: 'var(--text-secondary)' }}>
                     {missSlipGloss(row.kind)}
-                    {row.recentWords.length > 0 && <>{' '}
+                    {row.recentWords.length > 0 && <>{` ${P.overview.lately} `}
                         <span style={{ fontFamily: 'var(--font-display)', color: 'var(--text-main)' }}>
-                            {P.overview.lately(row.recentWords)}
-                        </span>
+                            {row.recentWords.join(', ')}
+                        </span>.
                     </>}
                 </p>
             )}
@@ -126,7 +131,6 @@ export default function SkillSummary({ counts, miss }) {
         slip: m.standing, misses: m.total, enough: m.enough,
     });
     const bars = m.rows.slice(0, MAX_BARS);
-    const max = bars.length ? bars[0].count : 1;
 
     return (
         <section className="card" style={{ padding: '14px 16px', marginTop: 14 }}>
@@ -147,10 +151,13 @@ export default function SkillSummary({ counts, miss }) {
                         written out and no bar is drawn around them. */}
                     {m.enough ? (
                         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                            {bars.map((r, i) => <SlipRow key={r.kind} row={r} lead={r === m.standing} max={max} i={i} />)}
+                            {bars.map((r, i) => <SlipRow key={r.kind} row={r} lead={r === m.standing} i={i} />)}
                         </ul>
-                    ) : (
-                        <p style={{ margin: '8px 0 0', fontSize: 13, lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+                    ) : (<>
+                        <p style={{ margin: '8px 0 0', fontSize: 13.5, lineHeight: 1.5, color: 'var(--text-main)' }}>
+                            {P.overview.thin}
+                        </p>
+                        <p style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.5, color: 'var(--text-secondary)' }}>
                             {m.rows.map((r, i) => (
                                 <React.Fragment key={r.kind}>
                                     {i > 0 && ' · '}
@@ -159,7 +166,7 @@ export default function SkillSummary({ counts, miss }) {
                                 </React.Fragment>
                             ))}
                         </p>
-                    )}
+                    </>)}
                 </div>
             )}
         </section>

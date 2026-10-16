@@ -177,3 +177,51 @@ export function skillBoard({ lang, model, reached = Infinity }) {
     for (const k of Object.keys(out)) out[k].forEach(r => { delete r.mastery; });  // no numbers leave here
     return out;
 }
+
+/* ── The miss profile, read for a learner ─────────────────────────────────
+   srs.fetchMissProfile returns `[{ kind, label, count, share, lastSeen,
+   recentWords }]`, most frequent first. Two rules stand between that list and
+   anything the page is allowed to claim, and both are MISS-TAXONOMY.md's, not
+   new ones:
+
+   - a kind is a STANDING WEAKNESS at `count >= 3 && share >= 0.25`. Below
+     that it is one of the things that happened, not a thing about the learner.
+   - so the smallest profile in which a share can mean anything at all is
+     3 / 0.25 = 12 misses. Under twelve the count half of the rule is the only
+     half doing work, and a percentage drawn from it is noise with a bar
+     around it. PATTERN_MIN is that number, derived rather than chosen.
+
+   And the asymmetry the whole card has to respect: nothing ever records that
+   the learner did NOT make a spelling mistake. A kind with no misses against
+   it is no evidence, never a strength — so nothing here may be read as the
+   good end of an axis. */
+export const STANDING_MIN_COUNT = 3;
+export const STANDING_MIN_SHARE = 0.25;
+export const PATTERN_MIN = Math.ceil(STANDING_MIN_COUNT / STANDING_MIN_SHARE);
+
+export const isStandingWeakness = (row) => !!row
+    && (row.count || 0) >= STANDING_MIN_COUNT && (row.share || 0) >= STANDING_MIN_SHARE;
+
+/**
+ * What the page may say about how this learner gets things wrong.
+ *
+ * `rows` are the diagnosed kinds only — `unknown` is the engine's floor and a
+ * bar for "we could not say" tells the learner nothing about themselves — with
+ * `share` recomputed over that same denominator, so the bars and the
+ * "N misses" caption cannot disagree. `total` is that denominator.
+ *
+ * @returns {{ total:number, rows:Array, top:Object|null, standing:Object|null,
+ *             enough:boolean }}
+ */
+export function missBoard(profile) {
+    const rows = (Array.isArray(profile) ? profile : [])
+        .filter(r => r && r.kind && r.kind !== 'unknown' && (r.count || 0) > 0)
+        .map(r => ({ kind: r.kind, label: r.label || r.kind, count: r.count || 0,
+                     lastSeen: r.lastSeen || null, recentWords: (r.recentWords || []).slice(0, 3) }))
+        .sort((a, b) => b.count - a.count);
+    const total = rows.reduce((s, r) => s + r.count, 0);
+    for (const r of rows) r.share = total ? r.count / total : 0;
+    const top = rows[0] || null;
+    const enough = total >= PATTERN_MIN;
+    return { total, rows, top, standing: enough && isStandingWeakness(top) ? top : null, enough };
+}

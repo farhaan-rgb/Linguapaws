@@ -332,7 +332,18 @@ skill:
 That last row is the one to hold on to. Most misses are vocabulary misses, and
 a mechanism that fires on all of them is a mechanism that fires always.
 
-**3. The caption.** Phase 2's `why` line can name a kind:
+**3. The learner's own view** — **built.** "My skills" (`src/pages/MySkills.jsx`)
+opens with a summary: a mastery strip from the skill model, and under it the
+miss profile as a bar per kind, biggest first. Two visuals rather than one,
+because the profile records failures only — a kind with no misses against it
+is no evidence and never a strength, so there is no honest single axis with a
+good end and a bad end to put them on. The standing-weakness rule is the gate
+on what the page may *say*: only a standing weakness gets named in the
+sentence, and under `PATTERN_MIN` misses — `ceil(3 / 0.25) = 12`, the smallest
+total at which both halves of the rule can bind — no chart is drawn at all and
+the card says so. `skillProgress.missBoard` is that rule; the page only draws.
+
+**4. The caption.** Phase 2's `why` line can name a kind:
 `missKindLabel(kind)` plus `recentWords[0]` gives *"Because the word order in
 Naanu manege hoguttene tripped you up"*. Same rules as today's captions — at
 most one per round, never on a default pick, never on a re-ask, never spoken.
@@ -351,6 +362,7 @@ missed for its ending and ask for it inside a phrase instead of alone.
 | the classifier (`engine.classifyMiss`, `missHelp.missKind`) | **shipped** |
 | the two surfaces' call sites (`Steps.jsx`, `Chat.jsx`, and `tools/lesson-sim.mjs`) | **shipped** |
 | the scheduler (`srs.js SCHEDULE_DEMOTE_KINDS`) | **shipped, on** |
+| the learner's own view of it (`/skills` — "Where you slip") | **shipped** |
 | selection (`adaptive.js`), captions | **designed, not built** — above |
 
 ### What the classifier actually does, where it departs from §3

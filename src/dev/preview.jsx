@@ -16,6 +16,7 @@ import { buildLessonSteps } from '../services/stepPlan';
 import { ensureReviewSet, ensureAdaptation } from '../services/srs';
 import { sessionProgress } from '../services/skillProgress';
 import { skillsFor } from '../services/skills';
+import { missKindLabel } from '../../shared/missKinds.js';
 import MySkills from '../pages/MySkills';
 
 /**
