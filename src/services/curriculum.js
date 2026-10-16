@@ -730,7 +730,7 @@ export const CURRICULUM = {
                 { word: "Sare", native: "సరే", meaning: "Okay", phonetic: "suh-ray", teach: "{w}, “okay”, is one you already have, from lesson 4. Say it to agree before you go on." }
             ],
             phrases: [
-                { prompt: "Say 'I want water and food'", correct: "Neeru, annam kaavali", native: "నీరు, అన్నం కావాలి", grammarNote: "*Mariyu* is formal. In everyday speech people just list things with no “and”, like you did here.", meaning: "Water and food want", hint: "Water + and + food + want", acceptable: ["naaku neeru, annam kaavali"] },
+                { prompt: "Say 'I want water and food'", correct: "Neeru, annam kaavali", native: "నీరు, అన్నం కావాలి", grammarNote: "*Mariyu* is formal. In everyday speech people often just list things with no “and”.", meaning: "Water and food want", hint: "Water + and + food + want", acceptable: ["naaku neeru, annam kaavali"] },
                 { prompt: "Say 'I want this but not that'", correct: "Idhi kaavali kani adhi vaddu", native: "ఇది కావాలి కానీ అది వద్దు", meaning: "I want this but that don't want", hint: "This + want + but + that + don't want", acceptable: ["naaku idhi kaavali kani adhi vaddu"] },
                 { prompt: "Say 'This or that?'", correct: "Idhi leda adhi?", native: "ఇది లేదా అది?", meaning: "This or that?", hint: "This + or + that?" }
             ],
@@ -850,7 +850,7 @@ export const CURRICULUM = {
                   teach: "{w} means “it is falling”. Telugu doesn't say “it is raining”; it says “rain is falling”: *vana padutondi*. *Paduthundi* is “it will fall”, though many say it for rain now too, and it counts." }
             ],
             phrases: [
-                { prompt: "Say 'It's very hot today'", correct: "Eeroju chala enda", native: "ఈరోజు చాలా ఎండ", meaning: "Today very hot", hint: "Today + very + heat", acceptable: ["eeroju chala enda undi"] },
+                { prompt: "Say 'It's very hot today'", correct: "Eeroju chala enda", native: "ఈరోజు చాలా ఎండ", meaning: "Today very hot", hint: "Today + very + heat", acceptable: ["eeroju chala enda undi", "eeroju chala vediga undi"] },
                 { prompt: "Say 'I want a bus ticket'", correct: "Bus ticketu kaavali", native: "బస్సు టికెట్టు కావాలి", meaning: "I want a bus ticket", hint: "Bus + ticket + want", acceptable: ["naaku bus ticketu kaavali"] },
                 { prompt: "Say 'Safe trip'", correct: "Manchi prayanam", native: "మంచి ప్రయాణం", meaning: "Good trip", hint: "Good + trip" }
             ],
@@ -932,8 +932,8 @@ export const CURRICULUM = {
                 { prompt: "Introduce yourself properly: greet Miko, give your name, and say you can speak Telugu.", correct: "Namaskaram, naa peru [name], nenu Telugu matladagalanu", native: "నమస్కారం, నా పేరు [name], నేను తెలుగు మాట్లాడగలను", meaning: "Hello, my name is ..., I can speak Telugu", hint: "Greeting + my name + I + Telugu + speak can",
                   acceptable: ["namaskaram, naa peru [name]. nenu Telugu matladagalanu"],
                   grammarNote: "Three lessons in one sentence: the greeting from lesson 1, *naa peru* from lesson 5, *matladagalanu* from lesson 22." },
-                { prompt: "Miko asks what your book cost. Say 'One hundred rupees'.", correct: "Vanda rupayalu", native: "వంద రూపాయలు", meaning: "One hundred rupees", hint: "Hundred + rupees",
-                  grammarNote: "*Rupayalu* is “rupees”, from lesson 27. The number comes first, then *rupayalu*, with nothing in between." },
+                { prompt: "Miko asks what your book cost. Say 'One hundred rupees'.", correct: "Vanda rupayalu", native: "వంద రూపాయలు", meaning: "One hundred rupees", hint: "Hundred + rupees", acceptable: ["oka vanda rupayalu"],
+                  grammarNote: "*Rupayalu* is “rupees”, from lesson 27. The number comes first, then *rupayalu*, with nothing in between. *Oka vanda* (“one hundred”) is fine too." },
                 { prompt: "Tell someone 'I am from Hyderabad and I grew up there'.", correct: "Nenu Hyderabad nundi, nenu akkada perigaanu", native: "నేను హైదరాబాద్ నుండి, నేను అక్కడ పెరిగాను", meaning: "I am from Hyderabad and I grew up there", hint: "I + [city] + from, I + there + grew up",
                   acceptable: ["nenu [place] nundi, nenu akkada perigaanu"] },
                 { prompt: "Thank Miko, then say goodbye.", correct: "Dhanyavaadaalu, selavu", native: "ధన్యవాదాలు, సెలవు", meaning: "Thank you, goodbye", hint: "Thank you + goodbye", acceptable: ["selavu, dhanyavaadaalu", "dhanyavaadaalu selavu", "miko, dhanyavaadaalu, selavu"],
