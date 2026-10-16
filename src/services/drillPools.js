@@ -649,12 +649,29 @@ export function genDrillsEnabled() {
 }
 export const isGenerated = (d) => d?.source === 'gen';
 
+/* Generated drills reach learners only once a speaker of the language has
+   approved them (`reviewed: true`, set by `gen-pool.mjs apply`). The checks
+   in gen-pool are mechanical — they catch untaught words and grader
+   mismatches, not Kannada or Telugu that is grammatical but unnatural — so an
+   unreviewed batch stays in the file, ready, and out of lessons.
+   `localStorage.linguapaws_gen_drills = 'unreviewed'` serves them anyway on
+   one device, for the reviewer to try them in place. */
+export function serveUnreviewedGen() {
+    try {
+        const store = typeof window === 'undefined' ? null : window.localStorage;
+        return store?.getItem(GEN_DRILLS_KEY) === 'unreviewed';
+    } catch {
+        return false;
+    }
+}
+const servable = (list) => list.filter(d => d.reviewed === true || serveUnreviewedGen());
+
 function mergePools(seed, gen) {
     const out = {};
     for (const [lang, byLesson] of Object.entries(seed)) out[lang] = { ...byLesson };
     for (const [lang, byLesson] of Object.entries(gen)) {
         out[lang] = out[lang] || {};
-        for (const [n, list] of Object.entries(byLesson)) out[lang][n] = [...(out[lang][n] || []), ...list];
+        for (const [n, list] of Object.entries(byLesson)) out[lang][n] = [...(out[lang][n] || []), ...servable(list)];
     }
     return out;
 }

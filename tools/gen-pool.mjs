@@ -110,7 +110,9 @@ const isEnglish = (w) => {
 
 /* Every drill the course has, per lesson, including pools. */
 const drillsOf = (l) => [...(l.phrases || []), ...(l.conversations || []), ...(l.pool || [])].filter(d => d?.correct);
-const allKeys = new Set(lessons.flatMap(drillsOf).map(d => nl(d.correct)));
+// Unreviewed generated drills are not on lesson.pool, so add them here too.
+const allKeys = new Set([...lessons.flatMap(drillsOf), ...Object.values(GENERATED_POOLS[lang] || {}).flat()]
+    .filter(d => d?.correct).map(d => nl(d.correct)));
 
 /* The voice's token table (speechScript.align), built from hand-written content. */
 const nativeTok = new Map();
@@ -496,7 +498,16 @@ function modeValidate() {
             /* allKeys includes the drill itself; count only a second copy. */
             /* Hand-written drills come first, then pools in lesson order: only a
                later copy fails, so pruning keeps the first. */
-            const all = [...lessons.flatMap(l => [...(l.phrases || []), ...(l.conversations || [])]), ...lessons.flatMap(l => l.pool || [])];
+            /* Generated drills are read from GENERATED_POOLS, not lesson.pool:
+               only reviewed ones are attached to lessons, and an unreviewed
+               drill must still be found as its own first copy. */
+            const all = [
+                ...lessons.flatMap(l => [...(l.phrases || []), ...(l.conversations || [])]),
+                ...lessons.flatMap((l, i) => [
+                    ...(l.pool || []).filter(o => o.source !== 'gen'),
+                    ...((GENERATED_POOLS[lang] || {})[i + 1] || []),
+                ]),
+            ];
             const first = all.find(o => o?.correct && nl(o.correct) === nl(d.correct));
             if (first !== d) r.push(`duplicate: already in the course${first?.id ? ` as ${first.id}` : ''}`);
             if (r.length) { bad.push(d.id); console.log(`${d.id} \`${d.correct}\`: ${r.join('; ')}`); }

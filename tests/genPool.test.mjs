@@ -60,8 +60,10 @@ test('kill switch: with real pools, a switched-off plan names no generated drill
             assert.ok(off.add.every(x => !genIds.has(x.id)), `${lang} L${i + 1}: ${off.add.map(x => x.id)}`);
         });
     }
-    const anyGen = Object.values(GENERATED_POOLS).some(b => Object.values(b).some(l => l.length));
-    if (anyGen) assert.ok(servedOn > 0, 'switched on, some plan uses a generated drill');
+    /* Only reviewed generated drills are attached, so "on" serves some only
+       once a speaker has approved some. */
+    const anyReviewed = Object.values(GENERATED_POOLS).some(b => Object.values(b).some(l => l.some(d => d.reviewed)));
+    if (anyReviewed) assert.ok(servedOn > 0, 'switched on, some plan uses a reviewed generated drill');
 });
 
 test('generated drills carry their provenance and sit in the attached pools', () => {
@@ -72,7 +74,8 @@ test('generated drills carry their provenance and sit in the attached pools', ()
                 assert.equal(typeof d.reviewed, 'boolean', d.id);
                 assert.ok(d.gen?.model && d.gen?.judge && d.gen?.date && d.gen?.skill && d.gen.score >= 4, d.id);
                 assert.match(d.id, /^[a-z]\d+-g\d+$/, d.id);
-                assert.ok(DRILL_POOLS[lang][n].includes(d), `${d.id} attached`);
+                /* Attached only once a speaker has approved it. */
+                assert.equal(DRILL_POOLS[lang][n].includes(d), d.reviewed === true, `${d.id} attached iff reviewed`);
             }
         }
     }
