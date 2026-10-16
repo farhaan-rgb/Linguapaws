@@ -12,7 +12,20 @@
    to carry the older guides, which wrote "nah" for both short and long a and
    "noo" for a short u — so *Chesanu* was hinted "cheh-sah-noo" when it is
    chay-saa-nu, and every playtester's typos came from working off a hint that
-   disagreed with the spelling they had to type. */
+   disagreed with the spelling they had to type.
+
+   A lesson number may never carry the meaning on its own. If a note mentions
+   an earlier lesson it must also name the word or phrase it means, in the same
+   sentence: "*Hoguttene*, from lesson 3, covers 'I go'" is fine, because the
+   number is decoration the reader can ignore. "The rest is lesson 3,
+   unchanged" is not — the learner has no index to look lesson 3 up in, and no
+   memory of what was in it. Farhaan hit exactly that line in Kannada lesson
+   10, read in lesson 13: practice sessions, the phrase ladder and the Memory
+   check all replay a drill lessons after its home lesson, so a note is never
+   read where it was written. Forward references ("that comes in lesson 5")
+   are reassurance rather than explanation and are exempt; a prompt may point
+   at a lesson, because naming the word in a question gives the answer away.
+   `node tools/citation-check.mjs` fails on the rest. */
 import { DRILL_POOLS } from './drillPools.js';
 
 export const CURRICULUM = {
@@ -909,7 +922,7 @@ export const CURRICULUM = {
                   acceptable: ["namaskaram, naa peru [name]. nenu Telugu matladagalanu"],
                   grammarNote: "Three lessons in one sentence: the greeting from lesson 1, *naa peru* from lesson 5, *matladagalanu* from lesson 22." },
                 { prompt: "Miko asks what your book cost. Say 'One hundred rupees'.", correct: "Vanda rupayalu", native: "వంద రూపాయలు", meaning: "One hundred rupees", hint: "Hundred + rupees",
-                  grammarNote: "Money from lesson 27. The number comes first, then *rupayalu*, with nothing in between." },
+                  grammarNote: "*Rupayalu* is “rupees”, from lesson 27. The number comes first, then *rupayalu*, with nothing in between." },
                 { prompt: "Tell someone 'I am from Hyderabad and I grew up there'.", correct: "Nenu Hyderabad nundi, nenu akkada perigaanu", native: "నేను హైదరాబాద్ నుండి, నేను అక్కడ పెరిగాను", meaning: "I am from Hyderabad and I grew up there", hint: "I + [city] + from, I + there + grew up",
                   acceptable: ["nenu [place] nundi, nenu akkada perigaanu"] },
                 { prompt: "Thank Miko, then say goodbye.", correct: "Dhanyavaadaalu, selavu", native: "ధన్యవాదాలు, సెలవు", meaning: "Thank you, goodbye", hint: "Thank you + goodbye", acceptable: ["selavu, dhanyavaadaalu", "dhanyavaadaalu selavu", "miko, dhanyavaadaalu, selavu"],
@@ -1317,10 +1330,10 @@ export const CURRICULUM = {
                   traps: [{ said: "Pustakagalu", why: "*Pustakagalu* is “books”, more than one. This asks about one book: {answer}." }] },
                 { prompt: "Greet the shopkeeper, then ask for two waters.", correct: "Namaskara, eradu neeru kodi", native: "ನಮಸ್ಕಾರ, ಎರಡು ನೀರು ಕೊಡಿ", meaning: "Hello, two waters please", hint: "Hello + two + water + give",
                   acceptable: ["namaskara, eradu neeru beku", "namaskara eradu neeru kodi", "namaskara eradu neeru beku"],
-                  grammarNote: "Lesson 1, lesson 7, lesson 4 and today in one line. Either ending works: *kodi* asks them to hand it over, *beku* says what you want." },
+                  grammarNote: "You already have *namaskara*, *eradu* and *neeru*; only *kodi* is new. Either ending works: *kodi* asks them to hand it over, *beku* says what you want." },
                 { prompt: "Excuse yourself, then ask where the house is.", correct: "Kshamisi, mane yelli?", native: "ಕ್ಷಮಿಸಿ, ಮನೆ ಎಲ್ಲಿ?", meaning: "Excuse me, where is the house?", hint: "Excuse me + house + where?",
                   acceptable: ["kshamisi mane yelli?", "kshamisi, mane elli?", "kshamisi mane yelli"],
-                  grammarNote: "Start with *kshamisi* to stop a stranger politely. The rest is lesson 3, unchanged." }
+                  grammarNote: "Start with *kshamisi* to stop a stranger politely. Then *mane yelli?*, “where is the house?”, exactly as you already know it." }
             ],
             farewell: "Ten lessons in, you can greet, ask, want, refuse, count, point, describe and thank. That is a real toolkit."
         },
@@ -2147,7 +2160,7 @@ export const CURRICULUM = {
                   acceptable: ["nimma mane hattira bassu ideya", "nimma mane hattira bus ideya?", "nimma mane hathira bassu ideya?"] },
                 { prompt: "Miko is going to Mysuru tomorrow. Say 'If you come with me, I will go too'.", correct: "Neevu nanna jote bandare, naanu kooda hoguttene", native: "ನೀವು ನನ್ನ ಜೊತೆ ಬಂದರೆ, ನಾನು ಕೂಡ ಹೋಗುತ್ತೇನೆ", meaning: "If you come with me, I will go too", hint: "You + my + with + if-come, I + too + will go",
                   acceptable: ["neevu nanna jote bandare naanu kooda hoguttene", "neevu nanna jote bandare, naanu kooda hogtini", "nanna jote bandare, naanu kooda hoguttene", "neevu nanna jothe bandare, naanu kooda hoguttene", "neevu nanna jote bandre, naanu kooda hoguttene"],
-                  grammarNote: "With, if, too and will: lessons 21, 25, 24 and 14 in one breath." },
+                  grammarNote: "Four things in one breath: *jote* (“with”), *bandare* (“if you come”), *kooda* (“too”) and *hoguttene* (“I will go”)." },
                 { prompt: "Final check: thank Miko and say goodbye — 'Thank you, let's meet again'.", correct: "Dhanyavada, matte sigona", native: "ಧನ್ಯವಾದ, ಮತ್ತೆ ಸಿಗೋಣ", meaning: "Thank you, let's meet again", hint: "Thank you + again + let's meet",
                   acceptable: ["dhanyavada matte sigona", "dhanyavadagalu, matte sigona", "matte sigona, dhanyavada", "dhanyavada, matte sigona miko", "dhanyavada, hogi baruttene"],
                   grammarNote: "*Hogi baruttene*, “I'll go and come back”, the goodbye from lesson 14, works too. Both promise you'll be back." }
