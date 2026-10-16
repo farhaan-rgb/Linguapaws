@@ -9,7 +9,7 @@
      enter at half weight or less (ADAPTIVE.md), so evidence is the measure;
    - a results line names only a skill this session posted evidence for, and
      its direction is the server's own rule replayed on exactly that evidence. */
-import { skillsFor } from './skills';
+import { skillsFor } from './skills.js';
 
 export const SHOW_MIN_EVIDENCE = 1.5;
 export const MAX_SHOWN = 3;

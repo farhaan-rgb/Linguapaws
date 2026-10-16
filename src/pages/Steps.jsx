@@ -21,6 +21,8 @@ import {
     ensureAdaptation, clearAdaptation,
 } from '../services/srs';
 import { skillEvidence, outcomeOf } from '../services/skills';
+import { sessionProgress, focusModel } from '../services/skillProgress';
+import { SkillList } from '../components/SkillFocus';
 import { examplesFor } from '../services/examples';
 import { markEndings, endingsIn } from '../services/endings';
 import { answerFromFacts, whyNotAnswer, wordsAskedAbout } from '../services/courseFacts';
@@ -2329,11 +2331,11 @@ export default function Steps() {
     const practice = searchParams.get('practice') === '1';
     const scenarioParam = practice ? null : searchParams.get('scenario');
     /* `round` makes "Practise again" a fresh mount, as `scenario` does for lessons. */
-    return <Lesson key={practice ? `practice-${searchParams.get('round') || ''}` : (scenarioParam ?? 'resume')}
-        scenarioParam={scenarioParam} practice={practice} />;
+    return <Lesson key={practice ? `practice-${searchParams.get('round') || ''}-${searchParams.get('focus') || ''}` : (scenarioParam ?? 'resume')}
+        scenarioParam={scenarioParam} practice={practice} focusParam={practice ? searchParams.get('focus') || '' : ''} />;
 }
 
-function Lesson({ scenarioParam, practice = false }) {
+function Lesson({ scenarioParam, practice = false, focusParam = '' }) {
     const navigate = useNavigate();
 
     /* Read once. `getStoredJSON` hands back a fresh object every call, and an
@@ -2443,6 +2445,25 @@ function Lesson({ scenarioParam, practice = false }) {
        or failed fetch is an empty model, and the lesson builds as it always did. */
     useEffect(() => { if (langName) fetchSkillModel(langName); }, [langName]);
 
+    /* The results card's "This lesson worked on…" needs the model as it was
+       before this session — asked for fresh, not from the memo, which can be
+       a lesson old. Null = unknown (offline, slow, signed out): then the card
+       says nothing about skills rather than guess. `skillPosts` is every
+       evidence post this session, replayed on top of it at the summary. */
+    const skillBefore = useRef(null);
+    const skillPosts = useRef([]);
+    useEffect(() => {
+        if (!langName) return undefined;
+        let live = true;
+        skillBefore.current = null;
+        skillPosts.current = [];
+        Promise.race([
+            api.get(`/api/progress/skills?lang=${encodeURIComponent(langName)}`),
+            new Promise((resolve) => setTimeout(() => resolve(null), 4000)),
+        ]).then((r) => { if (live && Array.isArray(r)) skillBefore.current = r; }).catch(() => {});
+        return () => { live = false; };
+    }, [langName, scenarioIdx, practice]);
+
     /* Build the run: review slots from the SRS queue, everything else straight
        from the curriculum. */
     useEffect(() => {
@@ -2451,8 +2472,12 @@ function Lesson({ scenarioParam, practice = false }) {
         if (practice) {
             (async () => {
                 const sources = await fetchPracticeSources(langName);
+                /* `?focus=` comes from the map's "Practise these": the round's
+                   weak-skill screens go to those skills, not the whole weak list. */
+                const focus = (focusParam || '').split(',').filter(Boolean);
                 const built = buildPracticeSteps({
                     lessons, finishedIdx: scenarioIdx, ...sources, seed: Date.now() % 100000, lang: langName,
+                    skills: focusModel(sources.skills, focus),
                 });
                 if (cancelled) return;
                 setSteps(built);
@@ -2500,7 +2525,7 @@ function Lesson({ scenarioParam, practice = false }) {
             }
         })();
         return () => { cancelled = true; };
-    }, [lesson, langName, scenarioIdx, lessons, practice, practiceLocked, resolvedIdx]);
+    }, [lesson, langName, scenarioIdx, lessons, practice, practiceLocked, resolvedIdx, focusParam]);
 
     /* The language object stored by the picker carries `id`, `name` and
        `native`. This used to read `speechCode || code`, two fields it has never
@@ -2901,7 +2926,10 @@ function Lesson({ scenarioParam, practice = false }) {
                     outcome: outcomeOf({ correct, misses: tries, revealed, helped: Boolean(correct && tapped && tries === 0), attempts: attempts.length }),
                     attempts, finalSpoken: Boolean(correct && spoken), finalSaid: correct ? finalSaid : '',
                 });
-                if (items.length) recordSkillEvidence({ lang: langName, items });
+                if (items.length) {
+                    recordSkillEvidence({ lang: langName, items });
+                    skillPosts.current.push(items.slice(0, 40));
+                }
             } catch (err) { console.warn('[skills] attribution failed', err); }
         }
 
@@ -3075,6 +3103,7 @@ function Lesson({ scenarioParam, practice = false }) {
                     score={score} onSpeak={speak} scenarioIdx={scenarioIdx} navigate={navigate}
                     hasNext={scenarioIdx + 1 < lessons.length}
                     practice={practice} watch={watch}
+                    worked={sessionProgress({ lang: langName, before: skillBefore.current, posts: skillPosts.current })}
                 />
             </TapWordsProvider>
         );
@@ -3221,7 +3250,7 @@ function Lesson({ scenarioParam, practice = false }) {
 
 export function Summary({
     lesson, steps, banked, unaided, said, score, onSpeak, scenarioIdx, navigate, hasNext = true,
-    practice = false, watch = [],
+    practice = false, watch = [], worked = [],
 }) {
     /* A pattern screen is read, not answered, so it is not one of the total. */
     const total = steps.filter(s => s.kind !== 'pattern').length;
@@ -3384,6 +3413,22 @@ export function Summary({
             </div>
 
             {r.low ? <>{saidCard}{scores}</> : <>{scores}{saidCard}</>}
+
+            {/* Which skills this session moved, and which way — the adapting
+                made visible. Only skills this session posted evidence for,
+                with enough behind them (skillProgress.js); nothing otherwise. */}
+            {worked.length > 0 && (() => {
+                const w = praise.workedOnFor({ practice, items: worked });
+                return (
+                    <section className="card" style={{ padding: '14px 16px' }}>
+                        <h3 style={{ fontSize: 15, margin: '0 0 6px' }}>{w.title}</h3>
+                        <SkillList items={worked} animate />
+                        <p style={{ margin: '6px 0 0', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                            {w.line}
+                        </p>
+                    </section>
+                );
+            })()}
 
             {practice ? (
                 <PracticeFooter watch={watch} onSpeak={onSpeak} navigate={navigate} />

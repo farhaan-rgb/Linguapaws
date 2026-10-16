@@ -516,3 +516,45 @@ export const TAP = {
     /** Marks the form the sentence around the tapped word uses. */
     here: 'here',
 };
+
+/* ── The learner's own skills (skillProgress.js) ───────────────────────────
+   Direction, never a number, and never more than three. A mark says which way
+   a skill moved because of what the learner just did; "still tricky" promises
+   what happens next instead of judging. Shared by the results card, the map's
+   focus card and the "My skills" page to come. */
+export const SKILL_MARK = {
+    up: { arrow: '↑', text: 'getting stronger' },
+    new: { arrow: '✦', text: 'off to a good start' },
+    tricky: { arrow: '↻', text: 'still tricky — it will come back soon' },
+};
+
+/** The block on the results card: what this session worked on. */
+export function workedOnFor({ practice = false, items = [] } = {}) {
+    const ups = items.filter(i => i.mark !== 'tricky').length;
+    return {
+        title: practice ? 'This round worked on…' : 'This lesson worked on…',
+        line: ups
+            ? 'Miko picks what comes next from how these went.'
+            : 'Miko will bring this back in a different way.',
+    };
+}
+
+/** The lesson map's card, by focusSkills' state. Null draws nothing. */
+export function focusCardFor({ state = 'none', count = 0 } = {}) {
+    if (state === 'focus') return {
+        title: 'Miko’s focus for you',
+        line: count === 1
+            ? 'One thing that keeps slipping. A short round on just this helps it stick.'
+            : 'A few things that keep slipping. A short round on just these helps them stick.',
+        button: count === 1 ? 'Practise this' : 'Practise these',
+    };
+    if (state === 'clear') return {
+        title: 'Miko’s focus for you',
+        line: 'Nothing is slipping right now. Everything you have practised is holding up.',
+    };
+    if (state === 'thin') return {
+        title: 'Miko is getting to know you',
+        line: 'A few more answers, and Miko will point out what is worth another go.',
+    };
+    return null;
+}

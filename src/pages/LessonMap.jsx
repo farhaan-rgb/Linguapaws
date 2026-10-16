@@ -7,9 +7,11 @@ import { resumeIndex, savedStepFor, completedLessonFor } from '../services/lesso
 import { buildLessonSteps } from '../services/stepPlan';
 import { getReviewSet, getAdaptation, REVIEW_SLOTS } from '../services/srs';
 import { getLearnMode } from '../utils/learnMode';
+import { focusSkills } from '../services/skillProgress';
+import { SkillList } from '../components/SkillFocus';
 import { getStoredJSON } from '../utils/storage';
 import {
-    mapHeadline, mapHereLine, mapUnitLabel, mapCheckpointTag, mapFinishLine, MAP_HERE,
+    mapHeadline, mapHereLine, mapUnitLabel, mapCheckpointTag, mapFinishLine, MAP_HERE, focusCardFor,
 } from '../services/praise';
 import { characters } from '../data/characters';
 
@@ -118,6 +120,19 @@ export default function LessonMap() {
         return () => { cancelled = true; };
     }, []);
 
+    /* The skill model for "Miko's focus for you": asked fresh (the lesson's
+       memo can be a lesson old), and null when it cannot be had — then the
+       card is not drawn, rather than drawn empty. */
+    const [skillModel, setSkillModel] = useState(null);
+    useEffect(() => {
+        let live = true;
+        Promise.race([
+            api.get(`/api/progress/skills?lang=${encodeURIComponent(langName)}`),
+            new Promise((resolve) => setTimeout(() => resolve(null), 4000)),
+        ]).then((r) => { if (live && Array.isArray(r)) setSkillModel(r); }).catch(() => {});
+        return () => { live = false; };
+    }, [langName]);
+
     useEffect(() => {
         const el = boxRef.current;
         if (!el) return undefined;
@@ -204,10 +219,13 @@ export default function LessonMap() {
         for (let k = 0; k < 20; k++) { const m = (lo + hi) / 2; if (onCurve(a, b, m).y < y) lo = m; else hi = m; }
         return onCurve(a, b, lo);
     })();
-    const openPractice = () => {
+    const openPractice = (focus = []) => {
         localStorage.removeItem('linguapaws_active_character');
-        navigate('/steps?practice=1');
+        navigate(focus.length ? `/steps?practice=1&focus=${focus.join(',')}` : '/steps?practice=1');
     };
+    /* Nothing before the first lesson is finished: the path is the news then. */
+    const focus = doneCount > 0 ? focusSkills({ lang: langName, model: skillModel, finished: doneCount }) : { state: 'none', items: [] };
+    const focusCard = focusCardFor({ state: focus.state, count: focus.items.length });
 
     /* Paw prints on the walked part of the trail, between nodes. */
     const paws = [];
@@ -304,6 +322,44 @@ export default function LessonMap() {
                 </div>
                 <p style={{ fontSize: 13, margin: '8px 0 0', opacity: 0.95, lineHeight: 1.35 }}>{head.line}</p>
             </header>
+
+            {/* ── Miko's focus: at most three weak skills, no numbers ─── */}
+            {focusCard && progress !== undefined && (
+                <section className="card lm-focus" style={{
+                    margin: '14px 0 0', padding: focus.items.length ? '14px 16px 16px' : '12px 16px',
+                    border: '1px solid rgba(168,85,247,0.18)',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {miko && (
+                            <img src={miko} alt="" style={{
+                                width: 30, height: 30, borderRadius: '50%', objectFit: 'cover', flexShrink: 0,
+                                border: '2px solid white', boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                            }} />
+                        )}
+                        <div style={{ minWidth: 0 }}>
+                            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 16, margin: 0, lineHeight: 1.2 }}>
+                                {focusCard.title}
+                            </h2>
+                            <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                                {focusCard.line}
+                            </p>
+                        </div>
+                    </div>
+                    {focus.items.length > 0 && (<>
+                        <div style={{ marginTop: 8 }}><SkillList items={focus.items} /></div>
+                        {/* Secondary on purpose: the next lesson is still the main way on. */}
+                        <button className="lm-focus-go" onClick={() => openPractice(focus.items.map(i => i.skillId))}
+                            style={{
+                                width: '100%', marginTop: 8, padding: '11px', border: 'none', cursor: 'pointer',
+                                borderRadius: 'var(--radius-md)', background: 'rgba(168,85,247,0.1)',
+                                color: 'var(--accent-purple)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15,
+                            }}>
+                            <Dumbbell size={15} style={{ verticalAlign: -2, marginRight: 6 }} />
+                            {focusCard.button}
+                        </button>
+                    </>)}
+                </section>
+            )}
 
             {/* ── The trail ──────────────────────────────────────────── */}
             {progress === undefined ? (
@@ -476,7 +532,7 @@ export default function LessonMap() {
                     })}
 
                     {practiceAt && (
-                        <button onClick={openPractice} className="lm-practice"
+                        <button onClick={() => openPractice()} className="lm-practice"
                             aria-label="Practice: a short round from lessons you have finished"
                             style={{
                                 position: 'absolute', left: practiceAt.x, top: practiceAt.y,
@@ -549,6 +605,7 @@ const MAP_STYLES = `
   transition: box-shadow 0.12s ease, margin-top 0.12s ease;
 }
 .lm-practice:hover { margin-top: -2px; }
+.lm-focus-go:hover { background: rgba(168,85,247,0.16) !important; }
 .lm-practice:active { margin-top: 2px; box-shadow: inset 0 -1px 0 #e4d4fb, 0 2px 6px -2px rgba(124,58,237,0.5); }
 @media (prefers-reduced-motion: reduce) {
   .lm-node, .lm-pulse, .lm-here, .lm-scenery, .lm-back, .lm-practice { animation: none !important; transition: none !important; }

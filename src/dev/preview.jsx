@@ -14,6 +14,7 @@ import { findLanguage } from '../../shared/languages.js';
 import { aiService } from '../services/ai';
 import { buildLessonSteps } from '../services/stepPlan';
 import { ensureReviewSet, ensureAdaptation } from '../services/srs';
+import { sessionProgress } from '../services/skillProgress';
 
 /**
  * Dev-only harness for the step-by-step lesson screens.
@@ -161,15 +162,18 @@ const screen = params.get('screen');
    fresh lesson start, adapted (or not) to this URL's stub. */
 localStorage.removeItem(`linguapaws_adapt_${lang}_${scenario}`);
 const stubSkills = params.get('skills');
+let stubModel = [];
 if (stubSkills) {
     const weak = stubSkills.split(',').filter(Boolean);
     const confused = (params.get('confused') || '').split(',').filter(Boolean)
         .map(p => { const [said, needed] = p.split('>'); return { said, needed }; });
-    const model = [
+    /* ?skills=empty: a model with nothing in it (a learner with no evidence yet). */
+    const model = stubSkills === 'empty' ? [] : [
         ...weak.map(skillId => ({ skillId, mastery: 0.2, evidence: 3, level: 'weak', weak: true })),
         ...['w:mane', 'w:hoovu', 'w:neeru', 'w:illu', 'w:nenu'].map(skillId => ({
             skillId, mastery: 0.9, evidence: 4, level: 'strong', weak: false, lastSeen: new Date().toISOString() })),
     ];
+    stubModel = model;
     localStorage.removeItem(`linguapaws_reviewset_${lang}_${scenario}`);
     const before = api.get.bind(api);
     api.get = async (path, ...rest) => {
@@ -486,6 +490,21 @@ function TogglePreview() {
 /* The results card on its own, with chosen numbers — a lesson's end is a
    15-screen walk away and its scores depend on how it was played.
      ?screen=summary&total=15&unaided=0&points=16&best=0&recovered=2&locks=2&bonus=0 */
+/* "This lesson worked on…", through the real sessionProgress: the model
+   before is the ?skills= stub ([] without one; ?before=none for "unknown"),
+   and ?posts=c:nanage-like=1*3,e:ge=0*2 is the session's evidence — each
+   skill posted `count` times at full weight with that score. */
+function workedPreview() {
+    const spec = params.get('posts');
+    if (!spec) return [];
+    const posts = spec.split(',').filter(Boolean).flatMap(p => {
+        const [id, rest = '1*1'] = p.split('=');
+        const [score, count = 1] = rest.split('*').map(Number);
+        return Array.from({ length: count }, () => [{ skillId: id, score, weight: 1 }]);
+    });
+    return sessionProgress({ lang, before: params.get('before') === 'none' ? null : stubModel, posts });
+}
+
 function SummaryPreview() {
     const n = k => parseInt(params.get(k) || '0', 10);
     const lesson = CURRICULUM[lang]?.[Number(scenario)] || CURRICULUM.Telugu[0];
@@ -493,11 +512,12 @@ function SummaryPreview() {
     const said = (lesson.phrases || []).slice(0, n('said') || 3)
         .map(p => ({ text: p.correct || p.word || String(p), meaning: p.meaning || '' }));
     return (
-        <Summary lesson={lesson} steps={Array.from({ length: total })}
+        <Summary lesson={lesson} steps={Array.from({ length: total }, () => ({}))}
             banked={(lesson.vocabulary || []).slice(0, 5)} unaided={n('unaided')} said={said}
             score={{ points: n('points'), best: n('best'), recovered: n('recovered'),
                      locks: n('locks'), bonus: n('bonus') }}
-            onSpeak={() => {}} scenarioIdx={Number(scenario)} navigate={() => {}} />
+            onSpeak={() => {}} scenarioIdx={Number(scenario)} navigate={() => {}}
+            worked={workedPreview()} />
     );
 }
 
