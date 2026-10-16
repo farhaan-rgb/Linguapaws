@@ -2895,10 +2895,25 @@ export const missHelp = (said, expected, {
         subs.push({ said: entry.word, needed: t || '', near });
         const shown = capital(entry.word);
         const note = isKnown && entry.note ? ` (${entry.note})` : '';
-        let line = near
-            ? `*${capital(g)}* sounds like *${entry.word.toLowerCase()}*, ${glossFor(entry.meaning)}.`
-            : `*${shown}* means ${glossFor(entry.meaning)}${note}.`;
         const wantEntry = t && taught.get(t);
+        /* The learner's own word keeps its qualifier when the qualifier is
+           what separates it from what was asked: "*Olleya* means “good”" on a
+           screen asking for "the food is good" reads as if they were right;
+           "“good (before a noun)”" says why they were not. Kept only when the
+           plain gloss shares a word with the needed word's meaning or the
+           prompt, so "*Olleya* means “good”. This asks for “my”" stays short. */
+        const saidGloss = (() => {
+            const plain = glossFor(entry.meaning);
+            const full = glossFor(entry.meaning, '', { keepNotes: true });
+            if (full === plain) return plain;
+            const other = ` ${wantEntry ? cleanGloss(wantEntry.meaning) : ''} ${meaning} `.toLowerCase();
+            const words = (plain.toLowerCase().match(/[a-z']+/g) || [])
+                .filter(w => w.length > 2 && !['the', 'and', 'for', 'not'].includes(w));
+            return words.some(w => new RegExp(`(^|[^a-z'])${w}([^a-z']|$)`).test(other)) ? full : plain;
+        })();
+        let line = near
+            ? `*${capital(g)}* sounds like *${entry.word.toLowerCase()}*, ${saidGloss}.`
+            : `*${shown}* means ${saidGloss}${note}.`;
         /* A near-form is not recorded as a confused pair: it may be a typo. */
         if (!isKnown && !near && wantEntry && wantEntry.word !== entry.word) pairs.push({
             said: entry.word, saidMeaning: entry.meaning,
