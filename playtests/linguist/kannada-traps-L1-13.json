@@ -1,0 +1,452 @@
+[
+  {
+    "lesson": 9,
+    "target": "Oota chennagide",
+    "where": "drill",
+    "prompt": "Tell Miko the food is good.",
+    "said": "Olleya oota",
+    "why": "*Olleya oota* is “good food”: it names the food but doesn't say anything about it. To say the food IS good, put *oota* first and end with {answer}.",
+    "confidence": "high",
+    "note": "The trigger case. Drill-level so it beats the vocab line below on an exact \"olleya oota\"."
+  },
+  {
+    "lesson": 9,
+    "target": "Chennagide",
+    "where": "vocab",
+    "said": "Olleya",
+    "why": "*Olleya* is “good” before a thing, as in *olleya oota*. It can't end a sentence. To say something IS good, end with {answer}.",
+    "confidence": "high",
+    "note": "Covers \"oota olleya\" and later drills (L16 \"Oota tumba chennagide\")."
+  },
+  {
+    "lesson": 9,
+    "target": "Olleya oota",
+    "where": "drill",
+    "prompt": "Say 'good food'",
+    "said": "Oota chennagide",
+    "why": "*Oota chennagide* is a whole sentence, “the food is good”. For just “good food”, the good word goes first: {answer} *oota*.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 9,
+    "target": "Olleya",
+    "where": "vocab",
+    "said": "Chennagide",
+    "why": "*Chennagide* is “it is good”, a whole sentence on its own. Right before a thing, “good” is {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 9,
+    "target": "Chennagide",
+    "where": "vocab",
+    "said": "Chennagiddeeni",
+    "why": "*Chennagiddeeni* is “I am fine”, about yourself. For a thing, the end is *ide*, “it is”: {answer}.",
+    "confidence": "high",
+    "note": "Likelihood medium: same stem, L9 teach links them."
+  },
+  {
+    "lesson": 1,
+    "target": "Chennagiddeeni",
+    "where": "vocab",
+    "said": "Chennagide",
+    "why": "*Chennagide* is “it is good”, about a thing. About yourself, “I am fine” is {answer}.",
+    "confidence": "high",
+    "note": "Fires only in review after L9."
+  },
+  {
+    "lesson": 9,
+    "target": "Idu dodda pustaka",
+    "where": "drill",
+    "prompt": "Say 'this is a big book'",
+    "said": "Pustakagalu",
+    "why": "*Pustakagalu* is “books”, more than one. *Idu* points at one thing, so it's one book: {answer}.",
+    "confidence": "high",
+    "note": "Drill-level, not on the Pustaka word: a vocab trap would also fire on L7 \"Eradu pustaka\", where \"pustakagalu\" is good Kannada (see report)."
+  },
+  {
+    "lesson": 2,
+    "target": "Idu pustaka",
+    "where": "drill",
+    "prompt": "Say 'This is a book'",
+    "said": "Pustakagalu",
+    "why": "*Pustakagalu* is “books”, more than one. *Idu* points at one thing, so it's one book: {answer}.",
+    "confidence": "high",
+    "note": "Fires in review after L8. Matches both L2 drills with this answer."
+  },
+  {
+    "lesson": 10,
+    "target": "Pustaka eshtu?",
+    "where": "drill",
+    "prompt": "Ask how much the book is.",
+    "said": "Pustakagalu",
+    "why": "*Pustakagalu* is “books”, more than one. This asks about one book: {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 8,
+    "target": "Pustakagalu",
+    "where": "vocab",
+    "said": "Pustaka",
+    "why": "*Pustaka* is one book. For more than one, add -galu: {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 8,
+    "target": "Hoovugalu",
+    "where": "vocab",
+    "said": "Hoovu",
+    "why": "*Hoovu* is one flower. For more than one, add -galu: {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 8,
+    "target": "Manegalu",
+    "where": "vocab",
+    "said": "Mane",
+    "why": "*Mane* is one house. For more than one, add -galu: {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 8,
+    "target": "Snehitaru",
+    "where": "vocab",
+    "said": "Snehita",
+    "why": "*Snehita* is one friend. Friends are people, so for more than one add -aru, not -galu: {answer}.",
+    "confidence": "high",
+    "note": "Snehitagalu itself cannot carry a trap (untaught words are skipped); the grammarNote covers it."
+  },
+  {
+    "lesson": 4,
+    "target": "Beku",
+    "where": "vocab",
+    "said": "Beda",
+    "why": "*Beda* is “don't want”. To say you want it, use {answer} in its place.",
+    "confidence": "high",
+    "note": "Needs the exact-match guard (see report): later drills contain both words, e.g. L15+ \"Nanage idu beku, aadare adu beda\"."
+  },
+  {
+    "lesson": 4,
+    "target": "Beda",
+    "where": "vocab",
+    "said": "Beku",
+    "why": "*Beku* is “want”. To say you don't want it, use {answer} in its place.",
+    "confidence": "high",
+    "note": "Needs the exact-match guard (see report): later drills contain both words, e.g. L15+ \"Nanage idu beku, aadare adu beda\"."
+  },
+  {
+    "lesson": 4,
+    "target": "Oota beda",
+    "where": "drill",
+    "prompt": "Say 'I don't want food'",
+    "said": "Oota illa",
+    "why": "*Oota illa* is “there's no food”. To turn food down, use the don't-want word: {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 4,
+    "target": "Neeru",
+    "where": "vocab",
+    "said": "Neevu",
+    "why": "*Neevu* is “you”. “Water” sounds close but ends in -ru: {answer}.",
+    "confidence": "high",
+    "note": "Sound-alike slip; likelihood low-medium."
+  },
+  {
+    "lesson": 4,
+    "target": "Illa",
+    "where": "vocab",
+    "said": "Illi",
+    "why": "*Illi* is “here”. “No” ends in -a: {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 3,
+    "target": "Illi",
+    "where": "vocab",
+    "said": "Illa",
+    "why": "*Illa* is “no”. “Here” ends in -i: {answer}.",
+    "confidence": "high",
+    "note": "Fires after L4."
+  },
+  {
+    "lesson": 2,
+    "target": "Idu",
+    "where": "vocab",
+    "said": "Adu",
+    "why": "*Adu* is “that”, something far off. For something near you, it's {answer}.",
+    "confidence": "high",
+    "note": "Needs the exact-match guard (see report): later drills contain both words, e.g. L15+ \"Nanage idu beku, aadare adu beda\"."
+  },
+  {
+    "lesson": 2,
+    "target": "Adu",
+    "where": "vocab",
+    "said": "Idu",
+    "why": "*Idu* is “this”, something near you. For something far off, it's {answer}.",
+    "confidence": "high",
+    "note": "Needs the exact-match guard (see report): later drills contain both words, e.g. L15+ \"Nanage idu beku, aadare adu beda\"."
+  },
+  {
+    "lesson": 3,
+    "target": "Illi",
+    "where": "vocab",
+    "said": "Alli",
+    "why": "*Alli* is “there”, far off. For “here”, near you, it's {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 3,
+    "target": "Alli",
+    "where": "vocab",
+    "said": "Illi",
+    "why": "*Illi* is “here”, near you. For “there”, far off, it's {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 3,
+    "target": "Alli",
+    "where": "vocab",
+    "said": "Ide",
+    "why": "*Ide* is “there is”, saying a thing is somewhere. For the place “there”, it's {answer}.",
+    "confidence": "high",
+    "note": "Keep it after the Illi trap in the array: \"Mane alli ide\" contains ide, so the exact match fires on any miss there until the guard lands."
+  },
+  {
+    "lesson": 3,
+    "target": "Mane alli ide",
+    "where": "drill",
+    "prompt": "Say 'The house is there'.",
+    "said": "Mane alli",
+    "why": "*Mane alli* is just “house there”. To say the house IS there, end with {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 3,
+    "target": "Yelli",
+    "where": "vocab",
+    "said": "Alli",
+    "why": "*Alli* is “there”. To ask “where?”, it's {answer}.",
+    "confidence": "high",
+    "note": "Likelihood medium: same -lli."
+  },
+  {
+    "lesson": 3,
+    "target": "Hoguttene",
+    "where": "vocab",
+    "said": "Hogu",
+    "why": "*Hogu* is “go!”, telling someone else to go. For yourself, “I go”, it's {answer}.",
+    "confidence": "high",
+    "note": "Hogu has alt \"hogi\", so a learner typing hogi also gets this; still true."
+  },
+  {
+    "lesson": 3,
+    "target": "Alli hogu",
+    "where": "drill",
+    "prompt": "Say 'Go there'",
+    "said": "Hoguttene",
+    "why": "*Hoguttene* is “I go”, about yourself. To tell someone to go, it's {answer}.",
+    "confidence": "high",
+    "note": "Drill-level, not on the Hogu word: Hogu carries alt \"hogi\", so a vocab trap would fire on L14 \"Hogi baruttene\", where hogi means \"having gone\"."
+  },
+  {
+    "lesson": 5,
+    "target": "Nanna",
+    "where": "vocab",
+    "said": "Naanu",
+    "why": "*Naanu* is “I”. Before a thing, “my” is {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 5,
+    "target": "Nimma",
+    "where": "vocab",
+    "said": "Neevu",
+    "why": "*Neevu* is “you”. Before a thing, “your” is {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 5,
+    "target": "Nimma",
+    "where": "vocab",
+    "said": "Nanna",
+    "why": "*Nanna* is “my”, your own. For the person you're talking to, “your” is {answer}.",
+    "confidence": "high",
+    "note": "Needs the exact-match guard (see report): later drills contain both words, e.g. L15+ \"Nanage idu beku, aadare adu beda\"."
+  },
+  {
+    "lesson": 5,
+    "target": "Nanna",
+    "where": "vocab",
+    "said": "Nimma",
+    "why": "*Nimma* is “your”, the person you're talking to. For your own, “my” is {answer}.",
+    "confidence": "high",
+    "note": "Needs the exact-match guard (see report): later drills contain both words, e.g. L15+ \"Nanage idu beku, aadare adu beda\"."
+  },
+  {
+    "lesson": 5,
+    "target": "Avara",
+    "where": "vocab",
+    "said": "Aatana",
+    "why": "*Aatana* is a plain “his”, for a man. For “her”, or anyone you respect, it's {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 6,
+    "target": "Ivaru",
+    "where": "vocab",
+    "said": "Avaru",
+    "why": "*Avaru* is “that person”, over there. For the person right here, start with i-: {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 6,
+    "target": "Avaru",
+    "where": "vocab",
+    "said": "Ivaru",
+    "why": "*Ivaru* is “this person”, right here. For someone over there, start with a-: {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 6,
+    "target": "Ivaru",
+    "where": "vocab",
+    "said": "Idu",
+    "why": "*Idu* is “this” for a thing. For a person, it's {answer}, “this person”, and it's polite too.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 6,
+    "target": "Avaru",
+    "where": "vocab",
+    "said": "Adu",
+    "why": "*Adu* is “that” for a thing. For a person, it's {answer}, “that person”, and it's polite too.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 6,
+    "target": "Yaaru",
+    "where": "vocab",
+    "said": "Yenu",
+    "why": "*Yenu* is “what”, for things. For a person, “who” is {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 2,
+    "target": "Yenu",
+    "where": "vocab",
+    "said": "Yaaru",
+    "why": "*Yaaru* is “who”, for people. For a thing, “what” is {answer}.",
+    "confidence": "high",
+    "note": "Fires after L6."
+  },
+  {
+    "lesson": 10,
+    "target": "Eshtu",
+    "where": "vocab",
+    "said": "Hege",
+    "why": "*Hege* is “how”, as in *hegiddeera?*. For a price or an amount, “how much”, it's {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 11,
+    "target": "Iddene",
+    "where": "vocab",
+    "said": "Ide",
+    "why": "*Ide* is “it is”, for things. For yourself, “I am” is {answer}.",
+    "confidence": "high",
+    "note": "Will not fire on L11/L12 drills while \"naanu illi ide\" is accepted (see report)."
+  },
+  {
+    "lesson": 11,
+    "target": "Hoguttiddene",
+    "where": "vocab",
+    "said": "Hogu",
+    "why": "*Hogu* is “go!”, telling someone else to go. For “I am going” right now, it's {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 12,
+    "target": "Naale",
+    "where": "vocab",
+    "said": "Ninne",
+    "why": "*Ninne* is “yesterday”, behind you. For “tomorrow”, ahead of you, it's {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 12,
+    "target": "Ninne",
+    "where": "vocab",
+    "said": "Naale",
+    "why": "*Naale* is “tomorrow”, ahead of you. For “yesterday”, behind you, it's {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 12,
+    "target": "Naale",
+    "where": "vocab",
+    "said": "Naalku",
+    "why": "*Naalku* is the number four. “Tomorrow” is {answer}.",
+    "confidence": "high",
+    "note": "Today the grader accepts naalku for naale (trap-check \"accepted by tolerance\"), so this only fires once that is fixed."
+  },
+  {
+    "lesson": 12,
+    "target": "Ivattu",
+    "where": "vocab",
+    "said": "Eega",
+    "why": "*Eega* is “now”, this moment. For the whole day, “today”, it's {answer}.",
+    "confidence": "medium",
+    "note": "Likelihood medium. Accuracy is solid; medium only because \"eega\" and \"ivattu\" overlap in some English prompts (\"today I am working\" vs \"I am working now\")."
+  },
+  {
+    "lesson": 11,
+    "target": "Eega",
+    "where": "vocab",
+    "said": "Ivattu",
+    "why": "*Ivattu* is “today”, the whole day. For “now”, this moment, it's {answer}.",
+    "confidence": "medium",
+    "note": "Fires after L12. Same caveat."
+  },
+  {
+    "lesson": 13,
+    "target": "Hode",
+    "where": "vocab",
+    "said": "Hoguttene",
+    "why": "*Hoguttene* is “I go” or “I will go”. For “I went”, the word changes: {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 13,
+    "target": "Hode",
+    "where": "vocab",
+    "said": "Hoguttiddene",
+    "why": "*Hoguttiddene* is “I am going”, right now. For “I went”, the word changes: {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 13,
+    "target": "Maadide",
+    "where": "vocab",
+    "said": "Maaduttiddene",
+    "why": "*Maaduttiddene* is “I am doing”, right now. For “I did”, it's {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 13,
+    "target": "Tinde",
+    "where": "vocab",
+    "said": "Tinnuttiddene",
+    "why": "*Tinnuttiddene* is “I am eating”, right now. For “I ate”, it's {answer}.",
+    "confidence": "high"
+  },
+  {
+    "lesson": 13,
+    "target": "Naanu mane nodide",
+    "where": "drill",
+    "prompt": "Say 'I saw the house'",
+    "said": "Naanu manege nodide",
+    "why": "*Manege* is “to the house”, for going there. You saw the house itself, so it's plain {answer}.",
+    "confidence": "high",
+    "note": "Whole-answer match; {answer} resolves to the missing word, mane. Grader rejects this today (checked)."
+  }
+]
