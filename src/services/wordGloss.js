@@ -35,11 +35,12 @@ function indexFor(langName) {
     return idx;
 }
 
-/** The stem entry an inflected form is built on, when WORD_ENDINGS can say. */
-function viaEnding(idx, k) {
+/** The stem entry an inflected form is built on, when WORD_ENDINGS can say.
+ *  `only` limits it to one ending. */
+function viaEnding(idx, k, only = null) {
     const { endings, taught } = idx;
     if (!endings) return null;
-    for (const e of endings.endings || []) {
+    for (const e of only ? [only] : endings.endings || []) {
         if (!k.endsWith(e.ending) || k.length - e.ending.length < 2) continue;
         const bare = k.slice(0, -e.ending.length);
         const stems = [bare];
@@ -130,9 +131,17 @@ export const ENGLISH_MAX_WORDS = 4;
 
 /**
  * The taught word(s) for an English word or phrase, up to two.
- * @returns {null | {english: true, phrase, options: [{word, meaning, lesson, earlier}]}}
+ *
+ * With `answer` (the screen's expected answer and its variants, as course
+ * keys), an English word no taught WORD covers can fall back to a taught
+ * ENDING: "at" in "at one o'clock" is the -ge of *gantege*. Only when the
+ * answer actually carries that ending on a taught stem — "look at the book"
+ * or "You're at a stall" use "at" in a way -ge does not, and a rule offered
+ * there would teach a wrong sentence.
+ * @returns {null | {english: true, phrase, options: [{word, meaning, lesson, earlier}]}
+ *   | {english: true, phrase, ending: {ending, means, example, lesson}, applied: {stem, form}}}
  */
-export function englishFor(langName, phrase, lessonNo = Infinity) {
+export function englishFor(langName, phrase, lessonNo = Infinity, answer = null) {
     const k = englishKey(phrase);
     if (!k) return null;
     const idx = englishIndexFor(langName);
@@ -143,5 +152,26 @@ export function englishFor(langName, phrase, lessonNo = Infinity) {
     if (!list.length && k.length > 3 && /[^s']s$/.test(k)) list = taughtBy(k.slice(0, -1));
     if (!list.length && k.length > 4 && /es$/.test(k)) list = taughtBy(k.slice(0, -2));
     const options = list.slice(0, 2).map(e => ({ ...e, earlier: e.lesson < lessonNo }));
-    return options.length ? { english: true, phrase, options } : null;
+    if (options.length) return { english: true, phrase, options };
+    return answer ? englishEndingFor(langName, phrase, lessonNo, answer) : null;
+}
+
+/** The taught ending an English word stands for on this screen, with the
+ *  answer's word that carries it (*gante* → *gantege*). See `englishFor`. */
+export function englishEndingFor(langName, phrase, lessonNo, answer) {
+    const k = englishKey(phrase);
+    const idx = indexFor(langName);
+    for (const e of idx.endings?.endings || []) {
+        if (!(e.english || []).includes(k) || (e.lesson || 0) > lessonNo) continue;
+        for (const t of answer) {
+            const via = viaEnding(idx, keyOf(t), e);
+            if (!via || via.stem.lesson > lessonNo) continue;
+            return {
+                english: true, phrase,
+                ending: { ending: e.ending, means: e.means, example: e.example || null, lesson: e.lesson },
+                applied: { stem: via.stem.word.toLowerCase(), form: keyOf(t) },
+            };
+        }
+    }
+    return null;
 }

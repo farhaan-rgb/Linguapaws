@@ -26,7 +26,13 @@ import * as praise from '../services/praise';
    tapping. On an unsettled recall screen an English word whose translation is
    in the answer is *gated*: the popover says so and waits for "Show", and
    showing marks the screen helped (`onHelp`). Every other English word is
-   free. */
+   free.
+
+   Some English words are an ending, not a word: "at" in "at one o'clock" is
+   the -ge of *gantege*. While the answer is hidden, such a word is tappable
+   when the answer carries a taught ending for it (`englishFor` with the
+   answer). The popover gives the rule first, which is free, and shows it on
+   the answer's own word only on "Show", which is help. */
 
 const TapCtx = createContext(null);
 const HideCtx = createContext(null);
@@ -146,14 +152,15 @@ function Words({ text, want, english = false }) {
                 const phrase = ms.map(x => x[2]).join(' ');
                 /* "I" the pronoun, never the letter i in "with an i". */
                 if (phrase === 'i') continue;
-                const entry = englishFor(ctx.langName, phrase, ctx.lessonNo);
+                const entry = englishFor(ctx.langName, phrase, ctx.lessonNo, hide ? [...hide.hidden] : null);
                 if (entry) hit = { n, ms, phrase, entry };
             }
             if (hit) {
                 const { n, ms, phrase, entry } = hit;
-                const gated = !!hide && !hide.helped && entry.options.some(o =>
+                const gated = !!hide && !hide.helped && !!entry.options?.some(o =>
                     keyOf(o.word).split(' ').some(t => hide.gate.has(t)));
-                const e = gated ? { ...entry, gated, onHelp: hide.onHelp } : entry;
+                const e = gated ? { ...entry, gated, onHelp: hide.onHelp }
+                    : entry.ending ? { ...entry, onHelp: hide?.onHelp, helped: !!hide?.helped } : entry;
                 out.push(
                     <React.Fragment key={i}>
                         {ms[0][1]}<Word text={phrase} entry={e} english />{ms[n - 1][3]}
@@ -234,6 +241,8 @@ function Popover({ open, speak, onClose }) {
     const { entry, rect } = open;
     /** A gated English word waits for "Show" before it gives anything away. */
     const [shown, setShown] = useState(!entry.gated || gateAccepted());
+    /** An ending's rule is free; its form on the answer's word waits for "Show". */
+    const [applied, setApplied] = useState(!!entry.helped);
     /* Showing marks the screen helped, which re-lays it out; on a phone that
        nudges the page and fires a scroll, and the popover closed on it — the
        learner had to tap the word again to see what they had asked for. A
@@ -258,7 +267,7 @@ function Popover({ open, speak, onClose }) {
         const cx = rect.left + rect.width / 2;
         const left = Math.min(Math.max(cx - w / 2, 12), vw - w - 12);
         setPos({ up, left, top: up ? rect.top - h - 9 : rect.bottom + 9, arrow: Math.min(Math.max(cx - left, 16), w - 16) });
-    }, [rect, shown]);
+    }, [rect, shown, applied]);
 
     useEffect(() => {
         const down = (e) => {
@@ -289,6 +298,12 @@ function Popover({ open, speak, onClose }) {
         setShown(true);
         entry.onHelp?.();
     };
+    const showApplied = () => {
+        settleUntil.current = Date.now() + 600;
+        setApplied(true);
+        entry.onHelp?.();
+    };
+    const ending = entry.ending;
     const speakBtn = (word) => (
         <button type="button" onClick={() => speak?.(word)}
             aria-label={praise.TAP.hear(word)}
@@ -325,7 +340,37 @@ function Popover({ open, speak, onClose }) {
                         : { top: -7, borderLeft: `1px solid ${edge}`, borderTop: `1px solid ${edge}` }),
                 }} />
             )}
-            {blue && !shown && (
+            {blue && ending && (
+                <div style={{ maxWidth: 230 }}>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 600, lineHeight: 1.4 }}>
+                        <RichText accent="var(--accent-blue)" text={praise.TAP.endingRule(entry.phrase, ending.ending)
+                            + (ending.example && entry.applied?.form !== keyOf(ending.example.word)
+                                ? praise.TAP.endingSame(ending.ending, ending.example.word, ending.example.meaning)
+                                : '.')} />
+                    </p>
+                    {entry.applied && !applied && (
+                        <button type="button" onClick={showApplied}
+                            style={{
+                                marginTop: 8, padding: '6px 16px', borderRadius: 99, cursor: 'pointer',
+                                border: '1px solid rgba(59,130,246,0.3)', background: 'rgba(59,130,246,0.08)',
+                                color: 'var(--accent-blue)', fontFamily: 'var(--font-display)',
+                                fontWeight: 700, fontSize: 13,
+                            }}>{praise.TAP.endingShow}</button>
+                    )}
+                    {entry.applied && applied && (
+                        <>
+                            <p style={{ margin: '8px 0 0', fontSize: 15, lineHeight: 1.35 }}>
+                                <RichText accent="var(--accent-blue)"
+                                    text={praise.TAP.endingApplied(entry.applied.stem, entry.applied.form)} />
+                            </p>
+                            {!entry.helped && (
+                                <p style={{ ...small, color: 'var(--accent-blue)' }}>{praise.TAP.helped}</p>
+                            )}
+                        </>
+                    )}
+                </div>
+            )}
+            {blue && !ending && !shown && (
                 <div style={{ maxWidth: 220 }}>
                     <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, lineHeight: 1.4 }}>
                         {praise.TAP.gate}
@@ -339,10 +384,10 @@ function Popover({ open, speak, onClose }) {
                         }}>{praise.TAP.show}</button>
                 </div>
             )}
-            {blue && shown && entry.gated && (
+            {blue && !ending && shown && entry.gated && (
                 <p style={{ ...small, margin: '0 0 6px', color: 'var(--accent-blue)' }}>{praise.TAP.helped}</p>
             )}
-            {blue && shown && entry.options.map((o, i) => (
+            {blue && !ending && shown && entry.options.map((o, i) => (
                 <div key={o.word} style={{
                     paddingTop: i ? 8 : 0, marginTop: i ? 8 : 0,
                     borderTop: i ? '1px solid rgba(59,130,246,0.14)' : 'none',

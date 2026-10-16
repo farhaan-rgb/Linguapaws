@@ -3090,6 +3090,10 @@ export const WORD_FAMILIES = {
      example — the course word that carries it, first taught
      group / kind — siblings that do one job for different things (-galu for
                 things, -aru for people), so a swap is explained as that
+     english — the English words it stands for in a prompt ("at one o'clock"
+               is *ondu gantege*), so tapping "at" can teach the ending. Only
+               where the course uses it that way; a word the course teaches
+               for the English (*Illa*, "not") wins, so it gets none here.
    `changes` are the stem-end swaps the course teaches before an ending
    (Telugu *pusthakam* → *pusthaka*-lu, *illu* → *inti*-ki).
 
@@ -3100,7 +3104,7 @@ export const WORD_FAMILIES = {
 export const WORD_ENDINGS = {
     Kannada: {
         endings: [
-            { ending: 'ge', lesson: 3, means: 'means “to”', needs: '“to”',
+            { ending: 'ge', lesson: 3, means: 'means “to”', needs: '“to”', english: ['to', 'at'],
                 example: { word: 'manege', meaning: 'to the house' } },
             { ending: 'galu', lesson: 8, means: 'makes it more than one', needs: 'more than one',
                 bare: 'just one {gloss}', group: 'plural', kind: 'things',
@@ -3117,7 +3121,7 @@ export const WORD_ENDINGS = {
     },
     Telugu: {
         endings: [
-            { ending: 'ki', lesson: 3, means: 'means “to”', needs: '“to”',
+            { ending: 'ki', lesson: 3, means: 'means “to”', needs: '“to”', english: ['to'],
                 example: { word: 'paniki', meaning: 'to work' } },
             { ending: 'lu', lesson: 8, means: 'makes it more than one', needs: 'more than one',
                 bare: 'just one {gloss}', example: { word: 'pusthakalu', meaning: 'books' } },

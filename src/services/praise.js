@@ -467,4 +467,12 @@ export const TAP = {
     /** Said on the popover once the gate is down, so the help is never silent. */
     helped: 'Counts as help on this question',
     inLang: 'the word for it',
+    /* An English word the language says with an ending, not a word ("at" in
+       "at one o'clock" is the -ge of *gantege*). The rule is free; showing it
+       on the answer's own word is help. The button does not name the word:
+       it is part of the answer. Light markdown, rendered by RichText. */
+    endingRule: (phrase, ending) => `*${phrase}* → add **-${ending}** to the end`,
+    endingSame: (ending, word, meaning) => ` — the same -${ending} as *${word}* (${meaning}).`,
+    endingShow: 'Show it on the word',
+    endingApplied: (stem, form) => `*${stem}* → **${form}**`,
 };
