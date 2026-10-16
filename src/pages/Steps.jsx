@@ -1051,8 +1051,13 @@ function StepScreen({
        had no sentences at all, and seeing the two at work side by side is
        what tells them apart. */
     const contrast = step.kind === 'review' ? step.item?.contrast : null;
+    /* A drill whose whole answer is one word ("Ask 'When?'" → Yaavaga?) is not
+       a sentence yet, so it gets the word's sentences like a memory check. */
+    const oneWord = step.kind === 'drill'
+        && engine.normalizeLatin(step.expected).split(' ').filter(Boolean).length === 1;
     const exampleWord = step.kind === 'teach' ? step.slice?.[0]?.word
-        : (step.kind === 'review' && !contrast) ? step.item?.word : null;
+        : (step.kind === 'review' && !contrast) ? step.item?.word
+            : oneWord ? step.expected : null;
     const examples = useMemo(() => {
         const upTo = taughtLessons.length - 1;
         if (contrast) {
@@ -1061,13 +1066,16 @@ function StepScreen({
                 .map(w => examplesFor(taughtLessons, upTo, w, { max: 2 }).find(ex => !seen.has(ex.correct)))
                 .filter(ex => ex && !seen.has(ex.correct) && seen.add(ex.correct));
         }
+        // Never the screen's own answer back as its example.
+        const self = engine.normalizeLatin(step.expected);
         return exampleWord
             ? examplesFor(taughtLessons, upTo, exampleWord, { teaching: step.kind === 'teach' })
+                .filter(ex => step.kind === 'teach' || engine.normalizeLatin(ex.correct) !== self)
             : [];
-    }, [contrast, exampleWord, taughtLessons, step.kind]);
+    }, [contrast, exampleWord, taughtLessons, step.kind, step.expected]);
     /* A memory check shows them only once it is settled: before that, a sentence
        holding the word is the answer. */
-    const showExamples = step.kind === 'review' && settled;
+    const showExamples = (step.kind === 'review' || oneWord) && settled;
 
     /* What "Ask Miko" sends about this screen. The answer goes only as a thing
        to keep out of the reply until the learner can see it: a teach screen
@@ -1830,6 +1838,188 @@ function StepScreen({
                 </div>
             </div>
         </TapHide>
+    );
+}
+
+/* ── Listening ─────────────────────────────────────────────────────────────
+   The one screen that goes target → English. The word is played, never shown,
+   until the learner has answered; then it is revealed in script and in
+   romanisation, so the sound gets tied to the spelling they already know.
+   Graded by equality on the tapped English meaning (stepPlan.listenStep) —
+   there is no target-language answer here for lessonEngine to judge.
+
+   Nothing traps: a learner whose device cannot play the word can show it
+   (scored as helped), and REVIEW_RETRY_LIMIT wrong taps reveal it. */
+const LISTEN_MISS = 'Not that one — listen again.';
+
+function ListenScreen({ step, onSpeak, onSettled, onMiss, onAdvance, isLast, langName }) {
+    const [phase, setPhase] = useState('answering');
+    const [wrong, setWrong] = useState([]);
+    const [peeked, setPeeked] = useState(false);
+    const [reward, setReward] = useState(null);
+    const settled = phase === 'correct' || phase === 'revealed';
+    const play = useCallback(() => onSpeak(step.word), [onSpeak, step.word]);
+
+    useEffect(() => {
+        if (!fx.isFxOn()) return undefined;
+        const t = setTimeout(play, 450);
+        return () => clearTimeout(t);
+    }, [play]);
+
+    const choose = useCallback((option) => {
+        if (settled || wrong.includes(option)) return;
+        cancelSpeech();
+        if (option === step.answer) {
+            setPhase('correct');
+            setReward(onSettled({ correct: true, revealed: false, misses: wrong.length, helped: peeked }));
+            return;
+        }
+        const next = [...wrong, option];
+        setWrong(next);
+        onMiss();
+        if (next.length >= triesFor(step)) {
+            setPhase('revealed');
+            fx.playMiss();
+            onSettled({ correct: false, revealed: true, misses: next.length });
+        }
+        setTimeout(play, 350);
+    }, [settled, wrong, step, peeked, onSettled, onMiss, play]);
+
+    useEffect(() => {
+        const onKey = (e) => {
+            if (e.isComposing || e.keyCode === 229) return;
+            if (settled && e.key === 'Enter') { e.preventDefault(); onAdvance(); return; }
+            const n = Number(e.key);
+            if (!settled && n >= 1 && n <= step.options.length) choose(step.options[n - 1]);
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [settled, onAdvance, choose, step.options]);
+
+    const shown = settled || peeked;
+    return (
+        <>
+            {phase === 'correct' && <Burst seed={step.index} power={reward?.milestone ? 2 : 1} originY="36%" />}
+            <div style={{ flex: 1, padding: '0 16px', maxWidth: 500, width: '100%', margin: '0 auto' }}>
+                <div className="card" style={{ padding: '22px 18px', textAlign: 'center' }}>
+                    <p style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {step.prompt}
+                    </p>
+                    <button onClick={play} aria-label="Play the word again"
+                        style={{
+                            width: 76, height: 76, borderRadius: 99, border: 'none', cursor: 'pointer',
+                            background: 'var(--primary-gradient)', color: '#fff', margin: '0 auto',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 12px 26px -10px rgba(124,58,237,0.7)',
+                        }}>
+                        <Volume2 size={34} />
+                    </button>
+                    <p style={{ margin: '10px 0 0', fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                        Tap to hear it again
+                    </p>
+                    {shown ? (
+                        <div data-listen-word style={{ marginTop: 16 }}>
+                            {step.native && (
+                                <p style={{ margin: 0, fontSize: 26, fontWeight: 800, fontFamily: 'var(--font-display)' }}>
+                                    {step.native}
+                                </p>
+                            )}
+                            <p style={{ margin: '2px 0 0', fontSize: step.native ? 16 : 26, fontWeight: 700, color: 'var(--accent-purple)' }}>
+                                {step.word}
+                            </p>
+                            {step.phonetic && (
+                                <p style={{ margin: '3px 0 0', fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                                    {step.phonetic}
+                                </p>
+                            )}
+                            {settled && (
+                                <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--text-primary)' }}>
+                                    means <strong>{step.answer}</strong>
+                                </p>
+                            )}
+                        </div>
+                    ) : (
+                        <button onClick={() => setPeeked(true)}
+                            style={{
+                                marginTop: 14, border: 'none', background: 'none', cursor: 'pointer',
+                                fontSize: 12.5, color: 'var(--text-secondary)', textDecoration: 'underline',
+                            }}>
+                            Can't hear it? Show the word
+                        </button>
+                    )}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 14 }}>
+                    {step.options.map((o, i) => {
+                        const isAnswer = o === step.answer;
+                        const missed = wrong.includes(o);
+                        const win = settled && isAnswer;
+                        return (
+                            <button key={o} data-listen-option={o} onClick={() => choose(o)}
+                                disabled={settled || missed}
+                                style={{
+                                    padding: '14px 16px', borderRadius: 'var(--radius-md)', textAlign: 'left',
+                                    fontSize: 15, fontWeight: 700, cursor: settled || missed ? 'default' : 'pointer',
+                                    border: `2px solid ${win ? '#10b981' : missed ? '#f59e0b' : 'rgba(168,85,247,0.18)'}`,
+                                    background: win ? '#ecfdf5' : missed ? '#fffbeb' : 'var(--card-bg)',
+                                    color: missed ? '#b45309' : 'var(--text-primary)',
+                                    opacity: settled && !win ? 0.55 : 1,
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                }}>
+                                <span style={{ fontSize: 12, color: 'var(--text-secondary)', width: 14 }}>{i + 1}</span>
+                                <span style={{ flex: 1 }}>{o}</span>
+                                {win && <Check size={18} color="#059669" />}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                <div style={{ marginTop: 12, minHeight: 22, textAlign: 'center' }}>
+                    {phase === 'answering' && wrong.length > 0 && (
+                        <p style={{ margin: 0, fontSize: 13.5, color: '#b45309' }}>{LISTEN_MISS}</p>
+                    )}
+                    {phase === 'revealed' && (
+                        <p style={{ margin: 0, fontSize: 13.5, color: '#b45309' }}>{praise.revealLineFor(step.index)}</p>
+                    )}
+                    {phase === 'correct' && reward && (
+                        <>
+                            <p style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#047857' }}>{reward.verdict}</p>
+                            {reward.recovery && <p style={{ margin: '3px 0 0', fontSize: 13, color: '#047857' }}>{praise.RECOVERY_LINE}</p>}
+                            {reward.achievement && (
+                                <p style={{ margin: '3px 0 0', fontSize: 13.5, color: 'var(--text-secondary)' }}>{reward.achievement}</p>
+                            )}
+                        </>
+                    )}
+                </div>
+                <div style={{ height: 110 }} />
+            </div>
+
+            {settled && (
+                <div style={{
+                    position: 'sticky', bottom: 0,
+                    padding: '14px 16px calc(18px + env(safe-area-inset-bottom))',
+                    background: phase === 'correct' ? '#ecfdf5' : '#fffbeb',
+                }}>
+                    <div style={{ maxWidth: 500, margin: '0 auto' }}>
+                        {phase === 'correct' && reward?.points?.total > 0 && (
+                            <p style={{ margin: '0 0 9px', fontSize: 12.5, fontWeight: 700, color: '#047857', textAlign: 'center' }}>
+                                +{reward.points.base} 🐾
+                                {reward.points.bonus > 0 && ` · +${reward.points.bonus} streak bonus`}
+                            </p>
+                        )}
+                        <button onClick={onAdvance}
+                            style={{
+                                width: '100%', padding: '15px', borderRadius: 'var(--radius-md)', border: 'none',
+                                cursor: 'pointer', color: '#fff', fontWeight: 800, fontSize: 15,
+                                fontFamily: 'var(--font-display)',
+                                background: phase === 'correct' ? 'linear-gradient(90deg,#059669,#10b981)' : 'var(--primary-gradient)',
+                            }}>
+                            {isLast ? 'See how you did' : 'Continue'}
+                        </button>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
 
@@ -2653,6 +2843,11 @@ function Lesson({ scenarioParam, practice = false }) {
                 shows the current step immediately. */}
             <div key={index} className="step-in"
                 style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                {step.kind === 'listen' ? (
+                    <ListenScreen step={step} onSpeak={speak} onSettled={handleSettled}
+                        onMiss={handleMiss} onAdvance={handleAdvance}
+                        isLast={index === run.length - 1 && !missedCount} langName={langName} />
+                ) : (
                 <StepScreen
                     step={step}
                     lexicon={lexicon}
@@ -2672,6 +2867,7 @@ function Lesson({ scenarioParam, practice = false }) {
                     onListen={listen}
                     langName={langName}
                 />
+                )}
             </div>
         </div>
         </TapWordsProvider>
