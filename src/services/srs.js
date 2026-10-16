@@ -1,4 +1,5 @@
 import { api } from './api';
+import { reviewMissKind } from '../../shared/missKinds.js';
 import { pickReviewItems, planLessonAdaptation, ADAPTATION_VERSION } from './adaptive.js';
 import { placeDuePhrases } from './phraseReview.js';
 
@@ -182,9 +183,20 @@ export async function recordTaughtWord({ lang, word, meaning, scenario }) {
  * `outcome` is how much help was needed: 'unaided' | 'hinted' | 'revealed' |
  * 'missed'. A bare boolean still works but cannot distinguish a cold recall
  * from one dragged out of a hint, which is the signal worth having.
+ *
+ * `missKind` (one kind) or `missKinds` (one per attempt, in order) says *why*
+ * the miss happened — 'order', 'ending', 'confusion' … from
+ * `shared/missKinds.js`, classified by the engine. Optional on both sides:
+ * an old server ignores the field and schedules as before, and a caller that
+ * has no classification sends none. Unrecognised values are dropped here
+ * rather than posted, so a typo cannot reach the learner's profile.
  */
-export async function recordReview({ lang, word, outcome, wasCorrect, meaning, scenario, kind, lessonIdx, phase }) {
+export async function recordReview({
+    lang, word, outcome, wasCorrect, meaning, scenario, kind, lessonIdx, phase,
+    missKind, missKinds,
+}) {
     if (!lang || !word) return null;
+    const why = reviewMissKind({ outcome, missKind, missKinds });
     try {
         return await api.post('/api/progress/review', {
             lang,
@@ -195,6 +207,9 @@ export async function recordReview({ lang, word, outcome, wasCorrect, meaning, s
             /* A phrase or conversation line: its own ladder entry, resolved
                back to the drill through lessonIdx (phraseReview.js). */
             ...(kind === 'phrase' ? { kind, lessonIdx, phase } : {}),
+            /* `reviewMissKind` has already dropped anything unrecognised, and
+               anything attached to a clean first-try answer. */
+            ...(why ? { missKind: why } : {}),
         });
     } catch (err) {
         console.warn('[srs] failed to record review for', word, err.message);
@@ -319,6 +334,7 @@ export async function recordSkillEvidence({ lang, items }) {
 export const SKILLS_TIMEOUT_MS = 1500;
 const SKILLS_TTL_MS = 60000;
 const skillMemo = new Map();   // lang -> { at, promise }
+const missMemo = new Map();    // the same, for the miss-kind profile
 const withTimeout = (p, ms, fallback) => Promise.race([
     p, new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
 ]).catch(() => fallback);
@@ -332,6 +348,27 @@ export function fetchSkillModel(lang) {
     skillMemo.set(lang, { at: Date.now(), promise });
     /* A miss is not remembered: the next lesson asks again. */
     promise.then((r) => { if (!r?.length) skillMemo.delete(lang); });
+    return promise;
+}
+
+/**
+ * How this learner gets things wrong in this language: `[{ kind, label,
+ * count, share, lastSeen, recentWords }]`, most frequent first.
+ *
+ * Same contract as `fetchSkillModel` — short timeout, memoised briefly, never
+ * rejects, and an empty list means "no profile", which every caller must read
+ * as today's behaviour rather than as "this learner makes no mistakes".
+ */
+export function fetchMissProfile(lang) {
+    if (!lang) return Promise.resolve([]);
+    const hit = missMemo.get(lang);
+    if (hit && Date.now() - hit.at < SKILLS_TTL_MS) return hit.promise;
+    const promise = withTimeout(
+        getOr(`/api/progress/miss-kinds?lang=${encodeURIComponent(lang)}`, []),
+        SKILLS_TIMEOUT_MS, []
+    );
+    missMemo.set(lang, { at: Date.now(), promise });
+    promise.then((r) => { if (!r?.length) missMemo.delete(lang); });
     return promise;
 }
 

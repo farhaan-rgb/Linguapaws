@@ -41,6 +41,18 @@ const learnedWordSchema = new mongoose.Schema(
         lapses: { type: Number, default: 0 },
         lastOutcome: { type: String },   // 'unaided' | 'hinted' | 'revealed' | 'missed'
         lastReviewedAt: { type: Date },
+
+        // ── Why the misses happened (shared/missKinds.js) ──
+        // `lastOutcome` says how much help was needed; these say what went
+        // wrong. Without them an answer with every word right and two of them
+        // swapped is stored as the same fact as not knowing the word, and the
+        // word gets re-drilled while word order never can be.
+        //
+        // Absent on every row written before 2026-10-16, and absent on any row
+        // whose misses the engine could not classify. A reader must treat a
+        // missing tally as "we do not know", never as "no such mistake".
+        lastMissKind: { type: String },
+        missKinds: { type: Map, of: Number, default: undefined },
     },
     { timestamps: true }
 );

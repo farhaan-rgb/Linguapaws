@@ -19,6 +19,10 @@ const {
 const {
     validateEvidence, applyEvidence, skillPayload, byWeakness,
 } = require('../services/skillStats');
+const {
+    readMissKind, applyTally, missHistory, profileFilter, profileUpdate, profilePayload,
+} = require('../services/missKinds');
+const MissKindStat = require('../models/MissKindStat');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -147,12 +151,20 @@ router.get('/due', async (req, res) => {
             box: w.box,
             dueAt: w.dueAt,
             ...(w.kind === 'phrase' ? { kind: 'phrase', lessonIdx: w.lessonIdx, phase: w.phase } : {}),
+            /* Why this one has been missed before, so a picker can prefer a
+               drill that exercises the mistake and not just the word. */
+            ...missHistory(w),
         }))
     );
 });
 
 // POST /api/progress/review — record a review outcome and reschedule
-// Body: { word, lang, wasCorrect, meaning?, scenario? }
+// Body: { word, lang, wasCorrect, meaning?, scenario?, missKind? | missKinds? }
+//
+// `missKind` is why the miss happened (shared/missKinds.js): 'order' when every
+// word was there in the wrong sequence, 'ending' when the stem was right and
+// the ending was not, and so on. Optional and ignorable — a body without it
+// schedules exactly as it did before, which is what every old client sends.
 router.post('/review', async (req, res) => {
     const { word, lang, wasCorrect, outcome } = req.body;
     // `outcome` carries how much help was needed ('unaided' | 'hinted' |
@@ -198,7 +210,23 @@ router.post('/review', async (req, res) => {
     target.lastOutcome = scheduled.outcome;
     target.lastReviewedAt = now;
 
+    /* Why it was missed, on the item and in the learner's profile. Both are
+       written beside the schedule rather than on their own endpoint: a miss
+       counted twice (a retry, a resend) would skew the profile, and the review
+       post is already the one call step mode makes exactly once per screen. */
+    const missKind = applyTally(target, readMissKind(req.body), scheduled.outcome);
+
     await target.save();
+    if (missKind) {
+        /* Fire and forget as far as the response is concerned: the schedule is
+           the contract of this endpoint, and a failed profile write must not
+           turn a recorded review into an error the client retries. */
+        MissKindStat.updateOne(
+            profileFilter(req.user._id, lang, missKind),
+            profileUpdate(target.word, now),
+            { upsert: true }
+        ).catch((err) => console.warn('[progress] miss-kind profile write failed', err.message));
+    }
 
     res.json({
         word: target.word,
@@ -208,7 +236,18 @@ router.post('/review', async (req, res) => {
         reviews: target.reviews,
         lapses: target.lapses,
         outcome: scheduled.outcome,
+        ...(missKind ? { missKind } : {}),
     });
+});
+
+// GET /api/progress/miss-kinds?lang=Kannada — how this learner gets things
+// wrong, most frequent first: [{ kind, label, count, share, lastSeen,
+// recentWords }]. Eleven rows at most, so no limit and no paging.
+router.get('/miss-kinds', async (req, res) => {
+    const { lang } = req.query;
+    if (typeof lang !== 'string' || !lang) return res.status(400).json({ error: 'lang query param is required' });
+    const docs = await MissKindStat.find({ userId: req.user._id, lang }).limit(50).lean();
+    res.json(profilePayload(docs));
 });
 
 // GET /api/progress/vocab?lang=Telugu — full vocabulary with schedule state.
@@ -233,6 +272,7 @@ router.get('/vocab', async (req, res) => {
             dueAt: w.dueAt,
             reviews: w.reviews,
             lapses: w.lapses,
+            ...missHistory(w),
         })),
     });
 });

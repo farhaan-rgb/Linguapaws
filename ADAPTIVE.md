@@ -352,3 +352,17 @@ node scripts/backfill-skills.js                          # dry run (default), re
 node scripts/backfill-skills.js --user <id> --lang Kannada
 node scripts/backfill-skills.js --apply                  # writes; needs Farhaan's go-ahead
 ```
+
+## Why a miss happened (`MISS-TAXONOMY.md`)
+
+The skill model says *which* skill an answer went wrong on. It does not say
+what *kind* of mistake it was, and the review record said even less — a word
+answered with every letter right and two words swapped reached the scheduler
+as the same fact as not knowing the word. `shared/missKinds.js` names the
+eleven failures the engine already detects (`order`, `ending`, `confusion`,
+`spelling` …), `POST /api/progress/review` stores one per screen on the item
+and in a per-learner profile, and `GET /api/progress/miss-kinds` reads it
+back. The classifier that produces a kind lives in `lessonEngine.js` and is
+not written yet; until it is, nothing is recorded and every surface behaves as
+it does today. MISS-TAXONOMY.md holds the taxonomy, the exact interface the
+classifier must satisfy, and the designed-but-unbuilt retrieval path.
