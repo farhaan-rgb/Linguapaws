@@ -134,8 +134,13 @@ export default function MySkills() {
     const lessons = useMemo(() => (isLanguageAvailable(lang) ? CURRICULUM[lang] : []) || [], [lang]);
     const [model, setModel] = useState(undefined);     // undefined loading, null failed
     const [completed, setCompleted] = useState(null);
+    /* How they get things wrong, which the skill model cannot say — it scores
+       skills, not kinds of mistake. Never rejects; [] means "no profile",
+       which must read as "nothing recorded", never as "no mistakes". */
+    const [profile, setProfile] = useState(null);
 
     const load = useCallback(() => {
+        fetchMissProfile(lang).then(setProfile).catch(() => setProfile([]));
         Promise.all([fetchModel(lang), api.get('/api/progress').catch(() => null)]).then(([m, p]) => {
             setCompleted(completedLessonFor(p, lang));
             setModel(m);
