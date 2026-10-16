@@ -1919,6 +1919,14 @@ function StepScreen({
                                 <TapText text={diagnosis} />
                             </p>
                         )}
+                        {missNote && (
+                            <p style={{
+                                margin: '8px 0 0', paddingTop: 7, fontSize: 13, lineHeight: 1.55,
+                                color: '#78350f', borderTop: '1px solid rgba(180,83,9,0.16)',
+                            }}>
+                                <TapText text={missNote} />
+                            </p>
+                        )}
                         {scaffold && (
                             <p style={{
                                 margin: '8px 0 0', fontFamily: 'var(--font-display)', fontWeight: 800,
