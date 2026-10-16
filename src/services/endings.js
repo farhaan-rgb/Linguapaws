@@ -9,9 +9,10 @@
  *
  * Only endings a lesson teaches in its own text, from the lesson that teaches
  * them (`lesson`, 1-based) — the same bar as WORD_ENDINGS in curriculum.js and
- * the `sure` entries of tools/structures/telugu.json. Each gloss is quoted or
- * condensed from the grammar note named beside it. Telugu only for now: the
- * Kannada person endings are not written down anywhere the app can quote.
+ * the `sure` entries of tools/structures/<lang>.json. Each gloss is quoted or
+ * condensed from the grammar note named beside it. Kannada endings the course
+ * uses but never explains (-uvudilla, -ina/-a "of", -ona, colloquial -ini) are
+ * deliberately absent: a mark is a claim the course has taught it.
  *
  *   match  — the whole token, lowercased; group 2 is the ending
  *   except — tokens that match but are words, not stem + ending
@@ -36,6 +37,38 @@ export const NOTICE_ENDINGS = {
             except: ['dhanyavaadaalu', 'dabbulu', 'rupayalu', 'billu', 'illu', 'vellu'] },
         /* L10 note: "The -andi at the end makes it polite." */
         { ending: 'andi', lesson: 10, gloss: 'polite — “please”', match: /^(\w+?)([ao]ndi)$/, except: [] },
+    ],
+    Kannada: [
+        /* L1 P1 note: "The -eeni at the end already means “I”, so you don't
+           need naanu." */
+        { ending: 'eeni', lesson: 1, gloss: '“I”', match: /^(\w+)(eeni)$/, except: [] },
+        /* L1 P1 note: "Change it to -eera, as in iddeera, and it means
+           “you”." */
+        { ending: 'eera', lesson: 1, gloss: '“you”', match: /^(\w+)(eera)$/, except: [] },
+        /* L3 Hoguttene: "The -ttene at the end already means “I”"; L11
+           Iddene and L22 Baruttade restate it as -ene. */
+        { ending: 'ene', lesson: 3, gloss: '“I”', match: /^(\w+)(ene)$/, except: [] },
+        /* L22 Baruttade: "The ending tells you who: -ene is “I”, -ade is
+           “it”." Only on the -utt- verbs that note is about. */
+        { ending: 'ade', lesson: 22, gloss: '“it”', match: /^(\w+utt)(ade)$/, except: [] },
+        /* L3 Mane: "To say “to the house”, add -ge to the end: manege."
+           Excepted: question and place words that end in -ge but are not a
+           word + -ge as taught (hege, olage, kelage, mellage, belagge), and
+           nanage/nimage, whose stems are not naanu/neevu as a learner knows them. */
+        { ending: 'ge', lesson: 3, gloss: '“to”', match: /^(\w+[aeiu])(ge)$/,
+            except: ['hege', 'olage', 'kelage', 'mellage', 'belagge', 'nanage', 'nimage'] },
+        /* L8 Pustakagalu: "Add -galu to the end of a thing to mean more than
+           one." */
+        { ending: 'galu', lesson: 8, gloss: 'more than one — for things', match: /^(\w+)(galu)$/,
+            except: ['dhanyavadagalu', 'dhanyavaadagalu'] },
+        /* L8 Snehitaru: "For people, add -aru. For things, add -galu." The
+           only word the course gives it; ivaru, avaru, yaaru, hesaru are not
+           plurals, so this one is listed, not pattern-matched. */
+        { ending: 'aru', lesson: 8, gloss: 'more than one — for people', match: /^(snehit)(aru)$/, except: [] },
+        /* L25 Hodare: "Take hode, “I went”, and swap the -e for -are ... One
+           word, no separate “if”." aadare "but" and its kin are fixed words. */
+        { ending: 'are', lesson: 25, gloss: '“if”', match: /^(\w+d)(are)$/,
+            except: ['aadare', 'adare', 'yaakendare', 'haagaadare', 'hagadare'] },
     ],
 };
 
