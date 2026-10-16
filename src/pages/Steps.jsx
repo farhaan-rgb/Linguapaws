@@ -17,8 +17,9 @@ import {
 import {
     ensureReviewSet, recordTaughtWord, recordReview,
     ensureContrast, recordConfusion, recordContrastCheck,
-    fetchPracticeSources, recordMissedScreen, recordMissedCheck,
+    fetchPracticeSources, recordMissedScreen, recordMissedCheck, recordSkillEvidence,
 } from '../services/srs';
+import { skillEvidence, outcomeOf } from '../services/skills';
 import { examplesFor } from '../services/examples';
 import { answerFromFacts, whyNotAnswer, wordsAskedAbout } from '../services/courseFacts';
 import { getStoredJSON } from '../utils/storage';
@@ -1037,6 +1038,9 @@ function StepScreen({
      *  flame out, no reveal — but the answer is no longer unaided. */
     const [helped, setHelped] = useState(false);
     const onHelp = useCallback(() => setHelped(true), []);
+    /** Every missed attempt on this screen, with the engine's diagnosis of it —
+     *  handed up on settle for skill attribution (skills.js). Measure only. */
+    const attemptsRef = useRef([]);
 
     const speakMode = answerMode === 'speak';
     const drill = step.kind === 'drill' ? step.drill : null;
@@ -1312,7 +1316,8 @@ function StepScreen({
             // in silence never finds out they had it wrong.
             setNote(engine.spellingNote(said, step.expected, step.variants, lexicon) || '');
             setPhase('correct');
-            setReward(onSettled({ correct: true, revealed: false, misses, helped }));
+            setReward(onSettled({ correct: true, revealed: false, misses, helped,
+                attempts: attemptsRef.current, spoken }));
             return;
         }
 
@@ -1337,6 +1342,7 @@ function StepScreen({
             meaning: drill?.meaning || '', reveal: revealing, language: langName,
             knownWords: KNOWN_WORDS[langName] || NO_KNOWN, endings: WORD_ENDINGS[langName] || null,
         });
+        attemptsRef.current = [...attemptsRef.current, { said, spoken, help }];
         /* A taught word said in place of the needed one is remembered, so the
            pair comes back as a contrast screen in a later lesson. First miss on
            a screen only, and never on the contrast screen itself. */
@@ -1354,7 +1360,7 @@ function StepScreen({
             setLockHeard(spoken ? said : '');
             setPhase('revealed');
             fx.playMiss();
-            onSettled({ correct: false, revealed: true, misses: next });
+            onSettled({ correct: false, revealed: true, misses: next, attempts: attemptsRef.current });
         } else {
             setMissLine(praise.missLineFor(step.index + next));
             setPhase('retry');
@@ -1391,7 +1397,7 @@ function StepScreen({
         setLockHeard('');
         setPhase('revealed');
         fx.playMiss();
-        onSettled({ correct: false, revealed: true, misses: next });
+        onSettled({ correct: false, revealed: true, misses: next, attempts: attemptsRef.current });
     }, [settled, misses, onMiss, step, onSettled, lexicon, taughtLessons, families, langName, drill]);
     giveUpRef.current = giveUp;
 
@@ -2293,7 +2299,8 @@ function Lesson({ scenarioParam, practice = false }) {
 
     /** A screen was answered. Tell the SRS, move the shared progress counter,
      *  and hand the screen back everything it needs to celebrate. */
-    const handleSettled = useCallback(({ correct, revealed, misses: tries, helped: tapped = false }) => {
+    const handleSettled = useCallback(({ correct, revealed, misses: tries, helped: tapped = false,
+        attempts = [], spoken = false }) => {
         const t = tally.current;
         /* A re-ask is a screen that already went wrong once, so its success is a
            recovery, never a clean first-try answer. */
@@ -2372,6 +2379,20 @@ function Lesson({ scenarioParam, practice = false }) {
             }).catch(() => {});
         }
 
+        /* What the screen said about each skill it tested (adaptive phase 1:
+           recorded, read by nothing that changes a lesson yet). Every screen,
+           first attempt or re-ask, lesson or practice — skills.js weighs them. */
+        if (step) {
+            try {
+                const items = skillEvidence({
+                    step, lang: langName, lessonNo: taughtLessons.length, lexicon,
+                    outcome: outcomeOf({ correct, misses: tries, revealed, helped: Boolean(correct && tapped && tries === 0), attempts: attempts.length }),
+                    attempts, finalSpoken: Boolean(correct && spoken),
+                });
+                if (items.length) recordSkillEvidence({ lang: langName, items });
+            } catch (err) { console.warn('[skills] attribution failed', err); }
+        }
+
         /* Both modes move the same counter, so a lesson done in steps leaves the
            learner exactly where the chat would have. */
         if (correct && !practice) api.post('/api/progress/increment').catch(() => {});
@@ -2403,7 +2424,7 @@ function Lesson({ scenarioParam, practice = false }) {
             recovery: wasStumbled && misses === 0 && !helped,
             points, combo: t.combo, milestone: hit,
         };
-    }, [step, langName, scenarioIdx, award, practice]);
+    }, [step, langName, scenarioIdx, award, practice, taughtLessons, lexicon]);
 
     const handleMiss = useCallback(() => {
         if (!praise.countsForStreak(step)) return;

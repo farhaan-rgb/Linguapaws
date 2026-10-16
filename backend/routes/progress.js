@@ -3,6 +3,7 @@ const User = require('../models/User');
 const LearnedWord = require('../models/LearnedWord');
 const Confusion = require('../models/Confusion');
 const MissedScreen = require('../models/MissedScreen');
+const SkillStat = require('../models/SkillStat');
 const requireAuth = require('../middleware/auth');
 const { nextSchedule, initialSchedule } = require('../services/srs');
 const {
@@ -15,6 +16,9 @@ const {
 const {
     validateMissed, missedFilter, missedUpdate, pickOpen, missedPayload,
 } = require('../services/missedScreens');
+const {
+    validateEvidence, applyEvidence, skillPayload, byWeakness,
+} = require('../services/skillStats');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -306,6 +310,40 @@ router.post('/missed/check', async (req, res) => {
     if (req.body.correct) doc.retired = true;
     await doc.save();
     res.json(missedPayload(doc));
+});
+
+// POST /api/progress/skills/evidence — what one settled screen said about each
+// skill it tested. Body: { lang, items: [{ skillId, score 0..1, weight 0..1 }] },
+// computed client-side by skills.skillEvidence. Fire-and-forget from step mode.
+router.post('/skills/evidence', async (req, res) => {
+    const e = validateEvidence(req.body);
+    if (e.error) return res.status(400).json({ error: e.error });
+    const userId = req.user._id;
+    const prev = await SkillStat.find({ userId, lang: e.lang, skillId: { $in: e.items.map(i => i.skillId) } }).lean();
+    const byId = new Map(prev.map(d => [d.skillId, d]));
+    const now = new Date();
+    const ops = e.items.map(it => ({
+        updateOne: {
+            filter: { userId, lang: e.lang, skillId: it.skillId },
+            update: { $set: applyEvidence(byId.get(it.skillId), it, now) },
+            upsert: true,
+        },
+    }));
+    await SkillStat.bulkWrite(ops, { ordered: false });
+    res.json({ updated: ops.length });
+});
+
+// GET /api/progress/skills?lang=Kannada[&weak=1][&limit=50] — mastery per
+// skill, weakest first, each with `level` (new|weak|learning|strong) and `weak`.
+router.get('/skills', async (req, res) => {
+    const { lang } = req.query;
+    if (typeof lang !== 'string' || !lang) return res.status(400).json({ error: 'lang query param is required' });
+    const requested = parseInt(req.query.limit, 10);
+    const limit = Math.min(Math.max(Number.isNaN(requested) ? 500 : requested, 1), 1000);
+    const docs = await SkillStat.find({ userId: req.user._id, lang }).limit(2000).lean();
+    let out = docs.map(skillPayload).sort(byWeakness);
+    if (req.query.weak === '1') out = out.filter(s => s.weak);
+    res.json(out.slice(0, limit));
 });
 
 module.exports = router;

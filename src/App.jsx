@@ -17,6 +17,7 @@ import Login from './pages/Login';
 import Privacy from './pages/Privacy';
 import ShadowPractice from './pages/ShadowPractice';
 import LevelSelect from './pages/LevelSelect';
+import SkillDebug from './pages/SkillDebug';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -89,6 +90,8 @@ function AppRoutes() {
       <Route path="/translator" element={<ProtectedRoute><Translator /></ProtectedRoute>} />
       <Route path="/shadow" element={<ProtectedRoute><ShadowPractice /></ProtectedRoute>} />
       <Route path="/level-select" element={<ProtectedRoute><LevelSelect /></ProtectedRoute>} />
+      {/* Hidden: adaptive phase 1 debug view, no link to it. */}
+      <Route path="/debug/skills" element={<ProtectedRoute><SkillDebug /></ProtectedRoute>} />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/" replace />} />

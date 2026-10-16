@@ -268,3 +268,23 @@ export async function recordMissedCheck({ lang, lessonIdx, kind, key, correct })
         return null;
     }
 }
+
+/* ── Skills (adaptive phase 1: measure only) ───────────────────────────────
+   What one settled screen said about each skill it tested — computed by
+   skills.skillEvidence, folded into the learner's SkillStat on the server. */
+
+/** Fire-and-forget: one screen's per-skill evidence. */
+export async function recordSkillEvidence({ lang, items }) {
+    if (!lang || !items?.length) return null;
+    try {
+        return await api.post('/api/progress/skills/evidence', { lang, items: items.slice(0, 40) });
+    } catch (err) {
+        console.warn('[srs] failed to record skill evidence', err.message);
+        return null;
+    }
+}
+
+/** Mastery per skill, weakest first ([] offline). */
+export const fetchSkills = (lang, { weak = false } = {}) => (lang
+    ? getOr(`/api/progress/skills?lang=${encodeURIComponent(lang)}${weak ? '&weak=1' : ''}`, [])
+    : Promise.resolve([]));

@@ -608,6 +608,32 @@ export const misplacedWord = (actual, v, lexicon = new Map()) => {
     };
 };
 
+/** The out-of-place word of an answer whose words are right and whose order
+ *  is not, checked against every accepted form and the dropped-pronoun ones;
+ *  null when some accepted form has the learner's order. Shared by
+ *  `explainMiss` (the line) and skills.js (which skill to charge). */
+export const orderMiss = (said, expected, variants = [], lexicon = new Map()) => {
+    const got = normalizeLatin(said).split(' ').filter(Boolean);
+    const forms = [expected, ...pronounVariants(expected), ...variants];
+    /* Not an order miss at all when some accepted form has the words in the
+       learner's order: `Ivatte naanu kelasa maaduttiddene` is in the order of
+       the answer itself, and was told "ivatte goes right after naanu" because
+       an accepted variant puts *naanu* first. */
+    const inSomeOrder = forms.some(v => {
+        const loc = locateTokens(said, v, lexicon);
+        /* A whole form, word for word in count — "ela unnaru" sits in order
+           inside `ela meeru unnaru`, which is still out of order. */
+        return loc && loc.need.length >= 2 && loc.need.length === got.length
+            && !loc.at.some((p, k) => k > 0 && p < loc.at[k - 1]);
+    });
+    if (inSomeOrder) return null;
+    for (const v of forms) {
+        const m = misplacedWord(said, v, lexicon);
+        if (m) return m;
+    }
+    return null;
+};
+
 /** Best ratio and coverage across a target and every accepted variant. */
 export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()) => {
     const given = [expected, ...variants].filter(Boolean);
@@ -1909,21 +1935,8 @@ export const explainMiss = (said, expected, variants = [], lexicon = new Map(), 
        canonical answer and always name its first word: `maaduttiddene kelasa`
        (verb first, *naanu* optional) was told "the word for I is missing", and
        `naanu nodide mane` was told "naanu comes first" when naanu WAS first. */
-    const forms = [expected, ...pronounVariants(expected), ...variants];
-    /* Not an order miss at all when some accepted form has the words in the
-       learner's order: `Ivatte naanu kelasa maaduttiddene` is in the order of
-       the answer itself, and was told "ivatte goes right after naanu" because
-       an accepted variant puts *naanu* first. */
-    const inSomeOrder = forms.some(v => {
-        const loc = locateTokens(said, v, lexicon);
-        /* A whole form, word for word in count — "ela unnaru" sits in order
-           inside `ela meeru unnaru`, which is still out of order. */
-        return loc && loc.need.length >= 2 && loc.need.length === got.length
-            && !loc.at.some((p, k) => k > 0 && p < loc.at[k - 1]);
-    });
-    for (const v of inSomeOrder ? [] : forms) {
-        const m = misplacedWord(said, v, lexicon);
-        if (!m) continue;
+    const m = orderMiss(said, expected, variants, lexicon);
+    if (m) {
         const order = m.need.join(' ');
         /* "All the right words" only when they are — word for word. Otherwise
            the order is named with the learner's own words, so a first miss
@@ -2290,7 +2303,7 @@ const stemForms = (stem, changes = []) => {
     return forms;
 };
 /* Does `word` read as `stem` plus `e.ending`? */
-const carriesEnding = (word, stem, e, changes) => {
+export const carriesEnding = (word, stem, e, changes) => {
     if (!word || !stem || stem.length < 3 || !word.endsWith(e.ending)) return false;
     const head = word.slice(0, -e.ending.length);
     if (head.length < 3) return false;
@@ -2310,7 +2323,7 @@ const endingMiss = (got, need, { endings, lessonNo, taught, answerFor, reveal })
        alternative of *mane*, so the lexicon treats the two as one word and the
        missing -ge would never show up as missing. */
     const missing = need.filter(t => !got.includes(t));
-    if (!list.length || missing.length !== 1) return '';
+    if (!list.length || missing.length !== 1) return null;
     const t = missing[0];
     const changes = endings.changes || [];
     /* Never the answer itself (that would name it on a first miss), and never
@@ -2326,14 +2339,15 @@ const endingMiss = (got, need, { endings, lessonNo, taught, answerFor, reveal })
             const entry = taught.get(t);
             const gloss = (entry ? glossParts(entry.meaning)[0] : '').replace(/^i\b/, 'I');
             const ask = gloss ? fillGloss(added.bare || 'just “{gloss}”, with no ending', gloss) : 'the word without it';
-            return `Good thinking: *-${added.ending}* ${added.means}${like(added, t, g)}. This asks for ${ask}: ${answerFor(t)}.`;
+            return { word: t, added: added.ending,
+                line: `Good thinking: *-${added.ending}* ${added.means}${like(added, t, g)}. This asks for ${ask}: ${answerFor(t)}.` };
         }
         /* Left off an ending the answer needs: Mane for Manege. */
         if (wanted && !added) {
             const ex = like(wanted, t, g);
-            return reveal
+            return { word: t, wanted: wanted.ending, line: reveal
                 ? `Right word, but this needs ${wanted.needs}: *-${wanted.ending}*${ex}. ${answerFor(t)}.`
-                : `Right word, but this needs ${wanted.needs}: ${t.startsWith(g) ? 'add' : 'it takes'} *-${wanted.ending}*${ex}.`;
+                : `Right word, but this needs ${wanted.needs}: ${t.startsWith(g) ? 'add' : 'it takes'} *-${wanted.ending}*${ex}.` };
         }
         /* Both carry an ending, on the same stem, and it is the wrong one. */
         for (const [stem] of taught) {
@@ -2343,12 +2357,14 @@ const endingMiss = (got, need, { endings, lessonNo, taught, answerFor, reveal })
             /* Sibling endings: *snehitagalu* for *snehitaru*. Same job, and
                the course chose between them by what the word is. */
             if (mine.group && mine.group === theirs.group && mine.kind && theirs.kind) {
-                return `Close: *-${mine.ending}* is for ${mine.kind}. For ${theirs.kind}, add *-${theirs.ending}*: ${answerFor(t)}.`;
+                return { word: t, added: mine.ending, wanted: theirs.ending,
+                    line: `Close: *-${mine.ending}* is for ${mine.kind}. For ${theirs.kind}, add *-${theirs.ending}*: ${answerFor(t)}.` };
             }
-            return `*-${mine.ending}* ${mine.means}; this needs ${theirs.needs}, so *-${theirs.ending}* instead${reveal ? `: ${answerFor(t)}` : ''}.`;
+            return { word: t, added: mine.ending, wanted: theirs.ending,
+                line: `*-${mine.ending}* ${mine.means}; this needs ${theirs.needs}, so *-${theirs.ending}* instead${reveal ? `: ${answerFor(t)}` : ''}.` };
         }
     }
-    return '';
+    return null;
 };
 
 /**
@@ -2407,7 +2423,7 @@ export const missHelp = (said, expected, {
     const used = new Set();
     const fallback = () => finish(explainMiss(said, expected, variants, lexicon,
         { hideAnswer: !reveal, clean: true, prompt: meaning }));
-    if (!need.length || !got.length) return { line: fallback(), family: null, scaffold, pairs: [] };
+    if (!need.length || !got.length) return { line: fallback(), family: null, scaffold, pairs: [], kind: 'other' };
     /* The answer word as the course writes it, and its first-letter outline. */
     const shownWord = (t) => (String(expected).split(/\s+/)
         .find(x => normalizeLatin(x) === t) || t).replace(/[^\p{L}\p{N}'’-]/gu, '') || t;
@@ -2459,16 +2475,20 @@ export const missHelp = (said, expected, {
             }] : [];
             /* `trap`: which authored line fired, so the reveal can tell two
                wrong answers that hit the same confusion from two that did not. */
-            return { line: finish(line, { skip: [hit] }), family: null, scaffold, pairs, trap: normalizeLatin(trap.said) };
+            return { line: finish(line, { skip: [hit] }), family: null, scaffold, pairs, trap: normalizeLatin(trap.said),
+                kind: 'trap', word: t };
         }
         return null;
     })();
     if (trapLine) return trapLine;
 
-    const endingLine = endingMiss(got, need, {
+    const endingHit = endingMiss(got, need, {
         endings, lessonNo: taughtLessons.length, taught, answerFor, reveal,
     });
-    if (endingLine) return { line: finish(endingLine, { ending: true }), family: null, scaffold, pairs: [] };
+    if (endingHit) {
+        const { line: endingLine, ...ending } = endingHit;
+        return { line: finish(endingLine, { ending: true }), family: null, scaffold, pairs: [], kind: 'ending', ending };
+    }
     /* A wrong word that is really a misspelling, a changed ending or a flipped
        first vowel of a needed word is the grader's business, and
        `explainMiss` already names those exactly. A glossary word is not: *ivu*
@@ -2537,11 +2557,11 @@ export const missHelp = (said, expected, {
             } else {
                 line = `*${shown}* means ${glossFor(entry.meaning, meaning)}, which fits, but this sentence leaves it out.`;
             }
-            return { line: finish(line, { skip: [g] }), family: null, scaffold, pairs: [] };
+            return { line: finish(line, { skip: [g] }), family: null, scaffold, pairs: [], kind: 'extra', extra: g };
         }
     }
     if (!missing.length || (!wrong.length && !english.length)) {
-        return { line: fallback(), family: null, scaffold, pairs: [] };
+        return { line: fallback(), family: null, scaffold, pairs: [], kind: 'other' };
     }
 
     const familyOf = (a, b) => families.find(f => {
@@ -2555,6 +2575,9 @@ export const missHelp = (said, expected, {
     /* Which taught word stood in for which — the record that brings the pair
        back as a contrast question in a later lesson. */
     const pairs = [];
+    /* Every wrong word: the word it is (or sounds like) and the answer word
+       it stood in for, if any — for skill attribution, not for the line. */
+    const subs = [];
     for (const g of wrong.slice(0, 2)) {
         const near = nearForm.has(g);
         const entry = near ? taught.get(nearForm.get(g)) : entryOf(g);
@@ -2568,6 +2591,7 @@ export const missHelp = (said, expected, {
             || (wrong.length === 1 && unwritten.length === 1 && !english.length
                 && got.length === need.length && got.indexOf(g) === need.indexOf(unwritten[0]) ? unwritten[0] : undefined);
         if (t) used.add(t);
+        subs.push({ said: entry.word, needed: t || '', near });
         const shown = capital(entry.word);
         const note = isKnown && entry.note ? ` (${entry.note})` : '';
         let line = near
@@ -2640,7 +2664,7 @@ export const missHelp = (said, expected, {
             ? `“${E}” is still in English. ${where} it ${reveal ? 'is' : 'starts with'} ${answerFor(t)}.`
             : `“${E}” is still in English.`);
     }
-    if (!lines.length) return { line: fallback(), family: null, scaffold, pairs: [] };
+    if (!lines.length) return { line: fallback(), family: null, scaffold, pairs: [], kind: 'other' };
     /* Good reasoning is said first. The rest of the analysis still runs, so
        the pair is remembered and the reveal still gets its family card. */
     const extra = got.filter(g => !has(need, g));
@@ -2657,6 +2681,10 @@ export const missHelp = (said, expected, {
     return {
         line: lines.length > 1 ? lead : finish(lead, { skip: [...wrong, ...english] }),
         family: reveal ? family : null, scaffold, pairs,
+        /* What went wrong, for skill attribution (skills.js): which answer
+           words a wrong word or a word left in English stood in for. */
+        kind: reasoned ? 'reasoned' : 'wrong-word',
+        replaced: [...used], english: english.slice(0, 2), subs,
     };
 };
 

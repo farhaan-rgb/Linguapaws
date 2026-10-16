@@ -306,3 +306,11 @@ lesson writes about *where you are*: no `lesson-complete`, no `position`, no
 stretch between the last finished lesson and "You are here", which gets
 `PRACTICE_GAP` of extra room so the pill never sits on a node or a label.
 `node tools/practice-check.mjs` checks the plan stays in scope and in order.
+
+## Skill evidence (adaptive phase 1)
+
+Every settled screen — lesson or practice, first attempt or re-ask — posts
+per-skill evidence to `/api/progress/skills/evidence`: `skills.skillEvidence`
+reads the step, the outcome and each missed attempt with `missHelp`'s diagnosis
+of it. Measure only; nothing on screen changes. The taxonomy, weights and model
+are in [ADAPTIVE.md](ADAPTIVE.md).
