@@ -236,6 +236,45 @@ if (board) {
     };
 }
 
+/* The miss profile behind "Where you slip" (MISS-TAXONOMY.md). The classifier
+   only fills this in for a signed-in learner who has got things wrong, so the
+   three states the card has to be right in are unreachable by clicking:
+
+     ?slip=real    the mix measured on 110 real misses — confusion-led
+     ?slip=order   an order-led learner, the case the taxonomy was written for
+     ?slip=flat    enough misses, no standing weakness: nothing in particular
+     ?slip=thin    four misses — under the bar for drawing a chart at all
+     ?slip=ending:9,order:4   any profile, written out
+
+   `share` is computed here because the server computes it, and a page that
+   recomputed it could disagree with the one that wrote it. */
+const slip = params.get('slip');
+if (slip) {
+    const PRESETS = {
+        real: { confusion: 17, order: 6, 'missing-word': 4, 'wrong-word': 4, ending: 3, english: 2, spelling: 1 },
+        order: { order: 9, confusion: 5, ending: 4, 'missing-word': 3, english: 1 },
+        flat: { confusion: 3, order: 3, ending: 3, 'missing-word': 3, 'wrong-word': 3 },
+        thin: { order: 2, 'missing-word': 1, english: 1 },
+    };
+    const counts = PRESETS[slip] || Object.fromEntries(slip.split(',').filter(Boolean)
+        .map(p => { const [k, n] = p.split(':'); return [k, Number(n) || 1]; }));
+    /* Real words out of the real course, so "Lately on …" is a word the
+       learner would actually have met rather than lorem ipsum. */
+    const pool = (CURRICULUM[lang] || []).slice(0, Number(params.get('done') || 14) + 1)
+        .flatMap(l => (l.vocabulary || []).map(v => v.word));
+    const total = Object.values(counts).reduce((s, n) => s + n, 0);
+    const profile = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([kind, count], i) => ({
+            kind, count, label: missKindLabel(kind), share: total ? count / total : 0,
+            lastSeen: new Date(Date.now() - i * 36e5).toISOString(),
+            recentWords: pool.slice(i * 3, i * 3 + 3),
+        }));
+    const realGet = api.get.bind(api);
+    api.get = async (path, ...rest) => (String(path).startsWith('/api/progress/miss-kinds')
+        ? profile : realGet(path, ...rest));
+}
+
 /* Header renders the signed-in avatar unconditionally, so the home preview needs
    a stub user. Never a real token — every API call still fails and is swallowed. */
 /* The lesson map: ?screen=map&done=N&at=S stubs /api/progress so the map shows
