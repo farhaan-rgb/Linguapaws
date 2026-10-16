@@ -24,7 +24,7 @@ teaches it).
 | Language | Lessons | Blocked drills | Status |
 |---|---|---|---|
 | Telugu | 30 | **0** | playtested over three rounds, clean |
-| Kannada | 10 | 1 | partial course, not playtested |
+| Kannada | 30 | 0 | full course, not playtested |
 | Hindi | 5 | 26 | partial course, not playtested |
 | Odiya | 30 | 60 | full course, not playtested |
 
@@ -66,28 +66,37 @@ _None._
 
 ---
 
-# Kannada — 10 lessons, cumulative gap check
+# Kannada — 30 lessons, cumulative gap check
 
-## Blocked drills (1)
+## Blocked drills (0)
 
-Split by what the fix is. **Out of order** (1) — every missing word IS taught, just in a later lesson; reorder or move the word earlier. **Never taught** (0) — at least one word appears in no lesson's vocabulary and has to be written.
+Split by what the fix is. **Out of order** (0) — every missing word IS taught, just in a later lesson; reorder or move the word earlier. **Never taught** (0) — at least one word appears in no lesson's vocabulary and has to be written.
 
-### Out of order — word exists, taught too late (1)
+### Out of order — word exists, taught too late (0)
 
-- L2 (conversation) "Ask 'What is your name?'" → `Nimma hesaru yenu?` — nimma (taught later, L5)
+_None._
+
 
 ### Never taught anywhere in the course (0)
 
 _None._
 
 
-## Needs an unseen ending on a taught stem (1)
+## Needs an unseen ending on a taught stem (0)
 
-- L3 (conversation) "Final Check: Say 'I am going home'." → `Naanu manege hogu` — manege (stem: mane)
+_None._
+
+
+## Teach lines that use a word before its own screen (5)
+
+- L6 screen 2 (Ivaru) uses `avaru`, taught on screen 6
+- L13 screen 2 (Hode) uses `tinde`, taught on screen 3
+- L15 screen 3 (Nanage) uses `ishta`, taught on screen 5
+- L18 screen 3 (Edde) uses `nidde`, taught on screen 5
+- L19 screen 4 (Kappu) uses `batte`, taught on screen 6
 
 ## Missing words ranked by how many drills they block
 
-- `nimma` — 1 drill(s) — taught in L5
 
 ---
 

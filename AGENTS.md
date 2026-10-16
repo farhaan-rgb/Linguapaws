@@ -60,7 +60,7 @@ tester Odiya odiya 30 "5 to 7"
 ```
 
 Worth doing only where there is a course to learn. Today that is Telugu (30
-lessons), Odiya (30), Kannada (10) and Hindi (5). Tamil, Bengali, Marathi,
+lessons), Odiya (30), Kannada (30) and Hindi (5). Tamil, Bengali, Marathi,
 Malayalam, Urdu and Punjabi carry one lesson and five words each — a tester
 there has nothing to report except that the course ends.
 
