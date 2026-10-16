@@ -124,6 +124,97 @@ const drillsOf = (lesson) => [
     ...(lesson?.conversations || []).map(d => ({ ...d, phase: 'conversation' })),
 ];
 
+/* ── Listening ──────────────────────────────────────────────────────────────
+   Every other screen goes English → target. This one goes the other way: the
+   app SAYS a word the learner has already been taught, the written form stays
+   hidden, and the learner taps which of four English meanings it was. Without
+   it nothing in a lesson ever asks the learner to understand the language,
+   only to produce it.
+
+   Order-aware by construction: the plan puts listen screens after every teach
+   screen of the lesson, and draws only from this lesson's vocabulary and from
+   lessons before it in course order. Distractors come from the same pool,
+   same lesson first, so the wrong options are words the learner has met too
+   rather than giveaways. The tap is graded by equality against `answer` —
+   it is an English choice, not a target-language answer, so lessonEngine has
+   nothing to say about it. */
+
+export const LISTEN_SLOTS = 2;
+export const LISTEN_OPTIONS = 4;
+
+/* "You (polite)" and "you" are one meaning as far as a tap is concerned. */
+const meaningCore = (m) => String(m || '').replace(/\([^)]*\)/g, ' ').toLowerCase()
+    .replace(/[^\p{L}\p{N}' ]/gu, ' ').replace(/\s+/g, ' ').trim();
+
+/* A word whose meaning contains the word itself (Bus = "bus") is a reading
+   test in disguise — the sound gives it away to any English speaker. */
+const listenable = (v) => v?.word && v?.meaning && meaningCore(v.meaning)
+    && !meaningCore(v.meaning).split(' ').includes(norm(v.word));
+
+/* Deterministic per lesson, so a resumed lesson rebuilds the same screens. */
+const seedOf = (text) => [...String(text || '')].reduce((h, c) => (h * 31 + c.charCodeAt(0)) & 0x7fffffff, 7);
+
+export function listenStep(target, pools, seed = 0) {
+    if (!listenable(target)) return null;
+    const core = meaningCore(target.meaning);
+    const seen = new Set([core]);
+    const distractors = [];
+    for (const pool of pools) {
+        for (const v of shuffled(pool, seed)) {
+            if (distractors.length >= LISTEN_OPTIONS - 1) break;
+            const c = meaningCore(v?.meaning);
+            if (!c || seen.has(c) || norm(v.word) === norm(target.word)) continue;
+            seen.add(c);
+            distractors.push(v.meaning);
+        }
+    }
+    if (distractors.length < 2) return null;
+    return {
+        kind: 'listen',
+        phase: 'listen',
+        word: target.word,
+        native: target.native || '',
+        phonetic: target.phonetic || '',
+        prompt: 'What did you hear?',
+        /* `expected` is what the learner produces — here, the English meaning. */
+        expected: target.meaning,
+        answer: target.meaning,
+        options: shuffled([target.meaning, ...distractors], seed + 3),
+        variants: [],
+    };
+}
+
+/** Listen screens for a lesson: one word from this lesson, one from an
+ *  earlier lesson (or a second from this one, in lesson 1). Words the review
+ *  slots already ask for are skipped where something else is available. */
+export function listenStepsFor(lesson, allLessons = [], reviewSet = null) {
+    const li = Math.max((allLessons || []).indexOf(lesson), 0);
+    const earlier = (allLessons || []).slice(0, li);
+    const current = (lesson?.vocabulary || []).filter(listenable);
+    const before = earlier.flatMap(l => l.vocabulary || []).filter(listenable);
+    const asked = new Set((reviewSet || []).map(r => norm(r?.word)));
+    const prefer = (list) => {
+        const fresh = list.filter(v => !asked.has(norm(v.word)));
+        return fresh.length ? fresh : list;
+    };
+    const seed = seedOf(`${li}:${(lesson?.vocabulary || []).map(v => v.word).join(',')}`);
+    const picks = [];
+    const curPick = shuffled(prefer(current), seed);
+    if (curPick[0]) picks.push(curPick[0]);
+    /* The previous lesson first: recent enough to be heard back, old enough
+       that hearing it is a test. */
+    const prev = prefer((allLessons[li - 1]?.vocabulary || []).filter(listenable));
+    const oldPick = shuffled(prev.length ? prev : prefer(before), seed + 1)
+        .find(v => !picks.some(p => norm(p.word) === norm(v.word)));
+    if (oldPick) picks.push(oldPick);
+    else if (curPick[1]) picks.push(curPick[1]);
+
+    const sameLesson = lesson?.vocabulary || [];
+    return picks.slice(0, LISTEN_SLOTS)
+        .map((t, i) => listenStep(t, [sameLesson, before, ...(allLessons[li - 1] ? [] : [])], seed + 11 * (i + 1)))
+        .filter(Boolean);
+}
+
 export function buildLessonSteps(lesson, reviewSet = null, allLessons = [], contrast = null) {
     if (!lesson) return [];
     const steps = [];
