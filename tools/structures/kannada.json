@@ -8,6 +8,8 @@
     "  confidence    'sure' = quoted from a grammarNote / vocab teach line; 'guess' = my reading.",
     "                Every 'guess' NEEDS A FLUENT KANNADA SPEAKER to confirm. The tagger was not one, and",
     "                Farhaan (Telugu speaker, learning Kannada) cannot confirm them either.",
+    "                'sure' may also rest on a linguist verdict (playtests/linguist/kannada-verdicts.json),",
+    "                quoted with its sources in basis.",
     "  detect        regexes run over each drill answer (lowercased, punctuation stripped, whole words).",
     "                A drill REQUIRES a structure only if its correct answer AND every acceptable form match;",
     "                if some accepted form avoids it, the drill merely EXPOSES it.",
@@ -122,8 +124,8 @@
       "name": "bare verb = blunt command ('Go!')",
       "example": "hogu, kodu",
       "introducedIn": 3,
-      "basis": "L3 vocab 'Hogu = Go... telling someone to go'. That this bare form is the blunt one is only implied at L10 ('hogu (\"go!\") becomes the polite hogi'). NEEDS A FLUENT KANNADA SPEAKER: is bare hogu actually rude/informal in the way the course implies?",
-      "confidence": "guess",
+      "basis": "L3 vocab 'Hogu = Go... telling someone to go'; L10 'hogu (\"go!\") becomes the polite hogi'. Linguist verdict, kannada-verdicts.json (2026-10-16): the bare root is the singular/familiar imperative (children, close friends, juniors), rude to a stranger or elder; -i is the polite form. Source: https://en.wikipedia.org/wiki/Kannada_grammar imperative table (checked 2026-10-16).",
+      "confidence": "sure",
       "detect": [
         "hogu|kodu"
       ],
@@ -300,8 +302,8 @@
       "name": "the action word goes last (SOV)",
       "example": "kelasa maaduttiddene",
       "introducedIn": 11,
-      "basis": "L11 P1 grammarNote: 'The action word goes last'. L12 P2: 'the action word always comes last'. Already true of every drill from L3 (manege hoguttene) and L4 (neeru beku); placing it at L11 because that is where it is said. NEEDS A FLUENT KANNADA SPEAKER only to agree it counts as one structure.",
-      "confidence": "guess",
+      "basis": "L11 P1 grammarNote: 'The action word goes last'. L12 P2: 'the action word always comes last'. Already true of every drill from L3 (manege hoguttene) and L4 (neeru beku); placed at L11 because that is where it is said. Linguist verdict, kannada-verdicts.json (2026-10-16): Kannada is SOV, arguments precede the finite verb; one structure, correctly tagged. Source: https://en.wikipedia.org/wiki/Kannada_grammar (checked 2026-10-16).",
+      "confidence": "sure",
       "detect": [],
       "except": []
     },
@@ -339,7 +341,10 @@
       "detect": [
         "hogi\\s+bar\\w*|hogbar\\w*"
       ],
-      "except": []
+      "except": [
+        "hogbaardu",
+        "hogbardu"
+      ]
     },
     {
       "id": "dative-subject-nanage",
@@ -427,13 +432,13 @@
     },
     {
       "id": "genitive-ina-a",
-      "name": "-ina / -a = 'of' before a place word (mejina, maneya)",
+      "name": "-ina / -ya / -da / -na = 'of' (mejina, maneya, pustakada)",
       "example": "mejina mele, maneya olage",
       "introducedIn": 21,
-      "basis": "L21 vocab Meju: 'You'll also hear it as mejina, \"of the table\"'. Maneya is only in accepted forms, never glossed. The course SHOWS a genitive but never states it as an ending. NEEDS A FLUENT KANNADA SPEAKER: is -ina/-a the right reading, and which nouns take which?",
-      "confidence": "guess",
+      "basis": "L21 vocab Meju teach line states it: meju drops -u and adds -ina (mejina), mane adds -ya (maneya), pustaka adds -da (pustakada). Linguist verdict, kannada-verdicts.json (2026-10-16): the genitive is -a with a stem link: -u nouns take -ina (meju>mejina), -e/-i nouns take -ya (mane>maneya), thing -a nouns take -da (pustaka>pustakada), person -a nouns take -na (snehita>snehitana), plurals take plain -a (pustakagala). Sources: Sanyal & Tom, https://www.uni-trier.de/fileadmin/fb2/ANG/Events/2024/Sanyal_Tom_Delhi_NonUniformity_KannadaSuffixations.pdf ; https://en.wikipedia.org/wiki/Kannada_grammar (both checked 2026-10-16).",
+      "confidence": "sure",
       "detect": [
-        "mejina|maneya"
+        "mejina|maneya|pustakada|snehitana"
       ],
       "except": []
     },
@@ -563,10 +568,10 @@
       "name": "-a / -ya on the end = yes/no question (ideya, hauda)",
       "example": "Chillare ideya? Hauda?",
       "introducedIn": 27,
-      "basis": "L27 vocab Ideya: 'Add -ya to ide and it asks'. L29 vocab Hauda: 'Haudu is \"yes\". Ask it back, hauda'. Two words only; never generalised to verbs. NEEDS A FLUENT KANNADA SPEAKER: is this one productive ending, as tagged, or two fixed words?",
-      "confidence": "guess",
+      "basis": "L27 vocab Ideya: 'Add -ya to ide and it asks'. L29 vocab Hauda: 'Haudu is \"yes\". Ask it back, hauda'. L29 P2 baruttideya applies it to a verb. Linguist verdict, kannada-verdicts.json (2026-10-16): one productive question marker -aa on the last word, with a glide after vowels (ide>ideyaa, haudu>haudaa); works on any final word (bartiya? pustakava? baruttideya?). Source: https://ccat.sas.upenn.edu/plc/kannada/lesson2.html (checked 2026-10-16).",
+      "confidence": "sure",
       "detect": [
-        "ideya|hauda|haudaa|houda"
+        "ideya|hauda|haudaa|houda|baruttideya|bartideya"
       ],
       "except": []
     },
@@ -578,7 +583,7 @@
       "basis": "L28 vocab Baruttide: '\"it is coming\", right now'. P1 note contrasts baruttene / baruttade / baruttide.",
       "confidence": "sure",
       "detect": [
-        "baruttide|bartide|barthide"
+        "baruttide(?:ya|yaa)?|bartide(?:ya)?|barthide"
       ],
       "except": []
     },

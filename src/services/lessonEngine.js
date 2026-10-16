@@ -1053,11 +1053,22 @@ export const scoreAnswer = (actual, expected, variants = [], lexicon = new Map()
         });
     });
 
+    /* Kannada *ide* is "it is", a thing's copula. Closing a sentence that
+       starts *naanu* ("I") with it is a person error no speaker makes: "I am"
+       is *iddeeni* / *iddene*. L3 listed `naanu illi ide` as an accepted
+       answer until the linguist struck it (kannada-verdicts.json,
+       2026-10-16), and with it gone the extra-word tolerance still passed it.
+       Only refused where no accepted form itself pairs the two. */
+    const NEUTER_END = /^ide(ya|yaa)?$/;
+    const naanuIde = (toks) => toks.includes('naanu') && NEUTER_END.test(toks[toks.length - 1] || '');
+    const agreeOk = !naanuIde(saidTokens)
+        || given.some(v => naanuIde(normalizeLatin(v).split(' ').filter(Boolean)));
+
     return {
         ratio,
         coverage,
         accepted: ratio >= THRESHOLD && covered && offered && ordered && polarityOk && copulaOk
-            && contrastOk && pronounOk,
+            && contrastOk && pronounOk && agreeOk,
     };
 };
 

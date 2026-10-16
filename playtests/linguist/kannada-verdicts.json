@@ -2165,5 +2165,137 @@
     "fixNative": null,
     "confidence": "medium",
     "reason": "Correct standard Kannada, but Bengaluru speech uses avana; aatana sounds bookish. Course-wide choice, see native list."
+  },
+  {
+    "where": "src/services/curriculum.js L21 vocab Meju teach",
+    "id": "Meju",
+    "current": "The -ina means “of”; a word ending in -e takes -a instead: *maneya*, “of the house”.",
+    "native": "ಮೇಜಿನ / ಮನೆಯ",
+    "verdict": "fix",
+    "fix": "The -ina means “of”, but the ending depends on how the word ends: *meju* drops its -u and adds -ina (*mejina*); *mane*, ending in -e, adds -ya (*maneya*); *pustaka*, ending in -a, adds -da (*pustakada*).",
+    "fixNative": "ಮೇಜಿನ / ಮನೆಯ / ಪುಸ್ತಕದ",
+    "confidence": "high",
+    "reason": "Rule as written is right for meju/mane but invites *pustakina; -a nouns take -da (thing) or -na (person: snehitana). Sanyal & Tom, https://www.uni-trier.de/fileadmin/fb2/ANG/Events/2024/Sanyal_Tom_Delhi_NonUniformity_KannadaSuffixations.pdf (checked 2026-10-16); https://en.wikipedia.org/wiki/Kannada_grammar (checked 2026-10-16). pustaka is taught L2; pustakada appears only as an example, not drilled."
+  },
+  {
+    "where": "src/services/curriculum.js L3 conversation 3 acceptable",
+    "id": "Naanu illi",
+    "current": "acceptable: naanu illi ide",
+    "native": "ನಾನು ಇಲ್ಲಿ ಇದೆ",
+    "verdict": "fix",
+    "fix": "Remove \"naanu illi ide\" from acceptable; keep naanu illi, illi, naanu illi iddeeni (optionally add naanu illi iddene / iddini).",
+    "fixNative": "ನಾನು ಇಲ್ಲಿ ಇದ್ದೇನೆ",
+    "confidence": "high",
+    "reason": "Ide is 3rd-person neuter; with naanu it is a person-agreement error no speaker would make. 1st person is iddene/iddeeni (UPenn: 'naan ... iddiini', https://ccat.sas.upenn.edu/plc/kannada/lesson2.html (checked 2026-10-16))."
+  },
+  {
+    "where": "src/services/curriculum.js L3 phrase 2",
+    "id": "Alli hogu",
+    "current": "Alli hogu",
+    "native": "ಅಲ್ಲಿ ಹೋಗು",
+    "verdict": "ok",
+    "fix": null,
+    "fixNative": null,
+    "confidence": "high",
+    "reason": "Locative alli/illi with motion verbs is everyday spoken Kannada (illi baa, alli hogbeda, naanu alli hogidde); allige hogu is also right and more explicit. Keep L3 as is; accepting 'allige hogu/hogi' is optional and harmless. Kannada is not Telugu here: no need to follow the akkadiki change."
+  },
+  {
+    "where": "proposed L28 conversation (grammar-order pass)",
+    "id": "recycle -baaradu",
+    "current": "Male baruttide, neevu hogabaaradu",
+    "native": "ಮಳೆ ಬರುತ್ತಿದೆ, ನೀವು ಹೋಗಬಾರದು",
+    "verdict": "ok",
+    "fix": null,
+    "fixNative": null,
+    "confidence": "high",
+    "reason": "Correct and natural as advice ('you shouldn't go'); all parts taught by L28 (male, baruttide L28; hoga- from hogabeku and -baaradu L23; neevu L1). Accept spoken hogbaardu/hogbardu."
+  },
+  {
+    "where": "proposed L29 or L30 conversation (grammar-order pass)",
+    "id": "recycle -uttide",
+    "current": "Hauda? Bassu baruttideya?",
+    "native": "ಹೌದಾ? ಬಸ್ಸು ಬರುತ್ತಿದೆಯಾ?",
+    "verdict": "ok",
+    "fix": null,
+    "fixNative": null,
+    "confidence": "high",
+    "reason": "Correct and natural; yes/no -a on baruttide follows the ideya pattern (L27), Hauda L29, bassu/baruttide L28, so L29 or later. Accept spoken bartideya. Yes/no -aa: https://ccat.sas.upenn.edu/plc/kannada/lesson2.html (checked 2026-10-16)."
+  },
+  {
+    "where": "proposed L30 phrase (grammar-order pass)",
+    "id": "recycle -ade",
+    "current": "Eega nanage swalpa Kannada baruttade",
+    "native": "ಈಗ ನನಗೆ ಸ್ವಲ್ಪ ಕನ್ನಡ ಬರುತ್ತದೆ",
+    "verdict": "ok",
+    "fix": null,
+    "fixNative": null,
+    "confidence": "high",
+    "reason": "Idiomatic 'I know/can speak a little Kannada now' (nanage X baruttade = I know X); all words taught (eega L11, nanage L15, swalpa L16, Kannada/baruttade L22). Accept spoken baratte/barutte."
+  },
+  {
+    "where": "proposed L24 conversation (grammar-order pass)",
+    "id": "recycle -aru",
+    "current": "Nanna snehitaru kooda baruttaare",
+    "native": "ನನ್ನ ಸ್ನೇಹಿತರು ಕೂಡ ಬರುತ್ತಾರೆ",
+    "verdict": "fix",
+    "fix": "Ivaru kooda nanna snehitaru",
+    "fixNative": "ಇವರು ಕೂಡ ನನ್ನ ಸ್ನೇಹಿತರು",
+    "confidence": "high",
+    "reason": "Original is correct and natural but baruttaare (and every -aare verb) is taught nowhere in the course, so it smuggles a form. Fix = 'They are my friends too' (meaning changes), all taught by L24: ivaru L6, snehitaru L8, kooda L24; reuses -aru twice. Only keep the original if dev teaches baruttaare as a new word."
+  },
+  {
+    "where": "proposed L28 conversation (grammar-order pass)",
+    "id": "recycle nanna hattira",
+    "current": "Nanna hattira tiket ide",
+    "native": "ನನ್ನ ಹತ್ತಿರ ಟಿಕೆಟ್ ಇದೆ",
+    "verdict": "ok",
+    "fix": null,
+    "fixNative": null,
+    "confidence": "high",
+    "reason": "Standard way to say 'I have (it on me)': possessor + hattira + ide. All taught (hattira L21, tiket L28). Accept spoken 'nanna hatra tiket ide'."
+  },
+  {
+    "where": "tools/structures/kannada.json bare-imperative",
+    "id": "bare-imperative",
+    "current": "bare verb = blunt command (hogu); hogi polite (confidence: guess)",
+    "native": "ಹೋಗು / ಹೋಗಿ",
+    "verdict": "ok",
+    "fix": "set confidence: high",
+    "fixNative": null,
+    "confidence": "high",
+    "reason": "Bare root is the singular/familiar imperative (to children, close friends, juniors), rude to a stranger or elder; -i is the polite form. https://en.wikipedia.org/wiki/Kannada_grammar (checked 2026-10-16) (imperative table: root singular, polite -i, honorific plural -iri)."
+  },
+  {
+    "where": "tools/structures/kannada.json verb-final",
+    "id": "verb-final",
+    "current": "the action word goes last (SOV), introducedIn 11 (confidence: guess)",
+    "native": "ಕೆಲಸ ಮಾಡುತ್ತಿದ್ದೇನೆ",
+    "verdict": "ok",
+    "fix": "set confidence: high",
+    "fixNative": null,
+    "confidence": "high",
+    "reason": "Kannada is SOV; arguments precede the finite verb. One structure, correctly tagged. https://en.wikipedia.org/wiki/Kannada_grammar (checked 2026-10-16)."
+  },
+  {
+    "where": "tools/structures/kannada.json genitive-ina-a",
+    "id": "genitive-ina-a",
+    "current": "-ina / -a = 'of' (mejina, maneya) (confidence: guess)",
+    "native": "ಮೇಜಿನ / ಮನೆಯ",
+    "verdict": "fix",
+    "fix": "Keep the tag; set confidence high; basis: genitive is -a with a stem link: -u nouns take -ina (meju>mejina), -e/-i nouns take -ya (mane>maneya), thing -a nouns take -da (pustaka>pustakada), person -a nouns take -na (snehita>snehitana), plurals take plain -a (pustakagala). Add pustakada|snehitana to detect.",
+    "fixNative": null,
+    "confidence": "high",
+    "reason": "Reading is right but the stated alternation is incomplete. Sanyal & Tom, https://www.uni-trier.de/fileadmin/fb2/ANG/Events/2024/Sanyal_Tom_Delhi_NonUniformity_KannadaSuffixations.pdf (checked 2026-10-16); https://en.wikipedia.org/wiki/Kannada_grammar (checked 2026-10-16)."
+  },
+  {
+    "where": "tools/structures/kannada.json yes-no-a",
+    "id": "yes-no-a",
+    "current": "-a / -ya on the end = yes/no question (ideya, hauda) (confidence: guess)",
+    "native": "ಇದೆಯಾ / ಹೌದಾ",
+    "verdict": "ok",
+    "fix": "set confidence: high; note it is productive on any final word (bartiya? pustakava? baruttideya?)",
+    "fixNative": null,
+    "confidence": "high",
+    "reason": "One productive question marker -aa added to the last word, with a glide after vowels (ide>ideyaa, haudu>haudaa). https://ccat.sas.upenn.edu/plc/kannada/lesson2.html (checked 2026-10-16) (idu pustakav-aa?, niivu amerikkan-aa?)."
   }
 ]

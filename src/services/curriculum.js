@@ -1071,8 +1071,9 @@ export const CURRICULUM = {
                   grammarNote: "*Ide* matters here. *Mane alli* alone is just “house there”. Adding *ide* makes it “the house is there”.",
                   traps: [{ said: "Mane alli", why: "*Mane alli* is just “house there”. To say the house IS there, end with {answer}." }] },
                 { prompt: "Someone asks 'Neevu yelli?' Tell them you are here.", correct: "Naanu illi", native: "ನಾನು ಇಲ್ಲಿ", meaning: "I am here", hint: "I + here",
-                  acceptable: ["illi", "naanu illi iddeeni", "naanu illi ide"],
-                  grammarNote: "No “am” needed. For things, add *ide*: *mane alli ide*. For yourself, just *naanu illi*. The longer *naanu illi iddeeni* is also right: *iddeeni* is “I am”, with the same -eeni as *chennagiddeeni*." },
+                  acceptable: ["illi", "naanu illi iddeeni", "naanu illi iddene"],
+                  grammarNote: "No “am” needed. For things, add *ide*: *mane alli ide*. For yourself, just *naanu illi*. The longer *naanu illi iddeeni* is also right: *iddeeni* is “I am”, with the same -eeni as *chennagiddeeni*.",
+                  traps: [{ said: "Naanu illi ide", why: "*Ide* is “it is”, for a thing, as in *mane alli ide*. It never goes with *naanu*. About yourself, leave it off, or use the “I am” word, *iddeeni*." }] },
                 { prompt: "Final Check: say 'I am going there'.", correct: "Naanu alli hoguttene", native: "ನಾನು ಅಲ್ಲಿ ಹೋಗುತ್ತೇನೆ", meaning: "I am going there", hint: "I + there + I-am-going",
                   acceptable: ["alli hoguttene", "naanu alli hogtini", "alli hogtini", "naanu alli hoguttini"] }
             ],
@@ -1771,7 +1772,7 @@ export const CURRICULUM = {
             color: "#e0f2fe",
             vocabulary: [
                 { word: "Meju", native: "ಮೇಜು", meaning: "Table", phonetic: "may-ju", alt: ["mejina"],
-                  teach: "{w} is “table”. You'll also hear it as *mejina*, “of the table”, in front of the place words that come next. Both are right. The -ina means “of”; a word ending in -e takes -a instead: *maneya*, “of the house”." },
+                  teach: "{w} is “table”. You'll also hear *mejina*, “of the table”, before the place words that come next. Both are right. The “of” ending depends on how the word ends: *meju* drops its -u and adds -ina (*mejina*); *mane* adds -ya (*maneya*); *pustaka* adds -da (*pustakada*)." },
                 { word: "Mele", native: "ಮೇಲೆ", meaning: "On / above", phonetic: "may-leh",
                   teach: "{w} is “on” or “above”. It goes after the thing: *meju mele*, “on the table”. *Aamele*, “later”, is built from it." },
                 { word: "Kelage", native: "ಕೆಳಗೆ", meaning: "Under / below", phonetic: "keh-luh-geh", alt: ["kelge"],
@@ -1907,8 +1908,9 @@ export const CURRICULUM = {
                 { prompt: "At a stall, point at two things. Say 'I want this, but not that'.", correct: "Nanage idu beku, aadare adu beda", native: "ನನಗೆ ಇದು ಬೇಕು, ಆದರೆ ಅದು ಬೇಡ", meaning: "I want this, but not that", hint: "To me + this + want, but + that + don't want",
                   acceptable: ["idu beku, aadare adu beda", "idu beku aadare adu beda", "nanage idu beku aadare adu beda", "nanage idu beku, aadre adu beda"],
                   grammarNote: "*Aadare* sits between the two halves, as in English. Each half keeps its own *beku* or *beda* at the end." },
-                { prompt: "Miko is going out. Say 'I am coming too'.", correct: "Naanu kooda baruttene", native: "ನಾನು ಕೂಡ ಬರುತ್ತೇನೆ", meaning: "I am coming too", hint: "I + too + will come",
-                  acceptable: ["naanu kooda bartini", "naanu kuda baruttene", "naanu kooda baruttini"] }
+                { prompt: "Miko has met one of your friends. Point at the two people beside you and say 'They are my friends too'.", correct: "Ivaru kooda nanna snehitaru", native: "ಇವರು ಕೂಡ ನನ್ನ ಸ್ನೇಹಿತರು", meaning: "They are my friends too", hint: "These people + too + my + friends",
+                  acceptable: ["ivaru kuda nanna snehitaru", "ivaru kooda nanna snehitru"],
+                  grammarNote: "*Kooda* follows whoever it's about, so it sits right after *ivaru*. *Ivaru* works for one polite person or for several, and more than one friend is *snehitaru*: the same -aru on both words." }
             ],
             conversations: [
                 { prompt: "Miko asks what you drink. Say 'I like coffee, but I don't like tea'.", correct: "Nanage kaafi ishta, aadare chaha ishta illa", native: "ನನಗೆ ಕಾಫಿ ಇಷ್ಟ, ಆದರೆ ಚಹಾ ಇಷ್ಟ ಇಲ್ಲ", meaning: "I like coffee, but I don't like tea", hint: "To me + coffee + like, but + tea + like + not",
@@ -2054,7 +2056,7 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Male", native: "ಮಳೆ", meaning: "Rain", phonetic: "muh-leh", alt: ["malae"],
                   teach: "{w} is “rain”. Careful: *mele*, “on”, from lesson 21, sounds close. Rain has the short “a”." },
-                { word: "Baruttide", native: "ಬರುತ್ತಿದೆ", meaning: "It is coming", phonetic: "buh-rut-tih-deh", alt: ["bartide", "barthide", "baruthide"],
+                { word: "Baruttide", native: "ಬರುತ್ತಿದೆ", meaning: "It is coming", phonetic: "buh-rut-tih-deh", alt: ["bartide", "barthide", "baruthide", "baruttideya", "bartideya"], inflected: ["baruttideya", "bartideya"],
                   teach: "{w} is “it is coming”, right now. *Male baruttide*: rain is coming, so “it's raining”. Mind the middle letter: *baruttade*, from lesson 22, is the skill word, “Kannada comes to me”." },
                 { word: "Chali", native: "ಚಳಿ", meaning: "Cold (weather)", phonetic: "chuh-lih",
                   teach: "{w} is cold weather. The opposite of *bisi*, “hot”, from lesson 9." },
@@ -2062,22 +2064,25 @@ export const CURRICULUM = {
                   teach: "{w} is the English “bus”, said the Kannada way with a short -u on the end. Plain *bus* is everyday Kannada too, and counts." },
                 { word: "Tiket", native: "ಟಿಕೆಟ್", meaning: "Ticket", phonetic: "tih-keht", alt: ["ticket", "tiketu", "tikket"] },
                 { word: "Ooru", native: "ಊರು", meaning: "Town / hometown", phonetic: "oo-ru", alt: ["oorige", "uru"],
-                  teach: "{w} is a town, or the place you're from. “To my town” is *nanna oorige*, like *manege*, “to the house”." }
+                  teach: "{w} is a town, or the place you're from. “To my town” is *nanna oorige*, like *manege*, “to the house”." },
+                { word: "Hogabaaradu", native: "ಹೋಗಬಾರದು", meaning: "Must not go", phonetic: "hoh-guh-baa-ruh-du", alt: ["hogbaardu", "hogbardu", "hogabardu"],
+                  teach: "{w} is “must not go”: *hogabeku* with *baaradu* in place of *beku*, the way *maadabeku* became *maadabaaradu*. Said to a friend in the rain, it's advice." }
             ],
             phrases: [
                 { prompt: "Say 'It is raining' — Kannada says 'rain is coming'", correct: "Male baruttide", native: "ಮಳೆ ಬರುತ್ತಿದೆ", meaning: "It is raining", hint: "Rain + is coming",
                   acceptable: ["male bartide", "male barthide"],
                   grammarNote: "Three words, one letter apart in the middle. *Baruttene*, lesson 14: “I will come”. *Baruttade*, lesson 22: “it comes”, the skill one, as in *nanage Kannada baruttade*. *Baruttide*, today: “it is coming” right now, like rain or a bus." },
-                { prompt: "Say 'It is very cold today'", correct: "Ivattu tumba chali ide", native: "ಇವತ್ತು ತುಂಬಾ ಚಳಿ ಇದೆ", meaning: "It is very cold today", hint: "Today + very + cold + there is",
-                  acceptable: ["ivattu tumba chali", "tumba chali ide", "ivattu thumba chali ide"] },
+                { prompt: "The conductor is checking tickets. Say 'I have the ticket (on me)'", correct: "Nanna hattira tiket ide", native: "ನನ್ನ ಹತ್ತಿರ ಟಿಕೆಟ್ ಇದೆ", meaning: "I have the ticket", hint: "My + near + ticket + is there",
+                  acceptable: ["nanna hatra tiket ide", "nanna hathira tiket ide", "nanna hattira ticket ide", "nanna hatra ticket ide"],
+                  grammarNote: "A ticket is something you carry, so it's *nanna hattira*, “near me”, like money." },
                 { prompt: "At the bus stand counter, say 'I want one bus ticket'", correct: "Nanage ondu bassu tiket beku", native: "ನನಗೆ ಒಂದು ಬಸ್ಸು ಟಿಕೆಟ್ ಬೇಕು", meaning: "I want one bus ticket", hint: "To me + one + bus + ticket + want",
                   acceptable: ["ondu bassu tiket beku", "nanage ondu bus ticket beku", "ondu bus ticket beku", "nanage ondu bassu ticket beku"],
                   grammarNote: "*Ondu*, “one”, from lesson 7, goes before the thing. *Beku* stays last." }
             ],
             conversations: [
-                { prompt: "You're waiting with Miko and you spot it down the road. Say 'The bus is coming'.", correct: "Bassu baruttide", native: "ಬಸ್ಸು ಬರುತ್ತಿದೆ", meaning: "The bus is coming", hint: "Bus + is coming",
-                  acceptable: ["bassu bartide", "bus baruttide", "bus bartide"],
-                  grammarNote: "The same word as the rain: anything on its way *baruttide*." },
+                { prompt: "Miko picks up her bag to walk home in a downpour. Say 'It's raining, you shouldn't go'", correct: "Male baruttide, neevu hogabaaradu", native: "ಮಳೆ ಬರುತ್ತಿದೆ, ನೀವು ಹೋಗಬಾರದು", meaning: "It's raining, you shouldn't go", hint: "Rain + is coming, you + must not go",
+                  acceptable: ["male baruttide neevu hogabaaradu", "male bartide, neevu hogbaardu", "male bartide, neevu hogbardu", "male baruttide, neevu hogbaardu", "male baruttide, neevu hogabardu"],
+                  grammarNote: "*Hogabeku* is “must go”. Swap *beku* for *baaradu*, as in *maadabaaradu*, and it's *hogabaaradu*, “must not go”. Said to a friend, it's advice." },
                 { prompt: "Miko asks about your weekend. Say 'Tomorrow I will go to my town'.", correct: "Naale naanu nanna oorige hoguttene", native: "ನಾಳೆ ನಾನು ನನ್ನ ಊರಿಗೆ ಹೋಗುತ್ತೇನೆ", meaning: "Tomorrow I will go to my town", hint: "Tomorrow + I + my + to-town + will go",
                   acceptable: ["naale naanu nanna oorige hoguttene", "naale nanna oorige hoguttene", "naanu naale nanna oorige hoguttene", "naale naanu nanna oorige hogtini", "naale naanu oorige hoguttene"],
                   grammarNote: "*Oorige* works like *manege*: the -ge means “to”." },
@@ -2110,8 +2115,9 @@ export const CURRICULUM = {
                 { prompt: "Miko says the film was good. Agree: 'It was good, right?'", correct: "Chennagittu, alva?", native: "ಚೆನ್ನಾಗಿತ್ತು, ಅಲ್ವಾ?", meaning: "It was good, right?", hint: "It was good + right?",
                   acceptable: ["chennagittu alva?", "chennagittu alva", "chennagittu, alvaa?"],
                   grammarNote: "*Chennagittu* is from lesson 20. *Alva* just goes on the end." },
-                { prompt: "Miko says she's moving to your street. Say 'Really?'", correct: "Hauda?", native: "ಹೌದಾ?", meaning: "Really?", hint: "Yes + ?",
-                  acceptable: ["hauda", "haudaa?", "houda?"] },
+                { prompt: "Miko says the bus you missed is coming back. Say 'Really? The bus is coming?'", correct: "Hauda? Bassu baruttideya?", native: "ಹೌದಾ? ಬಸ್ಸು ಬರುತ್ತಿದೆಯಾ?", meaning: "Really? The bus is coming?", hint: "Really? + Bus + is coming + ?",
+                  acceptable: ["hauda bassu baruttideya", "hauda? bassu bartideya?", "hauda? bus bartideya?", "haudaa? bassu baruttideyaa?", "hauda? bus baruttideya?"],
+                  grammarNote: "Two questions, one trick. *Hauda* is *haudu*, “yes”, with -a on the end. *Baruttideya* is *baruttide* with -a on the end, a y slipped in after the e, just like *ideya*." },
                 { prompt: "A stranger bumps into you and says sorry. Say 'It's okay'.", correct: "Paravaagilla", native: "ಪರವಾಗಿಲ್ಲ", meaning: "It's okay", hint: "No problem",
                   acceptable: ["paravagilla"],
                   grammarNote: "The polite answer to *kshamisi*, “sorry”, from lesson 10." }
@@ -2151,8 +2157,9 @@ export const CURRICULUM = {
                 { prompt: "Say 'This is the last lesson'", correct: "Idu koneya paata", native: "ಇದು ಕೊನೆಯ ಪಾಠ", meaning: "This is the last lesson", hint: "This + last + lesson",
                   acceptable: ["idu kone paata", "idu koneya paatha"],
                   grammarNote: "Same shape as *idu pustaka*, from lesson 2. No word for “is”." },
-                { prompt: "Say 'I learned Kannada'", correct: "Naanu Kannada kalite", native: "ನಾನು ಕನ್ನಡ ಕಲಿತೆ", meaning: "I learned Kannada", hint: "I + Kannada + learned",
-                  acceptable: ["kannada kalite", "naanu kannada kalitenu", "naanu kannada kalte"] },
+                { prompt: "A shopkeeper is surprised you speak Kannada. Say 'Now I know a little Kannada'", correct: "Eega nanage swalpa Kannada baruttade", native: "ಈಗ ನನಗೆ ಸ್ವಲ್ಪ ಕನ್ನಡ ಬರುತ್ತದೆ", meaning: "Now I know a little Kannada", hint: "Now + to me + a little + Kannada + comes",
+                  acceptable: ["eega nanage swalpa kannada baratte", "eega nanage swalpa kannada barutte", "nanage eega swalpa kannada baruttade", "nanage swalpa kannada baruttade"],
+                  grammarNote: "Knowing a language is something that comes *to* you: *nanage ... baruttade*. Put *eega* first to say it's new." },
                 { prompt: "Say 'Kannada is hard, but it is good, right?'", correct: "Kannada kashta, aadare chennagide, alva?", native: "ಕನ್ನಡ ಕಷ್ಟ, ಆದರೆ ಚೆನ್ನಾಗಿದೆ, ಅಲ್ವಾ?", meaning: "Kannada is hard, but it is good, right?", hint: "Kannada + hard, but + it is good, right?",
                   acceptable: ["kannada kashta aadare chennagide alva", "kannada swalpa kashta, aadare chennagide, alva?", "kannada kashta, aadre chennagide, alva?"],
                   grammarNote: "*Alva* from lesson 29 goes on the end of the whole sentence." }

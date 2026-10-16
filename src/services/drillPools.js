@@ -115,6 +115,18 @@ const SEED_POOLS = {
                 hint: 'Later + two + at-o\'clock', acceptable: ['aamele, eradu gantege', 'amele eradu gantege'],
                 grammarNote: '*Gante* + -ge gives “at … o’clock”.', source: 'seed', reviewed: true },
         ],
+        /* Two core drills that gave their slot to a recycling drill (linguist
+           verdicts, 2026-10-16) stay available to adaptation here. */
+        24: [
+            { id: 'k24-1', phase: 'phrase', prompt: "Miko is going out. Say 'I am coming too'.", correct: 'Naanu kooda baruttene',
+                native: 'ನಾನು ಕೂಡ ಬರುತ್ತೇನೆ', meaning: 'I am coming too', hint: 'I + too + will come',
+                acceptable: ['naanu kooda bartini', 'naanu kuda baruttene', 'naanu kooda baruttini'], source: 'seed', reviewed: true },
+        ],
+        28: [
+            { id: 'k28-1', phase: 'phrase', prompt: "Say 'It is very cold today'", correct: 'Ivattu tumba chali ide',
+                native: 'ಇವತ್ತು ತುಂಬಾ ಚಳಿ ಇದೆ', meaning: 'It is very cold today', hint: 'Today + very + cold + there is',
+                acceptable: ['ivattu tumba chali', 'tumba chali ide', 'ivattu thumba chali ide'], source: 'seed', reviewed: true },
+        ],
     },
     Telugu: {
         5: [
