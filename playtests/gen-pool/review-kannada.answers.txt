@@ -1,150 +1,146 @@
-# Kannada review answers: <id> ok|no  # note
-k1-g1 ?   # Namaskara = Hello
-k1-g2 ?   # Neevu = you (polite)
-k1-g3 ?   # Naanu = I
-k1-g4 ?   # Hege = how
-k1-g5 ?   # Iddeera? = are you?
-k2-g1 ?   # Adu hesaru yenu? = What is that name?
-k2-g2 ?   # Adu pustaka = That is a book
-k2-g3 ?   # Idu hesaru yenu? = What is this name?
-k2-g4 ?   # Idu hesaru = This is a name
-k2-g5 ?   # Pustaka = Book
-k3-g1 ?   # Manege hogu = Go home
-k3-g2 ?   # Adu alli ide = That is there
-k3-g3 ?   # Idu illi ide = This is here
-k3-g4 ?   # Adu yelli? = Where is that?
-k3-g5 ?   # Pustaka illi ide = The book is here
-k4-g1 ?   # Oota beku = I want food
-k4-g2 ?   # Neeru beda = I don't want water
-k4-g3 ?   # Haudu = Yes
-k4-g4 ?   # Illa = No
-k4-g5 ?   # Idu oota = This is food
-k5-g1 ?   # Aatana pustaka = His book
-k5-g2 ?   # Avara mane = Her house (respectful)
-k5-g3 ?   # Nanna kathe = My story
-k5-g4 ?   # Nimma mane = Your house
-k5-g5 ?   # Nanna pustaka = My book
-k6-g1 ?   # Shikshaka yaaru? = Who is the teacher?
-k6-g2 ?   # Ivaru nimma snehita = This person is your friend
-k6-g3 ?   # Avaru nanna akka = That person is my elder sister
-k6-g4 ?   # Nanna snehita yaaru? = Who is my friend?
-k6-g5 ?   # Nanna shikshaka yaaru? = Who is my teacher?
-k7-g1 ?   # Ondu snehita = One friend
-k7-g2 ?   # Mooru shikshaka = Three teachers
-k7-g3 ?   # Naalku pustaka = Four books
-k7-g4 ?   # Aidu snehita = Five friends
-k7-g5 ?   # Nimma eradu pustaka = Your two books
-k8-g1 ?   # Nanna hoovu = My flower
-k8-g2 ?   # Nimma manegalu = Your houses
-k8-g3 ?   # Aatana snehitaru = His friends
-k8-g4 ?   # Nanna pustakagalu yelli? = Where are my books?
-k8-g5 ?   # Aatana hoovugalu = His flowers
-k9-g1 ?   # Idu chikka hoovu = This is a small flower
-k9-g2 ?   # Nanna olleya snehita = My good friend
-k9-g3 ?   # Neeru chennagide = The water is good
-k9-g4 ?   # Ketta neeru beda = I don't want bad water
-k9-g5 ?   # Illi bisi neeru = Hot water here
-k10-g1 ?   # Sari = Okay
-k10-g2 ?   # Oota eshtu? = How much is the food?
-k10-g3 ?   # Hoovugalu eshtu? = How much are the flowers?
-k10-g4 ?   # Sari, idu chennagide = Okay, this is good
-k11-g1 ?   # Naanu illi iddene = I am here
-k11-g2 ?   # Naanu eega alli iddene = I am there now
-k11-g3 ?   # Naanu tinnuttiddene = I am eating
-k11-g4 ?   # Naanu manege hoguttiddene = I am going home
-k11-g5 ?   # Naanu eega oota maaduttiddene = I am having a meal now
-k12-g1 ?   # Naale yaavaga? = Tomorrow, when?
-k12-g2 ?   # Ninne = Yesterday
-k12-g3 ?   # Aamele = Later
-k12-g4 ?   # Ivattu = Today
-k12-g5 ?   # Naale = Tomorrow
-k13-g1 ?   # Naanu oota tinde = I ate food
-k13-g2 ?   # Naanu pustaka nodide = I saw the book
-k13-g3 ?   # Naanu hesaru helide = I said the name
-k13-g4 ?   # Naanu illi bande = I came here
-k13-g5 ?   # Naanu alli hode = I went there
-k14-g1 ?   # Naanu naale tinnuttene = I will eat tomorrow
-k14-g2 ?   # Naanu aamele kathe noduttene = I will see the story later
-k14-g3 ?   # Naanu eega kelasa maaduttene = I will do work now
-k14-g4 ?   # Naanu bega hoguttene = I will go soon
-k14-g5 ?   # Naanu naale illi baruttene = I will come here tomorrow
-k15-g1 ?   # Illi yaake? = Why here?
-k15-g2 ?   # Nanage kathe ishta = I like the story
-k15-g3 ?   # Nimage neeru ishta? = Do you like water?
-k15-g4 ?   # Nimage oota yaake beku? = Why do you want food?
-k15-g5 ?   # Nanage bhaya = I am scared
-k16-g1 ?   # Adu hegide? = How is that?
-k16-g2 ?   # Naanu chennagi maadide = I did it well
-k16-g3 ?   # Swalpa neeru = A little water
-k16-g4 ?   # Mellage hogu = Go slowly
-k16-g5 ?   # Hesaru heli = Please say the name
-k17-g1 ?   # Nimma amma = Your mother
-k17-g2 ?   # Nanna appa = My father
-k17-g3 ?   # Olleya kutumba = Good family
-k17-g4 ?   # Ivaru nanna anna = This is my elder brother
-k17-g5 ?   # Nanna tamma = My younger brother
-k18-g1 ?   # Belagge naanu neeru kudide = In the morning I drank water
-k18-g2 ?   # Haudu, edde = Yes, I got up
-k18-g3 ?   # Naanu kaafi kudide = I drank coffee
-k18-g4 ?   # Aamele snaana maaduttene = Later I will have a bath
-k18-g5 ?   # Nanage nidde beku = I want sleep
-k19-g1 ?   # Adu hasiru = That is green
-k19-g2 ?   # Idu bili = This is white
-k19-g3 ?   # Yaava batte? = Which clothes?
-k19-g4 ?   # Adu kempu = That is red
-k19-g5 ?   # Hasiru batte = Green clothes
-k20-g1 ?   # Nanage eega gottu = I know now
-k20-g2 ?   # Nanage eega nenapide = I remember now
-k20-g3 ?   # Nanage eega gottilla = I don't know now
-k20-g4 ?   # Adu nanage gottilla = I don't know that
-k20-g5 ?   # Naale matte baruttene = I will come again tomorrow
-k21-g1 ?   # Mane mele = Above the house
-k21-g2 ?   # Pustaka kelage = Under the book
-k21-g3 ?   # Idu olage = Inside this
-k21-g4 ?   # Nimma snehita jote = With your friend
-k21-g5 ?   # Nanna hattira neeru ide = I have water
-k22-g1 ?   # Ivattu nanage aaguvudilla = Today I can't
-k22-g2 ?   # Naanu eega sahaaya maaduttene = I will help now
-k22-g3 ?   # Ivattu nanage Kannada baruttade = Today I can speak Kannada
-k22-g4 ?   # Naale nanage Kannada baruvudilla = Tomorrow I can't speak Kannada
-k22-g5 ?   # Haudu, nanage Kannada baruttade = Yes, I can speak Kannada
-k23-g1 ?   # Adu maadabaaradu = That must not be done
-k23-g2 ?   # Naanu eega tinnabeku = I must eat now
-k23-g3 ?   # Naanu eega idu maadabeku = I must do this now
-k23-g4 ?   # Eega tadavaagide = It is late now
-k23-g5 ?   # Neevu eega adu maadabaaradu = You must not do that now
-k24-g1 ?   # Neeru athava kaafi? = Water or coffee?
-k24-g2 ?   # Chaha chennagide = Tea is good
-k24-g3 ?   # Nanage neeru beku, yaakendare eega tinnuttiddene = I want water, because I am eating now
-k24-g4 ?   # Idu kooda chennagide = This too is good
-k24-g5 ?   # Amma illi, aadare appa alli = Mother is here, but father is there
-k25-g1 ?   # Neevu alli hodare = If you go there
-k25-g2 ?   # Nanna snehita bandare = If my friend comes
-k25-g3 ?   # Naanu ivattu kelasa maadidare = If I do work today
-k25-g4 ?   # Haagaadare, chaha sari = In that case, tea is okay
-k25-g5 ?   # Neevu naale bandare, naanu kooda baruttene = If you come tomorrow, I will come too
-k26-g1 ?   # Nanage baayaarike aagide = I am thirsty
-k26-g2 ?   # Ivattu nanage sustu aagide = Today I am tired
-k26-g3 ?   # Eega nanage hasivu aagide = I am hungry now
-k26-g4 ?   # Ivattu nanage bejaaru aagide = I am sad today
-k26-g5 ?   # Nanage tumba baayaarike aagide = I am very thirsty
-k27-g1 ?   # Nanna hattira duddu ide = I have money
-k27-g2 ?   # Hattu rupaayi = Ten rupees
-k27-g3 ?   # Saavira rupaayi = A thousand rupees
-k27-g4 ?   # Nimma hattira duddu ideya? = Do you have money?
-k27-g5 ?   # Nanna hattira nooru rupaayi ide = I have a hundred rupees
-k28-g1 ?   # Eega chali ide = It is cold now
-k28-g2 ?   # Eega male baruttide = It is raining now
-k28-g3 ?   # Bassu yelli = Where is the bus?
-k28-g4 ?   # Nanage eradu tiket beku = I want two tickets
-k28-g5 ?   # Nanna ooru alli ide = My town is there
-k29-g1 ?   # Idu chennagide, alva? = This is good, right?
-k29-g2 ?   # Kaafi sakkath aagide! = Coffee is awesome!
-k29-g3 ?   # Namaskara, guru! = Hello, mate!
-k29-g4 ?   # Kelasa aayita? = Is the work done?
-k29-g5 ?   # Paravaagilla, guru = It's okay, mate
-k30-g1 ?   # Idu paata chennagide = This lesson is good
-k30-g2 ?   # Sari, naale sigona = Okay, let's meet tomorrow
-k30-g3 ?   # Naale koneya paata = Tomorrow is the last lesson
-k30-g4 ?   # Idu paata kashta aagide = This lesson is hard
-k30-g5 ?   # Naanu paata kalitenu = I learned the lesson
+# kannada review answers: <id> ok|no  # note  (from playtests/linguist/kannada-verdicts.json, 2026-10-16)
+k1-g1 ok
+k1-g2 ok
+k1-g3 ok
+k1-g4 ok
+k1-g5 ok
+k2-g1 no   # Ungrammatical: "what is that called" needs the genitive adara hesaru, which is not taught;
+k2-g2 ok
+k2-g3 no   # Ungrammatical: needs idara hesaru (genitive), not taught; English is unnatural too.
+k2-g4 ok
+k2-g5 ok
+k3-g1 ok
+k3-g2 ok
+k3-g3 ok
+k3-g4 ok
+k3-g5 ok
+k4-g1 ok
+k4-g2 ok
+k4-g3 ok
+k4-g4 ok
+k4-g5 ok
+k5-g2 ok
+k5-g3 ok
+k5-g4 ok
+k5-g5 ok
+k6-g1 ok
+k6-g3 ok
+k6-g4 ok
+k6-g5 ok
+k7-g1 no   # Wrong counter: one person is obba snehita; ondu is for things. Obba is not taught.
+k7-g2 no   # Wrong: people take the human numeral (mooru jana / muvaru shikshakaru); mooru shikshaka is
+k7-g3 ok
+k7-g4 no   # Wrong: five people is aidu jana snehitaru / aivaru; aidu snehita is ungrammatical.
+k7-g5 ok
+k8-g1 ok
+k8-g2 ok
+k8-g3 ok
+k8-g4 ok
+k8-g5 ok
+k9-g1 ok
+k9-g2 ok
+k9-g3 ok
+k9-g4 ok
+k9-g5 ok
+k10-g1 ok
+k10-g2 ok
+k10-g3 ok
+k10-g4 ok
+k11-g1 ok
+k11-g2 ok
+k11-g3 ok
+k11-g4 ok
+k11-g5 ok
+k12-g1 ok
+k12-g2 ok
+k12-g3 ok
+k12-g4 ok
+k12-g5 ok
+k13-g1 ok
+k13-g2 ok
+k13-g3 ok
+k13-g4 ok
+k13-g5 ok
+k14-g1 ok
+k14-g2 no   # Grammatical but "see the story" is not a Kannada (or English) collocation; a story is read
+k14-g3 ok
+k14-g4 ok
+k14-g5 ok
+k15-g1 ok
+k15-g2 ok
+k15-g3 ok
+k15-g4 ok
+k15-g5 ok
+k16-g1 ok
+k16-g2 ok
+k16-g3 ok
+k16-g4 ok
+k16-g5 ok
+k17-g1 ok
+k17-g2 ok
+k17-g3 ok
+k17-g4 ok
+k17-g5 ok
+k18-g1 ok
+k18-g2 ok
+k18-g3 ok
+k18-g4 ok
+k18-g5 ok
+k19-g1 ok
+k19-g2 ok
+k19-g3 ok
+k19-g4 ok
+k19-g5 ok
+k20-g1 ok
+k20-g2 ok
+k20-g3 ok
+k20-g4 ok
+k20-g5 ok
+k21-g1 ok
+k21-g3 no   # Wrong: "inside this" is idara olage; idu olage reads as "this is inside". Idara is not tau
+k21-g5 ok
+k22-g1 ok
+k22-g2 ok
+k22-g3 no   # Meaning is wrong: baruttade is knowing a language, which is not a "today" thing; the sente
+k22-g4 no   # Same problem: "tomorrow I won't know Kannada" is nonsense.
+k22-g5 ok
+k23-g1 ok
+k23-g2 ok
+k23-g3 ok
+k23-g4 ok
+k23-g5 ok
+k24-g1 ok
+k24-g2 ok
+k24-g3 ok
+k24-g4 ok
+k24-g5 ok
+k25-g1 ok
+k25-g2 ok
+k25-g3 ok
+k25-g4 ok
+k25-g5 ok
+k26-g1 ok
+k26-g2 ok
+k26-g3 ok
+k26-g4 ok
+k26-g5 ok
+k27-g1 ok
+k27-g2 ok
+k27-g3 ok
+k27-g4 ok
+k27-g5 ok
+k28-g1 ok
+k28-g2 ok
+k28-g3 ok   # fixed: Bassu yelli?
+k28-g4 ok
+k28-g5 ok
+k29-g1 ok
+k29-g2 ok
+k29-g3 ok
+k29-g4 ok
+k29-g5 ok
+k30-g1 ok   # fixed: Paata chennagide
+k30-g2 ok
+k30-g3 ok
+k30-g4 no   # Same ee/idu error, and kashta aagide ("has become hard") is not how "is hard" is said (kas
+k30-g5 ok   # fixed: Naanu paata kalite

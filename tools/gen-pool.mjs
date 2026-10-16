@@ -94,6 +94,16 @@ lessons.forEach((l, i) => (l.vocabulary || []).forEach(v => {
     for (const t of [...toks(v.word), ...(v.alt || []).flatMap(toks)]) if (!firstTaught.has(t)) firstTaught.set(t, i + 1);
 }));
 const knownBy = (n) => new Set([...firstTaught].filter(([, at]) => at <= n).map(([t]) => t));
+/* Tokens a hand-written drill of lessons 1..N already lists as an answer.
+   Only an ALTERNATIVE may lean on these: L4 teaches *naaku neeru kaavali* in a
+   grammar note and accepts it, but *naaku* is vocabulary only in L5, so a
+   generated L4 want-drill could not list the naaku form and the grader marked
+   learners wrong for saying what the tip had just taught them. */
+const shownAt = new Map();
+lessons.forEach((l, i) => [...(l.phrases || []), ...(l.conversations || [])].forEach(d => {
+    for (const t of [d.correct, ...(d.acceptable || [])].filter(Boolean).flatMap(toks)) if (!shownAt.has(t)) shownAt.set(t, i + 1);
+}));
+const shownBy = (n) => new Set([...shownAt].filter(([, at]) => at <= n).map(([t]) => t));
 
 /* English, from the system word list, with crude inflection stripping. */
 const DICT = new Set(fs.existsSync('/usr/share/dict/words')
@@ -152,9 +162,10 @@ function gate(d, n, others) {
 
     /* taught */
     const known = knownBy(n);
+    const shown = shownBy(n);
     for (const f of forms) {
         const tag = tagAnswer(f, { lang, lessonNo });
-        const bad = toks(f).filter(t => !known.has(t) && !FREE.has(t) && !tag.stems.has(t));
+        const bad = toks(f).filter(t => !known.has(t) && !FREE.has(t) && !tag.stems.has(t) && !(f !== d.correct && shown.has(t)));
         if (bad.length) { reasons.push(`taught: \`${f}\` needs ${bad.join(', ')}`); break; }
     }
 

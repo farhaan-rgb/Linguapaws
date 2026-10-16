@@ -25,8 +25,8 @@ export const CURRICULUM = {
             vocabulary: [
                 { word: "Namaskaram", native: "నమస్కారం", meaning: "Hello", phonetic: "nuh-mus-kaa-rum", alt: ["namaste"] },
                 { word: "Nenu", native: "నేను", meaning: "I", phonetic: "nay-nu" },
-                { word: "Meeru", native: "మీరు", meaning: "You (polite)", phonetic: "mee-ru", alt: ["nuvvu"],
-                  teach: "{w} is the polite “you”: for elders, strangers, or more than one person. Friends say *nuvvu*, and that is accepted too." },
+                { word: "Meeru", native: "మీరు", meaning: "You (polite)", phonetic: "mee-ru",
+                  teach: "{w} is the polite “you”: for elders, strangers, or more than one person. Friends say *nuvvu*, but when you're asked for the polite “you”, it is {w}." },
                 { word: "Unnaru", native: "ఉన్నారు", meaning: "You are", phonetic: "un-naa-ru", alt: ["unnavu"],
                   teach: "{w} is “you are”, the polite form that goes with *meeru*. With a friend it is *unnavu*." },
                 { word: "Bagunnanu", native: "బాగున్నాను", meaning: "I'm fine", phonetic: "baa-gun-naa-nu", alt: ["bagunna"] },
@@ -74,8 +74,8 @@ export const CURRICULUM = {
                 { prompt: "Say hello (from last lesson), and ask 'What is this?'", correct: "Namaskaram, idhi emiti?", native: "నమస్కారం, ఇది ఏమిటి?", meaning: "Hello, what is this?", hint: "Hello + this + what?" },
                 { prompt: "Point to a distant object and ask 'What is that?'", correct: "Adhi emiti?", native: "అది ఏమిటి?", meaning: "What is that?", hint: "Distant question" },
                 { prompt: "Tell Miko 'This is a book'", correct: "Idhi pusthakam", native: "ఇది పుస్తకం", meaning: "This is a book", hint: "Simple statement" },
-                { prompt: "Ask a stranger what their name is using words you know.", correct: "Meeru peru emiti?", native: "మీరు పేరు ఏమిటి?", meaning: "What is your name?", hint: "You + name + what?", acceptable: ["mee peru emiti?"],
-                  grammarNote: "You'll be understood. Before a noun, *meeru* shortens to *mee* (“your”), the way *idhi* becomes *ee*, so the natural question is *Mee peru emiti?*. Both are accepted here, and *mee* comes back in lesson 5." }
+                { prompt: "Ask a child what their name is, short and simple.", correct: "Peru emiti?", native: "పేరు ఏమిటి?", meaning: "What's your name?", hint: "Name + what?", acceptable: ["mee peru emiti?"],
+                  grammarNote: "Telugu drops the “your” when it's obvious: *peru emiti?* is just “name what?”. With an adult, add *mee* (“your”, lesson 5): *Mee peru emiti?*. Never *meeru peru*: before a noun, *meeru* shortens to *mee*, the way *idhi* becomes *ee*." }
             ]
         },
         {
@@ -170,13 +170,13 @@ export const CURRICULUM = {
                 }
             ],
             phrases: [
-                { prompt: "Ask 'Who is he?'", correct: "Ayana evaru?", native: "ఆయన ఎవరు?", grammarNote: "*Evaru* (“who”) goes at the end. Use *ayana* for a person, not *idhi*: *idhi* is for things, and using it for a person is rude.", meaning: "Who is he?", hint: "He + who?", acceptable: ["ame evaru?"] },
+                { prompt: "Ask 'Who is he?'", correct: "Ayana evaru?", native: "ఆయన ఎవరు?", grammarNote: "*Evaru* (“who”) goes at the end. Use *ayana* for a person, not *idhi*: *idhi* is for things, and using it for a person is rude.", meaning: "Who is he?", hint: "He + who?" },
                 { prompt: "Say 'He is my friend' (using Snehithudu)", correct: "Ayana naa snehithudu", native: "ఆయన నా స్నేహితుడు", meaning: "He is my friend", hint: "His + my + friend" },
                 { prompt: "Ask 'Who are you?'", correct: "Meeru evaru?", native: "మీరు ఎవరు?", meaning: "Who are you?", hint: "You + who?" }
             ],
             conversations: [
                 { prompt: "Someone knocks. Ask 'Who is it?'", correct: "Evaru?", native: "ఎవరు?", meaning: "Who?", hint: "Short question" },
-                { prompt: "Introduce Miko as your friend.", correct: "Miko naa snehithudu", native: "మికో నా స్నేహితుడు", meaning: "Miko is my friend", hint: "Name + my + friend" },
+                { prompt: "Introduce your friend Ravi to Miko.", correct: "Ravi naa snehithudu", native: "రవి నా స్నేహితుడు", meaning: "Ravi is my friend", hint: "Name + my + friend" },
                 { prompt: "Point to your teacher and say 'He is my teacher'.", correct: "Ayana naa guruvu", native: "ఆయన నా గురువు", meaning: "He is my teacher", hint: "He(Ayana) + my + teacher" },
                 { prompt: "Ask 'Who is your brother?'", correct: "Mee thammudu evaru?", native: "మీ తమ్ముడు ఎవరు?", meaning: "Who is your brother?", hint: "Your + brother + who?" }
             ]
@@ -208,11 +208,11 @@ export const CURRICULUM = {
                 { prompt: "Miko asks how many books you want. Answer 'Three'.", correct: "Moodu", native: "మూడు", meaning: "Three", hint: "Just the number" }
             ],
             conversations: [
-                { prompt: "Miko asks how many friends came. Answer 'Two'.", correct: "Rendu", native: "రెండు", meaning: "Two", hint: "Just the number" },
+                { prompt: "Miko asks how many chairs there are. Answer 'Two'.", correct: "Rendu", native: "రెండు", meaning: "Two", hint: "Just the number" },
                 { prompt: "Say 'I want two'.", correct: "Rendu kaavali", native: "రెండు కావాలి", meaning: "I want two", hint: "Number + want", acceptable: ["naaku rendu kaavali"] },
                 { prompt: "Tell Miko you have one sister.", correct: "Naaku oka akka undi", native: "నాకు ఒక అక్క ఉంది", meaning: "I have one sister", hint: "To me + one + sister + there is",
-                  acceptable: ["naaku oka akka undhi", "oka akka undi"],
-                  grammarNote: "This is how you say “I have”: “to me one sister there is”, *naaku* + *undi*. Every “I have” sentence works this way, and it stays *undi* even when what you have is a person." },
+                  acceptable: ["naaku oka akka undhi", "oka akka undi", "naaku oka akka unnaru"],
+                  grammarNote: "This is how you say “I have”: “to me one sister there is”, *naaku* + *undi*. Every “I have” sentence works this way. One sister takes *undi*; *unnaru* is the respectful form and is right too." },
                 { prompt: "Count 1, 2, 3.", correct: "Okati, rendu, moodu", native: "ఒకటి, రెండు, మూడు", meaning: "1, 2, 3", hint: "Consecutive" }
             ]
         },
@@ -243,13 +243,13 @@ export const CURRICULUM = {
                 { prompt: "Say 'Many books'", correct: "Chala pusthakalu", native: "చాలా పుస్తకాలు", meaning: "Many books", hint: "Many + books",
                   grammarNote: "*Pusthakam* dropped -am and took -alu. Words ending in a vowel just add -lu." },
                 { prompt: "Say 'My friends'", correct: "Naa snehithulu", native: "నా స్నేహితులు", meaning: "My friends", hint: "My + friends" },
-                { prompt: "Say 'Two friends'", correct: "Rendu snehithulu", native: "రెండు స్నేహితులు", meaning: "Two friends", hint: "Two + friends",
-                  grammarNote: "After any number above one, use the “many” form: *rendu snehithulu*, *moodu pusthakalu*, *naalugu kurchilu*. Only *oka* (“one”) takes the single form: *oka pusthakam*." }
+                { prompt: "Say 'Two chairs'", correct: "Rendu kurchilu", native: "రెండు కుర్చీలు", meaning: "Two chairs", hint: "Two + chairs",
+                  grammarNote: "After any number above one, use the “many” form: *rendu kurchilu*, *moodu pusthakalu*. Only *oka* (“one”) takes the single form: *oka pusthakam*. People are counted with their own number words, which come later." }
             ],
             conversations: [
                 { prompt: "Tell Miko you have many friends.", correct: "Naaku chala snehithulu unnaru", native: "నాకు చాలా స్నేహితులు ఉన్నారు", meaning: "I have many friends", hint: "To me + many + friends + are",
-                  acceptable: ["naaku chala snehithulu undi", "chala snehithulu unnaru"],
-                  grammarNote: "Same “to me there is” shape as *naaku oka akka undi*. With many people, *unnaru* is the usual ending, though you'll hear *undi* here too." },
+                  acceptable: ["chala snehithulu unnaru"],
+                  grammarNote: "Same “to me there is” shape as *naaku oka akka undi*, but many people take *unnaru*, never *undi*." },
                 { prompt: "Ask 'Where are the books?'", correct: "Pusthakalu ekkada?", native: "పుస్తకాలు ఎక్కడ?", meaning: "Where are the books?", hint: "Books + where?",
                   acceptable: ["pusthakalu ekkada unnayi?"],
                   grammarNote: "No word for “are” needed: *pusthakalu ekkada* is a full question. Careful speakers add *unnayi*, but leaving it out is fine." },
@@ -515,7 +515,8 @@ export const CURRICULUM = {
                 { prompt: "Say 'This is my family'", correct: "Idhi naa kutumbam", native: "ఇది నా కుటుంబం", meaning: "This is my family", hint: "This + my + family" }
             ],
             conversations: [
-                { prompt: "Introduce your mother to Miko.", correct: "Idhi naa amma", native: "ఇది నా అమ్మ", meaning: "This is my mother", hint: "This + my + mother" },
+                { prompt: "Introduce your mother to Miko.", correct: "Ame naa amma", native: "ఆమె నా అమ్మ", meaning: "This is my mother", hint: "She + my + mother",
+                  grammarNote: "For a person, *ame* (“she”), not *idhi*: *idhi* is for things, and calling your mother *idhi* is rude." },
                 { prompt: "Ask 'Where is your home?'", correct: "Mee illu ekkada?", native: "మీ ఇల్లు ఎక్కడ?", acceptable: ["mee inti ekkada?"], meaning: "Where is your home?", hint: "Your + house + where?" },
                 { prompt: "Say 'My brother is a good friend'.", correct: "Naa anna manchi snehithudu", native: "నా అన్న మంచి స్నేహితుడు", meaning: "My brother is a good friend", hint: "My + brother + good + friend" },
                 { prompt: "Point to a photo: 'My elder sister'.", correct: "Naa akka", native: "నా అక్క", meaning: "My elder sister", hint: "My + sister" }
@@ -815,7 +816,8 @@ export const CURRICULUM = {
             conversations: [
                 { prompt: "Miko asks about the weather. Say 'It is raining'.", correct: "Vana paduthundi", native: "వాన పడుతుంది", meaning: "Rain is falling", hint: "Rain + is falling" },
                 { prompt: "Ask someone 'Where is the bus?'", correct: "Bus ekkada?", native: "బస్సు ఎక్కడ?", meaning: "Where is the bus?", hint: "Bus + where?" },
-                { prompt: "Say 'I am going on a trip tomorrow'.", correct: "Repu nenu prayanam velthunnanu", native: "రేపు నేను ప్రయాణం వెళ్తున్నాను", meaning: "Tomorrow I trip going", hint: "Tomorrow + I + trip + going" },
+                { prompt: "Say 'I am going on a trip tomorrow'.", correct: "Repu nenu prayanam chestunnanu", native: "రేపు నేను ప్రయాణం చేస్తున్నాను", meaning: "Tomorrow I am going on a trip", hint: "Tomorrow + I + trip + doing",
+                  grammarNote: "A trip is something you *do*, not somewhere you go: *prayanam chestunnanu*." },
                 { prompt: "Final check: 'It is very hot today'.", correct: "Eeroju chala enda undi", native: "ఈరోజు చాలా ఎండ ఉంది", meaning: "Today there is a lot of heat", hint: "Today + very + heat + there is", acceptable: ["eeroju chala vedi undi"] }
             ]
         },
