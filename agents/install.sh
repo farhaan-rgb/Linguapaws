@@ -22,12 +22,22 @@ tester() {  # tester <Language> <slug> <lesson-count> <example range>
     echo "  linguapaws-tester-$2"
 }
 
+linguist() {  # linguist <Language> <slug> <human-questions file>
+    sed -e "s/__LANG__/$1/g" -e "s/__SLUG__/$2/g" -e "s/__HUMAN_FILE__/$3/g" \
+        "$HERE/linguist-template.md" > "$DEST/linguapaws-linguist-$2.md"
+    echo "  linguapaws-linguist-$2"
+}
+
 echo "installed to $DEST:"
 echo "  linguapaws-dev"
 echo "  linguapaws-design"
 echo "  linguapaws-voice"
 tester Telugu  telugu  30 "7 to 9"
 tester Kannada kannada 30 "4 to 6"
+# Linguist reviewers: decide what they are confident about, send only the rest
+# to a human — Farhaan for Telugu, a native speaker for Kannada.
+linguist Telugu  telugu  telugu-for-farhaan.md
+linguist Kannada kannada kannada-for-native-speaker.md
 # Odiya has 30 lessons and Hindi 5 — uncomment when you want them playtested.
 # tester Odiya odiya 30 "5 to 7"
 # tester Hindi hindi  5 "2 to 4"

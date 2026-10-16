@@ -1,6 +1,6 @@
 # The agent fleet
 
-Five agents in `~/.claude/agents/`, which is a **user-level** directory — they
+Seven agents in `~/.claude/agents/`, which is a **user-level** directory — they
 are available from any tab, in any project, not only when a session is open in
 this repo. Each one `cd`s here itself.
 
@@ -15,6 +15,8 @@ reverts anything changed in place.
 | `linguapaws-voice` | TTS, ASR, pronunciation scoring, mic capture, speech-vendor choice |
 | `linguapaws-tester-telugu` | playing the Telugu course as someone who does not speak it |
 | `linguapaws-tester-kannada` | the same, in Kannada |
+| `linguapaws-linguist-telugu` | judging whether Telugu is correct and natural; decides what it can, sends only doubts to Farhaan |
+| `linguapaws-linguist-kannada` | the same for Kannada; doubts go to a native speaker |
 
 Dev, design and voice are **one agent each, not one per language**, because the React
 code and the visual design are language-agnostic — only content differs. Pass
@@ -48,6 +50,18 @@ That third one is the load-bearing part. `Bash` can still open any file, and the
 prohibition is a rule rather than a wall — but the outcome is checked
 mechanically and the evidence is published, which is the standard the human
 rounds in `playtests/` already held themselves to.
+
+## The linguists, and why they exist
+
+Model-written Kannada and Telugu has been wrong in ways every mechanical check
+passed — a model answer no speaker would say, a gloss that reversed a meaning,
+an AI judge that approved nearly everything. Farhaan does not want routine
+grammar calls routed to him, so each language has a linguist agent that
+decides what it is confident about, writes verdicts to
+`playtests/linguist/<lang>-verdicts.json`, and sends only the genuinely
+uncertain remainder to a human as a short yes/no list. Linguists never edit
+content; `linguapaws-dev` applies their verdicts. Generated drills go live only
+once a verdict (or a human) marks them reviewed.
 
 ## Adding a language
 
