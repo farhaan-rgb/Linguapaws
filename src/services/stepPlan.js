@@ -79,7 +79,7 @@ const contrastVariants = (lessons, c) => {
 
 /* One review screen: a word from the SRS queue, or a confused pair. Shared by
    the lesson plan and the practice plan so both ask a review the same way. */
-function reviewStep(item, allLessons) {
+export function reviewStep(item, allLessons) {
     if (item.contrast) {
         const a = nativeOf(allLessons, item.contrast.said);
         const b = nativeOf(allLessons, item.contrast.needed);

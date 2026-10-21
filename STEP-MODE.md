@@ -34,8 +34,11 @@ Rules carried over from the playtests, deliberately:
 - Two misses reveals the answer and moves on (`REVIEW_RETRY_LIMIT`). Nothing
   traps a learner on a screen.
 - A cleared step posts `/api/progress/increment`, the same counter the chat
-  advances — so a lesson done in steps leaves the learner exactly where the chat
-  would have, and `?scenario=` resolves from it when the URL doesn't say.
+  advances. Neither surface reads it for position any more: which lesson is
+  `lessonProgress[lang]`, and where inside it is per surface and per language —
+  step mode's `lessonPosition[lang]` (a plan index), chat's `chatPosition[lang]`
+  (one of its 15 turns, `lessonResume.chatPositionFor`). The counter survives
+  only as the fallback for a learner with no per-language record at all.
 
 ## The reward layer
 

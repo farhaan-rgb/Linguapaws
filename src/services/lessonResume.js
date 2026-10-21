@@ -55,7 +55,12 @@ export function mergeProgress(prev, next) {
     for (const [lang, idx] of Object.entries(next.lessonProgress || {})) {
         if (!Number.isInteger(merged[lang]) || idx > merged[lang]) merged[lang] = idx;
     }
-    return { ...prev, ...next, lessonProgress: merged };
+    /* Chat's position moves on the client first (the turn is graded here) and
+       the server hears it fire-and-forget, so an /increment payload read
+       before that write landed would put the learner a step back. A language
+       this page has already placed keeps its local entry. */
+    const chatPosition = { ...(next.chatPosition || {}), ...(prev?.chatPosition || {}) };
+    return { ...prev, ...next, lessonProgress: merged, chatPosition };
 }
 
 /** The same forward-only rule, applied locally the moment a lesson ends. */
@@ -73,4 +78,31 @@ export function savedStepFor(progress, lang, lessonIdx, stepCount) {
     if (!pos || pos.lessonIdx !== lessonIdx) return 0;
     const s = pos.stepIdx;
     return Number.isInteger(s) && s > 0 && s < stepCount ? s : 0;
+}
+
+/* Where chat resumes INSIDE a lesson: `chatPosition[lang]`, the next of its 15
+   turns, written after every turn that advances and cleared on completion.
+   Chat's own record, beside step mode's `lessonPosition` rather than in it,
+   because the two count differently: a step plan has one screen per word plus
+   listen and pattern screens, chat folds a lesson onto 5 + 3 + 3 + 4 turns.
+
+   It used to be `successfulRepeats % 15` — one counter for every language, so
+   leaving Kannada at step 7 opened Telugu at step 7 too. That counter is now
+   only the fallback for a learner with no per-language record of any kind,
+   the same rule `resumeIndex` applies to lessons. */
+export function chatPositionFor(progress, lang, lessonIdx) {
+    const pos = progress?.chatPosition?.[lang];
+    if (pos) {
+        const s = pos.stepIdx;
+        return pos.lessonIdx === lessonIdx && Number.isInteger(s) && s >= 0 && s < CYCLE_SIZE ? s : 0;
+    }
+    const recorded = (m) => Object.values(m || {}).some(v => v !== null && v !== undefined);
+    if (recorded(progress?.chatPosition) || recorded(progress?.lessonPosition)
+        || Object.values(progress?.lessonProgress || {}).some(v => Number.isInteger(v) && v >= 0)) return 0;
+    return (progress?.successfulRepeats || 0) % CYCLE_SIZE;
+}
+
+/** Chat moved to turn `stepIdx` of `lessonIdx`, applied locally. */
+export function withChatPosition(progress, lang, lessonIdx, stepIdx) {
+    return { ...progress, chatPosition: { ...(progress?.chatPosition || {}), [lang]: { lessonIdx, stepIdx } } };
 }

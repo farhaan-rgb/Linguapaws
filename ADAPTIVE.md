@@ -105,9 +105,15 @@ Level: `new` while evidence < 1; then `weak` if mastery < 0.5, `strong` if
 | `GET /api/progress/skills?lang=&weak=1&limit=` | `[{ skillId, mastery, attempts, evidence, lastSeen, lastOutcome, recent, level, weak }]`, weakest first |
 
 `Steps.jsx` posts after every settled screen, lesson and practice, first
-attempt and re-ask. **Chat.jsx does not post yet**: its turns are not screens
-with a known step and attempt list, and wiring it means reconstructing both from
-the message log — not cheap, so deferred again to phase 3.
+attempt and re-ask. **Chat.jsx posts too**, for every turn with an expected
+answer (teach, review, phrase, conversation): `src/services/chatLoop.js` builds
+the stepPlan-shaped screen for a chat turn (`chatStepFor`), keeps each rejected
+attempt with `missHelp`'s analysis, and on settle (accepted, revealed after the
+retry cap, "I don't know", skip) runs the same `skillEvidence` with the same
+weights. It also records `MissedScreen` keys (`missedKeyFor`; a two-word teach
+turn is each of its words) and the first miss's confused pairs, as Steps does.
+Free conversation with no expected answer posts nothing. Attempts live in a ref,
+so a turn reopened after a reload is scored without its earlier tries.
 
 Debug: `/debug/skills` (hidden route, `?lang=Telugu`, `?weak=1`) lists the
 signed-in learner's model with labels.

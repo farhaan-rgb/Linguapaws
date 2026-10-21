@@ -4,7 +4,9 @@ import { ChevronLeft, Send, Mic, Square, BookOpen, Globe, Edit3, Sparkles, Keybo
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { aiService } from '../services/ai';
 import { api, BASE_URL } from '../services/api';
-import { CYCLE_SIZE, scenarioIndexFor as resumeScenarioFor, mergeProgress, withLessonCompleted } from '../services/lessonResume';
+import { CYCLE_SIZE, scenarioIndexFor as resumeScenarioFor, mergeProgress, withLessonCompleted,
+    chatPositionFor, withChatPosition } from '../services/lessonResume';
+import { chatStepFor, chatMissFeedback, missLead, settleChatScreen } from '../services/chatLoop';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { wordTracker } from '../services/wordTracker';
 import { characters as defaultCharacters } from '../data/characters';
@@ -23,6 +25,9 @@ import {
     clearReviewSet,
     recordTaughtWord,
     recordReview,
+    recordSkillEvidence,
+    recordMissedScreen,
+    recordConfusion,
 } from '../services/srs';
 
 export default function Chat() {
@@ -85,6 +90,11 @@ export default function Chat() {
     const [progress, setProgressRaw] = useState({ level: 'zero', levelLabel: 'Beginner', successfulRepeats: 0, needed: 100, nextLevelLabel: 'Basic' });
     /* Every server payload is merged, not swapped in: see `mergeProgress`. */
     const setProgress = useCallback((next) => setProgressRaw(prev => mergeProgress(prev, next)), []);
+    /* The greeting runs once, from an effect whose closure holds the first
+       render's progress (the default, before the server answered) — so it
+       opened every fresh chat on turn 1 of lesson 1. It reads this instead. */
+    const progressRef = useRef(progress);
+    progressRef.current = progress;
     const scrollRef = useRef(null);
     const audioRef = useRef(new Audio());
     const hasGreeted = useRef(false);
@@ -675,6 +685,7 @@ export default function Chat() {
                     hasGreeted.current = false;
                     exchangeCount.current = 0;
                 }
+                progressRef.current = mergeProgress(progressRef.current, progressData);
                 isInitialLoadComplete.current = true;
                 setProgress(progressData);
                 setUserLevel(progressData.level || 'zero');
@@ -689,6 +700,7 @@ export default function Chat() {
        answer matcher can read it synchronously when the learner reaches steps
        5–7 instead of racing a fetch mid-turn. */
     const currentScenarioIdx = scenarioIndexFor(progress, searchParams.get('scenario'));
+    const currentChatPos = chatPositionFor(progress, safeLang, currentScenarioIdx);
 
     useEffect(() => {
         const lesson = CURRICULUM[safeLang]?.[currentScenarioIdx];
@@ -870,8 +882,16 @@ export default function Chat() {
                         const statusTag = rawResponse.success ? 'true' : 'false';
                         // Use messages.length because it's the index of the user message we just added
                         setSentenceSuccesses(prev => ({ ...prev, [messages.length]: statusTag }));
+                        /* A success here is a turn of the lesson like any other:
+                           it moves this language's position and, on the last
+                           turn, records the lesson — it used to move only the
+                           shared counter, so a lesson finished on a call was
+                           never recorded as finished. */
                         if (statusTag === 'true') {
-                            api.post('/api/progress/increment').catch(() => { });
+                            const prog = progressRef.current;
+                            const li = scenarioIndexFor(prog, searchParams.get('scenario'));
+                            advanceChatPosition(li, chatPositionFor(prog, safeLang, li));
+                            api.post('/api/progress/increment').then(setProgress).catch(() => { });
                         }
                     }
 
@@ -940,8 +960,9 @@ export default function Chat() {
 
             let levelNote;
             let greeting = "";
-            const currentRepeats = progress?.successfulRepeats || 0;
-            const inScenario = currentRepeats % CYCLE_SIZE;
+            const progressNow = progressRef.current;
+            const greetScenarioIdx = scenarioIndexFor(progressNow, searchParams.get('scenario'));
+            const inScenario = chatPositionFor(progressNow, safeLang, greetScenarioIdx);
             const isReviewMode = inScenario >= 5 && inScenario < 8;
 
             let levelId = userLevel || 'conversational';
@@ -949,7 +970,7 @@ export default function Chat() {
             else if (inScenario < 11) levelId = 'basic';
             else levelId = 'conversational';
 
-            const activeScenarioIdx = scenarioIndexFor(progress, searchParams.get('scenario'));
+            const activeScenarioIdx = greetScenarioIdx;
             const scenarioData = (CURRICULUM[safeLang] && CURRICULUM[safeLang][activeScenarioIdx]) || { vocabulary: [] };
             const activeScenario = scenarioData.scenario || 'Learning';
             const vocabIndex = inScenario < 5 ? inScenario : 0;
@@ -1159,6 +1180,60 @@ export default function Chat() {
             && String(m.content || '').startsWith('💡') && key(m.content) === target);
     };
 
+    /* Chat's place in a lesson, per language (lessonResume.chatPositionFor).
+       Every turn that moves on goes through here — a right answer, a reveal,
+       a skip, the model's success tag, a call-mode success — so the lesson
+       record and the resume point move together. Leaving the last turn
+       records the lesson as finished, exactly as step mode's summary does. */
+    const advanceChatPosition = (lessonIdx, from) => {
+        const next = from + 1;
+        if (next >= CYCLE_SIZE) {
+            setProgressRaw(prev => withChatPosition(withLessonCompleted(prev, safeLang, lessonIdx), safeLang, lessonIdx + 1, 0));
+            api.post('/api/progress/lesson-complete', { lang: safeLang, lessonIdx })
+                .then(setProgress)
+                .catch(() => {});
+            return;
+        }
+        setProgressRaw(prev => withChatPosition(prev, safeLang, lessonIdx, next));
+        api.post('/api/progress/position', { lang: safeLang, lessonIdx, stepIdx: next, surface: 'chat' })
+            .catch(() => {});
+    };
+
+    /* ── The learning loop, as step mode feeds it ──
+       A chat drill turn is a screen (chatLoop.chatStepFor): every rejected
+       attempt is kept with missHelp's analysis of it, and when the screen
+       settles — accepted, revealed, skipped — the same skill evidence,
+       missed-screen record and confused pairs go to the server that Steps.jsx
+       sends. Keyed by language, lesson and turn, so moving on starts a fresh
+       screen. Lost on reload: a screen reopened mid-way is scored as if the
+       earlier tries had not happened. */
+    const screenRef = useRef({ key: '', attempts: [], helped: false, settled: false });
+    const screenAt = (key) => {
+        if (screenRef.current.key !== key) screenRef.current = { key, attempts: [], helped: false, settled: false };
+        return screenRef.current;
+    };
+    const noteChatMiss = (key, step, lessonIdx, said, spoken, fb) => {
+        const scr = screenAt(key);
+        if (scr.settled || !step) return;
+        /* A taught word said in place of the needed one comes back as a
+           contrast screen later — first miss on a screen only, as in Steps. */
+        if (!scr.attempts.length && !step.item?.contrast && fb.help?.pairs?.length) {
+            fb.help.pairs.forEach(p => recordConfusion({ ...p, lang: safeLang, scenario: lessonIdx }).catch(() => {}));
+        }
+        scr.attempts.push({ said, spoken: Boolean(spoken), help: fb.help });
+    };
+    const settleChat = (key, step, lessonIdx, { correct, revealed = false, said = '', spoken = false }) => {
+        const scr = screenAt(key);
+        if (scr.settled || !step) return;
+        scr.settled = true;
+        const { evidence, missed } = settleChatScreen({
+            step, lang: safeLang, lessonIdx, correct, revealed, helped: scr.helped,
+            attempts: scr.attempts, spoken, said, lexicon: LEXICON,
+        });
+        if (evidence.length) recordSkillEvidence({ lang: safeLang, items: evidence });
+        missed.forEach(k => recordMissedScreen({ lang: safeLang, ...k }).catch(() => {}));
+    };
+
     const handleSend = async (text, isVoice = false) => {
         if (!text) return;
         /* A spoken answer that came back in the target's own script.
@@ -1212,15 +1287,15 @@ export default function Chat() {
         try {
             // -- 1. DETERMINE CURRENT STATE --
             const currentRepeats = progress?.successfulRepeats || 0;
-            const currentInScenario = currentRepeats % CYCLE_SIZE;
+            const searchParamsVal = new URL(window.location.href).searchParams;
+            const scenarioIdxForMatch = scenarioIndexFor(progress, searchParamsVal.get('scenario'));
+            /* This language's own turn, not the shared counter mod 15. */
+            const currentInScenario = chatPositionFor(progress, safeLang, scenarioIdxForMatch);
 
             const isCurrentlyTeaching = currentInScenario < 5;
             const isCurrentlyInReview = currentInScenario >= 5 && currentInScenario < 8;
             const isCurrentlyInBasic = currentInScenario >= 8 && currentInScenario < 11;
             const isCurrentlyInConvo = currentInScenario >= 11;
-
-            const searchParamsVal = new URL(window.location.href).searchParams;
-            const scenarioIdxForMatch = scenarioIndexFor(progress, searchParamsVal.get('scenario'));
 
             const scenarioDataForMatch = CURRICULUM[safeLang]?.[scenarioIdxForMatch] || { vocabulary: [], phrases: [], conversations: [] };
 
@@ -1231,15 +1306,16 @@ export default function Chat() {
                would land back at step 1 of the lesson they just finished. Every
                increment in this turn goes through here; only the one leaving
                step 15 records anything, and the server keeps the maximum. */
-            const incrementProgress = () => api.post('/api/progress/increment').then(res => {
-                if (currentInScenario === CYCLE_SIZE - 1) {
-                    setProgressRaw(prev => withLessonCompleted(prev, safeLang, scenarioIdxForMatch));
-                    api.post('/api/progress/lesson-complete', { lang: safeLang, lessonIdx: scenarioIdxForMatch })
-                        .then(setProgress)
-                        .catch(() => {});
+            /* `successfulRepeats` still counts, for anything that reads it; the
+               position is chat's own record and moves at once, locally. */
+            let advanced = false;
+            const incrementProgress = () => {
+                if (!advanced) {
+                    advanced = true;
+                    advanceChatPosition(scenarioIdxForMatch, currentInScenario);
                 }
-                return res;
-            });
+                return api.post('/api/progress/increment');
+            };
 
             // -- 2. EVALUATE USER INPUT (MATCHING) --
             const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
@@ -1343,6 +1419,25 @@ export default function Chat() {
                 && (echoedTutor || (matchAccepted && matchRatio >= threshold));
             const isLastScenarioStep = currentInScenario === 14 && hasCorrectMatch;
 
+            /* This turn as a step-mode screen, for the learning loop. Null when
+               the turn asks nothing (no such drill), and then nothing is posted:
+               free conversation has no expected answer to attribute against. */
+            const screenStep = hasExpectation ? chatStepFor({
+                lang: safeLang, lessonIdx: scenarioIdxForMatch, pos: currentInScenario, reviewItem,
+            }) : null;
+            const screenKey = `${safeLang}|${scenarioIdxForMatch}|${currentInScenario}`;
+            /* missHelp on this attempt, with step mode's options — the source of
+               truth for what was wrong (chatLoop.chatMissFeedback). */
+            const missFeedback = (reveal = false) => (screenStep
+                ? chatMissFeedback(actual, screenStep, { lang: safeLang, lessonIdx: scenarioIdxForMatch, lexicon: LEXICON, reveal })
+                : { help: {}, line: '', scaffold: '', family: '' });
+            const missed = (fb) => noteChatMiss(screenKey, screenStep, scenarioIdxForMatch, actual, isVoice, fb);
+            const settle = (outcome) => settleChat(screenKey, screenStep, scenarioIdxForMatch, outcome);
+            /* Accepted — an echo of an answer the tutor just showed included
+               (fe01d8e): after a reveal the screen has already settled, so
+               the echo posts nothing more. */
+            if (hasCorrectMatch) settle({ correct: true, said: actual, spoken: isVoice });
+
             /* A phrase or conversation line goes on the spaced-repetition ladder
                when it is answered (phraseReview.js), as in step mode. Recorded on
                the accepted answer only: after a reveal that answer is a parrot,
@@ -1383,6 +1478,7 @@ export default function Chat() {
                through the spaced-repetition queue on its own, which is what
                "we'll come back to it" has always meant here. */
             if (isSkipRequest && expectedCorrectionStr) {
+                settle({ correct: false, revealed: true });
                 const progressRes = await incrementProgress().catch(() => null);
                 if (progressRes) setProgress(progressRes);
                 /* "That one will come back later" is a promise about the
@@ -1514,8 +1610,7 @@ export default function Chat() {
             }
 
             // -- 5. META-NOTE CONSTRUCTION (uses optimistic +1 so AI gets the right next step) --
-            const optimisticNextRepeats = hasCorrectMatch ? currentRepeats + 1 : currentRepeats;
-            const nextInScenario = optimisticNextRepeats % CYCLE_SIZE;
+            const nextInScenario = (hasCorrectMatch ? currentInScenario + 1 : currentInScenario) % CYCLE_SIZE;
             /* Shared with the offline harness, and matched on word boundaries:
                the inline substring version found "hint" inside the Telugu word
                *Thinte* and read a correct answer as a request for help. */
@@ -1565,6 +1660,7 @@ export default function Chat() {
                     }
 
                     let reviewResponse;
+                    let familyCard = '';
                     const advance = async () => {
                         const progressRes = await incrementProgress().catch(() => null);
                         if (progressRes) setProgress(progressRes);
@@ -1581,6 +1677,10 @@ export default function Chat() {
                             ? (firstPhrase || "Let's build a sentence.")   // banner carries the transition
                             : `${engine.acceptedVerdict(praise, text, reviewExpectedWord || '', reviewVariantsFor(reviewItem), LEXICON)} ${nextQuestion()}`;
                     } else if (misses >= REVIEW_RETRY_LIMIT) {
+                        const fb = missFeedback(true);
+                        missed(fb);
+                        settle({ correct: false, revealed: true });
+                        familyCard = fb.family;
                         /* Out of retries: show the answer and MOVE ON. Previously the
                            reveal message itself contained "try again", which kept
                            lastWasFailure true forever, so the same line repeated
@@ -1598,20 +1698,15 @@ export default function Chat() {
                         /* The grader knows why it refused — ask it before the
                            model, whose version named the wrong part of the word in
                            five of thirteen misses and once invented a meaning. */
-                        const diagnosis = engine.explainMiss(text, reviewExpectedWord, reviewVariantsFor(reviewItem), LEXICON)
-                            || await aiService.diagnoseAttempt({
-                            answer: text,
-                            target: reviewExpectedWord,
-                            prompt: reviewAsk({ ...reviewItem, meaning: currentMeaning }),
-                            targetLangName,
-                            nativeLangName: nativeLang?.name || 'English',
-                        });
-                        reviewResponse = diagnosis
-                            ? `Not quite. ${diagnosis} ${reviewAsk({ ...reviewItem, meaning: currentMeaning }, false)}`
-                            : `Not quite. ${reviewAsk({ ...reviewItem, meaning: currentMeaning }, false)}`;
+                        /* Step mode's missHelp line, not explainMiss and not the
+                           model: the engine's one analysis of this attempt. */
+                        const fb = missFeedback(false);
+                        missed(fb);
+                        reviewResponse = `${missLead(fb)} ${reviewAsk({ ...reviewItem, meaning: currentMeaning }, false)}`;
                     }
 
-                    setMessages(prev => [...prev, { role: 'assistant', content: reviewResponse }]);
+                    setMessages(prev => [...prev, { role: 'assistant', content: reviewResponse },
+                        ...(familyCard ? [{ role: 'system', content: familyCard }] : [])]);
                     if (!isMuted && isMounted.current) {
                         // The "Vocabulary done" banner fires on this path too.
                         const reviewSpeech = [transitionBanner, reviewResponse].filter(Boolean).join(' ');
@@ -1650,6 +1745,7 @@ export default function Chat() {
                         || "Let's talk.";
 
                     const out = [];
+                    const cards = [];
                     if (hasCorrectMatch) {
                         const pr = await incrementProgress().catch(() => null);
                         if (pr) setProgress(pr);
@@ -1676,40 +1772,36 @@ export default function Chat() {
                         }
                         out.push({ role: 'assistant', content: nextUp() });
                     } else if (misses >= REVIEW_RETRY_LIMIT) {
+                        const fb = missFeedback(true);
+                        missed(fb);
+                        settle({ correct: false, revealed: true });
                         const pr = await incrementProgress().catch(() => null);
                         if (pr) setProgress(pr);
                         out.push({ role: 'assistant', content: `It's **${phraseItem.correct}**. We'll come back to this — ${nextUp()}` });
+                        if (fb.family) cards.push({ role: 'system', content: fb.family });
                     } else {
                         const otherLang = crossLanguageMatch(text, {
                             scenarioIdx: scenarioIdxForMatch, section: 'phrases', itemIdx: phraseIdx,
                         });
                         const hint = phraseItem.hint ? ` Hint: ${phraseItem.hint}.` : '';
-                        /* A diagnosis of this attempt if one can be trusted,
-                           otherwise the curriculum's fixed hint. */
-                        const diagnosis = otherLang ? null
-                            : (engine.explainMiss(text, phraseItem.correct, phraseItem.acceptable || [], LEXICON,
-                                { prompt: phraseItem.meaning || '' })
-                            || await aiService.diagnoseAttempt({
-                            answer: text,
-                            target: phraseItem.correct,
-                            acceptable: phraseItem.acceptable,
-                            prompt: phraseItem.prompt,
-                            hint: phraseItem.hint,
-                            targetLangName,
-                            nativeLangName: nativeLang?.name || 'English',
-                        }));
+                        /* missHelp's line for this attempt (step mode's), with the
+                           first letters for the next try; the curriculum's hint
+                           when the engine has nothing to say. */
+                        const fb = missFeedback(false);
+                        missed(fb);
                         const lead = otherLang
                             ? `That's ${otherLang}, not ${safeLang} — a good answer to the wrong question. In ${safeLang}:${hint}`
-                            : (diagnosis ? `Not quite. ${diagnosis}` : `Not quite.${hint}`);
+                            : (fb.line ? missLead(fb) : `${missLead(fb)}${hint}`);
                         out.push({
                             role: 'assistant',
                             content: `${lead} ${drillPrompt(scenarioDataForMatch.phrases, phraseIdx)}`,
                         });
                     }
 
-                    setMessages(prev => [...prev, ...out]);
+                    setMessages(prev => [...prev, ...out, ...cards]);
                     /* Feedback included. Filtering to `assistant` here is what made
-                       every grammar note and stage banner silent. */
+                       every grammar note and stage banner silent. The family card
+                       is shown, not read — as on the step screen. */
                     const spoken = [transitionBanner, engine.speechForTurn(out)].filter(Boolean).join(' ');
                     if (!isMuted && isMounted.current && spoken) {
                         const audioUrl = await aiService.generateSpeech(buildSpeechText(spoken), resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
@@ -1778,21 +1870,12 @@ export default function Chat() {
                        fault, on a step where the real problem was a missing word.
                        With the right target it says what is actually true: "the
                        word for 'Are you (polite)' is missing." */
-                    const wanted = engine.expectedForTeachStep(current) || current[0]?.word;
-                    const wantedVariants = [
-                        ...engine.teachStepVariants(current),
-                        ...engine.wordsOfferedBy(current).flatMap(w => altsFor(w)),
-                    ];
-                    const diagnosis = wanted ? (engine.explainMiss(text, wanted, wantedVariants, LEXICON)
-                        || await aiService.diagnoseAttempt({
-                        answer: text,
-                        target: wanted,
-                        prompt: `Say the ${targetLangName} word for "${current[0]?.meaning || ''}"`,
-                        targetLangName,
-                        nativeLangName: nativeLang?.name || 'English',
-                    })) : null;
+                    /* missHelp against the screen's own target and variants
+                       (chatLoop.chatStepFor), as on the step screen. */
+                    const fb = missFeedback(false);
+                    missed(fb);
                     teachResponse = current.length
-                        ? `Not quite.${diagnosis ? ` ${diagnosis}` : ''} Here it is again. ${buildTeachingStep(current)}`
+                        ? `${missLead(fb)} Here it is again. ${buildTeachingStep(current)}`
                         : "Hmm, let's try that once more.";
                 }
 
@@ -1826,8 +1909,10 @@ export default function Chat() {
                 const ci_item = scenarioDataForMatch.conversations?.[ci];
                 if (ci_item && consecutiveMisses(messages) < REVIEW_RETRY_LIMIT) {
                     const h = ci_item.hint ? ` Hint: ${ci_item.hint}.` : '';
+                    const fb = missFeedback(false);
+                    missed(fb);
                     setMessages(prev => [...prev, { role: 'assistant',
-                        content: `${engine.MISS_MARKER}.${h} ${drillPrompt(scenarioDataForMatch.conversations, ci)}` }]);
+                        content: `${fb.line ? missLead(fb) : `${missLead(fb)}${h}`} ${drillPrompt(scenarioDataForMatch.conversations, ci)}` }]);
                     setIsLoading(false);
                     return;
                 }
@@ -1843,6 +1928,9 @@ export default function Chat() {
                 const convoIdx = currentInScenario - 11;
                 const convoItem = scenarioDataForMatch.conversations?.[convoIdx];
                 if (convoItem && consecutiveMisses(messages) >= REVIEW_RETRY_LIMIT) {
+                    const fb = missFeedback(true);
+                    missed(fb);
+                    settle({ correct: false, revealed: true });
                     const pr = await incrementProgress().catch(() => null);
                     if (pr) setProgress(pr);
                     const next = drillPrompt(scenarioDataForMatch.conversations, convoIdx + 1);
@@ -1853,7 +1941,7 @@ export default function Chat() {
                             : `It's **${convoItem.correct}**. That's the scenario done — nicely handled.`,
                     }];
                     if (!next) out.push({ role: 'system', content: '✨ **Scenario complete.**' });
-                    setMessages(prev => [...prev, ...out]);
+                    setMessages(prev => [...prev, ...out, ...(fb.family ? [{ role: 'system', content: fb.family }] : [])]);
                     if (!isMuted && isMounted.current) {
                         // Whole turn, not just out[0] — the completion banner was mute.
                         const audioUrl = await aiService.generateSpeech(
@@ -1889,10 +1977,22 @@ export default function Chat() {
                         : isCurrentlyInConvo ? drillPrompt(scenarioDataForMatch.conversations, currentInScenario - 11)
                             : `Your turn — say **${expectedCorrectionStr}**.`;
                 let answerLine = '';
+                let revealCard = '';
                 /* "i really don't remember, can you tell me?" is a request for
                    the answer, said at length (round t2130 L26). */
                 if (engine.DONT_KNOW.test(said) || asksForTheAnswer(said)) {
                     answerLine = `That's fine. It's **${expectedCorrectionStr}**.`;
+                    /* "I don't know" is a reveal, as step mode's button is: the
+                       screen settles here, and saying it back afterwards is an
+                       echo that posts nothing more. After an earlier miss the
+                       family card the first miss held back comes with it. */
+                    const lastTry = screenRef.current.key === screenKey ? screenRef.current.attempts.at(-1) : null;
+                    if (lastTry && screenStep) {
+                        const fb = chatMissFeedback(lastTry.said, screenStep,
+                            { lang: safeLang, lessonIdx: scenarioIdxForMatch, lexicon: LEXICON, reveal: true });
+                        revealCard = fb.family;
+                    }
+                    settle({ correct: false, revealed: true });
                 } else if (isHelpRequest || looksLikeQuestion(said)) {
                     const single = engine.normalizeLatin(expectedCorrectionStr).split(' ').filter(Boolean).length === 1;
                     const asked = wordsAskedAbout(said, targetLangName, scenarioIdxForMatch);
@@ -1908,6 +2008,10 @@ export default function Chat() {
                         answerLine = missing || stem;
                     } else if (!why && asked.length) {
                         const askedForAnswer = single && asked.some(e => engine.normalizeLatin(e.word) === engine.normalizeLatin(expectedCorrectionStr));
+                        /* Asked for the word the screen wants and was told it:
+                           right afterwards is helped, not unaided (as a tap on
+                           step mode's English word is). */
+                        if (askedForAnswer && !isCurrentlyTeaching) screenAt(screenKey).helped = true;
                         answerLine = answerFromFacts(said, targetLangName, scenarioIdxForMatch,
                             { expected: expectedCorrectionStr, reveal: askedForAnswer || isCurrentlyTeaching });
                     } else if (why) {
@@ -1933,8 +2037,10 @@ export default function Chat() {
                 if (answerLine) {
                     const out = [{ role: 'assistant', content: answerLine }];
                     if (reAsk) out.push({ role: 'assistant', content: reAsk });
-                    setMessages(prev => [...prev, ...out]);
                     const spoken = engine.speechForTurn(out);
+                    // Shown, not read — as on the step screen.
+                    if (revealCard) out.splice(1, 0, { role: 'system', content: revealCard });
+                    setMessages(prev => [...prev, ...out]);
                     if (!isMuted && isMounted.current && spoken) {
                         const audioUrl = await aiService.generateSpeech(buildSpeechText(spoken), resolvedCharacter?.voice || 'alloy', targetLang?.name || null);
                         if (audioUrl && isMounted.current) {
@@ -2592,7 +2698,7 @@ export default function Chat() {
                     <span style={{ fontSize: '14px' }}>
                         {(() => {
                             const r = progress.successfulRepeats || 0;
-                            const sub = r < 450 ? Math.floor((r % 15) / 5) : 3;
+                            const sub = r < 450 ? Math.floor(currentChatPos / 5) : 3;
                             return sub === 0 ? '🌱' : sub === 1 ? '🌿' : sub === 2 ? '🌳' : '⭐';
                         })()}
                     </span>
@@ -2616,7 +2722,7 @@ export default function Chat() {
                                     if (completedScenarioHold) return 'Complete · 15/15';
                                     const r = progress.successfulRepeats || 0;
                                     if (r >= 450) return 'Fluent Mode';
-                                    const inS = r % 15;
+                                    const inS = currentChatPos;
                                     let subLabel, nextLabel, pts, total;
                                     if (inS < 5) { subLabel = 'Beginner'; nextLabel = 'Review'; pts = inS; total = 5; }
                                     else if (inS < 8) { subLabel = 'Review'; nextLabel = 'Basic'; pts = inS - 5; total = 3; }
@@ -2637,7 +2743,7 @@ export default function Chat() {
                                 animate={{
                                     width: `${(() => {
                                         if (completedScenarioHold) return 100;
-                                        const r = (progress.successfulRepeats || 0) % 15;
+                                        const r = currentChatPos;
                                         if (r < 5) return (r / 5) * 100;
                                         if (r < 8) return ((r - 5) / 3) * 100;
                                         if (r < 11) return ((r - 8) / 3) * 100;

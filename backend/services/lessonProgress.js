@@ -43,26 +43,35 @@ function validatePosition(body = {}) {
     if (!Number.isInteger(stepIdx) || stepIdx < 0 || stepIdx > MAX_STEP_IDX) {
         return { error: 'stepIdx must be a non-negative integer' };
     }
-    return { ...base, stepIdx };
+    /* Chat counts its own 15 turns; step mode counts plan screens. Two
+       records, so neither reads the other's index as its own. */
+    const surface = body.surface === 'chat' ? 'chat' : 'steps';
+    if (surface === 'chat' && stepIdx >= 15) return { error: 'a chat stepIdx is 0-14' };
+    return { ...base, stepIdx, surface };
 }
+
+const POSITION_FIELD = { steps: 'lessonPosition', chat: 'chatPosition' };
 
 /* Last write wins: the position is wherever the learner most recently was,
    including partway through a lesson they are replaying. */
-function positionUpdate(lang, lessonIdx, stepIdx, now = new Date()) {
-    return { $set: { [`lessonPosition.${lang}`]: { lessonIdx, stepIdx, updatedAt: now } } };
+function positionUpdate(lang, lessonIdx, stepIdx, now = new Date(), surface = 'steps') {
+    const field = POSITION_FIELD[surface] || POSITION_FIELD.steps;
+    return { $set: { [`${field}.${lang}`]: { lessonIdx, stepIdx, updatedAt: now } } };
 }
 
 /* Finishing a lesson clears the position only if it points into that lesson,
    so completing lesson 2 in one tab does not wipe lesson 3 in progress. */
-function positionClearFilter(userId, lang, lessonIdx) {
-    return { _id: userId, [`lessonPosition.${lang}.lessonIdx`]: lessonIdx };
+function positionClearFilter(userId, lang, lessonIdx, surface = 'steps') {
+    const field = POSITION_FIELD[surface] || POSITION_FIELD.steps;
+    return { _id: userId, [`${field}.${lang}.lessonIdx`]: lessonIdx };
 }
-function positionClearUpdate(lang) {
-    return { $unset: { [`lessonPosition.${lang}`]: '' } };
+function positionClearUpdate(lang, surface = 'steps') {
+    const field = POSITION_FIELD[surface] || POSITION_FIELD.steps;
+    return { $unset: { [`${field}.${lang}`]: '' } };
 }
 
-function lessonPositionOf(user) {
-    const raw = user && user.lessonPosition;
+function lessonPositionOf(user, field = 'lessonPosition') {
+    const raw = user && user[field];
     if (!raw) return {};
     const entries = raw instanceof Map ? [...raw.entries()] : Object.entries(raw);
     const out = {};
@@ -79,6 +88,7 @@ function progressPayload(user) {
         learnedWords: (user && user.learnedWords) || [],
         lessonProgress: lessonProgressOf(user),
         lessonPosition: lessonPositionOf(user),
+        chatPosition: lessonPositionOf(user, 'chatPosition'),
     };
 }
 

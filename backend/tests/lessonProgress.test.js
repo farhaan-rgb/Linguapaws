@@ -9,7 +9,7 @@ require('express-async-errors');
 const { validateCompletion, completionUpdate, progressPayload } = require('../services/lessonProgress');
 
 /* An in-memory stand-in for the one user, applying `$max` the way Mongo does. */
-const store = { _id: 'u1', successfulRepeats: 47, learnedWords: [], lessonProgress: new Map(), lessonPosition: new Map() };
+const store = { _id: 'u1', successfulRepeats: 47, learnedWords: [], lessonProgress: new Map(), lessonPosition: new Map(), chatPosition: new Map() };
 const calls = [];
 const FakeUser = {
     findById: async () => store,
@@ -21,15 +21,16 @@ const FakeUser = {
             if (cur === undefined || v > cur) store.lessonProgress.set(lang, v);
         }
         for (const [k, v] of Object.entries(update.$set || {})) {
-            store.lessonPosition.set(k.replace(/^lessonPosition\./, ''), v);
+            const [field, lang] = k.split('.');
+            store[field].set(lang, v);
         }
         return store;
     },
     updateOne: async (filter, update) => {
         for (const k of Object.keys(update.$unset || {})) {
-            const lang = k.replace(/^lessonPosition\./, '');
-            const want = filter[`lessonPosition.${lang}.lessonIdx`];
-            if (store.lessonPosition.get(lang)?.lessonIdx === want) store.lessonPosition.delete(lang);
+            const [field, lang] = k.split('.');
+            const want = filter[`${field}.${lang}.lessonIdx`];
+            if (store[field].get(lang)?.lessonIdx === want) store[field].delete(lang);
         }
     },
 };
@@ -137,6 +138,31 @@ test('route: position is saved per language and cleared only by its own lesson c
         assert.strictEqual(r.lessonPosition.Kannada, undefined, 'finishing the lesson clears it');
         assert.ok(r.lessonPosition.Telugu, 'other languages untouched');
     });
+});
+
+test('route: chat keeps its own position, apart from step mode\'s, and completion clears both', async () => {
+    await withServer(async (base) => {
+        await post(`${base}/position`, { lang: 'Odiya', lessonIdx: 1, stepIdx: 12 });
+        let r = await (await post(`${base}/position`, { lang: 'Odiya', lessonIdx: 1, stepIdx: 7, surface: 'chat' })).json();
+        assert.strictEqual(r.chatPosition.Odiya.stepIdx, 7);
+        assert.strictEqual(r.lessonPosition.Odiya.stepIdx, 12, 'step mode\'s screen index is untouched');
+        assert.strictEqual((await post(`${base}/position`, { lang: 'Odiya', lessonIdx: 1, stepIdx: 15, surface: 'chat' })).status, 400);
+        await post(`${base}/position`, { lang: 'Hindi', lessonIdx: 0, stepIdx: 3, surface: 'chat' });
+        r = await (await fetch(base)).json();
+        assert.strictEqual(r.chatPosition.Odiya.stepIdx, 7);
+        assert.strictEqual(r.chatPosition.Hindi.stepIdx, 3, 'per language');
+        r = await (await post(`${base}/lesson-complete`, { lang: 'Odiya', lessonIdx: 1 })).json();
+        assert.strictEqual(r.chatPosition.Odiya, undefined);
+        assert.strictEqual(r.lessonPosition.Odiya, undefined);
+        assert.ok(r.chatPosition.Hindi);
+    });
+});
+
+test('mongoose casts the chat position $set against the real schema', () => {
+    const castUpdate = require('mongoose/lib/helpers/query/castUpdate');
+    const RealUser = require('mongoose').model('User');
+    const cast = castUpdate(RealUser.schema, { $set: { 'chatPosition.Telugu': { lessonIdx: '2', stepIdx: '7', updatedAt: new Date(0) } } }, {}, null, {});
+    assert.strictEqual(cast.$set['chatPosition.Telugu'].stepIdx, 7);
 });
 
 test('mongoose casts the position $set against the real schema', () => {

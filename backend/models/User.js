@@ -39,6 +39,12 @@ const userSchema = new mongoose.Schema(
             of: new mongoose.Schema({ lessonIdx: Number, stepIdx: Number, updatedAt: Date }, { _id: false }),
             default: {},
         },
+        /* Chat's own position (0-14 of its fixed cycle), per language. */
+        chatPosition: {
+            type: Map,
+            of: new mongoose.Schema({ lessonIdx: Number, stepIdx: Number, updatedAt: Date }, { _id: false }),
+            default: {},
+        },
         learnedWords: [{ word: String, meaning: String, scenario: String }],
     },
     { timestamps: true }

@@ -5,6 +5,8 @@
  *   node tools/lesson-sim.mjs --lang Kannada --scenario 1 --reset
  *   node tools/lesson-sim.mjs --say "Namaskara"
  *   node tools/lesson-sim.mjs --transcript
+ *   node tools/lesson-sim.mjs --say "Namaskara" --posts   # print what chat would POST
+ *   node tools/lesson-sim.mjs --leave [--lang Telugu --scenario 1]   # close and reopen
  *
  * Runs the REAL lesson engine (src/services/lessonEngine.js) against the REAL
  * curriculum, so the replies are the ones a learner actually gets. Built so a
@@ -68,6 +70,10 @@ const SYSTEM_ENGLISH = (() => {
 })();
 const { CURRICULUM, WORD_FAMILIES, KNOWN_WORDS, WORD_ENDINGS } = await import(join(ROOT, 'src/services/curriculum.js'));
 const srs = await import(join(ROOT, 'backend/services/srs.js')).then(m => m.default ?? m);
+/* Chat's learning loop (skill evidence, missed screens, confused pairs, miss
+   lines) and its per-language position — the same modules Chat.jsx calls. */
+const L = await import(join(ROOT, 'src/services/chatLoop.js'));
+const R = await import(join(ROOT, 'src/services/lessonResume.js'));
 
 /* ── args ──────────────────────────────────────────────────────────────── */
 const argv = process.argv.slice(2);
@@ -376,58 +382,9 @@ function pushHelper(push, reply, guard = {}) {
         : "I would rather not hand you a whole sentence you have not been taught yet. Ask me about any single word and I will answer that.");
 }
 
-/** One sentence on what was wrong with THIS attempt.
- *
- *  Mirrors `aiService.diagnoseAttempt`, which the app calls on every miss — at
- *  the vocabulary, review and sentence stages alike. The harness had none of it
- *  and answered every wrong attempt with a bare "Not quite", so both voice
- *  testers reported that the app teaches when you are right and quizzes when you
- *  are wrong. That is true of this harness and false of the product; without
- *  this, the round measures the wrong thing.
- *
- *  The prompt and the leak check are copied from ai.js rather than paraphrased,
- *  including its refusal to accept a diagnosis that contains the answer.
- */
-async function diagnoseAttempt(s, { answer, target, acceptable = [], prompt, hint }) {
-    if (!answer || !target) return null;
-
-    /* The grader already knows why it refused. Ask it first: across thirteen
-       wrong answers in one session the model's version named the wrong part of
-       the word five times, gave backwards instructions twice, and invented a
-       meaning once. A deterministic answer is never any of those. */
-    const certain = E.explainMiss(answer, target, acceptable, synonyms(s));
-    if (certain) return certain;
-    const system = `You are a ${s.lang} tutor helping a beginner whose native language is English.
-The learner was asked: "${prompt}"
-The correct answer is: "${target}"${hint ? `\nThe structure is: ${hint}` : ''}
-They said: "${answer}"
-
-Write ONE short sentence (max 20 words) in English that tells them what is missing or wrong in THEIR attempt, so they can fix it themselves.
-
-HARD RULES:
-- NEVER write the correct answer, or any part of it, in ${s.lang}. Not as an example, a tip, or a "native touch".
-- Describe what is missing rather than supplying it — "the verb at the end is missing", "that is the word for 'you', not 'how'", "close, but one sound is off".
-- If they used a word from a different language, say which language.
-- No greeting, no praise, no follow-up question. One sentence only.`;
-
-    const reply = await askModel(system, [], '');
-    const text = (reply || '').trim().replace(/^["']|["']$/g, '');
-    if (!text || text.length > 220) return null;
-
-    // Checked, not trusted: any leak of the answer voids the diagnosis.
-    const strip = (v) => String(v).toLowerCase().normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9]+/g, '');
-    const haystack = strip(text);
-    const forbidden = [target, ...acceptable]
-        .flatMap(t => String(t).split(/[\s,.?!]+/))
-        .map(strip)
-        .filter(w => w.length >= 4);
-    if (forbidden.some(w => haystack.includes(w))) {
-        debug('diagnosis discarded: it contained the answer |', text.slice(0, 70));
-        return null;
-    }
-    return text;
-}
+/* A miss used to be explained by `diagnoseAttempt` (explainMiss, then the
+   model). Chat now says missHelp's line — step mode's — and so does the sim:
+   see simMiss and chatLoop.chatMissFeedback. */
 
 /** Answer a learner's question, preferring the lesson's own words.
  *
@@ -560,6 +517,62 @@ function recordTaught(s, slice) {
     }
 }
 
+/* ── the learning loop, as Chat.jsx posts it ──
+   Nothing here talks to a server: what the app would POST is appended to
+   `s.posts` (and printed with --posts), so a run shows exactly what a learner
+   in chat would leave behind for Practice and the skill model. */
+function post(s, route, body) {
+    (s.posts ||= []).push({ route, body });
+    if (has('posts')) console.log(`  [posted ${route}] ${JSON.stringify(body)}`);
+}
+function screenOf(s) {
+    const key = `${s.lang}|${s.scenarioIdx}|${s.step}`;
+    if (s.screen?.key !== key) s.screen = { key, attempts: [], helped: false, settled: false };
+    return s.screen;
+}
+function stepOf(s) {
+    const item = E.stageOf(s.step) === 'review' ? ((s.reviewSet || [])[s.step - 5] || (s.reviewSet || [])[0]) : null;
+    return L.chatStepFor({ lang: s.lang, lessonIdx: s.scenarioIdx, pos: s.step, reviewItem: item });
+}
+/** A rejected attempt: missHelp's analysis, kept for the screen's evidence. */
+function simMiss(s, said, reveal = false) {
+    const step = stepOf(s);
+    const empty = { help: {}, line: '', scaffold: '', family: '' };
+    if (!step) return empty;
+    const fb = L.chatMissFeedback(said, step, { lang: s.lang, lessonIdx: s.scenarioIdx, lexicon: synonyms(s), reveal });
+    const scr = screenOf(s);
+    if (!scr.settled) {
+        if (!scr.attempts.length && !step.item?.contrast && fb.help?.pairs?.length) {
+            fb.help.pairs.forEach(p => post(s, 'confusion', { ...p, lang: s.lang, scenario: s.scenarioIdx }));
+        }
+        scr.attempts.push({ said, spoken: false, help: fb.help });
+    }
+    return fb;
+}
+/** The screen settled: post its evidence and, if revealed, its missed record. */
+function simSettle(s, { correct, revealed = false, said = '' }) {
+    const step = stepOf(s);
+    const scr = screenOf(s);
+    if (!step || scr.settled) return;
+    scr.settled = true;
+    const { evidence, missed } = L.settleChatScreen({ step, lang: s.lang, lessonIdx: s.scenarioIdx, correct, revealed,
+        helped: scr.helped, attempts: scr.attempts, said, lexicon: synonyms(s) });
+    if (evidence.length) post(s, 'skills/evidence', { lang: s.lang, items: evidence });
+    missed.forEach(k => post(s, 'missed', { lang: s.lang, ...k }));
+}
+/** After a turn: where chat's position record would now say this learner is. */
+function recordPosition(s, before) {
+    if (s.step === before) return;
+    s.progress ||= { lessonProgress: {}, chatPosition: {} };
+    if (s.step >= 15) {
+        s.progress = R.withChatPosition(R.withLessonCompleted(s.progress, s.lang, s.scenarioIdx), s.lang, s.scenarioIdx + 1, 0);
+        post(s, 'lesson-complete', { lang: s.lang, lessonIdx: s.scenarioIdx });
+    } else {
+        s.progress = R.withChatPosition(s.progress, s.lang, s.scenarioIdx, s.step);
+        post(s, 'position', { lang: s.lang, lessonIdx: s.scenarioIdx, stepIdx: s.step, surface: 'chat' });
+    }
+}
+
 function recordReview(s, word, outcome, missKind = null) {
     const k = String(word).toLowerCase();
     const rec = s.vocab[k] || { word, meaning: '', box: 0, dueAt: new Date().toISOString(), reviews: 0 };
@@ -655,6 +668,7 @@ async function turn(s, said) {
             if (stageBefore === 'teach' || stageBefore === 'review') {
                 for (const w of String(shown).split(/\s+/)) if (w) recordReview(s, w, 'missed', 'blank');
             }
+            simSettle(s, { correct: false, revealed: true });
             s.step += 1;
             push('assistant', `No problem — it's **${shown}**. That one will come back later.`);
             /* Skipping the LAST card of a section used to cross the boundary in
@@ -697,6 +711,13 @@ async function turn(s, said) {
             let line = '';
             if (E.DONT_KNOW.test(said.trim()) || F.asksForTheAnswer(said)) {
                 line = `That's fine. It's **${expected}**.`;
+                const lastTry = screenOf(s).attempts.at(-1);
+                const st = stepOf(s);
+                if (lastTry && st) {
+                    const card = L.chatMissFeedback(lastTry.said, st, { lang: s.lang, lessonIdx: s.scenarioIdx, lexicon: syn, reveal: true }).family;
+                    if (card) line = `${line}\n${card}`;
+                }
+                simSettle(s, { correct: false, revealed: true });
             } else if (isQuestion) {
                 const single = E.normalizeLatin(expected).split(' ').filter(Boolean).length === 1;
                 const asked = F.wordsAskedAbout(said, s.lang, s.scenarioIdx);
@@ -709,6 +730,7 @@ async function turn(s, said) {
                     line = missing || stem;
                 } else if (!why && asked.length) {
                     const askedForAnswer = single && asked.some(e => E.normalizeLatin(e.word) === E.normalizeLatin(expected));
+                    if (askedForAnswer && st !== 'teach') screenOf(s).helped = true;
                     line = F.answerFromFacts(said, s.lang, s.scenarioIdx, { expected, reveal: askedForAnswer || st === 'teach' });
                 } else if (why) {
                     const miss = F.lastMissOf(s.messages);
@@ -769,6 +791,7 @@ async function turn(s, said) {
             if (isQuestion) {
                 pushHelper(push, await answerAside(s, said, expected, lesson), { state: s, asked: true, fallback: E.bestExplanationFor(lesson, said, s.step), taught: taughtSoFar(s), said, upcoming: upcomingAnswers(s, lesson) });
             }
+            simSettle(s, { correct: true, said });
             s.step += 1;
             const p = TEACH_PRAISE[s.step % TEACH_PRAISE.length];
             const spell = E.spellingNote(said, wanted, alts, syn);
@@ -788,11 +811,9 @@ async function turn(s, said) {
         } else {
             /* The app diagnoses a miss here too — it is the stage where a learner
                most often types a neighbouring word by mistake. */
-            const why = await diagnoseAttempt(s, {
-                answer: said, target: wanted,
-                prompt: `Say the ${s.lang} word for "${slice[0]?.meaning || ''}"`,
-            });
-            push('assistant', `Not quite.${why ? ` ${why}` : ''} Here it is again. ${E.buildTeachingStep(E.teachSliceFor(vocab, s.step))}`);
+            /* missHelp, as Chat.jsx now says it (chatLoop.chatMissFeedback). */
+            const fb = simMiss(s, said);
+            push('assistant', `${L.missLead(fb)} Here it is again. ${E.buildTeachingStep(E.teachSliceFor(vocab, s.step))}`);
         }
         return out;
     }
@@ -828,6 +849,7 @@ async function turn(s, said) {
             pushHelper(push, await answerAside(s, said, item.word, lesson), { state: s, asked: true, fallback: E.bestExplanationFor(lesson, said, s.step), taught: taughtSoFar(s), said, upcoming: upcomingAnswers(s, lesson) });
         }
         if (ok) {
+            simSettle(s, { correct: true, said });
             s.step += 1;
             const spell = E.spellingNote(said, item.word, E.altsFor(CURRICULUM[s.lang] || [], item.word), syn);
             if (E.stageOf(s.step) === 'review') {
@@ -839,6 +861,8 @@ async function turn(s, said) {
                 push('assistant', E.drillPrompt(lesson.phrases, 0) || "Let's build a sentence.");
             }
         } else if (misses >= E.REVIEW_RETRY_LIMIT) {
+            const fb = simMiss(s, said, true);
+            simSettle(s, { correct: false, revealed: true });
             s.step += 1;
             const shown = `It's **${item.word}**.`;
             if (E.stageOf(s.step) === 'review') {
@@ -850,14 +874,10 @@ async function turn(s, said) {
                 push('system', "🎓 **Moving on** — that one will come back later. Now let's build whole sentences.");
                 push('assistant', `${shown} We'll come back to that one. ${E.drillPrompt(lesson.phrases, 0) || ''}`.trim());
             }
+            if (fb.family) push('system', fb.family);
         } else {
-            const why = await diagnoseAttempt(s, {
-                answer: said, target: item.word,
-                prompt: `What's the ${s.lang} word for "${item.meaning}"?`,
-            });
-            push('assistant', why
-                ? `Not quite. ${why} What's the word for "${item.meaning}"?`
-                : `Not quite! What's the word for "${item.meaning}"?`);
+            const fb = simMiss(s, said);
+            push('assistant', `${L.missLead(fb)} What's the word for "${item.meaning}"?`);
         }
         return out;
     }
@@ -871,6 +891,7 @@ async function turn(s, said) {
         const ok = !askingOnly && (r.accepted || E.tutorModelled(said, lastTutor, item.correct, synonyms(s)));
 
         if (!ok && surrendered) {
+            simSettle(s, { correct: false, revealed: true });
             s.step += 1;
             const nextPhrase = E.drillPrompt(lesson.phrases, idx + 1) || E.drillPrompt(lesson.conversations, 0);
             push('assistant', `That is fine — you had the pieces, we had not put them together yet. It is **${item.correct}**. ${nextPhrase}`);
@@ -898,6 +919,7 @@ async function turn(s, said) {
         }
 
         if (!ok && surrendered) {
+            simSettle(s, { correct: false, revealed: true });
             s.step += 1;
             const nextPhrase = E.drillPrompt(lesson.phrases, idx + 1) || E.drillPrompt(lesson.conversations, 0);
             push('assistant', `That is fine — you had the pieces, we had not put them together yet. It is **${item.correct}**. ${nextPhrase}`);
@@ -907,6 +929,7 @@ async function turn(s, said) {
             pushHelper(push, await answerAside(s, said, item.correct, lesson), { state: s, asked: true, fallback: E.bestExplanationFor(lesson, said, s.step), taught: taughtSoFar(s), said, upcoming: upcomingAnswers(s, lesson) });
         }
         if (ok) {
+            simSettle(s, { correct: true, said });
             s.step += 1;
             /* Verdict first, then why, then what's next — the order a teacher
                speaks in, and the order the app's audio now follows. */
@@ -921,17 +944,17 @@ async function turn(s, said) {
                 push('assistant', E.drillPrompt(lesson.conversations, 0) || "Let's talk.");
             }
         } else if (misses >= E.REVIEW_RETRY_LIMIT) {
+            const fb = simMiss(s, said, true);
+            simSettle(s, { correct: false, revealed: true });
             s.step += 1;
             const nextPhrase = E.drillPrompt(lesson.phrases, idx + 1) || E.drillPrompt(lesson.conversations, 0);
             push('assistant', `It's **${item.correct}**. We'll come back to this — ${nextPhrase}`);
+            if (fb.family) push('system', fb.family);
         } else {
             const hint = item.hint ? ` Hint: ${item.hint.replace(/[.?!]+$/, '')}.` : '';
-            const why = await diagnoseAttempt(s, {
-                answer: said, target: item.correct, acceptable: item.acceptable || [],
-                prompt: item.prompt, hint: item.hint,
-            });
+            const fb = simMiss(s, said);
             // Verdict, then why, then the task again — the same order as a hit.
-            push('assistant', why ? `Not quite. ${why}` : `Not quite.${hint}`);
+            push('assistant', fb.line ? L.missLead(fb) : `${L.missLead(fb)}${hint}`);
             if (misses === 0) pushNote(s, push, item.grammarNote, { withholdIfItNames: item.correct });
             push('assistant', E.drillPrompt(lesson.phrases, idx));
         }
@@ -944,6 +967,7 @@ async function turn(s, said) {
     const r = item ? E.scoreAnswer(said, item.correct, item.acceptable || [], syn) : { accepted: false };
     const ok = item && !askingOnly && (r.accepted || E.tutorModelled(said, lastTutor, item.correct, synonyms(s)));
     if (item && !ok && surrendered) {
+        simSettle(s, { correct: false, revealed: true });
         s.step += 1;
         const next = E.drillPrompt(lesson.conversations, cIdx + 1);
         push('assistant', next
@@ -960,6 +984,7 @@ async function turn(s, said) {
         pushHelper(push, await answerAside(s, said, item.correct, lesson), { state: s, asked: true, fallback: E.bestExplanationFor(lesson, said, s.step), taught: taughtSoFar(s), said, upcoming: upcomingAnswers(s, lesson) });
     }
     if (ok) {
+        simSettle(s, { correct: true, said });
         s.step += 1;
         const next = lesson.conversations?.[cIdx + 1];
         const spell = E.spellingNote(said, item.correct, item.acceptable || [], syn);
@@ -985,6 +1010,9 @@ async function turn(s, said) {
     // target utterance indefinitely while the model chats, and the learner sits
     // at the same step with nothing telling them why.
     if (item && misses >= E.REVIEW_RETRY_LIMIT && !isQuestion && !isAck) {
+        const fb = simMiss(s, said, true);
+        simSettle(s, { correct: false, revealed: true });
+        if (fb.family) push('system', fb.family);
         s.step += 1;
         const next = E.drillPrompt(lesson.conversations, cIdx + 1);
         if (next) push('assistant', `It's **${item.correct}**. We'll come back to this — ${next}`);
@@ -1049,11 +1077,8 @@ async function turn(s, said) {
         push('assistant', `So — ${nextPrompt}`);
         return out;
     }
-    const why = await diagnoseAttempt(s, {
-        answer: said, target: item?.correct, acceptable: item?.acceptable || [],
-        prompt: item?.prompt, hint: item?.hint,
-    });
-    push('assistant', why ? `${E.MISS_MARKER}. ${why}` : `${E.MISS_MARKER}.${hint}`);
+    const fb = simMiss(s, said);
+    push('assistant', fb.line ? L.missLead(fb) : `${L.missLead(fb)}${hint}`);
     if (misses === 0) pushNote(s, push, item?.grammarNote, { withholdIfItNames: item?.correct });
     push('assistant', nextPrompt);
     return out;
@@ -1092,6 +1117,29 @@ if (has('notes')) {
     process.exit(0);
 }
 
+/* --leave: the learner closes the app and comes back, optionally to another
+   language (--lang X --scenario N). The turn is re-derived from the position
+   record the way Chat.jsx derives it (lessonResume.chatPositionFor), not
+   carried in the sim's own counter — so a run shows whether a language keeps
+   its own place. Each language's conversation is parked and restored. */
+if (has('leave')) {
+    state.parked ||= {};
+    state.parked[state.lang] = { scenarioIdx: state.scenarioIdx, messages: state.messages, reviewSet: state.reviewSet };
+    const lang = arg('lang', state.lang);
+    const back = state.parked[lang];
+    const scenarioIdx = arg('scenario', null) !== null ? Number(arg('scenario')) - 1 : (back?.scenarioIdx ?? 0);
+    const resumeAt = R.chatPositionFor(state.progress || {}, lang, scenarioIdx);
+    Object.assign(state, { lang, scenarioIdx, step: resumeAt,
+        messages: back && back.scenarioIdx === scenarioIdx ? back.messages : [],
+        reviewSet: back && back.scenarioIdx === scenarioIdx ? back.reviewSet : null, screen: null });
+    const lesson = lessonOf(state);
+    const line = resumeAt === 0 && !state.messages.length ? openingFor(state) : promptForStep(state, lesson);
+    console.log(`(left and came back: ${lang} lesson ${scenarioIdx + 1}, chat position record says turn ${resumeAt + 1} of 15)`);
+    if (line) { state.messages.push({ role: 'assistant', content: line }); console.log(render(line, 'assistant')); }
+    save(state);
+    process.exit(0);
+}
+
 if (has('transcript')) {
     for (const m of state.messages) console.log(render(m.content, m.role));
     process.exit(0);
@@ -1116,7 +1164,9 @@ if (typeof said !== 'string' || !said.trim()) {
 }
 
 state.messages.push({ role: 'user', content: said });
+const stepBefore = state.step;
 const replies = await turn(state, said);
+recordPosition(state, stepBefore);
 for (const m of replies) state.messages.push(m);
 save(state);
 for (const m of replies) console.log(render(m.content, m.role));

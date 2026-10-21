@@ -57,10 +57,14 @@ router.post('/lesson-complete', async (req, res) => {
     const parsed = validateCompletion(req.body);
     if (parsed.error) return res.status(400).json({ error: parsed.error });
 
-    await User.updateOne(
-        positionClearFilter(req.user._id, parsed.lang, parsed.lessonIdx),
-        positionClearUpdate(parsed.lang)
-    );
+    /* Both surfaces' positions inside the finished lesson: a lesson done in
+       chat must not leave step mode (or chat) reopening halfway through it. */
+    for (const surface of ['steps', 'chat']) {
+        await User.updateOne(
+            positionClearFilter(req.user._id, parsed.lang, parsed.lessonIdx, surface),
+            positionClearUpdate(parsed.lang, surface)
+        );
+    }
     const user = await User.findByIdAndUpdate(
         req.user._id,
         completionUpdate(parsed.lang, parsed.lessonIdx),
@@ -72,7 +76,8 @@ router.post('/lesson-complete', async (req, res) => {
 });
 
 // POST /api/progress/position — where the learner is inside a lesson
-// Body: { lang, lessonIdx, stepIdx } — stepIdx is the next screen to show.
+// Body: { lang, lessonIdx, stepIdx, surface? } — stepIdx is the next screen to show;
+// surface 'chat' writes chat's own 0-14 turn to `chatPosition` instead.
 // Sent fire-and-forget after every answered step so a killed app resumes there.
 router.post('/position', async (req, res) => {
     const parsed = validatePosition(req.body);
@@ -80,11 +85,12 @@ router.post('/position', async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
         req.user._id,
-        positionUpdate(parsed.lang, parsed.lessonIdx, parsed.stepIdx),
+        positionUpdate(parsed.lang, parsed.lessonIdx, parsed.stepIdx, new Date(), parsed.surface),
         { returnDocument: 'after' }
     );
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json({ lessonPosition: progressPayload(user).lessonPosition });
+    const payload = progressPayload(user);
+    res.json({ lessonPosition: payload.lessonPosition, chatPosition: payload.chatPosition });
 });
 
 // POST /api/progress/learn-word — record a word as taught and put it on the ladder

@@ -1,7 +1,7 @@
 /* Where does each surface resume? Checks src/services/lessonResume.js, the one
    rule Chat.jsx and Steps.jsx both read.   node tools/resume-check.mjs */
 import assert from 'node:assert';
-import { resumeIndex, scenarioIndexFor, mergeProgress, withLessonCompleted, completedLessonFor, savedStepFor } from '../src/services/lessonResume.js';
+import { resumeIndex, scenarioIndexFor, mergeProgress, withLessonCompleted, completedLessonFor, savedStepFor, chatPositionFor, withChatPosition } from '../src/services/lessonResume.js';
 
 const cases = [];
 const check = (name, fn) => { try { fn(); cases.push(['ok  ', name]); } catch (e) { cases.push(['FAIL', `${name}: ${e.message}`]); } };
@@ -46,6 +46,25 @@ check('mid-lesson: a step past a shorter plan starts at 0', () => assert.strictE
 check('mid-lesson: no record / offline starts at 0', () => assert.strictEqual(savedStepFor(null, 'Kannada', 0, 15), 0));
 check('mid-lesson: mergeProgress carries the position through', () =>
     assert.deepStrictEqual(mergeProgress({}, pos).lessonPosition, pos.lessonPosition));
+
+const chat = { successfulRepeats: 37, lessonProgress: { Kannada: 2 }, chatPosition: { Kannada: { lessonIdx: 3, stepIdx: 7 } } };
+check('chat: Kannada L4 left at turn 7 reopens at turn 7', () => assert.strictEqual(chatPositionFor(chat, 'Kannada', 3), 7));
+check('chat: switching to Telugu does not carry Kannada\'s turn (or the shared counter) over', () =>
+    assert.strictEqual(chatPositionFor(chat, 'Telugu', 0), 0));
+check('chat: back to Kannada after Telugu is still turn 7', () => {
+    const p = withChatPosition(chat, 'Telugu', 0, 4);
+    assert.strictEqual(chatPositionFor(p, 'Telugu', 0), 4);
+    assert.strictEqual(chatPositionFor(p, 'Kannada', 3), 7);
+});
+check('chat: a different lesson of the same language starts at 0', () => assert.strictEqual(chatPositionFor(chat, 'Kannada', 4), 0));
+check('chat: step mode\'s lessonPosition is not read as a chat turn', () =>
+    assert.strictEqual(chatPositionFor({ lessonPosition: { Telugu: { lessonIdx: 0, stepIdx: 9 } } }, 'Telugu', 0), 0));
+check('chat: no per-language record anywhere falls back to the old counter', () =>
+    assert.strictEqual(chatPositionFor({ successfulRepeats: 37 }, 'Telugu', 2), 7));
+check('chat: a stale /increment payload cannot move the local turn back', () => {
+    const local = withChatPosition(chat, 'Kannada', 3, 8);
+    assert.strictEqual(chatPositionFor(mergeProgress(local, chat), 'Kannada', 3), 8);
+});
 
 for (const [s, n] of cases) console.log(`${s} ${n}`);
 const failed = cases.filter(([s]) => s === 'FAIL').length;
