@@ -69,14 +69,16 @@ const isStemOf = (token) => {
 /* Teach lines that use a word on an earlier screen than the one that teaches
    it. Round K4: Kannada L21's first screen said *meju mele* five screens
    before *meju*, and L26's first said *aagide* one screen early. Only the
-   italicised Kannada counts — the English around it is the gloss. */
+   italicised Kannada counts — the English around it is the gloss. Bold
+   (**-anu**) is stripped first: left in, its asterisks shift the pairing and
+   hid Telugu L14's first screen naming three words from later screens. */
 const early = new Set();
 const spellings = (v) => new Set([norm(v.word).join(''), ...(v.alt || []).flatMap(norm)]);
 
 lessons.forEach((lesson, i) => {
     const vocab = lesson.vocabulary || [];
     vocab.forEach((v, at) => {
-        const used = [...String(v.teach || '').matchAll(/\*([^*]+)\*/g)].flatMap(m => norm(m[1]));
+        const used = [...String(v.teach || '').replace(/\*\*[^*]+\*\*/g, ' ').matchAll(/\*([^*]+)\*/g)].flatMap(m => norm(m[1]));
         for (const t of used) {
             if (known.has(t)) continue;
             const later = vocab.findIndex((w, j) => j > at && spellings(w).has(t));

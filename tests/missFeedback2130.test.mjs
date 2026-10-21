@@ -58,3 +58,13 @@ test('a miss is explained against the nearest accepted form, so a right word is 
     assert.doesNotMatch(line, /Undi/);
     assert.match(line, /^\*Vedi\* means “hot”/);
 });
+
+test('a word taught twice is revealed in the sense the step asks for', () => {
+    // L29 teaches *Adhi* as the filler "um"; L1 taught it as "that".
+    const filler = help('sare', 'Adhi', 29, { meaning: 'Um (filler)', reveal: true });
+    assert.match(filler, /This asks for “um/);
+    assert.doesNotMatch(filler, /“that”/);
+    assert.match(help('hmm', 'Adhi', 29, { meaning: 'Um (filler)' }), /"Um"/);
+    // A lesson 29 review of *Adhi* "that" keeps "that".
+    assert.match(help('sare', 'Adhi', 29, { meaning: 'That', reveal: true }), /This asks for “that”/);
+});

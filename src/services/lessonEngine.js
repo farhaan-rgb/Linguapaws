@@ -2453,9 +2453,12 @@ const ENDING_MEANS = {
 export const explainMiss = (said, expected, variants = [], lexicon = new Map(), opts = {}) => {
     const { synonyms, meanings: rawMeanings } = asLexicon(lexicon);
     const canon = (t) => synonyms.get(t) || t;
+    /* `here`: the sense of a word the course teaches twice that this step
+       asks for (missHelp passes it), ahead of the course-wide first one. */
+    const pick = (k) => opts.here?.get(k) || rawMeanings.get(k);
     const meanings = opts.clean
-        ? { get: (k) => { const m = rawMeanings.get(k); return m ? cleanGloss(m) : m; } }
-        : rawMeanings;
+        ? { get: (k) => { const m = pick(k); return m ? cleanGloss(m) : m; } }
+        : { get: pick };
     const hide = !!opts.hideAnswer;
     const outline = (t) => {
         const tok = String(expected || '').split(/\s+/)
@@ -3045,6 +3048,32 @@ export const missHelp = (said, expected, {
     const otherForms = form === expected ? variants : [expected, ...(variants || []).filter(v => v !== form)];
     const need = normalizeLatin(form).split(' ')
         .filter(t => t && !/[[\]()]/.test(t));
+    /* A word the course teaches twice is the answer in the sense this step
+       asks for: Telugu L29's filler *Adhi* ("um") was revealed as "This asks
+       for “that”", the lesson 1 *Adhi* the course-wide map met first. The
+       sense the step's own meaning names wins (a lesson 29 review of *Adhi*
+       "that" stays "that"); failing that, the lesson being played. Only the
+       needed words are re-pointed: a learner who writes *adhi* where it is
+       not asked for still meant whichever sense they knew. */
+    const hereMeanings = new Map();
+    {
+        const senses = new Map();
+        (taughtLessons || []).forEach((lesson, i) => {
+            for (const v of lesson.vocabulary || []) {
+                if (!v.word || !v.meaning) continue;
+                const k = normalizeLatin(v.word);
+                if (!senses.has(k)) senses.set(k, []);
+                senses.get(k).push({ entry: { word: v.word, meaning: v.meaning }, current: i === taughtLessons.length - 1 });
+            }
+        });
+        for (const t of need) {
+            const all = senses.get(t) || [];
+            if (new Set(all.map(x => x.entry.meaning)).size < 2) continue;
+            const pick = (meaning && all.find(x => meaningFits(x.entry.meaning, meaning, [])))
+                || all.find(x => x.current);
+            if (pick) { taught.set(t, pick.entry); hereMeanings.set(t, pick.entry.meaning); }
+        }
+    }
     const scaffold = reveal ? '' : missScaffold(said, form, lexicon);
     const has = (list, t) => list.some(x => x === t || canon(x) === canon(t));
     const missing = need.filter(t => !has(got, t));
@@ -3088,7 +3117,7 @@ export const missHelp = (said, expected, {
     };
     const used = new Set();
     const fallback = () => finish(explainMiss(said, form, otherForms, lexicon,
-        { hideAnswer: !reveal, clean: true, prompt: meaning, hint }));
+        { hideAnswer: !reveal, clean: true, prompt: meaning, hint, here: hereMeanings }));
     /* ── Which KIND of mistake this was ───────────────────────────────────
        A second output, for the record rather than for the screen, in the
        eleven names of `shared/missKinds.js`. It is NOT the `kind` beside it:
