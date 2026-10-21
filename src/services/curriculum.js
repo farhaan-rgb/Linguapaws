@@ -1511,7 +1511,7 @@ export const CURRICULUM = {
                 { prompt: "Say 'I will eat later'", correct: "Naanu aamele tinnuttene", native: "ನಾನು ಆಮೇಲೆ ತಿನ್ನುತ್ತೇನೆ", meaning: "I will eat later", hint: "I + later + will eat",
                   acceptable: ["aamele tinnuttene", "naanu aamele tintini", "aamele tintini", "naanu amele tinnuttene"],
                   grammarNote: "*Tinnuttiddene* is “I am eating”. Drop the -idd- and it's *tinnuttene*, “I will eat”." },
-                { prompt: "Say 'I will come soon' — careful, not 'don't want'", correct: "Naanu bega baruttene", native: "ನಾನು ಬೇಗ ಬರುತ್ತೇನೆ", meaning: "I will come soon", hint: "I + soon + will come",
+                { prompt: "Say 'I will come soon'", correct: "Naanu bega baruttene", native: "ನಾನು ಬೇಗ ಬರುತ್ತೇನೆ", meaning: "I will come soon", hint: "I + soon + will come",
                   acceptable: ["bega baruttene", "naanu bega bartini", "bega bartini"],
                   grammarNote: "*Bega* is “soon”, *beda* is “don't want”. One letter apart, so check the middle." }
             ],
