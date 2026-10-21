@@ -23,6 +23,7 @@ const {
     readMissKind, applyTally, missHistory, profileFilter, profileUpdate, profilePayload,
 } = require('../services/missKinds');
 const MissKindStat = require('../models/MissKindStat');
+const { summaryPayload } = require('../services/progressSummary');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -281,6 +282,20 @@ router.get('/vocab', async (req, res) => {
             ...missHistory(w),
         })),
     });
+});
+
+// GET /api/progress/summary?lang=Kannada — the home page's stats in one light
+// read: lessons completed, words and phrases learned, skills by level.
+router.get('/summary', async (req, res) => {
+    const { lang } = req.query;
+    if (typeof lang !== 'string' || !lang) return res.status(400).json({ error: 'lang query param is required' });
+    const userId = req.user._id;
+    const [user, words, skills] = await Promise.all([
+        User.findById(userId).select('lessonProgress').lean(),
+        LearnedWord.find({ userId, lang }).select('kind dueAt').lean(),
+        SkillStat.find({ userId, lang }).select('mastery evidence').limit(2000).lean(),
+    ]);
+    res.json(summaryPayload({ lang, user, words, skills }));
 });
 
 // POST /api/progress/confusion — the learner said one taught word for another

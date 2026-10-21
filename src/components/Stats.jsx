@@ -1,15 +1,57 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Languages, History, GraduationCap } from 'lucide-react';
-import { wordTracker } from '../services/wordTracker';
+import { Languages, GraduationCap } from 'lucide-react';
 import { useTranslation } from '../hooks/useTranslation';
+import { api } from '../services/api';
+import { lessonCount } from '../services/curriculum';
+import { getStoredJSON } from '../utils/storage';
+import { proficiencyOf, readCache, writeCache } from '../services/homeStats';
+
+const targetLangName = () => getStoredJSON('linguapaws_target_lang', {})?.name || null;
+
+/* The current target language, re-read when another screen changes it. */
+function useTargetLang() {
+    const [lang, setLang] = React.useState(targetLangName);
+    React.useEffect(() => {
+        const sync = () => setLang(targetLangName());
+        window.addEventListener('storage', sync);
+        window.addEventListener('linguapaws-language-changed', sync);
+        return () => {
+            window.removeEventListener('storage', sync);
+            window.removeEventListener('linguapaws-language-changed', sync);
+        };
+    }, []);
+    return lang;
+}
+
+/* Last cached summary for this language straight away, then the server's.
+   Never blocks the page: a failed fetch leaves the cached numbers up. */
+function useSummary(lang) {
+    const [state, setState] = React.useState(() => ({ lang, summary: readCache('home_stats', lang) }));
+    const summary = state.lang === lang ? state.summary : readCache('home_stats', lang);
+    React.useEffect(() => {
+        let live = true;
+        setState({ lang, summary: readCache('home_stats', lang) });
+        if (!lang) return undefined;
+        api.get(`/api/progress/summary?lang=${encodeURIComponent(lang)}`)
+            .then((fresh) => {
+                writeCache('home_stats', lang, fresh);
+                if (live) setState({ lang, summary: fresh });
+            })
+            .catch(() => { /* keep the cached numbers */ });
+        return () => { live = false; };
+    }, [lang]);
+    return summary;
+}
 
 export default function Stats() {
     const navigate = useNavigate();
     const { t } = useTranslation();
-    const wordCount = wordTracker.getTotalCount();
-    const proficiency = wordTracker.getProficiency();
-    const progress = wordTracker.getProgress();
+    const lang = useTargetLang();
+    const summary = useSummary(lang);
+    const proficiency = proficiencyOf(summary, lessonCount(lang));
+    const progress = proficiency.progress;
+    const wordCount = summary?.words ?? 0;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -26,9 +68,14 @@ export default function Stats() {
                     <h2 style={{ fontSize: '24px', fontWeight: '700', margin: 0 }}>
                         {proficiency.icon} {t[proficiency.status.toLowerCase()] || proficiency.status}
                     </h2>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                        {t.next_tier.replace('{n}', proficiency.nextTier)}
-                    </span>
+                    {proficiency.nextLine && (
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                            {proficiency.nextLine}
+                        </span>
+                    )}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    {proficiency.detail}
                 </div>
 
                 <div className="progress-bar" style={{ height: '8px' }}>
