@@ -1463,7 +1463,8 @@ export const CURRICULUM = {
                 { word: "Tinde", native: "ತಿಂದೆ", meaning: "I ate", phonetic: "tihn-deh", alt: ["thinde", "tindenu"],
                   teach: "{w} means “I ate”. Another start you can't predict: *tinnu* (“eat”) → {w}.",
                   traps: [{ said: "Tinnuttiddene", why: "*Tinnuttiddene* is “I am eating”, right now. For “I ate”, it's {answer}." }] },
-                { word: "Nodide", native: "ನೋಡಿದೆ", meaning: "I saw", phonetic: "noh-dih-deh", alt: ["nodidenu"] },
+                { word: "Nodide", native: "ನೋಡಿದೆ", meaning: "I saw", phonetic: "noh-dih-deh", alt: ["nodidenu"],
+                  en: ["I looked", "looked", "I watched", "watched", "saw"] },
                 { word: "Helide", native: "ಹೇಳಿದೆ", meaning: "I said / I told", phonetic: "hay-lih-deh", alt: ["helidenu"] },
                 { word: "Bande", native: "ಬಂದೆ", meaning: "I came", phonetic: "bun-deh", alt: ["bandenu"] }
             ],
@@ -1501,7 +1502,8 @@ export const CURRICULUM = {
                   teach: "“I will do” is {w}. It ends like *hoguttene*. Compare *maaduttiddene*, “I am doing”: drop the -idd- and you get “I will do”." },
                 { word: "Baruttene", native: "ಬರುತ್ತೇನೆ", meaning: "I will come", phonetic: "buh-rut-tay-neh", alt: ["bartini", "baruttini", "barteeni"] },
                 { word: "Tinnuttene", native: "ತಿನ್ನುತ್ತೇನೆ", meaning: "I will eat", phonetic: "tihn-nut-tay-neh", alt: ["tintini", "tinnuttini"] },
-                { word: "Noduttene", native: "ನೋಡುತ್ತೇನೆ", meaning: "I will see", phonetic: "noh-dut-tay-neh", alt: ["nodtini", "noduttini"] },
+                { word: "Noduttene", native: "ನೋಡುತ್ತೇನೆ", meaning: "I will see", phonetic: "noh-dut-tay-neh", alt: ["nodtini", "noduttini"],
+                  en: ["I will look", "will look", "I will watch", "will watch", "I see", "I look"] },
                 { word: "Bega", native: "ಬೇಗ", meaning: "Soon / quickly", phonetic: "bay-guh",
                   teach: "{w} means “soon” or “quickly”. Mind the middle letter: *beda* is “don't want”." }
             ],

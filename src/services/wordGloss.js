@@ -103,6 +103,8 @@ export const englishKey = (s) => String(s || '').toLowerCase().replace(/’/g, "
 /** Never a key on their own, even if a gloss somewhere were just this. */
 const ENGLISH_FILLER = new Set(['a', 'an', 'the', 'to', 'of', 'is', 'and', 'or', 'it']);
 const englishIndexes = new Map();
+/* A leading subject, dropped for a second key — never the whole meaning. */
+const SUBJECT_RE = /^(?:i|it|you|he|she|they|we|this|that) (?=\S)/;
 
 function englishIndexFor(langName) {
     if (englishIndexes.has(langName)) return englishIndexes.get(langName);
@@ -110,15 +112,26 @@ function englishIndexFor(langName) {
     (CURRICULUM[langName] || []).forEach((lesson, i) => {
         for (const v of lesson.vocabulary || []) {
             if (!v?.word || !v?.meaning) continue;
-            const alts = String(v.meaning).replace(/\([^)]*\)/g, ' ').split(/[/;,]/);
+            /* `en`: extra English a prompt may use for this word ("will look"
+               for Noduttene, stored as "I will see"). Tap lookup only — the
+               card still shows `meaning`. */
+            const alts = [...String(v.meaning).replace(/\([^)]*\)/g, ' ').split(/[/;,]/), ...(v.en || [])];
             for (const alt of alts) {
                 const k = englishKey(alt);
-                if (!k || ENGLISH_FILLER.has(k)) continue;
-                const list = map.get(k) || [];
-                if (!list.some(e => keyOf(e.word) === keyOf(v.word))) {
-                    list.push({ word: v.word, meaning: v.meaning, lesson: i + 1 });
+                /* Also without its subject: a prompt says "I will look at the
+                   book later" or "the food is good", and the subject word is
+                   often elsewhere in the sentence — so "will see" and "is good"
+                   must find Noduttene and Chennagide, not only "I will see" and
+                   "It is good". Exact keys win: they are added first. */
+                const bare = k.replace(SUBJECT_RE, '');
+                for (const key of bare !== k ? [k, bare] : [k]) {
+                    if (!key || ENGLISH_FILLER.has(key)) continue;
+                    const list = map.get(key) || [];
+                    if (!list.some(e => keyOf(e.word) === keyOf(v.word))) {
+                        list.push({ word: v.word, meaning: v.meaning, lesson: i + 1, bare: key !== k });
+                    }
+                    map.set(key, list);
                 }
-                map.set(k, list);
             }
         }
     });
@@ -153,7 +166,9 @@ export function englishFor(langName, phrase, lessonNo = Infinity, answer = null,
     let list = taughtBy(k);
     if (!list.length && k.length > 3 && /[^s']s$/.test(k)) list = taughtBy(k.slice(0, -1));
     if (!list.length && k.length > 4 && /es$/.test(k)) list = taughtBy(k.slice(0, -2));
-    const options = list.slice(0, 2).map(e => ({ ...e, earlier: e.lesson < lessonNo }));
+    // A word whose meaning IS the phrase before one matched without its subject.
+    const options = [...list].sort((a, b) => (a.bare ? 1 : 0) - (b.bare ? 1 : 0)).slice(0, 2)
+        .map(e => { const o = { ...e, earlier: e.lesson < lessonNo }; delete o.bare; return o; });
     if (options.length) return { english: true, phrase, options };
     return answer ? englishEndingFor(langName, phrase, lessonNo, answer) : null;
 }
