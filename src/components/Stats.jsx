@@ -33,13 +33,17 @@ function useSummary(lang) {
         let live = true;
         setState({ lang, summary: readCache('home_stats', lang) });
         if (!lang) return undefined;
-        api.get(`/api/progress/summary?lang=${encodeURIComponent(lang)}`)
+        /* One retry: a free-plan server asleep can fail the first request
+           while it wakes, and nothing else would ask again until a reload. */
+        let retry = null;
+        const load = (again) => api.get(`/api/progress/summary?lang=${encodeURIComponent(lang)}`)
             .then((fresh) => {
                 writeCache('home_stats', lang, fresh);
                 if (live) setState({ lang, summary: fresh });
             })
-            .catch(() => { /* keep the cached numbers */ });
-        return () => { live = false; };
+            .catch(() => { if (again && live) retry = setTimeout(() => load(false), 15000); });
+        load(true);
+        return () => { live = false; clearTimeout(retry); };
     }, [lang]);
     return summary;
 }
@@ -51,7 +55,11 @@ export default function Stats() {
     const summary = useSummary(lang);
     const proficiency = proficiencyOf(summary, lessonCount(lang));
     const progress = proficiency.progress;
-    const wordCount = summary?.words ?? 0;
+    /* No summary yet — first visit, server waking, or a failed fetch — is
+       "not known", not zero. Showing 0 told a learner with 80 words and 13
+       lessons that they had learned nothing. */
+    const loading = !summary;
+    const wordCount = loading ? '…' : (summary.words ?? 0);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -66,16 +74,16 @@ export default function Stats() {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '8px' }}>
                     <h2 style={{ fontSize: '24px', fontWeight: '700', margin: 0 }}>
-                        {proficiency.icon} {t[proficiency.status.toLowerCase()] || proficiency.status}
+                        {loading ? '…' : <>{proficiency.icon} {t[proficiency.status.toLowerCase()] || proficiency.status}</>}
                     </h2>
-                    {proficiency.nextLine && (
+                    {!loading && proficiency.nextLine && (
                         <span style={{ fontSize: '11px', color: 'var(--text-secondary)', textAlign: 'right' }}>
                             {proficiency.nextLine}
                         </span>
                     )}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                    {proficiency.detail}
+                    {loading ? 'Loading your progress…' : proficiency.detail}
                 </div>
 
                 <div className="progress-bar" style={{ height: '8px' }}>
