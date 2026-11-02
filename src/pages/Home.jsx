@@ -7,6 +7,7 @@ import CharacterGrid from '../components/CharacterGrid';
 import Stats from '../components/Stats';
 import ModeToggle from '../components/ModeToggle';
 import { getLearnMode, setLearnMode } from '../utils/learnMode';
+import { CHAT_ENABLED } from '../config/features';
 
 export default function Home() {
     const navigate = useNavigate();
@@ -63,10 +64,10 @@ export default function Home() {
         <div className="app-container" style={{ padding: '8px 16px' }}>
             <Header />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <ModeToggle mode={learnMode} onChange={handleChangeMode} />
+                {CHAT_ENABLED && <ModeToggle mode={learnMode} onChange={handleChangeMode} />}
                 <Hero onStartChat={() => handleStartChat()} />
                 <TopicGrid onSelectTopic={(topic) => handleStartChat(topic)} />
-                <CharacterGrid onSelectCharacter={(char) => handleStartChat(null, char)} />
+                {CHAT_ENABLED && <CharacterGrid onSelectCharacter={(char) => handleStartChat(null, char)} />}
                 <Stats />
             </div>
         </div>

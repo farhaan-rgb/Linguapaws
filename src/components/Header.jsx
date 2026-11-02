@@ -100,8 +100,8 @@ export default function Header() {
                         }}
                     >
                         <img
-                            src={user.picture}
-                            alt={user.name}
+                            src={user?.picture}
+                            alt={user?.name}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             onError={(e) => { e.target.style.display = 'none'; }}
                         />
@@ -128,8 +128,8 @@ export default function Header() {
                                 }}
                             >
                                 <div style={{ padding: '14px 16px', borderBottom: '1px solid #f5f5f5' }}>
-                                    <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>{user.name}</div>
-                                    <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{user.email}</div>
+                                    <div style={{ fontWeight: '600', fontSize: '14px', color: '#1a1a1a' }}>{user?.name}</div>
+                                    <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{user?.email}</div>
                                 </div>
                                 <button
                                     onClick={handleSignOut}

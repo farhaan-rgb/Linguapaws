@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { characters } from '../data/characters';
 import { useTranslation } from '../hooks/useTranslation';
+import { CHAT_ENABLED } from '../config/features';
 
 export default function Hero({ onStartChat }) {
     const { t } = useTranslation();
@@ -34,7 +35,7 @@ export default function Hero({ onStartChat }) {
             </div>
 
             <p style={{ color: 'var(--text-secondary)', fontSize: '11px', marginBottom: '8px' }}>
-                {t.hero_tagline}
+                {CHAT_ENABLED ? t.hero_tagline : t.hero_tagline_steps}
             </p>
 
             <motion.button
@@ -44,7 +45,7 @@ export default function Hero({ onStartChat }) {
                 whileTap={{ scale: 0.98 }}
                 onClick={onStartChat}
             >
-                {t.start_chat}
+                {CHAT_ENABLED ? t.start_chat : t.start_lessons}
             </motion.button>
         </section>
     );

@@ -31,6 +31,7 @@ import { api } from '../services/api';
 import { resumeIndex, savedStepFor, completedLessonFor } from '../services/lessonResume';
 import * as fx from '../utils/feedbackFx';
 import { getAnswerMode, setAnswerMode } from '../utils/learnMode';
+import { CHAT_ENABLED } from '../config/features';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { aiService } from '../services/ai';
 import {
@@ -3501,7 +3502,7 @@ export function Summary({
                         That is the last lesson written so far — you have finished the course.
                     </p>
                 )}
-                <button onClick={() => navigate(`/chat?scenario=${scenarioIdx}`)}
+                {CHAT_ENABLED && <button onClick={() => navigate(`/chat?scenario=${scenarioIdx}`)}
                     style={{
                         width: '100%', marginTop: 10, padding: '13px',
                         borderRadius: 'var(--radius-md)', border: 'none', cursor: 'pointer',
@@ -3509,7 +3510,7 @@ export function Summary({
                         color: 'var(--accent-purple)', fontFamily: 'var(--font-display)',
                     }}>
                     <MessageCircle size={15} style={{ verticalAlign: -3 }} /> Practise this scenario in chat
-                </button>
+                </button>}
             </>)}
             {/* Practice's own footer already ends with the way back; a second
                 one here gave its results page two "Back to lessons". */}

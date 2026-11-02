@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, Book, Star, Volume2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { aiService } from '../services/ai';
+import { CHAT_ENABLED } from '../config/features';
 import { getStoredJSON } from '../utils/storage';
 
 export default function Dictionary() {
@@ -20,7 +21,7 @@ export default function Dictionary() {
 
     useEffect(() => {
         if (!text) {
-            navigate('/chat');
+            navigate(CHAT_ENABLED ? '/chat' : '/');
             return;
         }
 

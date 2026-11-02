@@ -18,6 +18,7 @@ import { sessionProgress } from '../services/skillProgress';
 import { skillsFor } from '../services/skills';
 import { missKindLabel } from '../../shared/missKinds.js';
 import MySkills from '../pages/MySkills';
+import Settings from '../pages/Settings';
 
 /**
  * Dev-only harness for the step-by-step lesson screens.
@@ -294,7 +295,7 @@ if (screen === 'map' || screen === 'practice') {
         return p;
     };
 }
-if (screen === 'home') {
+if (screen === 'home' || screen === 'settings') {
     localStorage.setItem('linguapaws_user', JSON.stringify({
         name: 'Preview', email: 'preview@example.com', picture: '',
     }));
@@ -607,12 +608,13 @@ createRoot(document.getElementById('root')).render(
         <div style={{ paddingTop: 18 }}>
             {screen === 'toggle' ? <TogglePreview /> : screen === 'summary' ? <SummaryPreview /> : (
             <AuthProvider>
-                <MemoryRouter initialEntries={[screen === 'home' ? '/' : screen === 'map' ? '/lessons' : screen === 'skills' ? '/skills' : screen === 'practice' ? '/steps?practice=1' : `/steps?scenario=${scenario}`]}>
+                <MemoryRouter initialEntries={[screen === 'home' ? '/' : screen === 'map' ? '/lessons' : screen === 'skills' ? '/skills' : screen === 'settings' ? '/settings' : screen === 'practice' ? '/steps?practice=1' : `/steps?scenario=${scenario}`]}>
                     <Routes>
                         <Route path="/" element={<Home />} />
                         <Route path="/steps" element={<Steps />} />
                         <Route path="/lessons" element={<LessonMap />} />
                         <Route path="/skills" element={<MySkills />} />
+                        <Route path="/settings" element={<Settings />} />
                     </Routes>
                 </MemoryRouter>
             </AuthProvider>

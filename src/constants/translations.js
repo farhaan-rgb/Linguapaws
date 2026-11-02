@@ -1445,6 +1445,10 @@ export const UI_TRANSLATIONS = {
         coach_desc: 'Miko listens, nudges, and celebrates your new words.',
         hero_tagline: 'Real conversations, real progress.',
         start_chat: 'Start the Purr-chat',
+        // Used instead of the two above while chat is switched off (src/config/features.js).
+        // English only so far; other UI languages fall back to these.
+        hero_tagline_steps: 'One short lesson at a time.',
+        start_lessons: 'Start learning',
         choose_topic: 'Choose a Topic',
         topic_desc: 'Pick a topic and jump right in.',
         practice_friends: 'Practice with Friends',

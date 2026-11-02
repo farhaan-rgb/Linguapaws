@@ -1,10 +1,14 @@
 /** Which surface a lesson is delivered through. Kept out of the component file
  *  so fast-refresh still works on the toggle itself. */
 
+import { CHAT_ENABLED } from '../config/features';
+
 export const MODE_KEY = 'linguapaws_learn_mode';
 
-/** 'steps' walks a lesson one screen at a time; 'chat' is the original tutor. */
+/** 'steps' walks a lesson one screen at a time; 'chat' is the original tutor.
+ *  With chat switched off every lesson is steps, whatever was stored. */
 export const getLearnMode = () =>
+    !CHAT_ENABLED ? 'steps' :
     localStorage.getItem(MODE_KEY) === 'steps' ? 'steps' : 'chat';
 
 export const setLearnMode = (mode) => {

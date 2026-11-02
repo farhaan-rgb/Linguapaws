@@ -19,6 +19,7 @@ import ShadowPractice from './pages/ShadowPractice';
 import LevelSelect from './pages/LevelSelect';
 import SkillDebug from './pages/SkillDebug';
 import MySkills from './pages/MySkills';
+import { CHAT_ENABLED } from './config/features';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -81,7 +82,10 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       <Route path="/select-language" element={<ProtectedRoute><LanguageSelect /></ProtectedRoute>} />
       <Route path="/learn-language" element={<ProtectedRoute><LearnLanguageSelect /></ProtectedRoute>} />
-      <Route path="/chat" element={<ProtectedRoute><ErrorBoundary><Chat /></ErrorBoundary></ProtectedRoute>} />
+      {/* Chat is behind a flag (src/config/features.js); off, /chat?… lands on the map. */}
+      <Route path="/chat" element={CHAT_ENABLED
+        ? <ProtectedRoute><ErrorBoundary><Chat /></ErrorBoundary></ProtectedRoute>
+        : <Navigate to="/lessons" replace />} />
       <Route path="/skills" element={<ProtectedRoute><ErrorBoundary><MySkills /></ErrorBoundary></ProtectedRoute>} />
       <Route path="/lessons" element={<ProtectedRoute><ErrorBoundary><LessonMap /></ErrorBoundary></ProtectedRoute>} />
       <Route path="/steps" element={<ProtectedRoute><ErrorBoundary><Steps /></ErrorBoundary></ProtectedRoute>} />
